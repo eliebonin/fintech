@@ -52,6 +52,27 @@ GitHub Secret Scanning and Push Protection are repository administrator
 settings, not source-controlled configuration. Enable both after these files
 are committed/pushed, then confirm the first `Quality` workflow run succeeds.
 
+## Outstanding follow-ups
+
+The baseline is now committed and pushed as `b38e59d`; the earlier repository
+baseline blocker is resolved. The remaining work is deliberately outside the
+completed local Slice 0 implementation:
+
+1. **Run and inspect GitHub Quality.** Confirm the first remote `python`,
+   `web`, and `secrets` jobs pass on `main`. This validates the pinned-action
+   workflow in GitHub's environment, including Gitleaks history scanning.
+2. **Enable GitHub Secret Scanning and Push Protection.** A repository
+   administrator must enable both controls in GitHub settings. The checked-in
+   workflow cannot configure them.
+3. **Diagnose the full Python-suite stall.** `pytest -v` previously collected
+   224 tests without completing. Identify the blocking test/dependency and
+   make the suite reliably finish, or split integration tests into a
+   separately provisioned and bounded CI job.
+4. **Review the generator exception during dependency maintenance.** Keep
+   `openapi-typescript` 7.10.1 and the `@redocly/openapi-core` 1.34.19 override
+   until a controlled upgrade regenerates the contract and passes the stated
+   checks.
+
 ## Toolchain exception
 
 `openapi-typescript` is pinned to 7.10.1 and the pnpm override pins
