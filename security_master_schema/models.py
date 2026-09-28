@@ -2114,6 +2114,7 @@ market_data_resolution_snapshot = Table(
     Column("valuation_date", Date, nullable=False, comment="Business valuation date for the resolution snapshot."),
     Column("valuation_cut_id", UUID_V7, ForeignKey("md.valuation_cut.valuation_cut_id"), nullable=False, comment="Named valuation cut at which data eligibility was evaluated."),
     Column("market_data_as_of_utc", DateTime(timezone=True), nullable=False, comment="UTC information cut-off; observations received later are ineligible for this snapshot."),
+    Column("use_purpose", String(50), nullable=False, server_default=text("'UNKNOWN'"), comment="Entitled use purpose evaluated when this immutable snapshot was created."),
     Column("resolver_version", String(100), nullable=False, comment="Version of the resolver logic used to make selections."),
     Column("status", String(30), nullable=False, server_default=text("'COMPLETED'"), comment="Snapshot status such as COMPLETED, PARTIAL, FAILED, or SUPERSEDED."),
     Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which resolution completed."), schema="md",
@@ -2126,7 +2127,11 @@ market_data_resolution_snapshot_item = Table(
     Column("subject_reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=False, comment="Instrument, listing, index, FX pair, curve point, or other subject resolved."),
     Column("market_data_series_id", UUID_V7, ForeignKey("md.market_data_series.market_data_series_id"), nullable=True, comment="Series selected by the resolver; null only for an explicit missing-data result."),
     Column("market_data_observation_id", UUID_V7, ForeignKey("md.market_data_observation.market_data_observation_id"), nullable=True, comment="Raw observation selected by the resolver; null for a policy override or missing-data result."),
+    Column("market_data_vintage_id", UUID_V7, ForeignKey("md.market_data_vintage.market_data_vintage_id"), nullable=True, comment="Immutable source vintage selected at the historic information cut."),
     Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=True, comment="Dataset of the selected observation or override when applicable."),
+    Column("acquisition_licence_id", UUID_V7, ForeignKey("md.data_licence.data_licence_id"), nullable=True, comment="Licence under which Fortem acquired the frozen observation when known."),
+    Column("source_published_at_utc", DateTime(timezone=True), nullable=True, comment="Provider publication timestamp frozen from the selected observation or vintage."),
+    Column("received_at_utc", DateTime(timezone=True), nullable=True, comment="Platform receipt timestamp frozen from the selected observation or vintage."),
     Column("selected_value", Numeric(30, 12), nullable=True, comment="Resolved scalar value; null only when the item records an explicit unresolved exception."),
     Column("currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Currency of the selected value when applicable."),
     Column("pricing_date_requested", Date, nullable=True, comment="Business date requested after applying the frozen valuation policy's pricing-date rule and business-day lag."),
@@ -2138,6 +2143,22 @@ market_data_resolution_snapshot_item = Table(
     Column("policy_rule_id", UUID_V7, ForeignKey("ten.valuation_policy_rule.valuation_policy_rule_id"), nullable=True, comment="Policy rule that selected or rejected the candidate value."),
     Column("exception_code", String(100), nullable=True, comment="Structured exception code when a value could not be resolved."), schema="md",
 )
+
+market_data_resolution_idempotency = Table(
+    "market_data_resolution_idempotency", metadata,
+    Column("market_data_resolution_idempotency_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one idempotent snapshot-create request."),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False, comment="Tenant scope of the idempotency key."),
+    Column("endpoint", String(200), nullable=False, comment="Literal API endpoint whose create request is deduplicated."),
+    Column("idempotency_key", String(255), nullable=False, comment="Caller-supplied opaque idempotency key retained only for replay lookup."),
+    Column("request_fingerprint", String(64), nullable=False, comment="SHA-256 fingerprint of the canonical validated request payload."),
+    Column("market_data_resolution_snapshot_id", UUID_V7, ForeignKey("md.market_data_resolution_snapshot.market_data_resolution_snapshot_id"), nullable=False, comment="Frozen snapshot created by the idempotent request."),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which the key was first recorded."),
+    Column("expires_at_utc", DateTime(timezone=True), nullable=False, comment="UTC expiry timestamp after which the key may be retired."),
+    UniqueConstraint("tenant_id", "endpoint", "idempotency_key", name="uq_market_data_resolution_idempotency_scope"),
+    schema="md",
+)
+
+Index("ix_market_data_resolution_idempotency_snapshot", market_data_resolution_idempotency.c.market_data_resolution_snapshot_id)
 
 nav_calculation_run = Table(
     "nav_calculation_run", metadata,
