@@ -1,0 +1,18 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { getMarketDataSeries } from "@/lib/mvp-api-client";
+import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { bffErrorResponse } from "@/lib/bff-error";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
+  const context = resolveLocalTenantContext();
+  const params = request.nextUrl.searchParams;
+  try {
+    const payload = await getMarketDataSeries(context, { fromDate: params.get("fromDate") ?? undefined, toDate: params.get("toDate") ?? undefined, referenceNodeId: params.get("referenceNodeId") ?? undefined, limit: Number(params.get("limit") ?? 12) });
+    return NextResponse.json(payload);
+  } catch (error) {
+    return bffErrorResponse(error, "Market-data service is unavailable.", request, "MARKET_DATA_API_UNAVAILABLE");
+  }
+}

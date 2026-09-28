@@ -1,0 +1,41 @@
+{
+  "scenario_code": "HSBC_XLON_SOFT_NAV_DEMO",
+  "data_classification": "SYNTHETIC",
+  "as_of_date": "2026-08-28",
+  "instrument": {
+    "canonical_name": "HSBC Demo ordinary shares",
+    "instrument_type": "EQUITY",
+    "listing": {
+      "venue": "XLON",
+      "symbol": "HSD",
+      "trading_currency": "GBP",
+      "quote_unit": "GBX",
+      "quote_factor": 100
+    }
+  },
+  "external_identifiers": [
+    {"namespace": "BANK_A_STATIC_PROD", "object_type": "LISTING", "external_id": "ABC"},
+    {"namespace": "CUSTODIAN_B_ASSET_PROD", "object_type": "LISTING", "external_id": "FOO"},
+    {"namespace": "FORTEM_LEGACY", "object_type": "LISTING", "external_id": "XYZ"}
+  ],
+  "market_data": {
+    "provider": "LSEG_DEMO",
+    "dataset": "UK_EQUITIES_EOD",
+    "series_type": "OFFICIAL_CLOSE",
+    "observed_price": 1023.0,
+    "price_currency": "GBX",
+    "permitted_use": "VALUATION"
+  },
+  "position": {
+    "strategy_code": "DEMO_INCOME",
+    "quantity": 1000,
+    "quantity_unit": "SHARES"
+  },
+  "expected_soft_nav": {
+    "reporting_currency": "GBP",
+    "gross_assets": 10230.0,
+    "liabilities": 0.0,
+    "net_asset_value": 10230.0,
+    "nav_per_unit": 10.23
+  }
+}

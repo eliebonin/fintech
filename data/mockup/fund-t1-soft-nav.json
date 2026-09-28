@@ -1,0 +1,40 @@
+{
+  "scenario": "fully fictional fund share-class official NAV published T+1",
+  "valuation_date": "2026-08-28",
+  "valuation_cut": "LONDON_CLOSE_DEMO",
+  "information_cutoff_utc": "2026-08-28T16:30:00Z",
+  "fund": {
+    "canonical_name": "Fortem Demo Income Fund",
+    "kind": "STANDALONE",
+    "legal_form": "OEIC",
+    "domicile_country_code": "GBR"
+  },
+  "share_class": {
+    "canonical_name": "Fortem Demo Income Fund I Acc GBP",
+    "instrument_type": "FUND_SHARE_CLASS",
+    "share_class_code": "I_ACC_GBP",
+    "income_treatment": "ACCUMULATION",
+    "share_currency": "GBP",
+    "dealing_frequency": "DAILY",
+    "nav_frequency": "DAILY",
+    "nav_publication_lag_business_days": 1
+  },
+  "official_nav_observation": {
+    "series_type": "OFFICIAL_NAV",
+    "market_date": "2026-08-27",
+    "source_published_at_utc": "2026-08-28T08:45:00Z",
+    "received_at_utc": "2026-08-28T09:00:00Z",
+    "value": 101.25,
+    "currency": "GBP",
+    "dataset": "UK_EQUITIES_EOD",
+    "synthetic_only": true
+  },
+  "valuation_policy_rule": {
+    "pricing_date_rule": "FIXED_LAG",
+    "lag_business_days": 1,
+    "max_staleness_business_days": 0,
+    "missing_data_action": "FAIL",
+    "expected_pricing_date_requested": "2026-08-27",
+    "expected_pricing_date_used": "2026-08-27"
+  }
+}

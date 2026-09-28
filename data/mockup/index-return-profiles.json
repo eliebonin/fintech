@@ -1,0 +1,35 @@
+{
+  "scenario_code": "INDEX_RETURN_PROFILES_DEMO",
+  "data_classification": "SYNTHETIC",
+  "as_of_date": "2026-08-28",
+  "family": {
+    "name": "MVP S&P 500 index family",
+    "internal_code": "MVP_SP500_FAMILY",
+    "provider": "Bloomberg (synthetic)",
+    "variants": [
+      {
+        "name": "MVP S&P 500 Price Return",
+        "internal_code": "MVP_SP500_PR",
+        "return_profile": "PRICE_RETURN",
+        "currency": "USD",
+        "market_data_series": "sp500_price"
+      },
+      {
+        "name": "MVP S&P 500 Net Total Return",
+        "internal_code": "MVP_SP500_NTR",
+        "return_profile": "NET_TOTAL_RETURN",
+        "currency": "USD",
+        "market_data_series": "sp500_net"
+      }
+    ]
+  },
+  "profiles": [
+    "PRICE_RETURN",
+    "GROSS_TOTAL_RETURN",
+    "NET_TOTAL_RETURN",
+    "EXCESS_PRICE_RETURN",
+    "EXCESS_TOTAL_RETURN",
+    "DIVIDEND_POINTS"
+  ],
+  "note": "The fixture is loaded by security_master_schema.mvp_demo_data and is synthetic; it is not a provider feed."
+}

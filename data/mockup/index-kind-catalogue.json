@@ -1,0 +1,38 @@
+{
+  "scenario_code": "INDEX_KIND_CATALOGUE_DEMO",
+  "data_classification": "SYNTHETIC",
+  "entries": [
+    {
+      "index_kind_code": "PUBLIC",
+      "display_name": "Public benchmark",
+      "description": "Publicly disseminated or observable benchmark. Public access does not mean the methodology is open; the provider may still own and restrict the methodology.",
+      "dissemination_class": "PUBLIC",
+      "methodology_ownership": "PROVIDER_OWNED",
+      "example_text": "S&P 500: publicly quoted benchmark with provider-owned methodology."
+    },
+    {
+      "index_kind_code": "QIS",
+      "display_name": "QIS / quantitative strategy",
+      "description": "Rules-based quantitative investment strategy expressed as an index. It is commonly provider- or client-designed and may be public, restricted, or private.",
+      "dissemination_class": "RESTRICTED",
+      "methodology_ownership": "MIXED",
+      "example_text": "A bank QIS index with a documented ruleset and controlled distribution."
+    },
+    {
+      "index_kind_code": "PROPRIETARY",
+      "display_name": "Proprietary methodology",
+      "description": "Index whose methodology, calculation rules, or constituent process is owned or controlled by a provider or client. It may still have a public price or identifier.",
+      "dissemination_class": "RESTRICTED",
+      "methodology_ownership": "PROVIDER_OWNED",
+      "example_text": "A provider-owned thematic or systematic index distributed to selected users."
+    },
+    {
+      "index_kind_code": "CUSTOM_BASKET",
+      "display_name": "Custom basket",
+      "description": "Bespoke index or basket maintained for a client, product, or internal use. Its constituent snapshots and rules are governed separately from this category code.",
+      "dissemination_class": "PRIVATE",
+      "methodology_ownership": "CLIENT_OWNED",
+      "example_text": "A manually maintained client basket whose constituents are snapshotted over time."
+    }
+  ]
+}

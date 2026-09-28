@@ -1,0 +1,82 @@
+{
+  "scenario_code": "MARKET_DATA_CUTOFF_FUNDS_DEMO",
+  "data_classification": "SYNTHETIC",
+  "valuation_date": "2026-08-28",
+  "purpose": "Exercise immutable time-series selection under different fund FX cut-offs.",
+  "fund_contexts": [
+    {
+      "fund_code": "UK_FUND_CUTOFF_DEMO",
+      "strategy_code": "UK_FUND_CUTOFF_DEMO",
+      "reporting_currency": "GBP",
+      "valuation_cut": {
+        "code": "UK_FUND_FX_1600_DEMO",
+        "timezone": "Europe/London",
+        "local_time": "16:00:00",
+        "utc_on_2026_08_28": "15:00:00Z"
+      },
+      "policy_code": "UK_FUND_CUTOFF_DEMO",
+      "fx_series": "GBP/USD UK fund cut",
+      "expected_value_at_cut": 1.356
+    },
+    {
+      "fund_code": "US_FUND_CUTOFF_DEMO",
+      "strategy_code": "US_FUND_CUTOFF_DEMO",
+      "reporting_currency": "USD",
+      "valuation_cut": {
+        "code": "US_FUND_FX_1600_DEMO",
+        "timezone": "America/New_York",
+        "local_time": "16:00:00",
+        "utc_on_2026_08_28": "20:00:00Z"
+      },
+      "policy_code": "US_FUND_CUTOFF_DEMO",
+      "fx_series": "GBP/USD US fund cut",
+      "expected_value_at_cut": 1.3588
+    }
+  ],
+  "fx_pair": {
+    "canonical_name": "GBP/USD spot reference",
+    "quote_convention": "USD_PER_GBP",
+    "observations": [
+      {
+        "series": "UK_FUND_FX_1600",
+        "received_at_utc": "2026-08-28T14:59:30Z",
+        "value": 1.356,
+        "selection": "eligible at 15:00 UTC"
+      },
+      {
+        "series": "UK_FUND_FX_1600",
+        "received_at_utc": "2026-08-28T15:05:30Z",
+        "value": 1.357,
+        "selection": "eligible after 15:05 UTC, excluded at the UK cut"
+      },
+      {
+        "series": "US_FUND_FX_1600",
+        "received_at_utc": "2026-08-28T19:59:30Z",
+        "value": 1.3588,
+        "selection": "eligible at 20:00 UTC"
+      },
+      {
+        "series": "US_FUND_FX_1600",
+        "received_at_utc": "2026-08-28T20:05:30Z",
+        "value": 1.3601,
+        "selection": "eligible after 20:05 UTC, excluded at the US cut"
+      }
+    ]
+  },
+  "other_series": [
+    {
+      "subject": "HSBC Demo on XLON",
+      "series_type": "OFFICIAL_CLOSE",
+      "market_dates": ["2026-08-26", "2026-08-27", "2026-08-28"],
+      "values": [1002.5, 1015.0, 1023.0],
+      "quote_unit": "GBX"
+    },
+    {
+      "subject": "Fortem Demo 3.25% 2031 Note",
+      "series_type": "EVALUATED_PRICE",
+      "market_dates": ["2026-08-26", "2026-08-27", "2026-08-28"],
+      "values": [98.115, 98.26, 98.425],
+      "quote_unit": "PCT_OF_PAR"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "fixture": "mvp-market-data-portfolios",
+  "synthetic": true,
+  "loaded_by": "scripts/load_demo_scenarios.py",
+  "date_range": {"from": "2024-09-02", "to": "2026-08-28", "frequency": "business_day"},
+  "providers": ["BLOOMBERG_MOCK", "YAHOO_FINANCE_MOCK", "LSEG_MOCK"],
+  "universe": [
+    "US and European listed equities",
+    "US and European fixed-rate bonds",
+    "two expiry-level futures linked to one future family",
+    "GBP/USD and EUR/USD spot pairs with London/New York 16:00 cuts",
+    "one OTC GBP/USD FX forward with mark series",
+    "existing HSBC XLON listing"
+  ],
+  "portfolios": [
+    {"strategy_code": "MVP_US_PORTFOLIO", "base_currency": "USD"},
+    {"strategy_code": "MVP_UK_PORTFOLIO", "base_currency": "GBP"}
+  ],
+  "observation_policy": {
+    "values": "seeded_random_walk",
+    "seed": "mvp:<series-key>",
+    "provenance": "every observation carries dataset_id and acquisition_licence_id",
+    "cutoffs": "16:00 local wall-clock time resolved through IANA timezone data"
+  },
+  "warning": "All values are synthetic and must not be used for investment, valuation, or client reporting."
+}

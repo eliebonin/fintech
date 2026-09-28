@@ -1,0 +1,7 @@
+{
+  "name": "test-fixtures",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic fixtures for UI/API contract and integration tests."
+}

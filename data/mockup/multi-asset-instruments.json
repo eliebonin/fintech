@@ -1,0 +1,47 @@
+{
+  "scenario_code": "MULTI_ASSET_INSTRUMENTS_DEMO",
+  "data_classification": "SYNTHETIC",
+  "as_of_date": "2026-08-28",
+  "scenarios": [
+    {
+      "scenario_code": "OTC_BOND",
+      "instrument": "Fortem Demo 3.25% 2031 Note",
+      "instrument_type": "BOND",
+      "venue": null,
+      "maturity_date": "2031-01-15",
+      "day_count_convention": {
+        "code": "ACT_ACT_ICMA",
+        "display_name": "Actual/Actual ICMA",
+        "description": "Actual days compared with the regular coupon period under the ICMA bond convention."
+      },
+      "market_data": {"series_type": "EVALUATED_PRICE", "value": 98.425, "currency": "GBP"}
+    },
+    {
+      "scenario_code": "GBP_EUR_FORWARD",
+      "instrument": "GBP/EUR deliverable forward 2026-09-28",
+      "instrument_type": "FX_FORWARD",
+      "base_currency": "GBP",
+      "quote_currency": "EUR",
+      "agreed_forward_rate": 1.1584,
+      "market_data": {"series_type": "MARK", "value": 1.1612, "currency": "EUR"}
+    },
+    {
+      "scenario_code": "FUTURE_EXPIRY",
+      "family": "Demo Euro Stoxx future family",
+      "instrument": "Demo Euro Stoxx future Dec-2026",
+      "instrument_type": "FUTURE",
+      "contract_month": "2026-12-18",
+      "listing": {"venue": "XLON", "symbol": "ESTX6", "unit_multiplier": 10},
+      "market_data": {"series_type": "OFFICIAL_CLOSE", "value": 4875.5, "currency": "EUR"}
+    },
+    {
+      "scenario_code": "AUTOCALL",
+      "instrument": "Demo HSBC quarterly autocall",
+      "instrument_type": "STRUCTURED_PRODUCT",
+      "issuer": "HSBC Demo plc",
+      "underlying": "HSBC Demo on XLON",
+      "observation_schedule": ["2026-11-28", "2027-02-26"],
+      "autocall_barrier": {"level_reference_type": "PCT_OF_INITIAL", "level_value": 100, "condition": "ABOVE_OR_EQUAL", "action": "REDEEM_PARENT"}
+    }
+  ]
+}

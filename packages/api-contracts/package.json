@@ -1,0 +1,22 @@
+{
+  "name": "api-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Generated, view-oriented TypeScript contracts for Fortem APIs.",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "generate": "openapi-typescript openapi/reference-data-api.v1.json -o src/generated.ts",
+    "generate:check": "pnpm generate && git diff --exit-code -- src/generated.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.15.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.10.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

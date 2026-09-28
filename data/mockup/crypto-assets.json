@@ -1,0 +1,68 @@
+{
+  "scenario_code": "CRYPTO_ASSET_TERMS_DEMO",
+  "data_classification": "SYNTHETIC",
+  "assets": [
+    {
+      "name": "Bitcoin",
+      "internal_code": "MVP_BTC",
+      "instrument_type": "DIGITAL_ASSET",
+      "currency_role": "BTC",
+      "asset_subtype": "NATIVE",
+      "network_deployments": [
+        {
+          "network": "BITCOIN_MAINNET",
+          "deployment_kind": "NATIVE",
+          "token_standard": null,
+          "decimals": 8
+        }
+      ],
+      "venue_listings": [
+        {
+          "venue": "COINBASE",
+          "symbol": "BTC-USD",
+          "quote_currency": "USD",
+          "venue_product_id": "BTC-USD",
+          "fix_security_id": "BTCUSD"
+        },
+        {
+          "venue": "BINANCE",
+          "symbol": "BTCUSDC",
+          "quote_currency": "USDC",
+          "venue_product_id": "BTCUSDC",
+          "fix_security_id": "BTCUSDC"
+        }
+      ]
+    },
+    {
+      "name": "USD Coin",
+      "internal_code": "MVP_USDC",
+      "instrument_type": "DIGITAL_ASSET",
+      "currency_role": "USDC",
+      "asset_subtype": "STABLECOIN",
+      "network_deployments": [
+        {
+          "network": "ETHEREUM_MAINNET",
+          "deployment_kind": "TOKEN_CONTRACT",
+          "token_standard": "ERC20",
+          "decimals": 6
+        },
+        {
+          "network": "SOLANA_MAINNET",
+          "deployment_kind": "TOKEN_CONTRACT",
+          "token_standard": "SPL",
+          "decimals": 6
+        }
+      ],
+      "venue_listings": [
+        {
+          "venue": "KRAKEN",
+          "symbol": "USDC/USD",
+          "quote_currency": "USD",
+          "venue_product_id": "USDCUSD",
+          "fix_security_id": "USDCUSD"
+        }
+      ]
+    }
+  ],
+  "note": "This fixture demonstrates the economic-asset, currency-role, chain-deployment, and venue-listing split. Venue symbols and product/FIX identifiers are listing-level operational identifiers; provider and custodian aliases remain external-object mappings."
+}

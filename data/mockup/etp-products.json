@@ -1,0 +1,40 @@
+{
+  "fixture": "exchange-traded-products",
+  "synthetic": true,
+  "products": [
+    {
+      "instrument_code": "MVP_SP500_ETF",
+      "instrument_type": "ETF",
+      "listing_symbol": "SP5E",
+      "legal_form": "UCITS_FUND",
+      "replication_method": "PHYSICAL",
+      "collateralisation_type": "NOT_APPLICABLE",
+      "redemption_model": "OPEN_ENDED",
+      "distribution_policy": "DISTRIBUTING",
+      "reference_code": "MVP_SP500_PR",
+      "constituent_snapshot_kind": "ETF_PCF"
+    },
+    {
+      "instrument_code": "MVP_GOLD_ETC",
+      "instrument_type": "ETC",
+      "listing_symbol": "GLDE",
+      "legal_form": "CERTIFICATE",
+      "replication_method": "PHYSICAL",
+      "collateralisation_type": "SECURED",
+      "redemption_model": "OPEN_ENDED",
+      "distribution_policy": "NONE",
+      "reference_code": "MVP_GOLD_COMMODITY"
+    },
+    {
+      "instrument_code": "MVP_SP500_ETN",
+      "instrument_type": "ETN",
+      "listing_symbol": "SP5N",
+      "legal_form": "DEBT_NOTE",
+      "replication_method": "NOT_APPLICABLE",
+      "collateralisation_type": "UNSECURED",
+      "redemption_model": "FIXED_MATURITY",
+      "distribution_policy": "NONE",
+      "reference_code": "MVP_SP500_PR"
+    }
+  ]
+}

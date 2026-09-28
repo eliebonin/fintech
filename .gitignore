@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log
+logs/
+
+# Node/pnpm workspace artifacts
+node_modules/
+.pnpm-store/
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
