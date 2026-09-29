@@ -10,7 +10,7 @@
 - Snapshot POST is tenant-scoped and idempotent; exact retries replay while conflicting key reuse returns `idempotency.key_reused`.
 - Snapshot reads use persisted rows only; current entitlement is not re-evaluated.
 - The OpenAPI document is exported from FastAPI and TypeScript is generated from it.
-- The Ops Console submits a one-subject command only through the server BFF, derives the permitted valuation cut from an active policy retrieved through that BFF, and displays frozen evidence through the read BFF.
+- The Ops Console submits a one-subject command only through the server BFF, derives the permitted valuation cut from an active policy retrieved through that BFF, and displays frozen evidence through the read BFF. Direct BFF tests cover valuation-date validation, upstream policy query forwarding, and server-side idempotency-key creation.
 
 ## Commands and evidence
 
@@ -20,7 +20,7 @@
 | `.venv\\Scripts\\python.exe scripts\\export_openapi_contract.py --check` | Passed after generated-contract commit. |
 | `pnpm --filter api-contracts test` | 3 files / 3 tests passed. |
 | `pnpm --filter api-contracts typecheck` | Passed. |
-| `pnpm --filter ops-console test` | 36 files / 115 tests passed, including the frozen-evidence request builder, outcome/timestamp presentation, and active-policy-to-cut selection. |
+| `pnpm --filter ops-console test` | 37 files / 118 tests passed, including the frozen-evidence request builder, outcome/timestamp presentation, active-policy-to-cut selection, and direct BFF route behaviour. |
 | `pnpm --filter ops-console typecheck` | Passed. |
 | `pnpm --filter ops-console build` | Passed; includes the snapshot read/write and active-valuation-policy BFF routes. |
 
