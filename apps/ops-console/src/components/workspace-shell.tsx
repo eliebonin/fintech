@@ -38,7 +38,7 @@ function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNav
           {REFERENCE_ACTION_ITEMS.map((item) => <Box key={item.label} component={Link} href={item.href} onClick={onNavigate} sx={{ display: "flex", alignItems: "center", gap: 1.2, px: 1.2, py: 0.9, borderRadius: 1.5, color: "#aab7cc", textDecoration: "none", "&:hover": { bgcolor: "#17243b", color: "white" } }}><Typography sx={{ width: 18, textAlign: "center", color: "#8090aa", fontWeight: 800 }}>{item.icon}</Typography><Typography variant="body2" sx={{ fontWeight: 550 }}>{item.label}</Typography></Box>)}
         </Stack>
       </Box>
-      <Box sx={{ p: 2, borderTop: "1px solid #28344d" }}><Typography variant="caption" sx={{ color: "#8290aa", display: "block" }}>TENANT CONTEXT</Typography><Typography variant="body2" sx={{ color: "white", fontWeight: 700, mt: 0.5 }}>{tenantName ?? "Demo investment office"}</Typography><Typography variant="caption" sx={{ color: "#8290aa" }}>{membershipRole ?? "Local mock session · analyst"}</Typography></Box>
+      <Box sx={{ p: 2, borderTop: "1px solid #28344d" }}><Typography variant="caption" sx={{ color: "#8290aa", display: "block" }}>TENANT CONTEXT</Typography><Typography variant="body2" sx={{ color: "white", fontWeight: 700, mt: 0.5 }}>{tenantName ?? "Demo investment office"}</Typography><Typography variant="caption" sx={{ color: "#8290aa" }}>{membershipRole ?? "Local mock session · analyst"}</Typography>{tenantName ? <Box component={Link} href="/select-tenant" onClick={onNavigate} sx={{ display: "inline-block", mt: 0.8, color: "#8cabff", fontSize: 12, fontWeight: 700 }}>Change tenant</Box> : null}</Box>
     </Box>
   );
 }

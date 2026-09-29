@@ -10,19 +10,31 @@ async function tenantHeaders() {
 }
 
 export async function GET() {
+  let headers;
   try {
-    const response = await fetch(new URL("/v1/strategies", baseUrl), { headers: await tenantHeaders(), cache: "no-store" });
-    return NextResponse.json(await response.json(), { status: response.status });
+    headers = await tenantHeaders();
   } catch {
     return NextResponse.json({ error: { code: "ACTIVE_TENANT_REQUIRED" } }, { status: 401 });
+  }
+  try {
+    const response = await fetch(new URL("/v1/strategies", baseUrl), { headers, cache: "no-store" });
+    return NextResponse.json(await response.json(), { status: response.status });
+  } catch {
+    return NextResponse.json({ error: { code: "STRATEGIES_UNAVAILABLE" } }, { status: 502 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  let headers;
   try {
-    const response = await fetch(new URL("/v1/strategies", baseUrl), { method: "POST", headers: await tenantHeaders(), body: JSON.stringify(await request.json()), cache: "no-store" });
-    return NextResponse.json(await response.json(), { status: response.status });
+    headers = await tenantHeaders();
   } catch {
     return NextResponse.json({ error: { code: "ACTIVE_TENANT_REQUIRED" } }, { status: 401 });
+  }
+  try {
+    const response = await fetch(new URL("/v1/strategies", baseUrl), { method: "POST", headers, body: JSON.stringify(await request.json()), cache: "no-store" });
+    return NextResponse.json(await response.json(), { status: response.status });
+  } catch {
+    return NextResponse.json({ error: { code: "STRATEGIES_UNAVAILABLE" } }, { status: 502 });
   }
 }
