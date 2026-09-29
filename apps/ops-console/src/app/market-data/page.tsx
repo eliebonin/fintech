@@ -10,6 +10,7 @@ import {
 } from "@/lib/market-data-series";
 import { resolveLocalTenantContext } from "@/lib/tenant-context";
 import { WorkspaceShell } from "@/components/workspace-shell";
+import { MarketDataResolutionForm } from "@/components/market-data-resolution-form";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,7 @@ export default async function MarketDataPage({ searchParams }: { searchParams: P
     <WorkspaceShell><main className="mvp-page">
       <header className="mvp-header"><div><p className="eyebrow">MARKET DATA CATALOGUE</p><h1>{selectedNodeId ? `${selectedName ?? "Instrument"} history` : "Series &amp; provenance"}</h1><p className="muted">{selectedNodeId ? "Persisted observations, charted and chronologically sorted by market date." : "Precise observables with their provider, dataset, licence and named cut."}</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
       <form className="date-form" method="get"><label>From <input type="date" name="fromDate" defaultValue={fromDate} /></label><label>To <input type="date" name="toDate" defaultValue={toDate} /></label>{selectedNodeId ? <input type="hidden" name="referenceNodeId" value={selectedNodeId} /> : null}<button type="submit">Refresh window</button>{selectedNodeId ? <Link className="clear-link" href={`/market-data?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`}>Back to all series</Link> : null}</form>
+      {selectedNodeId ? <MarketDataResolutionForm subjectReferenceNodeId={selectedNodeId} /> : null}
       {error ? <div className="error-panel">{error}</div> : selectedNodeId ? <section className="history-grid">{series.length ? series.map((item) => <HistoryPanel key={item.seriesId} series={item} />) : <div className="error-panel">No market-data series was found for this instrument in the selected date window.</div>}</section> : <section className="series-grid">{series.map((item) => { const summary = summarizeSeries(item.observations); return <article className="series-card" key={item.seriesId}><div className="series-card-top"><div><p className="eyebrow">{item.seriesType} · {item.valueType}</p><h2>{item.referenceNodeName}</h2><p className="muted">{item.datasetName ?? "Uncatalogued dataset"} · Node <code>{item.referenceNodeId.slice(0, 12)}…</code>{item.currency ? ` · ${item.currency}` : ""}</p></div><Sparkline series={item} /></div><div className="metric-row"><span><small>Window</small><strong>{summary.points} pts</strong></span><span><small>Latest</small><strong>{formatMarketDataValue(summary.last, item.valueType)}</strong></span><span><small>Cut</small><strong>{item.valuationCut ?? "—"}</strong></span></div><Provenance series={item} /><Link className="detail-link" href={`/market-data?referenceNodeId=${encodeURIComponent(item.referenceNodeId)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`}>Inspect instrument history →</Link></article>; })}</section>}
     </main></WorkspaceShell>
   );

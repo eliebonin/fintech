@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatResolutionTimestamp, resolutionStatusLabel } from "./market-data-resolution";
+import { buildOneSubjectResolutionRequest, formatResolutionTimestamp, resolutionStatusLabel } from "./market-data-resolution";
 
 describe("market-data resolution evidence formatting", () => {
   it("labels frozen outcomes without evaluating live data", () => {
@@ -11,5 +11,10 @@ describe("market-data resolution evidence formatting", () => {
   it("formats frozen UTC timestamps and null evidence safely", () => {
     expect(formatResolutionTimestamp(null)).toBe("—");
     expect(formatResolutionTimestamp("2026-08-28T16:00:00Z")).toBe("2026-08-28 16:00:00Z");
+  });
+
+  it("builds a resolution command for exactly the selected subject", () => {
+    const request = buildOneSubjectResolutionRequest("node-1", { valuationPolicyId: "policy-1", valuationDate: "2026-08-28", valuationCutId: "cut-1", marketDataAsOfUtc: "2026-08-28T16:00:00Z", usePurpose: "VALUATION" });
+    expect(request.subjectReferenceNodeIds).toEqual(["node-1"]);
   });
 });
