@@ -34,6 +34,21 @@ class TenantMembershipResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class TenantWorkspaceView(BaseModel):
+    tenant_id: UUID = Field(alias="tenantId")
+    tenant_code: str = Field(alias="tenantCode")
+    tenant_name: str = Field(alias="tenantName")
+    membership_role: str = Field(alias="membershipRole")
+    module_codes: list[str] = Field(alias="moduleCodes")
+    platform_role: str | None = Field(default=None, alias="platformRole")
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TenantWorkspaceResponse(BaseModel):
+    data: TenantWorkspaceView
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class StrategyCreateRequest(BaseModel):
     strategy_code: str = Field(alias="strategyCode", min_length=1, max_length=100)
     display_name: str = Field(alias="displayName", min_length=1, max_length=250)

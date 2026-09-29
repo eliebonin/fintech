@@ -8,7 +8,13 @@ import { Box, Chip, Divider, Drawer, IconButton, Stack, Typography } from "@mui/
 
 import { getActiveWorkspaceSection, REFERENCE_ACTION_ITEMS, WORKSPACE_NAV_ITEMS, type WorkspaceSection } from "@/lib/navigation";
 
-function Sidebar({ activeSection, onNavigate }: { activeSection: WorkspaceSection; onNavigate?: () => void }) {
+function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNavigate }: { activeSection: WorkspaceSection; moduleCodes?: string[]; tenantName?: string; membershipRole?: string; onNavigate?: () => void }) {
+  const enabledItems = moduleCodes ? WORKSPACE_NAV_ITEMS.filter((item) => {
+    if (item.key === "strategies") return moduleCodes.includes("TRADING") || moduleCodes.includes("FUND_MANAGEMENT");
+    if (item.key === "trades") return moduleCodes.includes("TRADING");
+    if (item.key === "market-data" || item.key === "pnl") return moduleCodes.includes("MARKET_DATA");
+    return true;
+  }) : WORKSPACE_NAV_ITEMS;
   return (
     <Box sx={{ width: 252, flexShrink: 0, bgcolor: "#101a2d", color: "#d7e0f1", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Box sx={{ px: 2.5, py: 2.4 }}>
@@ -22,7 +28,7 @@ function Sidebar({ activeSection, onNavigate }: { activeSection: WorkspaceSectio
       <Box sx={{ p: 1.5, flex: 1 }}>
         <Typography variant="overline" sx={{ px: 1.2, color: "#70809c", letterSpacing: "0.12em", fontWeight: 800 }}>Workspace</Typography>
         <Stack spacing={0.4} sx={{ mt: 0.8 }}>
-          {WORKSPACE_NAV_ITEMS.map((item) => {
+          {enabledItems.map((item) => {
             const active = item.key === activeSection;
             return <Box key={item.label} component={Link} href={item.href} onClick={onNavigate} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.2, py: 1, borderRadius: 1.5, bgcolor: active ? "#1e2d4c" : "transparent", color: active ? "white" : "#aab7cc", textDecoration: "none", "&:hover": { bgcolor: active ? "#24385f" : "#17243b" } }}><Stack direction="row" spacing={1.2} sx={{ alignItems: "center" }}><Typography sx={{ width: 18, textAlign: "center", color: active ? "#6e9aff" : "#8090aa" }}>{item.icon}</Typography><Typography variant="body2" sx={{ fontWeight: active ? 700 : 550 }}>{item.label}</Typography></Stack>{item.count && <Chip label={item.count} size="small" sx={{ height: 20, minWidth: 22, bgcolor: active ? "#e9a23b" : "#263651", color: active ? "#172238" : "#cad6e9", fontSize: 11, fontWeight: 800 }} />}</Box>;
           })}
@@ -32,12 +38,12 @@ function Sidebar({ activeSection, onNavigate }: { activeSection: WorkspaceSectio
           {REFERENCE_ACTION_ITEMS.map((item) => <Box key={item.label} component={Link} href={item.href} onClick={onNavigate} sx={{ display: "flex", alignItems: "center", gap: 1.2, px: 1.2, py: 0.9, borderRadius: 1.5, color: "#aab7cc", textDecoration: "none", "&:hover": { bgcolor: "#17243b", color: "white" } }}><Typography sx={{ width: 18, textAlign: "center", color: "#8090aa", fontWeight: 800 }}>{item.icon}</Typography><Typography variant="body2" sx={{ fontWeight: 550 }}>{item.label}</Typography></Box>)}
         </Stack>
       </Box>
-      <Box sx={{ p: 2, borderTop: "1px solid #28344d" }}><Typography variant="caption" sx={{ color: "#8290aa", display: "block" }}>TENANT CONTEXT</Typography><Typography variant="body2" sx={{ color: "white", fontWeight: 700, mt: 0.5 }}>Demo investment office</Typography><Typography variant="caption" sx={{ color: "#8290aa" }}>Local mock session · analyst</Typography></Box>
+      <Box sx={{ p: 2, borderTop: "1px solid #28344d" }}><Typography variant="caption" sx={{ color: "#8290aa", display: "block" }}>TENANT CONTEXT</Typography><Typography variant="body2" sx={{ color: "white", fontWeight: 700, mt: 0.5 }}>{tenantName ?? "Demo investment office"}</Typography><Typography variant="caption" sx={{ color: "#8290aa" }}>{membershipRole ?? "Local mock session · analyst"}</Typography></Box>
     </Box>
   );
 }
 
-export function WorkspaceShell({ children, sourceLabel = "LIVE API" }: { children: ReactNode; sourceLabel?: string }) {
+export function WorkspaceShell({ children, sourceLabel = "LIVE API", moduleCodes, tenantName, membershipRole }: { children: ReactNode; sourceLabel?: string; moduleCodes?: string[]; tenantName?: string; membershipRole?: string }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hash, setHash] = useState("");
@@ -51,8 +57,8 @@ export function WorkspaceShell({ children, sourceLabel = "LIVE API" }: { childre
   const activeItem = WORKSPACE_NAV_ITEMS.find((item) => item.key === activeSection);
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f3f6fb" }}>
-      <Box sx={{ display: { xs: "none", md: "block" } }}><Sidebar activeSection={activeSection} /></Box>
-      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { xs: "block", md: "none" }, "& .MuiDrawer-paper": { bgcolor: "#101a2d" } }}><Sidebar activeSection={activeSection} onNavigate={() => setMobileOpen(false)} /></Drawer>
+      <Box sx={{ display: { xs: "none", md: "block" } }}><Sidebar activeSection={activeSection} moduleCodes={moduleCodes} tenantName={tenantName} membershipRole={membershipRole} /></Box>
+      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { xs: "block", md: "none" }, "& .MuiDrawer-paper": { bgcolor: "#101a2d" } }}><Sidebar activeSection={activeSection} moduleCodes={moduleCodes} tenantName={tenantName} membershipRole={membershipRole} onNavigate={() => setMobileOpen(false)} /></Drawer>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ height: 68, px: { xs: 2, md: 3.5 }, bgcolor: "white", borderBottom: "1px solid #e7ecf4", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Stack direction="row" spacing={1.2} sx={{ alignItems: "center" }}><IconButton onClick={() => setMobileOpen(true)} sx={{ display: { xs: "inline-flex", md: "none" }, color: "#1f5eff" }} aria-label="Open navigation">☰</IconButton><Box><Typography variant="caption" color="text.secondary">WORKSPACE / {activeItem?.label.toUpperCase()}</Typography><Typography variant="body2" sx={{ fontWeight: 750, mt: 0.25 }}>{activeItem?.label}</Typography></Box></Stack>

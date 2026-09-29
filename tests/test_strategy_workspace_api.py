@@ -41,6 +41,17 @@ def test_memberships_are_available_before_a_tenant_is_selected() -> None:
     ]
 
 
+def test_tenant_workspace_returns_the_active_membership_and_modules() -> None:
+    app, headers = _app_and_headers()
+
+    response = asyncio.run(_request(app, "GET", "/v1/tenant-workspace", headers=headers))
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["tenantId"] == str(DEMO_IDS["tenant"])
+    assert "TRADING" in payload["moduleCodes"]
+
+
 def test_tenant_admin_can_create_a_fund_strategy() -> None:
     app, headers = _app_and_headers()
     payload = {"strategyCode": f"ALPHA_FUND_{uuid4().hex[:8]}", "displayName": "Alpha Fund", "strategyType": "FUND", "baseCurrencyCode": "GBP"}

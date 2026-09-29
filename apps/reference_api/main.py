@@ -55,6 +55,8 @@ from .contracts import (
     StrategyStatusRequest,
     TenantMembershipResponse,
     TenantMembershipView,
+    TenantWorkspaceResponse,
+    TenantWorkspaceView,
 )
 from .structured_product_contracts import AutocallDraftRequest, StructuredProductDraftError
 from .db import get_engine
@@ -92,6 +94,22 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         _assert_active_actor(connection, context.user_account_id)
         rows = list_active_tenant_memberships(connection, context.user_account_id, date.today())
         return TenantMembershipResponse(data=[TenantMembershipView(tenantId=row.tenant_id, tenantCode=row.tenant_code, tenantName=row.tenant_name, membershipRole=row.membership_role) for row in rows], platformRole=resolve_platform_role(connection, context.user_account_id, date.today()))
+
+    @app.get("/v1/tenant-workspace", response_model=TenantWorkspaceResponse)
+    def tenant_workspace(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> TenantWorkspaceResponse:
+        actor_id = _assert_tenant_membership(connection, context)
+        try:
+            workspace = resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today())
+        except TenantActionForbidden as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant is outside the actor's active memberships") from exc
+        return TenantWorkspaceResponse(data=TenantWorkspaceView(
+            tenantId=workspace.tenant_id,
+            tenantCode=workspace.tenant_code,
+            tenantName=workspace.tenant_name,
+            membershipRole=workspace.membership_role,
+            moduleCodes=sorted(workspace.module_codes),
+            platformRole=workspace.platform_role,
+        ))
 
     @app.post("/v1/strategies", response_model=StrategyResponse, status_code=status.HTTP_201_CREATED)
     def create_tenant_strategy(request: StrategyCreateRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyResponse:
