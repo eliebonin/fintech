@@ -3,7 +3,7 @@ import type { components } from "api-contracts";
 export type MarketDataResolutionSnapshot = components["schemas"]["MarketDataResolutionSnapshotView"];
 export type MarketDataResolutionItem = components["schemas"]["MarketDataResolutionSnapshotItemView"];
 export type MarketDataResolutionCreate = components["schemas"]["MarketDataResolutionSnapshotCreate"];
-export type ActiveValuationPolicy = Pick<components["schemas"]["ActiveValuationPolicyView"], "valuationPolicyId" | "valuationCutId" | "policyCode" | "displayName">;
+export type ActiveValuationPolicy = Pick<components["schemas"]["ActiveValuationPolicyView"], "valuationPolicyId" | "valuationCutId" | "policyCode" | "displayName" | "valuationCutCode" | "valuationCutDisplayName" | "timezoneName" | "localTime">;
 
 export function buildOneSubjectResolutionRequest(subjectReferenceNodeId: string, values: Omit<MarketDataResolutionCreate, "subjectReferenceNodeIds">): MarketDataResolutionCreate {
   return { ...values, subjectReferenceNodeIds: [subjectReferenceNodeId] };
@@ -15,6 +15,10 @@ export function activePolicyCutId(policies: ActiveValuationPolicy[], valuationPo
 
 export function activePolicyLabel(policy: ActiveValuationPolicy): string {
   return `${policy.policyCode} — ${policy.displayName}`;
+}
+
+export function activePolicyCutLabel(policy: ActiveValuationPolicy): string {
+  return `${policy.valuationCutCode} — ${policy.valuationCutDisplayName} · ${policy.timezoneName} ${policy.localTime.slice(0, 5)}`;
 }
 
 export function resolutionStatusLabel(status: string): string {
