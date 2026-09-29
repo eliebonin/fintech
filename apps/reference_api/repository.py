@@ -77,9 +77,48 @@ from .contracts import (
     TradePartyView,
     TradeResponse,
     TradeView,
+    StrategyCreateRequest,
+    StrategyView,
+    StrategyListResponse,
+    StrategyStatusRequest,
     WorkQueueItemView,
     WorkQueueView,
 )
+
+
+def create_strategy(connection: Connection, tenant_id: UUID, actor_id: UUID, request: StrategyCreateRequest) -> StrategyView:
+    if request.strategy_type == "OTHER" and not request.operating_model_label:
+        raise ValueError("operatingModelLabel is required when strategyType is OTHER")
+    currency_id = None
+    currency_code = None
+    if request.base_currency_code:
+        currency_code = request.base_currency_code.upper()
+        currency_id = connection.scalar(select(m.currency.c.currency_id).where(m.currency.c.currency_code == currency_code).where(m.currency.c.status == "ACTIVE"))
+        if currency_id is None:
+            raise ValueError("baseCurrencyCode is not an active currency")
+    strategy_id = uuid4()
+    connection.execute(insert(m.strategy).values(strategy_id=strategy_id, tenant_id=tenant_id, strategy_code=request.strategy_code.strip().upper(), display_name=request.display_name.strip(), strategy_type=request.strategy_type, operating_model_label=request.operating_model_label, base_currency_id=currency_id, status="ACTIVE", created_by_user_account_id=actor_id))
+    return StrategyView(strategyId=strategy_id, tenantId=tenant_id, strategyCode=request.strategy_code.strip().upper(), displayName=request.display_name.strip(), strategyType=request.strategy_type, baseCurrencyCode=currency_code, status="ACTIVE")
+
+
+def list_strategies(connection: Connection, tenant_id: UUID) -> StrategyListResponse:
+    rows = connection.execute(select(m.strategy.c.strategy_id, m.strategy.c.tenant_id, m.strategy.c.strategy_code, m.strategy.c.display_name, m.strategy.c.strategy_type, m.strategy.c.status, m.currency.c.currency_code).outerjoin(m.currency, m.currency.c.currency_id == m.strategy.c.base_currency_id).where(m.strategy.c.tenant_id == tenant_id).order_by(m.strategy.c.strategy_code)).mappings().all()
+    return StrategyListResponse(data=[StrategyView(strategyId=row["strategy_id"], tenantId=row["tenant_id"], strategyCode=row["strategy_code"], displayName=row["display_name"], strategyType=row["strategy_type"], baseCurrencyCode=row["currency_code"], status=row["status"]) for row in rows])
+
+
+def get_strategy(connection: Connection, tenant_id: UUID, strategy_id: UUID) -> StrategyView | None:
+    rows = list_strategies(connection, tenant_id).data
+    return next((row for row in rows if row.strategy_id == strategy_id), None)
+
+
+def archive_strategy(connection: Connection, tenant_id: UUID, strategy_id: UUID, request: StrategyStatusRequest) -> StrategyView | None:
+    if request.status != "ARCHIVED":
+        raise ValueError("Only ARCHIVED is supported")
+    strategy = get_strategy(connection, tenant_id, strategy_id)
+    if strategy is None:
+        return None
+    connection.execute(m.strategy.update().where(m.strategy.c.strategy_id == strategy_id).where(m.strategy.c.tenant_id == tenant_id).values(status="ARCHIVED"))
+    return strategy.model_copy(update={"status": "ARCHIVED"})
 from .structured_product_contracts import (
     AutocallDraftRequest,
     AutocallScheduleRowRequest,
@@ -4817,6 +4856,13 @@ def _market_data_snapshot_fingerprint(payload: MarketDataResolutionSnapshotCreat
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _market_data_snapshot_idempotency_lock_key(tenant_id: UUID, idempotency_key: str) -> int:
+    """Return a stable PostgreSQL advisory-lock key for one idempotency scope."""
+
+    scope = f"{tenant_id}\x1f{_MARKET_DATA_SNAPSHOT_ENDPOINT}\x1f{idempotency_key}"
+    return int.from_bytes(hashlib.sha256(scope.encode("utf-8")).digest()[:8], byteorder="big", signed=True)
+
+
 def _market_data_snapshot_view(connection: Connection, tenant_id: UUID, snapshot_id: UUID) -> MarketDataResolutionSnapshotView:
     header = connection.execute(select(m.market_data_resolution_snapshot).where(m.market_data_resolution_snapshot.c.market_data_resolution_snapshot_id == snapshot_id).where(m.market_data_resolution_snapshot.c.tenant_id == tenant_id)).mappings().first()
     if header is None:
@@ -4831,6 +4877,9 @@ def _market_data_snapshot_view(connection: Connection, tenant_id: UUID, snapshot
 def create_market_data_resolution_snapshot(connection: Connection, tenant_id: UUID, payload: MarketDataResolutionSnapshotCreate, idempotency_key: str, request_id: str) -> MarketDataResolutionSnapshotView:
     """Create or replay one tenant-scoped immutable evidence resource."""
     fingerprint = _market_data_snapshot_fingerprint(payload)
+    connection.execute(
+        select(func.pg_advisory_xact_lock(_market_data_snapshot_idempotency_lock_key(tenant_id, idempotency_key)))
+    )
     existing = connection.execute(select(m.market_data_resolution_idempotency).where(m.market_data_resolution_idempotency.c.tenant_id == tenant_id).where(m.market_data_resolution_idempotency.c.endpoint == _MARKET_DATA_SNAPSHOT_ENDPOINT).where(m.market_data_resolution_idempotency.c.idempotency_key == idempotency_key).with_for_update()).mappings().first()
     if existing is not None:
         if existing["request_fingerprint"] != fingerprint:

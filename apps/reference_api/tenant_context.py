@@ -15,6 +15,12 @@ class TenantContext:
     source: str
 
 
+@dataclass(frozen=True)
+class ActorContext:
+    user_account_id: UUID
+    source: str
+
+
 def _parse_uuid(value: str, field_name: str) -> UUID:
     try:
         return UUID(value)
@@ -47,6 +53,12 @@ def get_tenant_context(
         )
     user_account_id = _parse_uuid(x_user_account_id, "X-User-Account-Id") if x_user_account_id else None
     return TenantContext(tenant_id=_parse_uuid(x_tenant_id, "X-Tenant-Id"), user_account_id=user_account_id, source="trusted-header")
+
+
+def get_actor_context(x_user_account_id: str | None = Header(default=None)) -> ActorContext:
+    if not x_user_account_id:
+        raise ApiProblem(status.HTTP_401_UNAUTHORIZED, "authentication.required", "Authentication required", "Authentication context is required.")
+    return ActorContext(user_account_id=_parse_uuid(x_user_account_id, "X-User-Account-Id"), source="trusted-header")
 
 
 def require_actor(context: TenantContext) -> UUID:

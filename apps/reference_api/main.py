@@ -49,11 +49,23 @@ from .contracts import (
     TradeDetailResponse,
     TradeResponse,
     WorkQueueView,
+    StrategyCreateRequest,
+    StrategyResponse,
+    StrategyListResponse,
+    StrategyStatusRequest,
+    TenantMembershipResponse,
+    TenantMembershipView,
 )
 from .structured_product_contracts import AutocallDraftRequest, StructuredProductDraftError
 from .db import get_engine
 from .repository import IdempotencyKeyConflict, InvalidCatalogueValue, InvalidWorkflowState, RepositoryNotFound, create_market_data_resolution_snapshot, create_mapping_proposal, decide_crypto_asset_proposal, decide_etp_proposal, decide_fx_forward_proposal, decide_index_family_proposal, decide_index_proposal, decide_mapping_proposal, decide_bond_proposal, decide_equity_proposal, decide_reference_data_proposal, decide_structured_product_proposal, get_market_data_resolution_snapshot, get_booked_trade_detail, get_crypto_asset_proposal, get_instrument, get_reference_data_proposal, list_active_valuation_policies, list_booked_trades, list_currencies, list_day_count_conventions, list_index_families, list_index_kinds, list_market_data_series, list_market_venues, list_organisations, list_return_profiles, parse_currency_groups, portfolio_pnl, search_instruments, search_reference_nodes, submit_bond_proposal, submit_crypto_asset_proposal, submit_etp_proposal, submit_fx_forward_proposal, submit_equity_listing_proposal, submit_equity_proposal, submit_index_family_proposal, submit_index_proposal, submit_structured_product_proposal, work_queue
 from .tenant_context import TenantContext, get_tenant_context, require_actor
+from .tenant_context import ActorContext, get_actor_context
+from .repository import create_strategy
+from .repository import list_strategies
+from .repository import get_strategy
+from .repository import archive_strategy
+from security_master_schema.tenant_workspace import TenantActionForbidden, list_active_tenant_memberships, require_tenant_action, resolve_platform_role, resolve_tenant_workspace
 
 
 def _correlation_id(value: str | None) -> str:
@@ -74,6 +86,50 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "service": "reference-api"}
+
+    @app.get("/v1/session/memberships", response_model=TenantMembershipResponse)
+    def memberships(context: ActorContext = Depends(get_actor_context), connection=Depends(connection_dependency)) -> TenantMembershipResponse:
+        _assert_active_actor(connection, context.user_account_id)
+        rows = list_active_tenant_memberships(connection, context.user_account_id, date.today())
+        return TenantMembershipResponse(data=[TenantMembershipView(tenantId=row.tenant_id, tenantCode=row.tenant_code, tenantName=row.tenant_name, membershipRole=row.membership_role) for row in rows], platformRole=resolve_platform_role(connection, context.user_account_id, date.today()))
+
+    @app.post("/v1/strategies", response_model=StrategyResponse, status_code=status.HTTP_201_CREATED)
+    def create_tenant_strategy(request: StrategyCreateRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyResponse:
+        actor_id = _assert_tenant_membership(connection, context)
+        try:
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "STRATEGY_WRITE")
+            with connection.begin_nested():
+                return StrategyResponse(data=create_strategy(connection, context.tenant_id, actor_id, request))
+        except TenantActionForbidden as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant membership is not permitted to manage strategies") from exc
+        except ValueError as exc:
+            raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "request.validation_failed", "Request validation failed", "One or more request fields are invalid.") from exc
+
+    @app.get("/v1/strategies", response_model=StrategyListResponse)
+    def tenant_strategies(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyListResponse:
+        _assert_tenant_membership(connection, context)
+        return list_strategies(connection, context.tenant_id)
+
+    @app.get("/v1/strategies/{strategy_id}", response_model=StrategyResponse)
+    def tenant_strategy_detail(strategy_id: UUID, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyResponse:
+        _assert_tenant_membership(connection, context)
+        result = get_strategy(connection, context.tenant_id, strategy_id)
+        if result is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
+        return StrategyResponse(data=result)
+
+    @app.post("/v1/strategies/{strategy_id}/status", response_model=StrategyResponse)
+    def tenant_strategy_status(strategy_id: UUID, request: StrategyStatusRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyResponse:
+        actor_id = _assert_tenant_membership(connection, context)
+        try:
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "STRATEGY_WRITE")
+            with connection.begin_nested():
+                result = archive_strategy(connection, context.tenant_id, strategy_id, request)
+        except TenantActionForbidden as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant membership is not permitted to manage strategies") from exc
+        if result is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
+        return StrategyResponse(data=result)
 
     @app.get("/v1/instruments/search")
     def search(

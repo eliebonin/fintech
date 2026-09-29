@@ -20,6 +20,59 @@ class ApiMeta(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class TenantMembershipView(BaseModel):
+    tenant_id: UUID = Field(alias="tenantId")
+    tenant_code: str = Field(alias="tenantCode")
+    tenant_name: str = Field(alias="tenantName")
+    membership_role: str = Field(alias="membershipRole")
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TenantMembershipResponse(BaseModel):
+    data: list[TenantMembershipView]
+    platform_role: str | None = Field(default=None, alias="platformRole")
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class StrategyCreateRequest(BaseModel):
+    strategy_code: str = Field(alias="strategyCode", min_length=1, max_length=100)
+    display_name: str = Field(alias="displayName", min_length=1, max_length=250)
+    strategy_type: str = Field(alias="strategyType")
+    base_currency_code: str | None = Field(default=None, alias="baseCurrencyCode")
+    operating_model_label: str | None = Field(default=None, alias="operatingModelLabel")
+    model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("operating_model_label")
+    @classmethod
+    def _label_not_blank(cls, value: str | None) -> str | None:
+        return value.strip() if value else None
+
+
+class StrategyStatusRequest(BaseModel):
+    status: str
+
+
+class StrategyView(BaseModel):
+    strategy_id: UUID = Field(alias="strategyId")
+    tenant_id: UUID = Field(alias="tenantId")
+    strategy_code: str = Field(alias="strategyCode")
+    display_name: str = Field(alias="displayName")
+    strategy_type: str = Field(alias="strategyType")
+    base_currency_code: str | None = Field(alias="baseCurrencyCode")
+    status: str
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class StrategyResponse(BaseModel):
+    data: StrategyView
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class StrategyListResponse(BaseModel):
+    data: list[StrategyView]
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class MarketDataResolutionSnapshotCreate(BaseModel):
     """One coherent, bounded set of inputs resolved at a UTC information cut."""
 
