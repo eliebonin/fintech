@@ -3,7 +3,7 @@ import type { components } from "api-contracts";
 export type MarketDataResolutionSnapshot = components["schemas"]["MarketDataResolutionSnapshotView"];
 export type MarketDataResolutionItem = components["schemas"]["MarketDataResolutionSnapshotItemView"];
 export type MarketDataResolutionCreate = components["schemas"]["MarketDataResolutionSnapshotCreate"];
-export type ActiveValuationPolicy = Pick<components["schemas"]["ActiveValuationPolicyView"], "valuationPolicyId" | "valuationCutId">;
+export type ActiveValuationPolicy = Pick<components["schemas"]["ActiveValuationPolicyView"], "valuationPolicyId" | "valuationCutId" | "policyCode" | "displayName">;
 
 export function buildOneSubjectResolutionRequest(subjectReferenceNodeId: string, values: Omit<MarketDataResolutionCreate, "subjectReferenceNodeIds">): MarketDataResolutionCreate {
   return { ...values, subjectReferenceNodeIds: [subjectReferenceNodeId] };
@@ -11,6 +11,10 @@ export function buildOneSubjectResolutionRequest(subjectReferenceNodeId: string,
 
 export function activePolicyCutId(policies: ActiveValuationPolicy[], valuationPolicyId: string): string | undefined {
   return policies.find((policy) => policy.valuationPolicyId === valuationPolicyId)?.valuationCutId;
+}
+
+export function activePolicyLabel(policy: ActiveValuationPolicy): string {
+  return `${policy.policyCode} — ${policy.displayName}`;
 }
 
 export function resolutionStatusLabel(status: string): string {

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { activePolicyCutId, buildOneSubjectResolutionRequest, type ActiveValuationPolicy } from "@/lib/market-data-resolution";
+import { activePolicyCutId, activePolicyLabel, buildOneSubjectResolutionRequest, type ActiveValuationPolicy } from "@/lib/market-data-resolution";
 
 export function MarketDataResolutionForm({ subjectReferenceNodeId }: { subjectReferenceNodeId: string }) {
   const router = useRouter();
@@ -35,5 +35,5 @@ export function MarketDataResolutionForm({ subjectReferenceNodeId }: { subjectRe
     const snapshot = await response.json() as { marketDataResolutionSnapshotId: string };
     router.push(`/market-data/resolution-snapshots/${snapshot.marketDataResolutionSnapshotId}`);
   }
-  return <form className="date-form" action={submit}><label>Valuation date <input required type="date" name="valuationDate" value={valuationDate} onChange={(event) => setValuationDate(event.target.value)} /></label><label>Active valuation policy <select required value={valuationPolicyId} onChange={(event) => setValuationPolicyId(event.target.value)} disabled={!policies.length}><option value="">{policies.length ? "Choose policy" : "No active policies"}</option>{policies.map((policy) => <option key={policy.valuationPolicyId} value={policy.valuationPolicyId}>{policy.valuationPolicyId}</option>)}</select></label><label>Policy cut <output>{valuationCutId ?? "—"}</output></label><label>Information cut (UTC) <input required type="datetime-local" name="marketDataAsOfUtc" defaultValue="2026-08-28T16:00" /></label><button type="submit" disabled={!valuationCutId}>Freeze resolution evidence</button>{error ? <span className="error-panel">{error}</span> : null}</form>;
+  return <form className="date-form" action={submit}><label>Valuation date <input required type="date" name="valuationDate" value={valuationDate} onChange={(event) => setValuationDate(event.target.value)} /></label><label>Active valuation policy <select required value={valuationPolicyId} onChange={(event) => setValuationPolicyId(event.target.value)} disabled={!policies.length}><option value="">{policies.length ? "Choose policy" : "No active policies"}</option>{policies.map((policy) => <option key={policy.valuationPolicyId} value={policy.valuationPolicyId}>{activePolicyLabel(policy)}</option>)}</select></label><label>Policy cut <output>{valuationCutId ?? "—"}</output></label><label>Information cut (UTC) <input required type="datetime-local" name="marketDataAsOfUtc" defaultValue="2026-08-28T16:00" /></label><button type="submit" disabled={!valuationCutId}>Freeze resolution evidence</button>{error ? <span className="error-panel">{error}</span> : null}</form>;
 }
