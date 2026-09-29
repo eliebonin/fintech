@@ -5,8 +5,8 @@ NAV or mutate observations: it selects an immutable observation under one frozen
 tenant policy and can persist the resulting evidence in a resolution snapshot.
 """
 
-from dataclasses import dataclass
-from datetime import date, datetime
+from dataclasses import dataclass, replace
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -51,7 +51,11 @@ class ResolvedMarketData:
     policy_rule_id: UUID | None
     market_data_series_id: UUID | None
     market_data_observation_id: UUID | None
+    market_data_vintage_id: UUID | None
     dataset_id: UUID | None
+    acquisition_licence_id: UUID | None
+    source_published_at_utc: datetime | None
+    received_at_utc: datetime | None
     currency_id: UUID | None
     selected_value: Decimal | None
     pricing_date_requested: date | None
@@ -106,6 +110,7 @@ def _assert_policy_scope(connection: Connection, request: ResolutionRequest) -> 
         select(m.valuation_policy.c.valuation_policy_id).where(
             m.valuation_policy.c.valuation_policy_id == request.valuation_policy_id,
             m.valuation_policy.c.tenant_id == request.tenant_id,
+            m.valuation_policy.c.valuation_cut_id == request.valuation_cut_id,
             m.valuation_policy.c.status == "ACTIVE",
             m.valuation_policy.c.valid_from <= request.valuation_date,
             or_(
@@ -163,12 +168,36 @@ def _entitled_observations(
 ) -> list[tuple[ObservationCandidate, dict]]:
     """Fetch accepted, uncorrected, entitled candidates before the information cut."""
 
+    vintage = m.market_data_vintage.alias("vintage")
     correction = m.market_data_observation.alias("correction")
+    correction_vintage = m.market_data_vintage.alias("correction_vintage")
     has_newer_correction = exists(
-        select(1).where(
+        select(1).select_from(
+            correction.outerjoin(
+                correction_vintage,
+                correction.c.market_data_vintage_id
+                == correction_vintage.c.market_data_vintage_id,
+            )
+        ).where(
             correction.c.supersedes_observation_id
             == m.market_data_observation.c.market_data_observation_id,
             correction.c.quality_status == "ACCEPTED",
+            correction.c.received_at_utc <= request.market_data_as_of_utc,
+            or_(
+                correction.c.source_published_at_utc.is_(None),
+                correction.c.source_published_at_utc <= request.market_data_as_of_utc,
+            ),
+            or_(
+                correction.c.market_data_vintage_id.is_(None),
+                and_(
+                    correction_vintage.c.received_at_utc <= request.market_data_as_of_utc,
+                    or_(
+                        correction_vintage.c.source_published_at_utc.is_(None),
+                        correction_vintage.c.source_published_at_utc
+                        <= request.market_data_as_of_utc,
+                    ),
+                ),
+            ),
         )
     )
     conditions = [
@@ -178,6 +207,20 @@ def _entitled_observations(
         m.market_data_observation.c.quality_status == "ACCEPTED",
         m.market_data_observation.c.market_date.is_not(None),
         m.market_data_observation.c.received_at_utc <= request.market_data_as_of_utc,
+        or_(
+            m.market_data_observation.c.source_published_at_utc.is_(None),
+            m.market_data_observation.c.source_published_at_utc <= request.market_data_as_of_utc,
+        ),
+        or_(
+            m.market_data_observation.c.market_data_vintage_id.is_(None),
+            and_(
+                vintage.c.received_at_utc <= request.market_data_as_of_utc,
+                or_(
+                    vintage.c.source_published_at_utc.is_(None),
+                    vintage.c.source_published_at_utc <= request.market_data_as_of_utc,
+                ),
+            ),
+        ),
         ~has_newer_correction,
         m.tenant_dataset_entitlement.c.tenant_id == request.tenant_id,
         m.tenant_dataset_entitlement.c.use_purpose == request.use_purpose,
@@ -200,8 +243,18 @@ def _entitled_observations(
             m.market_data_observation.c.received_at_utc,
             m.market_data_observation.c.value,
             m.market_data_observation.c.dataset_id,
+            m.market_data_observation.c.market_data_vintage_id,
+            m.market_data_observation.c.acquisition_licence_id,
             m.market_data_series.c.market_data_series_id,
             m.market_data_series.c.currency_id,
+            case(
+                (m.market_data_observation.c.market_data_vintage_id.is_not(None), vintage.c.source_published_at_utc),
+                else_=m.market_data_observation.c.source_published_at_utc,
+            ).label("source_published_at_utc"),
+            case(
+                (m.market_data_observation.c.market_data_vintage_id.is_not(None), vintage.c.received_at_utc),
+                else_=m.market_data_observation.c.received_at_utc,
+            ).label("evidence_received_at_utc"),
         )
         .select_from(
             m.market_data_observation.join(
@@ -212,6 +265,10 @@ def _entitled_observations(
                 m.tenant_dataset_entitlement,
                 m.tenant_dataset_entitlement.c.dataset_id
                 == m.market_data_observation.c.dataset_id,
+            ).outerjoin(
+                vintage,
+                m.market_data_observation.c.market_data_vintage_id
+                == vintage.c.market_data_vintage_id,
             )
         )
         .where(and_(*conditions))
@@ -231,6 +288,86 @@ def _entitled_observations(
     ]
 
 
+def _matching_observation_exists(connection: Connection, request: ResolutionRequest, rule: dict) -> bool:
+    """Return whether matching data exists before tenant entitlement is applied."""
+
+    vintage = m.market_data_vintage.alias("vintage")
+    correction = m.market_data_observation.alias("correction")
+    correction_vintage = m.market_data_vintage.alias("correction_vintage")
+    has_newer_correction = exists(
+        select(1).select_from(
+            correction.outerjoin(
+                correction_vintage,
+                correction.c.market_data_vintage_id
+                == correction_vintage.c.market_data_vintage_id,
+            )
+        ).where(
+            correction.c.supersedes_observation_id
+            == m.market_data_observation.c.market_data_observation_id,
+            correction.c.quality_status == "ACCEPTED",
+            correction.c.received_at_utc <= request.market_data_as_of_utc,
+            or_(
+                correction.c.source_published_at_utc.is_(None),
+                correction.c.source_published_at_utc <= request.market_data_as_of_utc,
+            ),
+            or_(
+                correction.c.market_data_vintage_id.is_(None),
+                and_(
+                    correction_vintage.c.received_at_utc <= request.market_data_as_of_utc,
+                    or_(
+                        correction_vintage.c.source_published_at_utc.is_(None),
+                        correction_vintage.c.source_published_at_utc
+                        <= request.market_data_as_of_utc,
+                    ),
+                ),
+            ),
+        )
+    )
+    conditions = [
+        m.market_data_series.c.reference_node_id == request.subject_reference_node_id,
+        m.market_data_series.c.status == "ACTIVE",
+        m.market_data_series.c.series_type == rule["series_type"],
+        m.market_data_observation.c.quality_status == "ACCEPTED",
+        m.market_data_observation.c.market_date.is_not(None),
+        m.market_data_observation.c.received_at_utc <= request.market_data_as_of_utc,
+        or_(
+            m.market_data_observation.c.source_published_at_utc.is_(None),
+            m.market_data_observation.c.source_published_at_utc <= request.market_data_as_of_utc,
+        ),
+        or_(
+            m.market_data_observation.c.market_data_vintage_id.is_(None),
+            and_(
+                vintage.c.received_at_utc <= request.market_data_as_of_utc,
+                or_(
+                    vintage.c.source_published_at_utc.is_(None),
+                    vintage.c.source_published_at_utc <= request.market_data_as_of_utc,
+                ),
+            ),
+        ),
+        ~has_newer_correction,
+    ]
+    if rule["market_data_series_id"] is not None:
+        conditions.append(m.market_data_series.c.market_data_series_id == rule["market_data_series_id"])
+    if rule["dataset_id"] is not None:
+        conditions.append(m.market_data_observation.c.dataset_id == rule["dataset_id"])
+    return connection.scalar(
+        select(m.market_data_observation.c.market_data_observation_id)
+        .select_from(
+            m.market_data_observation.join(
+                m.market_data_series,
+                m.market_data_observation.c.market_data_series_id
+                == m.market_data_series.c.market_data_series_id,
+            ).outerjoin(
+                vintage,
+                m.market_data_observation.c.market_data_vintage_id
+                == vintage.c.market_data_vintage_id,
+            )
+        )
+        .where(and_(*conditions))
+        .limit(1)
+    ) is not None
+
+
 def resolve_market_data(connection: Connection, request: ResolutionRequest) -> ResolvedMarketData:
     """Resolve one subject without assuming availability or silently falling back.
 
@@ -239,8 +376,12 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
     rule must not silently select a less specific price.
     """
 
-    if request.market_data_as_of_utc.tzinfo is None:
-        raise ValueError("market_data_as_of_utc must be timezone-aware")
+    if (
+        request.market_data_as_of_utc.tzinfo is None
+        or request.market_data_as_of_utc.utcoffset() is None
+        or request.market_data_as_of_utc.utcoffset() != timedelta(0)
+    ):
+        raise ValueError("market_data_as_of_utc must be timezone-aware UTC")
     _assert_policy_scope(connection, request)
     subject_type, instrument_type_id = _subject_context(connection, request.subject_reference_node_id)
     rules = _matching_rules(connection, request, subject_type, instrument_type_id)
@@ -248,7 +389,8 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
         return ResolvedMarketData(
             status="MISSING", subject_reference_node_id=request.subject_reference_node_id,
             policy_rule_id=None, market_data_series_id=None, market_data_observation_id=None,
-            dataset_id=None, currency_id=None, selected_value=None,
+            market_data_vintage_id=None, dataset_id=None, acquisition_licence_id=None,
+            source_published_at_utc=None, received_at_utc=None, currency_id=None, selected_value=None,
             pricing_date_requested=None, pricing_date_used=None, staleness_business_days=None,
             staleness_status="MISSING", selection_reason="MISSING_DATA",
             entitlement_decision="NOT_AVAILABLE", exception_code="NO_MATCHING_POLICY_RULE",
@@ -256,6 +398,7 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
 
     rule = rules[0]
     candidates_and_rows = _entitled_observations(connection, request, rule)
+    matching_observation_exists = _matching_observation_exists(connection, request, rule)
     price_result = resolve_price(
         valuation_date=request.valuation_date,
         information_cutoff_utc=request.market_data_as_of_utc,
@@ -268,22 +411,48 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
     row_by_id = {candidate.observation_id: row for candidate, row in candidates_and_rows}
     selected_row = row_by_id.get(price_result.selected_observation_id)
     selected = price_result.status is ResolutionStatus.SELECTED
+    denied = matching_observation_exists and not candidates_and_rows
     return ResolvedMarketData(
-        status=str(price_result.status),
+        status="DENIED" if denied else str(price_result.status),
         subject_reference_node_id=request.subject_reference_node_id,
         policy_rule_id=rule["valuation_policy_rule_id"],
         market_data_series_id=selected_row["market_data_series_id"] if selected_row else None,
         market_data_observation_id=price_result.selected_observation_id,
+        market_data_vintage_id=selected_row["market_data_vintage_id"] if selected_row else None,
         dataset_id=selected_row["dataset_id"] if selected_row else None,
+        acquisition_licence_id=selected_row["acquisition_licence_id"] if selected_row else None,
+        source_published_at_utc=selected_row["source_published_at_utc"] if selected_row else None,
+        received_at_utc=selected_row["evidence_received_at_utc"] if selected_row else None,
         currency_id=selected_row["currency_id"] if selected_row else None,
         selected_value=Decimal(str(price_result.selected_value)) if price_result.selected_value is not None else None,
         pricing_date_requested=price_result.pricing_date_requested,
         pricing_date_used=price_result.pricing_date_used,
         staleness_business_days=price_result.staleness_business_days,
         staleness_status=("CURRENT" if selected and price_result.staleness_business_days == 0 else "WITHIN_TOLERANCE" if selected else str(price_result.status)),
-        selection_reason="ENTITLED_PROVIDER" if selected else "MISSING_DATA",
-        entitlement_decision="ALLOWED" if candidates_and_rows else "NOT_AVAILABLE",
-        exception_code=(None if selected else "NO_ENTITLED_OBSERVATION" if not candidates_and_rows else price_result.exception_code),
+        selection_reason=(
+            "ENTITLED_PROVIDER" if selected else "ENTITLEMENT_DENIED" if denied else "MISSING_DATA"
+        ),
+        entitlement_decision="ALLOWED" if candidates_and_rows else "DENIED" if denied else "NOT_AVAILABLE",
+        exception_code=(
+            None if selected else "NO_VALID_ENTITLEMENT" if denied else price_result.exception_code
+        ),
+    )
+
+
+def resolve_market_data_batch(
+    connection: Connection,
+    request: ResolutionRequest,
+    subject_reference_node_ids: tuple[UUID, ...],
+) -> tuple[ResolvedMarketData, ...]:
+    """Resolve a bounded, ordered set of distinct subjects under one request context."""
+
+    if not subject_reference_node_ids or len(subject_reference_node_ids) > 50:
+        raise ValueError("subject_reference_node_ids must contain between 1 and 50 items")
+    if len(set(subject_reference_node_ids)) != len(subject_reference_node_ids):
+        raise ValueError("subject_reference_node_ids must be distinct")
+    return tuple(
+        resolve_market_data(connection, replace(request, subject_reference_node_id=subject_id))
+        for subject_id in subject_reference_node_ids
     )
 
 
@@ -303,6 +472,7 @@ def persist_resolution_snapshot(
             valuation_date=request.valuation_date,
             valuation_cut_id=request.valuation_cut_id,
             market_data_as_of_utc=request.market_data_as_of_utc,
+            use_purpose=request.use_purpose,
             resolver_version=RESOLVER_VERSION,
             status=snapshot_status,
         )
@@ -315,7 +485,11 @@ def persist_resolution_snapshot(
                 subject_reference_node_id=item.subject_reference_node_id,
                 market_data_series_id=item.market_data_series_id,
                 market_data_observation_id=item.market_data_observation_id,
+                market_data_vintage_id=item.market_data_vintage_id,
                 dataset_id=item.dataset_id,
+                acquisition_licence_id=item.acquisition_licence_id,
+                source_published_at_utc=item.source_published_at_utc,
+                received_at_utc=item.received_at_utc,
                 selected_value=item.selected_value,
                 currency_id=item.currency_id,
                 pricing_date_requested=item.pricing_date_requested,
