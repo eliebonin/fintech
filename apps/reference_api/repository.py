@@ -2,15 +2,22 @@
 
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+import hashlib
 import json
 from uuid import UUID, uuid4
 
-from sqlalchemy import Connection, and_, cast, exists, func, or_, select, String, true
+from sqlalchemy import Connection, and_, cast, exists, func, insert, or_, select, String, true
 
 from security_master_schema import models as m
+from security_master_schema.market_data_resolver import (
+    ResolutionRequest,
+    persist_resolution_snapshot,
+    resolve_market_data_batch,
+)
 
 from .contracts import (
     ApiMeta,
+    ActiveValuationPolicyView,
     BondProposalRequest,
     BondProposalView,
     CryptoAssetProposalRequest,
@@ -45,6 +52,9 @@ from .contracts import (
     MappingProposalRequest,
     MappingProposalView,
     MarketDataPointView,
+    MarketDataResolutionSnapshotCreate,
+    MarketDataResolutionSnapshotItemView,
+    MarketDataResolutionSnapshotView,
     MarketDataObservationView,
     MarketDataSeriesResponse,
     MarketDataSeriesView,
@@ -91,6 +101,10 @@ class InvalidWorkflowState(ValueError):
 
 class InvalidCatalogueValue(InvalidWorkflowState):
     """Raised when a request names a missing or inactive governed catalogue value."""
+
+
+class IdempotencyKeyConflict(InvalidWorkflowState):
+    """Raised when one tenant reuses an idempotency key for another payload."""
 
 
 _CURRENCY_GROUP_KINDS: dict[str, tuple[str, ...]] = {
@@ -4793,3 +4807,55 @@ def portfolio_pnl(connection: Connection, tenant_id: UUID, portfolio_code: str, 
     valuation_cut = {"cutCode": cut_row.cut_code if cut_row else None, "displayName": cut_row.display_name if cut_row else None, "timezoneName": cut_row.timezone_name if cut_row else None, "localTime": cut_row.local_time if cut_row else None}
     view = PortfolioPnlView(portfolioCode=strategy.strategy_code, portfolioName=strategy.display_name, asOfDate=as_of_date.isoformat(), baseCurrency=base_currency, valuationCut=valuation_cut, lines=lines, totalPnl=_decimal(total_pnl), methodology="Display-only decomposition: local price movement at closing FX plus residual FX movement; derived from immutable booked trades and observations.")
     return PortfolioPnlResponse(data=view, meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, total=len(lines)))
+
+
+_MARKET_DATA_SNAPSHOT_ENDPOINT = "/v1/market-data-resolution-snapshots"
+
+
+def _market_data_snapshot_fingerprint(payload: MarketDataResolutionSnapshotCreate) -> str:
+    canonical = json.dumps(payload.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _market_data_snapshot_view(connection: Connection, tenant_id: UUID, snapshot_id: UUID) -> MarketDataResolutionSnapshotView:
+    header = connection.execute(select(m.market_data_resolution_snapshot).where(m.market_data_resolution_snapshot.c.market_data_resolution_snapshot_id == snapshot_id).where(m.market_data_resolution_snapshot.c.tenant_id == tenant_id)).mappings().first()
+    if header is None:
+        raise RepositoryNotFound("Market-data resolution snapshot does not exist")
+    rows = connection.execute(select(m.market_data_resolution_snapshot_item).where(m.market_data_resolution_snapshot_item.c.market_data_resolution_snapshot_id == snapshot_id).order_by(m.market_data_resolution_snapshot_item.c.request_sequence)).mappings().all()
+    return MarketDataResolutionSnapshotView(
+        marketDataResolutionSnapshotId=header["market_data_resolution_snapshot_id"], tenantId=header["tenant_id"], valuationPolicyId=header["valuation_policy_id"], valuationDate=header["valuation_date"], valuationCutId=header["valuation_cut_id"], marketDataAsOfUtc=header["market_data_as_of_utc"], usePurpose=header["use_purpose"], resolverVersion=header["resolver_version"], status=header["status"], createdAtUtc=header["created_at_utc"],
+        items=[MarketDataResolutionSnapshotItemView(status=row["status"], subjectReferenceNodeId=row["subject_reference_node_id"], policyRuleId=row["policy_rule_id"], marketDataSeriesId=row["market_data_series_id"], marketDataObservationId=row["market_data_observation_id"], marketDataVintageId=row["market_data_vintage_id"], datasetId=row["dataset_id"], acquisitionLicenceId=row["acquisition_licence_id"], sourcePublishedAtUtc=row["source_published_at_utc"], receivedAtUtc=row["received_at_utc"], selectedValue=row["selected_value"], currencyId=row["currency_id"], pricingDateRequested=row["pricing_date_requested"], pricingDateUsed=row["pricing_date_used"], stalenessBusinessDays=row["staleness_business_days"], stalenessStatus=row["staleness_status"], selectionReason=row["selection_reason"], entitlementDecision=row["entitlement_decision"], exceptionCode=row["exception_code"]) for row in rows],
+    )
+
+
+def create_market_data_resolution_snapshot(connection: Connection, tenant_id: UUID, payload: MarketDataResolutionSnapshotCreate, idempotency_key: str, request_id: str) -> MarketDataResolutionSnapshotView:
+    """Create or replay one tenant-scoped immutable evidence resource."""
+    fingerprint = _market_data_snapshot_fingerprint(payload)
+    existing = connection.execute(select(m.market_data_resolution_idempotency).where(m.market_data_resolution_idempotency.c.tenant_id == tenant_id).where(m.market_data_resolution_idempotency.c.endpoint == _MARKET_DATA_SNAPSHOT_ENDPOINT).where(m.market_data_resolution_idempotency.c.idempotency_key == idempotency_key).with_for_update()).mappings().first()
+    if existing is not None:
+        if existing["request_fingerprint"] != fingerprint:
+            raise IdempotencyKeyConflict("Idempotency key was already used with a different request")
+        return _market_data_snapshot_view(connection, tenant_id, existing["market_data_resolution_snapshot_id"])
+    request = ResolutionRequest(tenant_id=tenant_id, subject_reference_node_id=payload.subject_reference_node_ids[0], valuation_policy_id=payload.valuation_policy_id, valuation_date=payload.valuation_date, valuation_cut_id=payload.valuation_cut_id, market_data_as_of_utc=payload.market_data_as_of_utc, use_purpose=payload.use_purpose)
+    snapshot_id = persist_resolution_snapshot(connection, request, resolve_market_data_batch(connection, request, tuple(payload.subject_reference_node_ids)))
+    connection.execute(insert(m.market_data_resolution_idempotency).values(tenant_id=tenant_id, endpoint=_MARKET_DATA_SNAPSHOT_ENDPOINT, idempotency_key=idempotency_key, request_fingerprint=fingerprint, market_data_resolution_snapshot_id=snapshot_id, expires_at_utc=datetime.now(timezone.utc) + timedelta(hours=24)))
+    return _market_data_snapshot_view(connection, tenant_id, snapshot_id)
+
+
+def get_market_data_resolution_snapshot(connection: Connection, tenant_id: UUID, snapshot_id: UUID) -> MarketDataResolutionSnapshotView:
+    """Read persisted snapshot evidence without re-resolving present-day state."""
+    return _market_data_snapshot_view(connection, tenant_id, snapshot_id)
+
+
+def list_active_valuation_policies(connection: Connection, tenant_id: UUID, valuation_date: date) -> list[ActiveValuationPolicyView]:
+    """Return only policies currently usable by the requesting tenant."""
+    rows = connection.execute(
+        select(m.valuation_policy, m.valuation_cut.c.cut_code, m.valuation_cut.c.display_name.label("cut_display_name"), m.valuation_cut.c.timezone_name, m.valuation_cut.c.local_time)
+        .select_from(m.valuation_policy.join(m.valuation_cut, m.valuation_policy.c.valuation_cut_id == m.valuation_cut.c.valuation_cut_id))
+        .where(m.valuation_policy.c.tenant_id == tenant_id)
+        .where(m.valuation_policy.c.status == "ACTIVE")
+        .where(m.valuation_policy.c.valid_from <= valuation_date)
+        .where(or_(m.valuation_policy.c.valid_to.is_(None), m.valuation_policy.c.valid_to >= valuation_date))
+        .order_by(m.valuation_policy.c.policy_code, m.valuation_policy.c.version_no.desc())
+    ).mappings().all()
+    return [ActiveValuationPolicyView(valuationPolicyId=row["valuation_policy_id"], tenantId=row["tenant_id"], policyCode=row["policy_code"], displayName=row["display_name"], valuationCutId=row["valuation_cut_id"], valuationCutCode=row["cut_code"], valuationCutDisplayName=row["cut_display_name"], timezoneName=row["timezone_name"], localTime=str(row["local_time"])) for row in rows]

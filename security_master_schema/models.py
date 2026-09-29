@@ -2125,6 +2125,8 @@ market_data_resolution_snapshot_item = Table(
     Column("market_data_resolution_snapshot_item_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one selected value or explicit resolution exception."),
     Column("market_data_resolution_snapshot_id", UUID_V7, ForeignKey("md.market_data_resolution_snapshot.market_data_resolution_snapshot_id"), nullable=False, comment="Resolution snapshot containing the selection result."),
     Column("subject_reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=False, comment="Instrument, listing, index, FX pair, curve point, or other subject resolved."),
+    Column("status", String(30), nullable=False, server_default=text("'MISSING'"), comment="Frozen resolution outcome such as SELECTED, MISSING, STALE, or DENIED."),
+    Column("request_sequence", Integer, nullable=False, server_default=text("0"), comment="Zero-based position supplied in the coherent snapshot create request."),
     Column("market_data_series_id", UUID_V7, ForeignKey("md.market_data_series.market_data_series_id"), nullable=True, comment="Series selected by the resolver; null only for an explicit missing-data result."),
     Column("market_data_observation_id", UUID_V7, ForeignKey("md.market_data_observation.market_data_observation_id"), nullable=True, comment="Raw observation selected by the resolver; null for a policy override or missing-data result."),
     Column("market_data_vintage_id", UUID_V7, ForeignKey("md.market_data_vintage.market_data_vintage_id"), nullable=True, comment="Immutable source vintage selected at the historic information cut."),
@@ -2159,6 +2161,7 @@ market_data_resolution_idempotency = Table(
 )
 
 Index("ix_market_data_resolution_idempotency_snapshot", market_data_resolution_idempotency.c.market_data_resolution_snapshot_id)
+Index("uq_market_data_resolution_snapshot_item_sequence", market_data_resolution_snapshot_item.c.market_data_resolution_snapshot_id, market_data_resolution_snapshot_item.c.request_sequence, unique=True)
 
 nav_calculation_run = Table(
     "nav_calculation_run", metadata,

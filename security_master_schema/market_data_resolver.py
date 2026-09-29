@@ -478,11 +478,13 @@ def persist_resolution_snapshot(
         )
         .returning(m.market_data_resolution_snapshot.c.market_data_resolution_snapshot_id)
     ).scalar_one()
-    for item in items:
+    for request_sequence, item in enumerate(items):
         connection.execute(
             insert(m.market_data_resolution_snapshot_item).values(
                 market_data_resolution_snapshot_id=snapshot_id,
                 subject_reference_node_id=item.subject_reference_node_id,
+                status=item.status,
+                request_sequence=request_sequence,
                 market_data_series_id=item.market_data_series_id,
                 market_data_observation_id=item.market_data_observation_id,
                 market_data_vintage_id=item.market_data_vintage_id,

@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ApiMeta(BaseModel):
@@ -16,6 +16,89 @@ class ApiMeta(BaseModel):
     limit: int | None = None
     offset: int | None = None
     total: int | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class MarketDataResolutionSnapshotCreate(BaseModel):
+    """One coherent, bounded set of inputs resolved at a UTC information cut."""
+
+    subject_reference_node_ids: list[UUID] = Field(
+        alias="subjectReferenceNodeIds", min_length=1, max_length=50
+    )
+    valuation_policy_id: UUID = Field(alias="valuationPolicyId")
+    valuation_date: date = Field(alias="valuationDate")
+    valuation_cut_id: UUID = Field(alias="valuationCutId")
+    market_data_as_of_utc: datetime = Field(alias="marketDataAsOfUtc")
+    use_purpose: str = Field(alias="usePurpose", min_length=1, max_length=50)
+
+    @field_validator("subject_reference_node_ids")
+    @classmethod
+    def _subjects_are_unique(cls, value: list[UUID]) -> list[UUID]:
+        if len(set(value)) != len(value):
+            raise ValueError("subjectReferenceNodeIds must be unique")
+        return value
+
+    @field_validator("market_data_as_of_utc")
+    @classmethod
+    def _as_of_is_utc(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None or value.utcoffset().total_seconds() != 0:
+            raise ValueError("marketDataAsOfUtc must be timezone-aware UTC")
+        return value
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class MarketDataResolutionSnapshotItemView(BaseModel):
+    status: str
+    subject_reference_node_id: UUID = Field(alias="subjectReferenceNodeId")
+    policy_rule_id: UUID | None = Field(alias="policyRuleId")
+    market_data_series_id: UUID | None = Field(alias="marketDataSeriesId")
+    market_data_observation_id: UUID | None = Field(alias="marketDataObservationId")
+    market_data_vintage_id: UUID | None = Field(alias="marketDataVintageId")
+    dataset_id: UUID | None = Field(alias="datasetId")
+    acquisition_licence_id: UUID | None = Field(alias="acquisitionLicenceId")
+    source_published_at_utc: datetime | None = Field(alias="sourcePublishedAtUtc")
+    received_at_utc: datetime | None = Field(alias="receivedAtUtc")
+    selected_value: Decimal | None = Field(alias="selectedValue")
+    currency_id: UUID | None = Field(alias="currencyId")
+    pricing_date_requested: date | None = Field(alias="pricingDateRequested")
+    pricing_date_used: date | None = Field(alias="pricingDateUsed")
+    staleness_business_days: int | None = Field(alias="stalenessBusinessDays")
+    staleness_status: str = Field(alias="stalenessStatus")
+    selection_reason: str = Field(alias="selectionReason")
+    entitlement_decision: str = Field(alias="entitlementDecision")
+    exception_code: str | None = Field(alias="exceptionCode")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class MarketDataResolutionSnapshotView(BaseModel):
+    market_data_resolution_snapshot_id: UUID = Field(alias="marketDataResolutionSnapshotId")
+    tenant_id: UUID = Field(alias="tenantId")
+    valuation_policy_id: UUID = Field(alias="valuationPolicyId")
+    valuation_date: date = Field(alias="valuationDate")
+    valuation_cut_id: UUID = Field(alias="valuationCutId")
+    market_data_as_of_utc: datetime = Field(alias="marketDataAsOfUtc")
+    use_purpose: str = Field(alias="usePurpose")
+    resolver_version: str = Field(alias="resolverVersion")
+    status: str
+    created_at_utc: datetime = Field(alias="createdAtUtc")
+    items: list[MarketDataResolutionSnapshotItemView]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ActiveValuationPolicyView(BaseModel):
+    valuation_policy_id: UUID = Field(alias="valuationPolicyId")
+    tenant_id: UUID = Field(alias="tenantId")
+    policy_code: str = Field(alias="policyCode")
+    display_name: str = Field(alias="displayName")
+    valuation_cut_id: UUID = Field(alias="valuationCutId")
+    valuation_cut_code: str = Field(alias="valuationCutCode")
+    valuation_cut_display_name: str = Field(alias="valuationCutDisplayName")
+    timezone_name: str = Field(alias="timezoneName")
+    local_time: str = Field(alias="localTime")
 
     model_config = ConfigDict(populate_by_name=True)
 
