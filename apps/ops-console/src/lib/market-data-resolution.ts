@@ -3,9 +3,14 @@ import type { components } from "api-contracts";
 export type MarketDataResolutionSnapshot = components["schemas"]["MarketDataResolutionSnapshotView"];
 export type MarketDataResolutionItem = components["schemas"]["MarketDataResolutionSnapshotItemView"];
 export type MarketDataResolutionCreate = components["schemas"]["MarketDataResolutionSnapshotCreate"];
+export type ActiveValuationPolicy = Pick<components["schemas"]["ActiveValuationPolicyView"], "valuationPolicyId" | "valuationCutId">;
 
 export function buildOneSubjectResolutionRequest(subjectReferenceNodeId: string, values: Omit<MarketDataResolutionCreate, "subjectReferenceNodeIds">): MarketDataResolutionCreate {
   return { ...values, subjectReferenceNodeIds: [subjectReferenceNodeId] };
+}
+
+export function activePolicyCutId(policies: ActiveValuationPolicy[], valuationPolicyId: string): string | undefined {
+  return policies.find((policy) => policy.valuationPolicyId === valuationPolicyId)?.valuationCutId;
 }
 
 export function resolutionStatusLabel(status: string): string {

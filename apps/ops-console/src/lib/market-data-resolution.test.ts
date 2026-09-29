@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildOneSubjectResolutionRequest, formatResolutionTimestamp, resolutionStatusLabel } from "./market-data-resolution";
+import { activePolicyCutId, buildOneSubjectResolutionRequest, formatResolutionTimestamp, resolutionStatusLabel } from "./market-data-resolution";
 
 describe("market-data resolution evidence formatting", () => {
   it("labels frozen outcomes without evaluating live data", () => {
@@ -16,5 +16,13 @@ describe("market-data resolution evidence formatting", () => {
   it("builds a resolution command for exactly the selected subject", () => {
     const request = buildOneSubjectResolutionRequest("node-1", { valuationPolicyId: "policy-1", valuationDate: "2026-08-28", valuationCutId: "cut-1", marketDataAsOfUtc: "2026-08-28T16:00:00Z", usePurpose: "VALUATION" });
     expect(request.subjectReferenceNodeIds).toEqual(["node-1"]);
+  });
+
+  it("derives the only permitted valuation cut from the selected active policy", () => {
+    expect(activePolicyCutId([
+      { valuationPolicyId: "policy-1", valuationCutId: "cut-1" },
+      { valuationPolicyId: "policy-2", valuationCutId: "cut-2" },
+    ], "policy-2")).toBe("cut-2");
+    expect(activePolicyCutId([{ valuationPolicyId: "policy-1", valuationCutId: "cut-1" }], "unknown-policy")).toBeUndefined();
   });
 });
