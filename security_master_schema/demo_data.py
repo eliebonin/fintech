@@ -107,6 +107,10 @@ DEMO_IDS = {
     "demo_user_account": UUID("00000000-0000-7000-8000-000000000083"),
     "pending_mapping_proposal": UUID("00000000-0000-7000-8000-000000000084"),
     "demo_tenant_membership": UUID("00000000-0000-7000-8000-000000000085"),
+    "second_tenant": UUID("00000000-0000-7000-8000-000000000302"),
+    "second_tenant_membership": UUID("00000000-0000-7000-8000-000000000303"),
+    "platform_admin_user_account": UUID("00000000-0000-7000-8000-000000000304"),
+    "platform_admin_authority": UUID("00000000-0000-7000-8000-000000000305"),
     "abc_daily_valuation_profile": UUID("00000000-0000-7000-8000-000000000269"),
     "abc_daily_accounting_profile": UUID("00000000-0000-7000-8000-000000000270"),
     "abc_share_class_valuation_mapping": UUID("00000000-0000-7000-8000-000000000271"),
@@ -356,6 +360,7 @@ def load_demo_data(engine: Engine) -> None:
             _insert_once(connection, m.organisation, {"organisation_id": organisation_id, "entity_id": entity_id, "organisation_type": kind, "display_name": name, "legal_name": name, "status": "ACTIVE"})
 
         _insert_once(connection, m.tenant, {"tenant_id": DEMO_IDS["tenant"], "owning_organisation_id": DEMO_IDS["fortem_organisation"], "tenant_code": "FORTEM_DEMO_TENANT", "display_name": "Fortem Demo Tenant", "status": "ACTIVE"})
+        _insert_once(connection, m.tenant, {"tenant_id": DEMO_IDS["second_tenant"], "owning_organisation_id": DEMO_IDS["fortem_organisation"], "tenant_code": "FORTEM_SECOND_TENANT", "display_name": "Fortem Second Tenant", "status": "ACTIVE"})
         _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["gbp_currency_node"], "reference_node_type_id": node_currency, "canonical_name": "Pound sterling", "internal_code": "GBP_DEMO", "status": "ACTIVE", "is_tradable": False})
         _insert_once(connection, m.currency, {"currency_id": DEMO_IDS["gbp_currency"], "reference_node_id": DEMO_IDS["gbp_currency_node"], "currency_code": "GBP", "display_name": "Pound sterling", "numeric_code": "826", "minor_unit": 2, "currency_kind": "FIAT", "status": "ACTIVE"})
         _insert_once(connection, m.market_venue, {"market_venue_id": DEMO_IDS["xlon_venue"], "operating_organisation_id": DEMO_IDS["fortem_organisation"], "venue_type": "EXCHANGE", "display_name": "London Stock Exchange (synthetic)", "country_code": "GBR", "city": "London", "timezone_name": "Europe/London", "status": "ACTIVE"})
@@ -382,7 +387,11 @@ def load_demo_data(engine: Engine) -> None:
                 .values(display_name=name, country_code=country, city=city, timezone_name=timezone_name)
             )
         _insert_once(connection, m.user_account, {"user_account_id": DEMO_IDS["demo_user_account"], "account_type": "HUMAN", "status": "ACTIVE"})
-        _insert_once(connection, m.tenant_user_account, {"tenant_user_account_id": DEMO_IDS["demo_tenant_membership"], "tenant_id": DEMO_IDS["tenant"], "user_account_id": DEMO_IDS["demo_user_account"], "membership_role": "OPERATIONS", "status": "ACTIVE", "valid_from": date(2026, 1, 1)})
+        _insert_once(connection, m.user_account, {"user_account_id": DEMO_IDS["platform_admin_user_account"], "account_type": "HUMAN", "status": "ACTIVE"})
+        _insert_once(connection, m.tenant_user_account, {"tenant_user_account_id": DEMO_IDS["demo_tenant_membership"], "tenant_id": DEMO_IDS["tenant"], "user_account_id": DEMO_IDS["demo_user_account"], "membership_role": "TENANT_ADMIN", "status": "ACTIVE", "valid_from": date(2026, 1, 1)})
+        connection.execute(update(m.tenant_user_account).where(m.tenant_user_account.c.tenant_user_account_id == DEMO_IDS["demo_tenant_membership"]).values(membership_role="TENANT_ADMIN"))
+        _insert_once(connection, m.tenant_user_account, {"tenant_user_account_id": DEMO_IDS["second_tenant_membership"], "tenant_id": DEMO_IDS["second_tenant"], "user_account_id": DEMO_IDS["demo_user_account"], "membership_role": "OPERATIONS", "status": "ACTIVE", "valid_from": date(2026, 1, 1)})
+        _insert_once(connection, m.platform_user_account, {"platform_user_account_id": DEMO_IDS["platform_admin_authority"], "user_account_id": DEMO_IDS["platform_admin_user_account"], "platform_role": "PLATFORM_ADMIN", "status": "ACTIVE", "valid_from": date(2026, 1, 1)})
         for assignment_id, profile_id in (
             (DEMO_IDS["fund_manager_profile_assignment"], fund_manager_profile_id),
             (DEMO_IDS["trading_book_manager_profile_assignment"], trading_book_manager_profile_id),

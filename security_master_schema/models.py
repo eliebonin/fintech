@@ -552,12 +552,21 @@ strategy = Table(
     metadata,
     Column("strategy_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a portfolio, fund, client book, or generic reporting ledger."),
     Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Tenant permitted to own and operate the strategy; nullable only for legacy or platform records that tenant-facing services must reject until explicitly scoped."),
-    Column("strategy_code", String(100), nullable=False, unique=True, comment="Unique convenient code used to identify the strategy operationally."),
+    Column("strategy_code", String(100), nullable=False, comment="Tenant-unique convenient code used to identify the strategy operationally."),
     Column("display_name", String(250), nullable=False, comment="Human-readable strategy name."),
-    Column("strategy_type", String(50), nullable=False, comment="Strategy kind such as FUND, CLIENT_BOOK, HOUSE_BOOK, MODEL_PORTFOLIO, or OTHER_LEDGER."),
+    Column("strategy_type", String(50), nullable=False, comment="Controlled operating model: AMC_MANDATE, FUND, MANAGED_ACCOUNT, PROP_SLEEVE, MODEL_PORTFOLIO, or OTHER."),
+    Column("operating_model_label", String(250), nullable=True, comment="Mandatory explanatory label when strategy_type is OTHER; null for controlled operating models."),
     Column("base_currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Base currency used for strategy reporting and P&L."),
     Column("legal_owner_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=True, comment="Organisation legally owning or operating the strategy when applicable."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the strategy."),
+    Column("effective_from", Date, nullable=False, server_default=text("CURRENT_DATE"), comment="First business date on which this strategy is active for tenant operations."),
+    Column("effective_to", Date, nullable=True, comment="Last business date on which this strategy is active; null means open-ended."),
+    Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=True, comment="Authenticated account that created this tenant strategy."),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which this strategy was created."),
+    UniqueConstraint("tenant_id", "strategy_code", name="uq_strategy_tenant_code"),
+    CheckConstraint("strategy_type IN ('AMC_MANDATE', 'FUND', 'MANAGED_ACCOUNT', 'PROP_SLEEVE', 'MODEL_PORTFOLIO', 'OTHER')", name="ck_strategy_type"),
+    CheckConstraint("(strategy_type = 'OTHER' AND NULLIF(BTRIM(operating_model_label), '') IS NOT NULL) OR (strategy_type <> 'OTHER' AND operating_model_label IS NULL)", name="ck_strategy_operating_model_label"),
+    CheckConstraint("effective_to IS NULL OR effective_to >= effective_from", name="ck_strategy_effective_period"),
     schema="trd",
 )
 
@@ -898,6 +907,23 @@ tenant_user_account = Table(
     Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which the membership was created."),
     UniqueConstraint("tenant_id", "user_account_id", "valid_from", name="uq_tenant_user_account_membership"),
     CheckConstraint("valid_to IS NULL OR valid_to >= valid_from", name="ck_tenant_user_account_valid_period"),
+    schema="ten",
+)
+
+platform_user_account = Table(
+    "platform_user_account",
+    metadata,
+    Column("platform_user_account_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one platform-level user authority assignment."),
+    Column("user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Account granted platform control-plane authority independently of tenant membership."),
+    Column("platform_role", String(40), nullable=False, comment="Platform authority role; alpha supports PLATFORM_ADMIN only."),
+    Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Authority assignment lifecycle status such as ACTIVE, SUSPENDED, or REVOKED."),
+    Column("valid_from", Date, nullable=False, comment="First business date on which this platform authority assignment is effective."),
+    Column("valid_to", Date, nullable=True, comment="Last business date on which this platform authority assignment is effective; null means open-ended."),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which this platform authority assignment was recorded."),
+    UniqueConstraint("user_account_id", "platform_role", "valid_from", name="uq_platform_user_account_role"),
+    CheckConstraint("platform_role IN ('PLATFORM_ADMIN')", name="ck_platform_user_account_role"),
+    CheckConstraint("status IN ('ACTIVE', 'SUSPENDED', 'REVOKED')", name="ck_platform_user_account_status"),
+    CheckConstraint("valid_to IS NULL OR valid_to >= valid_from", name="ck_platform_user_account_valid_period"),
     schema="ten",
 )
 
