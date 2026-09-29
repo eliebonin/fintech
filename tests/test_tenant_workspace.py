@@ -4,11 +4,18 @@ from datetime import date
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import create_engine, insert, select
+from sqlalchemy import create_engine, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from security_master_schema import models as m
 from security_master_schema.demo_data import DEMO_IDS, create_schema, load_demo_data
+from security_master_schema.tenant_workspace import (
+    TenantActionForbidden,
+    list_active_tenant_memberships,
+    require_tenant_action,
+    resolve_platform_role,
+    resolve_tenant_workspace,
+)
 
 
 DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
@@ -95,3 +102,43 @@ def test_demo_data_provides_switchable_tenant_and_separate_platform_admin(engine
         (DEMO_IDS["second_tenant"], "OPERATIONS"),
     }
     assert platform_role == "PLATFORM_ADMIN"
+
+
+def test_workspace_returns_only_current_memberships_and_granted_modules(engine) -> None:
+    with engine.connect() as connection:
+        memberships = list_active_tenant_memberships(connection, DEMO_IDS["demo_user_account"], date(2026, 9, 29))
+        workspace = resolve_tenant_workspace(connection, DEMO_IDS["tenant"], DEMO_IDS["demo_user_account"], date(2026, 9, 29))
+
+    assert [(row.tenant_code, row.membership_role) for row in memberships] == [
+        ("FORTEM_DEMO_TENANT", "TENANT_ADMIN"),
+        ("FORTEM_SECOND_TENANT", "OPERATIONS"),
+    ]
+    assert "TRADING" in workspace.module_codes
+
+
+def test_strategy_write_requires_tenant_admin_and_enabled_module(engine) -> None:
+    with engine.connect() as connection:
+        workspace = resolve_tenant_workspace(connection, DEMO_IDS["second_tenant"], DEMO_IDS["demo_user_account"], date(2026, 9, 29))
+
+    with pytest.raises(TenantActionForbidden):
+        require_tenant_action(workspace, "STRATEGY_WRITE")
+
+
+def test_platform_role_is_resolved_without_tenant_membership(engine) -> None:
+    with engine.connect() as connection:
+        assert resolve_platform_role(connection, DEMO_IDS["platform_admin_user_account"], date(2026, 9, 29)) == "PLATFORM_ADMIN"
+
+
+def test_expired_entitlement_removes_strategy_write_permission(engine) -> None:
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        connection.execute(
+            update(m.tenant_module_entitlement)
+            .where(m.tenant_module_entitlement.c.tenant_id == DEMO_IDS["tenant"])
+            .values(valid_to=date(2026, 9, 28))
+        )
+        workspace = resolve_tenant_workspace(connection, DEMO_IDS["tenant"], DEMO_IDS["demo_user_account"], date(2026, 9, 29))
+
+        with pytest.raises(TenantActionForbidden):
+            require_tenant_action(workspace, "STRATEGY_WRITE")
+        transaction.rollback()
