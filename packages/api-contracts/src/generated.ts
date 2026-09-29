@@ -395,6 +395,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/market-data-resolution-snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Market Data Snapshot */
+        post: operations["create_market_data_snapshot_v1_market_data_resolution_snapshots_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data-resolution-snapshots/{snapshot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Market Data Snapshot */
+        get: operations["get_market_data_snapshot_v1_market_data_resolution_snapshots__snapshot_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/market-data/series": {
         parameters: {
             query?: never;
@@ -404,6 +438,23 @@ export interface paths {
         };
         /** Market Data Series Catalogue */
         get: operations["market_data_series_catalogue_v1_market_data_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/valuation-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active Valuation Policies */
+        get: operations["active_valuation_policies_v1_market_data_valuation_policies_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -663,6 +714,36 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActiveValuationPolicyView */
+        ActiveValuationPolicyView: {
+            /** Displayname */
+            displayName: string;
+            /** Localtime */
+            localTime: string;
+            /** Policycode */
+            policyCode: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Timezonename */
+            timezoneName: string;
+            /** Valuationcutcode */
+            valuationCutCode: string;
+            /** Valuationcutdisplayname */
+            valuationCutDisplayName: string;
+            /**
+             * Valuationcutid
+             * Format: uuid
+             */
+            valuationCutId: string;
+            /**
+             * Valuationpolicyid
+             * Format: uuid
+             */
+            valuationPolicyId: string;
+        };
         /** ApiMeta */
         ApiMeta: {
             /** Apiversion */
@@ -2011,6 +2092,126 @@ export interface components {
             valueBasis: string;
             /** Vintage */
             vintage: string;
+        };
+        /**
+         * MarketDataResolutionSnapshotCreate
+         * @description One coherent, bounded set of inputs resolved at a UTC information cut.
+         */
+        MarketDataResolutionSnapshotCreate: {
+            /**
+             * Marketdataasofutc
+             * Format: date-time
+             */
+            marketDataAsOfUtc: string;
+            /** Subjectreferencenodeids */
+            subjectReferenceNodeIds: string[];
+            /** Usepurpose */
+            usePurpose: string;
+            /**
+             * Valuationcutid
+             * Format: uuid
+             */
+            valuationCutId: string;
+            /**
+             * Valuationdate
+             * Format: date
+             */
+            valuationDate: string;
+            /**
+             * Valuationpolicyid
+             * Format: uuid
+             */
+            valuationPolicyId: string;
+        };
+        /** MarketDataResolutionSnapshotItemView */
+        MarketDataResolutionSnapshotItemView: {
+            /** Acquisitionlicenceid */
+            acquisitionLicenceId: string | null;
+            /** Currencyid */
+            currencyId: string | null;
+            /** Datasetid */
+            datasetId: string | null;
+            /** Entitlementdecision */
+            entitlementDecision: string;
+            /** Exceptioncode */
+            exceptionCode: string | null;
+            /** Marketdataobservationid */
+            marketDataObservationId: string | null;
+            /** Marketdataseriesid */
+            marketDataSeriesId: string | null;
+            /** Marketdatavintageid */
+            marketDataVintageId: string | null;
+            /** Policyruleid */
+            policyRuleId: string | null;
+            /** Pricingdaterequested */
+            pricingDateRequested: string | null;
+            /** Pricingdateused */
+            pricingDateUsed: string | null;
+            /** Receivedatutc */
+            receivedAtUtc: string | null;
+            /** Selectedvalue */
+            selectedValue: string | null;
+            /** Selectionreason */
+            selectionReason: string;
+            /** Sourcepublishedatutc */
+            sourcePublishedAtUtc: string | null;
+            /** Stalenessbusinessdays */
+            stalenessBusinessDays: number | null;
+            /** Stalenessstatus */
+            stalenessStatus: string;
+            /** Status */
+            status: string;
+            /**
+             * Subjectreferencenodeid
+             * Format: uuid
+             */
+            subjectReferenceNodeId: string;
+        };
+        /** MarketDataResolutionSnapshotView */
+        MarketDataResolutionSnapshotView: {
+            /**
+             * Createdatutc
+             * Format: date-time
+             */
+            createdAtUtc: string;
+            /** Items */
+            items: components["schemas"]["MarketDataResolutionSnapshotItemView"][];
+            /**
+             * Marketdataasofutc
+             * Format: date-time
+             */
+            marketDataAsOfUtc: string;
+            /**
+             * Marketdataresolutionsnapshotid
+             * Format: uuid
+             */
+            marketDataResolutionSnapshotId: string;
+            /** Resolverversion */
+            resolverVersion: string;
+            /** Status */
+            status: string;
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+            /** Usepurpose */
+            usePurpose: string;
+            /**
+             * Valuationcutid
+             * Format: uuid
+             */
+            valuationCutId: string;
+            /**
+             * Valuationdate
+             * Format: date
+             */
+            valuationDate: string;
+            /**
+             * Valuationpolicyid
+             * Format: uuid
+             */
+            valuationPolicyId: string;
         };
         /** MarketDataSeriesResponse */
         MarketDataSeriesResponse: {
@@ -4741,6 +4942,187 @@ export interface operations {
             };
         };
     };
+    create_market_data_snapshot_v1_market_data_resolution_snapshots_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketDataResolutionSnapshotCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketDataResolutionSnapshotView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_market_data_snapshot_v1_market_data_resolution_snapshots__snapshot_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketDataResolutionSnapshotView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     market_data_series_catalogue_v1_market_data_series_get: {
         parameters: {
             query?: {
@@ -4768,6 +5150,95 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MarketDataSeriesResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    active_valuation_policies_v1_market_data_valuation_policies_get: {
+        parameters: {
+            query: {
+                valuationDate: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveValuationPolicyView"][];
                 };
             };
             /** @description Invalid request */

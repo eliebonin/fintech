@@ -1,6 +1,62 @@
 {
   "components": {
     "schemas": {
+      "ActiveValuationPolicyView": {
+        "properties": {
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "localTime": {
+            "title": "Localtime",
+            "type": "string"
+          },
+          "policyCode": {
+            "title": "Policycode",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "timezoneName": {
+            "title": "Timezonename",
+            "type": "string"
+          },
+          "valuationCutCode": {
+            "title": "Valuationcutcode",
+            "type": "string"
+          },
+          "valuationCutDisplayName": {
+            "title": "Valuationcutdisplayname",
+            "type": "string"
+          },
+          "valuationCutId": {
+            "format": "uuid",
+            "title": "Valuationcutid",
+            "type": "string"
+          },
+          "valuationPolicyId": {
+            "format": "uuid",
+            "title": "Valuationpolicyid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valuationPolicyId",
+          "tenantId",
+          "policyCode",
+          "displayName",
+          "valuationCutId",
+          "valuationCutCode",
+          "valuationCutDisplayName",
+          "timezoneName",
+          "localTime"
+        ],
+        "title": "ActiveValuationPolicyView",
+        "type": "object"
+      },
       "ApiMeta": {
         "properties": {
           "apiVersion": {
@@ -4438,6 +4494,345 @@
           "valueBasis"
         ],
         "title": "MarketDataPointView",
+        "type": "object"
+      },
+      "MarketDataResolutionSnapshotCreate": {
+        "description": "One coherent, bounded set of inputs resolved at a UTC information cut.",
+        "properties": {
+          "marketDataAsOfUtc": {
+            "format": "date-time",
+            "title": "Marketdataasofutc",
+            "type": "string"
+          },
+          "subjectReferenceNodeIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Subjectreferencenodeids",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "usePurpose": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Usepurpose",
+            "type": "string"
+          },
+          "valuationCutId": {
+            "format": "uuid",
+            "title": "Valuationcutid",
+            "type": "string"
+          },
+          "valuationDate": {
+            "format": "date",
+            "title": "Valuationdate",
+            "type": "string"
+          },
+          "valuationPolicyId": {
+            "format": "uuid",
+            "title": "Valuationpolicyid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectReferenceNodeIds",
+          "valuationPolicyId",
+          "valuationDate",
+          "valuationCutId",
+          "marketDataAsOfUtc",
+          "usePurpose"
+        ],
+        "title": "MarketDataResolutionSnapshotCreate",
+        "type": "object"
+      },
+      "MarketDataResolutionSnapshotItemView": {
+        "properties": {
+          "acquisitionLicenceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquisitionlicenceid"
+          },
+          "currencyId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currencyid"
+          },
+          "datasetId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datasetid"
+          },
+          "entitlementDecision": {
+            "title": "Entitlementdecision",
+            "type": "string"
+          },
+          "exceptionCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exceptioncode"
+          },
+          "marketDataObservationId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketdataobservationid"
+          },
+          "marketDataSeriesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketdataseriesid"
+          },
+          "marketDataVintageId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketdatavintageid"
+          },
+          "policyRuleId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policyruleid"
+          },
+          "pricingDateRequested": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricingdaterequested"
+          },
+          "pricingDateUsed": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricingdateused"
+          },
+          "receivedAtUtc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receivedatutc"
+          },
+          "selectedValue": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedvalue"
+          },
+          "selectionReason": {
+            "title": "Selectionreason",
+            "type": "string"
+          },
+          "sourcePublishedAtUtc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcepublishedatutc"
+          },
+          "stalenessBusinessDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stalenessbusinessdays"
+          },
+          "stalenessStatus": {
+            "title": "Stalenessstatus",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subjectReferenceNodeId": {
+            "format": "uuid",
+            "title": "Subjectreferencenodeid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "subjectReferenceNodeId",
+          "policyRuleId",
+          "marketDataSeriesId",
+          "marketDataObservationId",
+          "marketDataVintageId",
+          "datasetId",
+          "acquisitionLicenceId",
+          "sourcePublishedAtUtc",
+          "receivedAtUtc",
+          "selectedValue",
+          "currencyId",
+          "pricingDateRequested",
+          "pricingDateUsed",
+          "stalenessBusinessDays",
+          "stalenessStatus",
+          "selectionReason",
+          "entitlementDecision",
+          "exceptionCode"
+        ],
+        "title": "MarketDataResolutionSnapshotItemView",
+        "type": "object"
+      },
+      "MarketDataResolutionSnapshotView": {
+        "properties": {
+          "createdAtUtc": {
+            "format": "date-time",
+            "title": "Createdatutc",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MarketDataResolutionSnapshotItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "marketDataAsOfUtc": {
+            "format": "date-time",
+            "title": "Marketdataasofutc",
+            "type": "string"
+          },
+          "marketDataResolutionSnapshotId": {
+            "format": "uuid",
+            "title": "Marketdataresolutionsnapshotid",
+            "type": "string"
+          },
+          "resolverVersion": {
+            "title": "Resolverversion",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "title": "Tenantid",
+            "type": "string"
+          },
+          "usePurpose": {
+            "title": "Usepurpose",
+            "type": "string"
+          },
+          "valuationCutId": {
+            "format": "uuid",
+            "title": "Valuationcutid",
+            "type": "string"
+          },
+          "valuationDate": {
+            "format": "date",
+            "title": "Valuationdate",
+            "type": "string"
+          },
+          "valuationPolicyId": {
+            "format": "uuid",
+            "title": "Valuationpolicyid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "marketDataResolutionSnapshotId",
+          "tenantId",
+          "valuationPolicyId",
+          "valuationDate",
+          "valuationCutId",
+          "marketDataAsOfUtc",
+          "usePurpose",
+          "resolverVersion",
+          "status",
+          "createdAtUtc",
+          "items"
+        ],
+        "title": "MarketDataResolutionSnapshotView",
         "type": "object"
       },
       "MarketDataSeriesResponse": {
@@ -10097,6 +10492,291 @@
         "summary": "Propose Equity Listing"
       }
     },
+    "/v1/market-data-resolution-snapshots": {
+      "post": {
+        "operationId": "create_market_data_snapshot_v1_market_data_resolution_snapshots_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketDataResolutionSnapshotCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketDataResolutionSnapshotView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Create Market Data Snapshot"
+      }
+    },
+    "/v1/market-data-resolution-snapshots/{snapshot_id}": {
+      "get": {
+        "operationId": "get_market_data_snapshot_v1_market_data_resolution_snapshots__snapshot_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketDataResolutionSnapshotView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Get Market Data Snapshot"
+      }
+    },
     "/v1/market-data/series": {
       "get": {
         "operationId": "market_data_series_catalogue_v1_market_data_series_get",
@@ -10329,6 +11009,147 @@
           }
         },
         "summary": "Market Data Series Catalogue"
+      }
+    },
+    "/v1/market-data/valuation-policies": {
+      "get": {
+        "operationId": "active_valuation_policies_v1_market_data_valuation_policies_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "valuationDate",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Valuationdate",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActiveValuationPolicyView"
+                  },
+                  "title": "Response Active Valuation Policies V1 Market Data Valuation Policies Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Active Valuation Policies"
       }
     },
     "/v1/market-venues": {

@@ -24,7 +24,8 @@ class MarketDataResolutionSnapshotCreate(BaseModel):
     """One coherent, bounded set of inputs resolved at a UTC information cut."""
 
     subject_reference_node_ids: list[UUID] = Field(
-        alias="subjectReferenceNodeIds", min_length=1, max_length=50
+        alias="subjectReferenceNodeIds", min_length=1, max_length=50,
+        json_schema_extra={"uniqueItems": True},
     )
     valuation_policy_id: UUID = Field(alias="valuationPolicyId")
     valuation_date: date = Field(alias="valuationDate")
