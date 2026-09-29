@@ -21,3 +21,18 @@ The local demo tenant currently exposes the following **synthetic** policies. Th
 | `US_FUND_CUTOFF_DEMO` | US fund valuation example using a New York FX cut. | `US_FUND_FX_1600_DEMO` — America/New_York, 16:00. |
 
 For a valuation date, the selector returns only policies that are active, effective for that tenant and date, and paired with their allowed cut. Snapshot creation validates the same policy/cut/date relationship again on the server; the selector response alone is not authority to bypass that validation.
+
+### Using a policy in the Ops Console
+
+1. Select the reference node whose Market Data evidence is required, then set the valuation date.
+2. Choose an active policy. The displayed cut is read-only because the policy determines the permitted business cut.
+3. Enter the **information cut in UTC**: the latest point in time at which the platform may use information. This is distinct from the valuation cut, which is the named local business time the value is intended to represent.
+4. Freeze the resolution. The snapshot records the selected or rejected outcome and all supporting policy, entitlement, series, observation, vintage, licence, publication, and receipt evidence.
+
+The demo rules make the distinction tangible:
+
+- `DEMO_EOD` selects the configured official close for the demo listing on the same valuation date. It allows no staleness and fails when that exact input is unavailable. It also includes a separate demo fund-NAV rule using a one-business-day pricing lag.
+- `UK_FUND_CUTOFF_DEMO` selects the configured GBP/USD FX spot series under the London 16:00 cut.
+- `US_FUND_CUTOFF_DEMO` selects the separate GBP/USD FX spot series under the New York 16:00 cut.
+
+The last two policies deliberately keep London and New York FX contexts separate. In production, a policy would be formally approved, versioned, effective-dated, and populated with the tenant's actual series, source, staleness, fallback, and missing-data rules.
