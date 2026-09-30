@@ -71,6 +71,7 @@ from .contracts import (
     StructuredProductProposalView,
     TradeDetailResponse,
     TradeDetailView,
+    TradeBookingRequest,
     TradeExternalReferenceView,
     TradeFeeView,
     TradeLifecycleEventView,
@@ -4704,6 +4705,121 @@ def get_booked_trade_detail(
         ),
         meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id),
     )
+
+
+_TRADE_BOOKING_ENDPOINT = "/v1/trades"
+
+
+def _trade_booking_fingerprint(payload: TradeBookingRequest) -> str:
+    canonical = json.dumps(payload.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _trade_booking_idempotency_lock_key(tenant_id: UUID, idempotency_key: str) -> int:
+    scope = f"{tenant_id}\x1f{_TRADE_BOOKING_ENDPOINT}\x1f{idempotency_key}"
+    return int.from_bytes(hashlib.sha256(scope.encode("utf-8")).digest()[:8], byteorder="big", signed=True)
+
+
+def book_listed_cash_trade(
+    connection: Connection,
+    tenant_id: UUID,
+    actor_id: UUID,
+    request: TradeBookingRequest,
+    idempotency_key: str,
+    request_id: str,
+) -> TradeDetailResponse:
+    """Create or replay one immutable listing-backed cash execution."""
+
+    fingerprint = _trade_booking_fingerprint(request)
+    connection.execute(select(func.pg_advisory_xact_lock(_trade_booking_idempotency_lock_key(tenant_id, idempotency_key))))
+    existing = connection.execute(
+        select(m.trade_booking_idempotency)
+        .where(m.trade_booking_idempotency.c.tenant_id == tenant_id)
+        .where(m.trade_booking_idempotency.c.endpoint == _TRADE_BOOKING_ENDPOINT)
+        .where(m.trade_booking_idempotency.c.idempotency_key == idempotency_key)
+        .with_for_update()
+    ).mappings().first()
+    if existing is not None:
+        if existing["request_fingerprint"] != fingerprint:
+            raise IdempotencyKeyConflict("Idempotency key was already used with a different request")
+        replay = get_booked_trade_detail(connection, tenant_id, existing["trade_id"], "v1", request_id)
+        if replay is None:
+            raise RepositoryNotFound("Booked trade does not exist")
+        return replay
+
+    listing_row = connection.execute(
+        select(
+            m.listing.c.listing_node_id,
+            m.listing.c.instrument_node_id,
+            m.listing.c.market_venue_id,
+            m.listing.c.trading_currency_id,
+            m.currency.c.currency_code,
+        )
+        .select_from(m.listing.join(m.currency, m.currency.c.currency_id == m.listing.c.trading_currency_id))
+        .join(m.financial_reference_node, m.financial_reference_node.c.reference_node_id == m.listing.c.listing_node_id)
+        .where(m.listing.c.listing_node_id == request.listing_id)
+        .where(m.listing.c.status == "ACTIVE")
+        .where(m.financial_reference_node.c.status == "ACTIVE")
+        .with_for_update()
+    ).mappings().first()
+    if listing_row is None:
+        raise RepositoryNotFound("Active listing does not exist")
+    strategy_row = connection.execute(
+        select(m.strategy.c.strategy_id)
+        .where(m.strategy.c.strategy_id == request.strategy_id)
+        .where(m.strategy.c.tenant_id == tenant_id)
+        .where(m.strategy.c.status == "ACTIVE")
+        .with_for_update()
+    ).mappings().first()
+    if strategy_row is None:
+        raise RepositoryNotFound("Active strategy does not exist")
+    if request.counterparty_organisation_id is not None:
+        organisation_id = connection.scalar(
+            select(m.organisation.c.organisation_id)
+            .where(m.organisation.c.organisation_id == request.counterparty_organisation_id)
+            .where(m.organisation.c.status == "ACTIVE")
+        )
+        if organisation_id is None:
+            raise InvalidCatalogueValue("counterpartyOrganisationId is not an active organisation")
+
+    trade_id = uuid4()
+    signed_quantity = request.quantity if request.side == "BUY" else -request.quantity
+    trade_datetime_utc = request.trade_datetime.astimezone(timezone.utc)
+    connection.execute(
+        insert(m.trade).values(
+            trade_id=trade_id,
+            trade_subject_reference_node_id=listing_row["listing_node_id"],
+            reference_instrument_node_id=listing_row["instrument_node_id"],
+            strategy_id=strategy_row["strategy_id"],
+            trade_type="INVESTMENT",
+            trade_purpose="INVESTMENT",
+            execution_price=request.execution_price,
+            price_basis="UNIT_PRICE",
+            price_currency_id=listing_row["trading_currency_id"],
+            quantity=signed_quantity,
+            quantity_unit="SHARES",
+            trade_datetime_utc=trade_datetime_utc,
+            settlement_date=request.settlement_date,
+            booked_by_user_account_id=actor_id,
+            execution_channel="MANUAL_UI",
+            execution_venue_id=listing_row["market_venue_id"],
+            lifecycle_status="BOOKED",
+            created_by_user_account_id=actor_id,
+            comment=request.comment,
+        )
+    )
+    party_role_id = None
+    if request.counterparty_organisation_id is not None:
+        party_role_id = uuid4()
+        connection.execute(insert(m.trade_party_role).values(trade_party_role_id=party_role_id, trade_id=trade_id, organisation_id=request.counterparty_organisation_id, role="COUNTERPARTY"))
+    if request.external_reference:
+        connection.execute(insert(m.trade_external_reference).values(trade_id=trade_id, trade_party_role_id=party_role_id, reference_type="SOURCE_TRADE_ID", reference_value=request.external_reference))
+    connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, recorded_by_user_account_id=actor_id))
+    connection.execute(insert(m.trade_booking_idempotency).values(tenant_id=tenant_id, endpoint=_TRADE_BOOKING_ENDPOINT, idempotency_key=idempotency_key, request_fingerprint=fingerprint, trade_id=trade_id))
+    result = get_booked_trade_detail(connection, tenant_id, trade_id, "v1", request_id)
+    if result is None:
+        raise RepositoryNotFound("Booked trade does not exist")
+    return result
 
 
 def _previous_business_day(value: date) -> date:

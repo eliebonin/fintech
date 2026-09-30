@@ -2,10 +2,10 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ApiMeta(BaseModel):
@@ -376,6 +376,34 @@ class TradeView(BaseModel):
 class TradeResponse(BaseModel):
     data: list[TradeView]
     meta: ApiMeta
+
+
+class TradeBookingRequest(BaseModel):
+    listing_id: UUID = Field(alias="listingId")
+    strategy_id: UUID = Field(alias="strategyId")
+    side: Literal["BUY", "SELL"]
+    quantity: Decimal = Field(gt=0)
+    execution_price: Decimal = Field(alias="executionPrice", gt=0)
+    trade_datetime: datetime = Field(alias="tradeDatetime")
+    settlement_date: date = Field(alias="settlementDate")
+    counterparty_organisation_id: UUID | None = Field(default=None, alias="counterpartyOrganisationId")
+    external_reference: str | None = Field(default=None, alias="externalReference", max_length=500)
+    comment: str | None = Field(default=None, max_length=10000)
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    @field_validator("external_reference", "comment")
+    @classmethod
+    def _trim_optional_text(cls, value: str | None) -> str | None:
+        return value.strip() if value else None
+
+    @model_validator(mode="after")
+    def _validate_dates_and_timezone(self) -> "TradeBookingRequest":
+        if self.trade_datetime.tzinfo is None or self.trade_datetime.utcoffset() is None:
+            raise ValueError("tradeDatetime must include a timezone offset")
+        if self.settlement_date < self.trade_datetime.date():
+            raise ValueError("settlementDate must not be before tradeDatetime")
+        return self
 
 
 class TradePartyView(BaseModel):

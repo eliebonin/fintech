@@ -47,6 +47,7 @@ from .contracts import (
     ReturnProfileResponse,
     StructuredProductProposalResponse,
     TradeDetailResponse,
+    TradeBookingRequest,
     TradeResponse,
     WorkQueueView,
     StrategyCreateRequest,
@@ -60,7 +61,7 @@ from .contracts import (
 )
 from .structured_product_contracts import AutocallDraftRequest, StructuredProductDraftError
 from .db import get_engine
-from .repository import IdempotencyKeyConflict, InvalidCatalogueValue, InvalidWorkflowState, RepositoryNotFound, create_market_data_resolution_snapshot, create_mapping_proposal, decide_crypto_asset_proposal, decide_etp_proposal, decide_fx_forward_proposal, decide_index_family_proposal, decide_index_proposal, decide_mapping_proposal, decide_bond_proposal, decide_equity_proposal, decide_reference_data_proposal, decide_structured_product_proposal, get_market_data_resolution_snapshot, get_booked_trade_detail, get_crypto_asset_proposal, get_instrument, get_reference_data_proposal, list_active_valuation_policies, list_booked_trades, list_currencies, list_day_count_conventions, list_index_families, list_index_kinds, list_market_data_series, list_market_venues, list_organisations, list_return_profiles, parse_currency_groups, portfolio_pnl, search_instruments, search_reference_nodes, submit_bond_proposal, submit_crypto_asset_proposal, submit_etp_proposal, submit_fx_forward_proposal, submit_equity_listing_proposal, submit_equity_proposal, submit_index_family_proposal, submit_index_proposal, submit_structured_product_proposal, work_queue
+from .repository import IdempotencyKeyConflict, InvalidCatalogueValue, InvalidWorkflowState, RepositoryNotFound, book_listed_cash_trade, create_market_data_resolution_snapshot, create_mapping_proposal, decide_crypto_asset_proposal, decide_etp_proposal, decide_fx_forward_proposal, decide_index_family_proposal, decide_index_proposal, decide_mapping_proposal, decide_bond_proposal, decide_equity_proposal, decide_reference_data_proposal, decide_structured_product_proposal, get_market_data_resolution_snapshot, get_booked_trade_detail, get_crypto_asset_proposal, get_instrument, get_reference_data_proposal, list_active_valuation_policies, list_booked_trades, list_currencies, list_day_count_conventions, list_index_families, list_index_kinds, list_market_data_series, list_market_venues, list_organisations, list_return_profiles, parse_currency_groups, portfolio_pnl, search_instruments, search_reference_nodes, submit_bond_proposal, submit_crypto_asset_proposal, submit_etp_proposal, submit_fx_forward_proposal, submit_equity_listing_proposal, submit_equity_proposal, submit_index_family_proposal, submit_index_proposal, submit_structured_product_proposal, work_queue
 from .tenant_context import TenantContext, get_tenant_context, require_actor
 from .tenant_context import ActorContext, get_actor_context
 from .repository import create_strategy
@@ -903,6 +904,30 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     ) -> IndexFamilyOptionResponse:
         _assert_tenant_membership(connection, context)
         return list_index_families(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id))
+
+    @app.post("/v1/trades", response_model=TradeDetailResponse, status_code=status.HTTP_201_CREATED)
+    def book_trade(
+        request: TradeBookingRequest,
+        response: Response,
+        idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=255),
+        context: TenantContext = Depends(get_tenant_context),
+        connection=Depends(connection_dependency),
+    ) -> TradeDetailResponse:
+        actor_id = _assert_tenant_membership(connection, context)
+        try:
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "TRADE_WRITE")
+            with connection.begin_nested():
+                result = book_listed_cash_trade(connection, context.tenant_id, actor_id, request, idempotency_key, current_request_id())
+        except TenantActionForbidden as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant membership is not permitted to book trades") from exc
+        except IdempotencyKeyConflict as exc:
+            raise ApiProblem(status.HTTP_409_CONFLICT, "idempotency.key_reused", "Idempotency key conflict", "The idempotency key has already been used for a different request.") from exc
+        except RepositoryNotFound as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing or strategy not found") from exc
+        except (InvalidCatalogueValue, ValueError) as exc:
+            raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "request.validation_failed", "Request validation failed", "One or more request fields are invalid.") from exc
+        response.headers["Location"] = f"/v1/trades/{result.data.trade.trade_id}"
+        return result
 
     @app.get("/v1/trades", response_model=TradeResponse)
     def booked_trades(

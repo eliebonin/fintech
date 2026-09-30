@@ -755,7 +755,8 @@ export interface paths {
         /** Booked Trades */
         get: operations["booked_trades_v1_trades_get"];
         put?: never;
-        post?: never;
+        /** Book Trade */
+        post: operations["book_trade_v1_trades_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2749,6 +2750,44 @@ export interface components {
             /** Tenantname */
             tenantName: string;
         };
+        /** TradeBookingRequest */
+        TradeBookingRequest: {
+            /** Comment */
+            comment?: string | null;
+            /** Counterpartyorganisationid */
+            counterpartyOrganisationId?: string | null;
+            /** Executionprice */
+            executionPrice: number | string;
+            /** Externalreference */
+            externalReference?: string | null;
+            /**
+             * Listingid
+             * Format: uuid
+             */
+            listingId: string;
+            /** Quantity */
+            quantity: number | string;
+            /**
+             * Settlementdate
+             * Format: date
+             */
+            settlementDate: string;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "BUY" | "SELL";
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
+            /**
+             * Tradedatetime
+             * Format: date-time
+             */
+            tradeDatetime: string;
+        };
         /** TradeDetailResponse */
         TradeDetailResponse: {
             data: components["schemas"]["TradeDetailView"];
@@ -2984,12 +3023,18 @@ export interface components {
             detail: string;
             /** Itemid */
             itemId: string;
+            /** Proposaltype */
+            proposalType?: string | null;
+            /** Proposedat */
+            proposedAt?: string | null;
             /** Referenceid */
             referenceId?: string | null;
             /** Reviewpath */
             reviewPath?: string | null;
             /** Status */
             status: string;
+            /** Submittedbyuseraccountid */
+            submittedByUserAccountId?: string | null;
             /** Title */
             title: string;
         };
@@ -4849,6 +4894,7 @@ export interface operations {
                 q?: string;
                 instrument_type?: string | null;
                 asset_class?: string | null;
+                status?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -7057,6 +7103,98 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    book_trade_v1_trades_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TradeBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
                 };
             };
             /** @description Invalid request */
