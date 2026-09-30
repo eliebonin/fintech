@@ -1,6 +1,6 @@
 # Enriched cash-trade booking design
 
-**Status:** Proposed written specification; conversational scope approved, awaiting document review.
+**Status:** Approved for implementation planning following the user's implementation request.
 
 **Date:** 2026-09-30
 
@@ -49,7 +49,7 @@ tenant-approved counterparty list. The enriched alpha explicitly retains this
 shared reference catalogue for organisation selection, labelled as such. Active
 status is the alpha eligibility rule, not evidence of onboarding or credit
 approval. A tenant allowlist/onboarding module is deferred rather than implied.
-This written policy choice requires confirmation during document review.
+This policy is the alpha scope approved with the user's implementation request.
 
 ## 3. Page structure
 
