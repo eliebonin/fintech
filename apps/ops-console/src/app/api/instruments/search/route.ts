@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { searchInstruments } from "@/lib/instrument-data";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
 import { searchReferenceInstruments } from "@/lib/reference-api-client";
 import { bffErrorResponse } from "@/lib/bff-error";
+import { getActiveTenantContext } from "@/lib/tenant-session";
 
 export const dynamic = "force-dynamic";
 
-export function GET(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q") ?? "";
   const instrumentType = request.nextUrl.searchParams.get("instrument_type") ?? undefined;
   const assetClass = request.nextUrl.searchParams.get("asset_class") ?? undefined;
-  const context = resolveLocalTenantContext();
+  let context;
+  try {
+    context = await getActiveTenantContext();
+  } catch {
+    return NextResponse.json({ error: { code: "ACTIVE_TENANT_REQUIRED" } }, { status: 401 });
+  }
   return searchReferenceInstruments(query, { ...context, instrumentType, assetClass })
     .then((payload) => NextResponse.json(payload))
     .catch((error: unknown) => {

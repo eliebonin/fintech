@@ -2,15 +2,18 @@ export const dynamic = "force-dynamic";
 
 import { searchInstruments } from "@/lib/instrument-data";
 import { OperationsConsole } from "@/components/operations-console";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
 import { searchReferenceInstruments } from "@/lib/reference-api-client";
 import { getWorkQueue, type WorkQueuePayload } from "@/lib/work-queue";
+import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
+import { redirect } from "next/navigation";
 
 export default async function HomePage() {
   let initialResults = searchInstruments("");
   let initialSource = "synthetic-fixture";
   let initialQueue: WorkQueuePayload | undefined;
-  const tenantContext = resolveLocalTenantContext();
+  let tenantContext;
+  let workspace;
+  try { [tenantContext, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
   try {
     const response = await searchReferenceInstruments("", tenantContext);
     initialResults = response.data;
@@ -24,5 +27,5 @@ export default async function HomePage() {
   } catch {
     // The client island will request the BFF queue and show its local fallback.
   }
-  return <OperationsConsole initialResults={initialResults} initialSource={initialSource} initialQueue={initialQueue} />;
+  return <OperationsConsole initialResults={initialResults} initialSource={initialSource} initialQueue={initialQueue} tenantName={workspace.tenantName} tenantCode={workspace.tenantCode} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} />;
 }

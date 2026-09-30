@@ -8,5 +8,6 @@ The alpha begins with an authenticated actor's active tenant membership; it is n
 - `POST /api/session/active-tenant` validates the candidate against upstream memberships before setting the cookie and marks a context change with `X-Tenant-Context-Changed: 1`.
 - The `/tenant-profile` screen is the authoritative UI for the active tenant's identity, the user's membership role, and enabled modules. The switcher changes context; it does not manage tenant settings.
 - The `/strategies` console uses that server-side tenant context. Strategy creation is shown only to tenant administrators with `TRADING` or `FUND_MANAGEMENT` entitlement.
+- The root Instruments page now resolves the active server-side tenant context for both the initial catalogue request and browser search BFF request. It labels the current catalogue as `GLOBAL`; tenant-owned custom instruments are intentionally the next vertical slice and will be visibly separate rather than silently mixed with canonical records.
 
 This remains an alpha boundary: the demo actor environment seam is still used, and existing legacy pages have not yet been migrated from their static demo tenant context. The next hardening pass must add end-to-end identity integration, mutation idempotency, audit events, and broader browser/API tests.
