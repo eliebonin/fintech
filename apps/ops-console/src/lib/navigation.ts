@@ -6,10 +6,11 @@ export type WorkspaceNavItem = {
   href: string;
 };
 
-export type WorkspaceSection = "work-queue" | "strategies" | "instruments" | "market-data" | "trades" | "pnl";
+export type WorkspaceSection = "work-queue" | "tenant-profile" | "strategies" | "instruments" | "market-data" | "trades" | "pnl";
 
 export const WORKSPACE_NAV_ITEMS: WorkspaceNavItem[] = [
   { key: "work-queue", icon: "⌂", label: "Work queue", href: "/#work-queue" },
+  { key: "tenant-profile", icon: "◉", label: "Tenant profile", href: "/tenant-profile" },
   { key: "strategies", icon: "◇", label: "Strategies", href: "/strategies" },
   { key: "instruments", icon: "◈", label: "Instruments", href: "/" },
   { key: "market-data", icon: "◷", label: "Market data", href: "/market-data" },
@@ -32,6 +33,7 @@ export const REFERENCE_ACTION_ITEMS: WorkspaceNavItem[] = [
 
 export function getActiveWorkspaceSection(pathname: string, hash = ""): WorkspaceSection {
   if (pathname === "/" && hash === "#work-queue") return "work-queue";
+  if (pathname.startsWith("/tenant-profile")) return "tenant-profile";
   if (pathname.startsWith("/strategies")) return "strategies";
   if (pathname.startsWith("/market-data")) return "market-data";
   if (pathname.startsWith("/trades")) return "trades";

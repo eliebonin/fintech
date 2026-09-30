@@ -12,6 +12,7 @@ describe("workspace navigation", () => {
   });
 
   it("keeps detail and workflow routes under their parent navigation section", () => {
+    expect(getActiveWorkspaceSection("/tenant-profile")).toBe("tenant-profile");
     expect(getActiveWorkspaceSection("/strategies/strategy-001")).toBe("strategies");
     expect(getActiveWorkspaceSection("/trades/TRADE-001")).toBe("trades");
     expect(getActiveWorkspaceSection("/pnl/uk")).toBe("pnl");
