@@ -11,6 +11,11 @@ describe("workspace navigation", () => {
     expect(WORKSPACE_NAV_ITEMS.find((item) => item.key === "instruments")?.href).toBe("/instruments");
   });
 
+  it("exposes a tenant-scoped operations inbox from the menu", () => {
+    expect(WORKSPACE_NAV_ITEMS.find((item) => item.key === "operations")?.href).toBe("/operations");
+    expect(getActiveWorkspaceSection("/operations")).toBe("operations");
+  });
+
   it("keeps detail and workflow routes under their parent navigation section", () => {
     expect(getActiveWorkspaceSection("/tenant-profile")).toBe("tenant-profile");
     expect(getActiveWorkspaceSection("/strategies/strategy-001")).toBe("strategies");
