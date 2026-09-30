@@ -2,6 +2,7 @@ import "server-only";
 
 import type { TenantContext } from "./tenant-types";
 import { isReferenceApiProblem } from "api-contracts";
+import type { components } from "api-contracts";
 import type {
   BondProposalPayload,
   CryptoAssetProposalPayload,
@@ -86,6 +87,9 @@ export type ReferenceApiSearchOptions = Pick<TenantContext, "tenantId" | "userAc
   correlationId?: string;
   fetchImpl?: typeof fetch;
 };
+
+export type TradeBookingRequest = components["schemas"]["TradeBookingRequest"];
+export type TradeDetailResponse = components["schemas"]["TradeDetailResponse"];
 
 export async function searchReferenceInstruments(query: string, options: ReferenceApiSearchOptions): Promise<InstrumentSearchPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
@@ -176,6 +180,44 @@ export type EquityProposalOptions = Pick<TenantContext, "tenantId" | "userAccoun
   correlationId?: string;
   fetchImpl?: typeof fetch;
 };
+
+/**
+ * Submit a manually booked listed-cash execution. Tenant identity comes from
+ * the caller's server session context; the browser cannot supply it.
+ */
+export async function bookListedCashTrade(
+  payload: TradeBookingRequest,
+  options: EquityProposalOptions,
+  idempotencyKey: string,
+): Promise<TradeDetailResponse> {
+  const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
+  const response = await (options.fetchImpl ?? fetch)(new URL("/v1/trades", baseUrl), {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Tenant-Id": options.tenantId,
+      "X-User-Account-Id": options.userAccountId,
+      "Idempotency-Key": idempotencyKey,
+      ...(options.correlationId ? { "X-Correlation-Id": options.correlationId } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    let problem: unknown;
+    try {
+      problem = await response.json();
+    } catch {
+      // Invalid upstream bodies remain an opaque status error at the BFF boundary.
+    }
+    if (isReferenceApiProblem(problem)) {
+      throw new ReferenceApiError(response.status, problem.detail, problem.code, problem.requestId);
+    }
+    throw new ReferenceApiError(response.status, `Reference API returned HTTP ${response.status}`);
+  }
+  return (await response.json()) as TradeDetailResponse;
+}
 
 export async function getReferenceDataProposal(proposalId: string, options: EquityProposalOptions): Promise<ReferenceDataProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";

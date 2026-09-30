@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { describeMvpError, getBookedTrades } from "@/lib/mvp-api-client";
 import { formatTradeDateTime, formatTradeNumber, type BookedTrade } from "@/lib/trades";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { WorkspaceShell } from "@/components/workspace-shell";
 
 export const dynamic = "force-dynamic";
@@ -28,18 +29,21 @@ function TradeRow({ trade }: { trade: BookedTrade }) {
 export default async function TradesPage({ searchParams }: { searchParams: Promise<{ portfolioCode?: string; fromDate?: string; toDate?: string }> }) {
   const query = await searchParams;
   const portfolioCode = query.portfolioCode ?? "";
+  let context;
+  let workspace;
+  try { [context, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
   let trades: BookedTrade[] = [];
   let error = "";
   try {
-    trades = (await getBookedTrades(resolveLocalTenantContext(), { portfolioCode: portfolioCode || undefined, fromDate: query.fromDate, toDate: query.toDate, limit: 200 })).data;
+    trades = (await getBookedTrades(context, { portfolioCode: portfolioCode || undefined, fromDate: query.fromDate, toDate: query.toDate, limit: 200 })).data;
   } catch (caught) {
     error = describeMvpError(caught, "Booked trades");
   }
   const usCount = trades.filter((trade) => trade.strategyCode === "MVP_US_PORTFOLIO").length;
   const ukCount = trades.filter((trade) => trade.strategyCode === "MVP_UK_PORTFOLIO").length;
-  const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API · DEMO DATA";
+  const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API";
   return (
-    <WorkspaceShell><main className="mvp-page">
+    <WorkspaceShell sourceLabel={sourceLabel} moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><main className="mvp-page">
       <header className="mvp-header"><div><p className="eyebrow">TRADE LEDGER</p><h1>Booked executions</h1><p className="muted">One row per booked economic event. Orders and execution fills are outside this read-only MVP view.</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
       <form className="date-form trade-filter-form" method="get">
         <label>Portfolio <select name="portfolioCode" defaultValue={portfolioCode}><option value="">All portfolios</option><option value="MVP_US_PORTFOLIO">US portfolio</option><option value="MVP_UK_PORTFOLIO">UK portfolio</option></select></label>

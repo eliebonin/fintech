@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { describeMvpError, getBookedTradeDetail } from "@/lib/mvp-api-client";
 import { formatTradeDateTime, formatTradeNumber, type TradeDetailPayload } from "@/lib/trades";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { WorkspaceShell } from "@/components/workspace-shell";
 
 export const dynamic = "force-dynamic";
@@ -33,16 +34,19 @@ function DetailContent({ detail }: { detail: TradeDetailPayload["data"] }) {
 
 export default async function TradeDetailPage({ params }: { params: Promise<{ tradeId: string }> }) {
   const { tradeId } = await params;
+  let context;
+  let workspace;
+  try { [context, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
   let detail: TradeDetailPayload["data"] | null = null;
   let error = "";
   try {
-    detail = (await getBookedTradeDetail(resolveLocalTenantContext(), tradeId)).data;
+    detail = (await getBookedTradeDetail(context, tradeId)).data;
   } catch (caught) {
     error = describeMvpError(caught, "Booked trade");
   }
-  const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API · DEMO DATA";
+  const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API";
   return (
-    <WorkspaceShell><main className="mvp-page">
+    <WorkspaceShell sourceLabel={sourceLabel} moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><main className="mvp-page">
       <header className="mvp-header"><div><p className="eyebrow">TRADE DETAIL</p><h1>{detail?.trade.instrumentName ?? "Booked execution"}</h1><p className="muted">Normalized parties, fees, source references and append-only lifecycle evidence.</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
       <p className="back-line"><Link href="/trades">← Back to booked executions</Link></p>
       {error ? <div className="error-panel">{error}</div> : detail ? <DetailContent detail={detail} /> : <div className="error-panel">Booked trade not found.</div>}

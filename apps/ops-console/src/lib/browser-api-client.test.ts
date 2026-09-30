@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { decideReferenceDataProposalFromBff, submitStructuredProductProposalFromBff } from "./browser-api-client";
+import { decideReferenceDataProposalFromBff, submitBookedTradeFromBff, submitStructuredProductProposalFromBff } from "./browser-api-client";
 
 describe("browser API client structured-product workflow", () => {
   it("submits a structured-product draft through the same-origin BFF", async () => {
@@ -49,5 +49,22 @@ describe("browser API client reference-data decisions", () => {
     await decideReferenceDataProposalFromBff("proposal-etp-1", { decision: "APPROVED", reason: "Terms confirmed" }, "decision-key-1", fetchImpl);
 
     expect(requestedUrl).toBe("/api/reference-data-proposals/proposal-etp-1");
+  });
+});
+
+describe("browser API client trade booking", () => {
+  it("posts a listing-backed ticket and retry key through the same-origin BFF", async () => {
+    let requestedUrl = "";
+    let requestedHeaders: HeadersInit | undefined;
+    const fetchImpl: typeof fetch = async (input, init) => {
+      requestedUrl = String(input);
+      requestedHeaders = init?.headers;
+      return new Response(JSON.stringify({ data: { trade: { tradeId: "trade-1" } }, meta: {} }), { status: 201 });
+    };
+
+    await submitBookedTradeFromBff({ listingId: "listing-1" } as never, "trade-key-1", fetchImpl);
+
+    expect(requestedUrl).toBe("/api/trades");
+    expect(new Headers(requestedHeaders).get("Idempotency-Key")).toBe("trade-key-1");
   });
 });

@@ -16,6 +16,7 @@ import type {
   ReferenceDataProposalPayload,
   ReferenceNodeSearchPayload,
   StructuredProductProposalPayload,
+  components,
 } from "api-contracts";
 import { BffApiError, parseApiErrorResponse } from "./api-errors";
 
@@ -48,6 +49,8 @@ export type {
   ReferenceNodeSearchPayload,
   StructuredProductProposalPayload,
 } from "api-contracts";
+
+export type TradeBookingRequest = components["schemas"]["TradeBookingRequest"];
 
 export function flattenCurrencyGroups(groups: CurrencyPayload["data"]): CurrencyPayload["data"][number]["items"][number][] {
   return groups.flatMap((group) => group.items);
@@ -176,6 +179,14 @@ export function submitCryptoAssetProposalFromBff(payload: Record<string, unknown
 
 export function submitStructuredProductProposalFromBff(payload: Record<string, unknown>, idempotencyKey?: string, fetchImpl: FetchImplementation = fetch): Promise<StructuredProductProposalPayload> {
   return bffPost<StructuredProductProposalPayload>("/api/instruments/structured-products", payload, idempotencyKey, fetchImpl);
+}
+
+export function submitBookedTradeFromBff(
+  payload: TradeBookingRequest,
+  idempotencyKey: string,
+  fetchImpl: FetchImplementation = fetch,
+): Promise<import("./trades").TradeDetailPayload> {
+  return bffPost<import("./trades").TradeDetailPayload>("/api/trades", payload, idempotencyKey, fetchImpl);
 }
 
 export function getCryptoAssetProposalFromBff(proposalId: string, fetchImpl: FetchImplementation = fetch): Promise<CryptoAssetProposalPayload> {
