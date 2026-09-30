@@ -2189,6 +2189,21 @@ market_data_resolution_idempotency = Table(
 Index("ix_market_data_resolution_idempotency_snapshot", market_data_resolution_idempotency.c.market_data_resolution_snapshot_id)
 Index("uq_market_data_resolution_snapshot_item_sequence", market_data_resolution_snapshot_item.c.market_data_resolution_snapshot_id, market_data_resolution_snapshot_item.c.request_sequence, unique=True)
 
+trade_booking_idempotency = Table(
+    "trade_booking_idempotency", metadata,
+    Column("trade_booking_idempotency_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one idempotent listed-cash trade booking request."),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False, comment="Tenant scope of the idempotency key."),
+    Column("endpoint", String(200), nullable=False, comment="Literal API endpoint whose trade booking request is deduplicated."),
+    Column("idempotency_key", String(255), nullable=False, comment="Caller-supplied opaque idempotency key retained only for replay lookup."),
+    Column("request_fingerprint", String(64), nullable=False, comment="SHA-256 fingerprint of the canonical validated trade booking payload."),
+    Column("trade_id", UUID_V7, ForeignKey("trd.trade.trade_id"), nullable=False, comment="Immutable booked trade created by the idempotent request."),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which the key was first recorded."),
+    UniqueConstraint("tenant_id", "endpoint", "idempotency_key", name="uq_trade_booking_idempotency_scope"),
+    schema="trd",
+)
+
+Index("ix_trade_booking_idempotency_trade", trade_booking_idempotency.c.trade_id)
+
 nav_calculation_run = Table(
     "nav_calculation_run", metadata,
     Column("nav_calculation_run_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one tenant Soft-NAV calculation run."),

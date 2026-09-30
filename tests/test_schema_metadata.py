@@ -56,6 +56,7 @@ class SchemaMetadataTests(unittest.TestCase):
             "secm.organisation",
             "secm.currency",
             "trd.trade",
+            "trd.trade_booking_idempotency",
             "trd.cash_balance",
             "trd.trade_fee",
             "fee.fee_type",
