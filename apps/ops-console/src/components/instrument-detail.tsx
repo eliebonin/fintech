@@ -83,7 +83,7 @@ export function InstrumentDetail({ instrument, standalone = false }: { instrumen
         </Box>
       </Section>
 
-      <Section title="Listings" eyebrow={`${instrument.listings.length} VENUE REPRESENTATION${instrument.listings.length === 1 ? "" : "S"}`} action={<Button component={Link} href="/instruments/listings/new" size="small" variant="outlined">Add listing</Button>}>
+      <Section title="Listings" eyebrow={`${instrument.listings.length} VENUE REPRESENTATION${instrument.listings.length === 1 ? "" : "S"}`} action={<Button component={Link} href={`/instruments/${instrument.instrumentId}/listings/new`} size="small" variant="outlined">Add listing</Button>}>
         {instrument.listings.length === 0 ? (
           <Box sx={{ p: 2, bgcolor: "#f7f9fc", borderRadius: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 650 }}>No listing attached</Typography>

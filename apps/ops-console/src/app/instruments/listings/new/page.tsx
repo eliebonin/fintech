@@ -36,10 +36,10 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function NewEquityListingPage() {
-  const [query, setQuery] = useState("");
+export default function NewEquityListingPage({ initialInstrument }: { initialInstrument?: InstrumentRecord }) {
+  const [query, setQuery] = useState(initialInstrument?.canonicalName ?? "");
   const [results, setResults] = useState<InstrumentRecord[]>([]);
-  const [selected, setSelected] = useState<InstrumentRecord | null>(null);
+  const [selected, setSelected] = useState<InstrumentRecord | null>(initialInstrument ?? null);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [venues, setVenues] = useState<MarketVenue[]>([]);
@@ -158,7 +158,7 @@ export default function NewEquityListingPage() {
   return (
     <WorkspaceShell><Box sx={{ minHeight: "100vh", bgcolor: "#f3f6fb", p: { xs: 2, md: 5 } }}>
       <Box sx={{ maxWidth: 980, mx: "auto" }}>
-        <Typography variant="caption" color="text.secondary"><Link href="/">WORKSPACE / INSTRUMENTS</Link></Typography>
+        <Typography variant="caption" color="text.secondary">{initialInstrument ? <><Link href={`/instruments/${initialInstrument.instrumentId}`}>INSTRUMENTS / {initialInstrument.canonicalName}</Link> / ADD LISTING</> : <Link href="/">WORKSPACE / INSTRUMENTS</Link>}</Typography>
         <Typography variant="h4" sx={{ mt: 1 }}>Add a venue listing</Typography>
         <Typography color="text.secondary" sx={{ mt: 0.75, mb: 2.5 }}>Select an existing approved economic instrument first. Venue and ticker facts are stored as a separate listing proposal.</Typography>
 
@@ -170,9 +170,9 @@ export default function NewEquityListingPage() {
         {message && <Alert severity={message.severity} sx={{ mb: 2 }}>{message.text}</Alert>}
 
         <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, mb: 2.5, bgcolor: "white" }}>
-          <Typography variant="overline" color="primary.main" sx={{ letterSpacing: "0.1em", fontWeight: 800 }}>1 · SELECT ECONOMIC INSTRUMENT</Typography>
+          <Typography variant="overline" color="primary.main" sx={{ letterSpacing: "0.1em", fontWeight: 800 }}>{selected ? "1 · PARENT ECONOMIC INSTRUMENT" : "1 · SELECT ECONOMIC INSTRUMENT"}</Typography>
           <Typography variant="h6">Which security is this listing for?</Typography>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 1.5 }}>
+          {selected && initialInstrument ? <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ justifyContent: "space-between", alignItems: { sm: "center" }, mt: 1.5, p: 1.5, bgcolor: "#eef3ff", border: "1px solid #b9d0ff", borderRadius: 1.5 }}><Box><Typography variant="caption" sx={{ color: "#1647b8", fontWeight: 800 }}>PARENT PRESERVED FROM INSTRUMENT DETAIL</Typography><Typography sx={{ fontWeight: 800 }}>{selected.canonicalName}</Typography><Typography variant="body2" color="text.secondary">{selected.instrumentType} · {selected.instrumentId}</Typography></Box><Button variant="outlined" size="small" onClick={() => { setSelected(null); setResults([]); setSearchError(""); }}>Change instrument</Button></Stack> : <><Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 1.5 }}>
             <TextField value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchInstruments(); }} placeholder="Search name, ISIN, FIGI, ticker, or external code" fullWidth size="small" />
             <Button variant="contained" onClick={() => void searchInstruments()} disabled={searching}>{searching ? "Searching…" : "Search"}</Button>
           </Stack>
@@ -181,7 +181,7 @@ export default function NewEquityListingPage() {
             {results.map((instrument) => <Button key={instrument.instrumentId} onClick={() => setSelected(instrument)} variant={selected?.instrumentId === instrument.instrumentId ? "contained" : "outlined"} sx={{ justifyContent: "flex-start", textAlign: "left", textTransform: "none" }}>
               <Box><Typography variant="body2" sx={{ fontWeight: 750 }}>{instrument.canonicalName}</Typography><Typography variant="caption" sx={{ display: "block" }}>{instrument.instrumentType} · {instrument.issuer ?? "Issuer unresolved"} · {instrument.instrumentId}</Typography></Box>
             </Button>)}
-          </Stack>}
+          </Stack>}</>}
           {selected && <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "#eef3ff", border: "1px solid #b9d0ff", borderRadius: 1.5 }}>
             <Typography variant="caption" sx={{ color: "#1647b8", fontWeight: 800 }}>SELECTED INSTRUMENT</Typography>
             <Typography sx={{ fontWeight: 800 }}>{selected.canonicalName}</Typography>
