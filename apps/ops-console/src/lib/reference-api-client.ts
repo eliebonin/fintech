@@ -79,6 +79,7 @@ export class ReferenceApiError extends Error {
 export type ReferenceApiSearchOptions = Pick<TenantContext, "tenantId" | "userAccountId"> & {
   instrumentType?: string;
   assetClass?: string;
+  status?: string;
   baseUrl?: string;
   limit?: number;
   offset?: number;
@@ -94,6 +95,7 @@ export async function searchReferenceInstruments(query: string, options: Referen
   url.searchParams.set("offset", String(options.offset ?? 0));
   if (options.instrumentType) url.searchParams.set("instrument_type", options.instrumentType);
   if (options.assetClass) url.searchParams.set("asset_class", options.assetClass);
+  if (options.status) url.searchParams.set("status", options.status);
   const fetchImpl = options.fetchImpl ?? fetch;
   const response = await fetchImpl(url, {
     method: "GET",

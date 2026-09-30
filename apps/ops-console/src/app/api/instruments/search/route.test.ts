@@ -17,4 +17,10 @@ describe("instrument search BFF", () => {
     expect(response.status).toBe(200);
     expect(searchReferenceInstruments).toHaveBeenCalledWith("HSBC", expect.objectContaining({ tenantId: "active-tenant", userAccountId: "active-user" }));
   });
+
+  it("forwards pagination controls to the tenant-scoped catalogue search", async () => {
+    await GET(new NextRequest("http://ops.test/api/instruments/search?q=HSBC&status=ACTIVE&limit=25&offset=50"));
+
+    expect(searchReferenceInstruments).toHaveBeenCalledWith("HSBC", expect.objectContaining({ status: "ACTIVE", limit: 25, offset: 50 }));
+  });
 });

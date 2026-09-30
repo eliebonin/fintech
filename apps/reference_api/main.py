@@ -154,6 +154,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         q: str = Query(default="", max_length=200),
         instrument_type: str | None = Query(default=None, max_length=80),
         asset_class: str | None = Query(default=None, max_length=80),
+        status: str | None = Query(default=None, max_length=80),
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0),
         context: TenantContext = Depends(get_tenant_context),
@@ -171,6 +172,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             _correlation_id(x_correlation_id),
             instrument_type,
             asset_class,
+            status,
         )
 
     @app.get("/v1/instruments/{instrument_id}")

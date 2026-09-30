@@ -881,7 +881,7 @@ def get_instrument(connection: Connection, tenant_id: UUID, instrument_id: UUID)
     )
 
 
-def search_instruments(connection: Connection, tenant_id: UUID, query: str, limit: int, offset: int, api_version: str, correlation_id: str, instrument_type: str | None = None, asset_class: str | None = None) -> InstrumentSearchResponse:
+def search_instruments(connection: Connection, tenant_id: UUID, query: str, limit: int, offset: int, api_version: str, correlation_id: str, instrument_type: str | None = None, asset_class: str | None = None, status: str | None = None) -> InstrumentSearchResponse:
     rn, inst, typ, _, _, stmt = _base_instrument_select(tenant_id)
     predicate = _search_predicate(tenant_id, query, rn, inst, typ)
     if predicate is not None:
@@ -890,6 +890,8 @@ def search_instruments(connection: Connection, tenant_id: UUID, query: str, limi
         stmt = stmt.where(typ.c.type_code == instrument_type.upper())
     if asset_class:
         stmt = stmt.where(inst.c.asset_class == asset_class.upper())
+    if status:
+        stmt = stmt.where(rn.c.status == status.upper())
     count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
     total = int(connection.execute(count_stmt).scalar_one())
     rows = connection.execute(stmt.order_by(rn.c.canonical_name).limit(limit).offset(offset)).mappings().all()

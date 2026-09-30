@@ -11,13 +11,18 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q") ?? "";
   const instrumentType = request.nextUrl.searchParams.get("instrument_type") ?? undefined;
   const assetClass = request.nextUrl.searchParams.get("asset_class") ?? undefined;
+  const status = request.nextUrl.searchParams.get("status") ?? undefined;
+  const requestedLimit = Number(request.nextUrl.searchParams.get("limit") ?? "25");
+  const requestedOffset = Number(request.nextUrl.searchParams.get("offset") ?? "0");
+  const limit = Number.isInteger(requestedLimit) && requestedLimit >= 1 && requestedLimit <= 100 ? requestedLimit : 25;
+  const offset = Number.isInteger(requestedOffset) && requestedOffset >= 0 ? requestedOffset : 0;
   let context;
   try {
     context = await getActiveTenantContext();
   } catch {
     return NextResponse.json({ error: { code: "ACTIVE_TENANT_REQUIRED" } }, { status: 401 });
   }
-  return searchReferenceInstruments(query, { ...context, instrumentType, assetClass })
+  return searchReferenceInstruments(query, { ...context, instrumentType, assetClass, status, limit, offset })
     .then((payload) => NextResponse.json(payload))
     .catch((error: unknown) => {
       const localFallbackAllowed = process.env.APP_ENV !== "production" && process.env.ALLOW_SYNTHETIC_FALLBACK !== "false";
