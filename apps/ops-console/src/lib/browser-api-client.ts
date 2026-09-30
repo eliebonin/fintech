@@ -192,7 +192,7 @@ export function decideReferenceDataProposalFromBff(
   idempotencyKey?: string,
   fetchImpl: FetchImplementation = fetch,
 ): Promise<ReferenceDataProposalPayload> {
-  return bffPost<ReferenceDataProposalPayload>(`/api/reference-data-proposals/${encodeURIComponent(proposalId)}/decision`, payload, idempotencyKey, fetchImpl);
+  return bffPost<ReferenceDataProposalPayload>(`/api/reference-data-proposals/${encodeURIComponent(proposalId)}`, payload, idempotencyKey, fetchImpl);
 }
 
 export function decideCryptoAssetProposalFromBff(

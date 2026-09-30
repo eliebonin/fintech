@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { submitStructuredProductProposalFromBff } from "./browser-api-client";
+import { decideReferenceDataProposalFromBff, submitStructuredProductProposalFromBff } from "./browser-api-client";
 
 describe("browser API client structured-product workflow", () => {
   it("submits a structured-product draft through the same-origin BFF", async () => {
@@ -35,5 +35,19 @@ describe("browser API client structured-product workflow", () => {
     expect(new Headers(requestedHeaders).get("Idempotency-Key")).toBe("sp-key-1");
     expect(JSON.parse(requestedBody)).toEqual({ productSubtype: "AUTOCALL_CONSOLATION" });
     expect(result.data.productSubtype).toBe("AUTOCALL_CONSOLATION");
+  });
+});
+
+describe("browser API client reference-data decisions", () => {
+  it("posts a steward decision to the generic proposal BFF route", async () => {
+    let requestedUrl = "";
+    const fetchImpl: typeof fetch = async (input) => {
+      requestedUrl = String(input);
+      return new Response(JSON.stringify({ data: { proposalId: "proposal-etp-1", status: "APPROVED" }, meta: {} }));
+    };
+
+    await decideReferenceDataProposalFromBff("proposal-etp-1", { decision: "APPROVED", reason: "Terms confirmed" }, "decision-key-1", fetchImpl);
+
+    expect(requestedUrl).toBe("/api/reference-data-proposals/proposal-etp-1");
   });
 });
