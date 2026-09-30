@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Box, Chip, Divider, Drawer, IconButton, Stack, Typography } from "@mui/material";
 
-import { getActiveWorkspaceSection, REFERENCE_ACTION_ITEMS, WORKSPACE_NAV_ITEMS, type WorkspaceSection } from "@/lib/navigation";
+import { getActiveWorkspaceSection, WORKSPACE_NAV_ITEMS, type WorkspaceSection } from "@/lib/navigation";
 
 function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNavigate }: { activeSection: WorkspaceSection; moduleCodes?: string[]; tenantName?: string; membershipRole?: string; onNavigate?: () => void }) {
   const enabledItems = moduleCodes ? WORKSPACE_NAV_ITEMS.filter((item) => {
@@ -32,10 +32,6 @@ function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNav
             const active = item.key === activeSection;
             return <Box key={item.label} component={Link} href={item.href} onClick={onNavigate} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.2, py: 1, borderRadius: 1.5, bgcolor: active ? "#1e2d4c" : "transparent", color: active ? "white" : "#aab7cc", textDecoration: "none", "&:hover": { bgcolor: active ? "#24385f" : "#17243b" } }}><Stack direction="row" spacing={1.2} sx={{ alignItems: "center" }}><Typography sx={{ width: 18, textAlign: "center", color: active ? "#6e9aff" : "#8090aa" }}>{item.icon}</Typography><Typography variant="body2" sx={{ fontWeight: active ? 700 : 550 }}>{item.label}</Typography></Stack>{item.count && <Chip label={item.count} size="small" sx={{ height: 20, minWidth: 22, bgcolor: active ? "#e9a23b" : "#263651", color: active ? "#172238" : "#cad6e9", fontSize: 11, fontWeight: 800 }} />}</Box>;
           })}
-        </Stack>
-        <Typography variant="overline" sx={{ display: "block", px: 1.2, mt: 3, color: "#70809c", letterSpacing: "0.12em", fontWeight: 800 }}>Reference data</Typography>
-        <Stack spacing={0.4} sx={{ mt: 0.8 }}>
-          {REFERENCE_ACTION_ITEMS.map((item) => <Box key={item.label} component={Link} href={item.href} onClick={onNavigate} sx={{ display: "flex", alignItems: "center", gap: 1.2, px: 1.2, py: 0.9, borderRadius: 1.5, color: "#aab7cc", textDecoration: "none", "&:hover": { bgcolor: "#17243b", color: "white" } }}><Typography sx={{ width: 18, textAlign: "center", color: "#8090aa", fontWeight: 800 }}>{item.icon}</Typography><Typography variant="body2" sx={{ fontWeight: 550 }}>{item.label}</Typography></Box>)}
         </Stack>
       </Box>
       <Box sx={{ p: 2, borderTop: "1px solid #28344d" }}><Typography variant="caption" sx={{ color: "#8290aa", display: "block" }}>TENANT CONTEXT</Typography><Typography variant="body2" sx={{ color: "white", fontWeight: 700, mt: 0.5 }}>{tenantName ?? "Demo investment office"}</Typography><Typography variant="caption" sx={{ color: "#8290aa" }}>{membershipRole ?? "Local mock session · analyst"}</Typography>{tenantName ? <Box component={Link} href="/select-tenant" onClick={onNavigate} sx={{ display: "inline-block", mt: 0.8, color: "#8cabff", fontSize: 12, fontWeight: 700 }}>Change tenant</Box> : null}</Box>

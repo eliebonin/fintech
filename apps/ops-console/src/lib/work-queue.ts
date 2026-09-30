@@ -7,6 +7,7 @@ export type WorkQueueItem = {
   title: string;
   detail: string;
   status: string;
+  proposalType?: string | null;
   referenceId?: string;
   reviewPath?: string | null;
 };

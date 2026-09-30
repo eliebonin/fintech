@@ -1084,6 +1084,7 @@ class WorkQueueItemView(BaseModel):
     title: str
     detail: str
     status: str
+    proposal_type: str | None = Field(default=None, alias="proposalType")
     reference_id: UUID | None = Field(default=None, alias="referenceId")
     review_path: str | None = Field(default=None, alias="reviewPath")
 

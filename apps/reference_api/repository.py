@@ -4213,6 +4213,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                 title=title,
                 detail=detail,
                 status="PENDING",
+                proposalType=proposal.proposal_type,
                 referenceId=proposal.reference_data_proposal_id,
                 reviewPath=(
                     f"/reference-data/review/{proposal.reference_data_proposal_id}"

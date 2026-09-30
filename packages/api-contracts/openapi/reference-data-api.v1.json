@@ -7113,6 +7113,17 @@
             "title": "Itemid",
             "type": "string"
           },
+          "proposalType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposaltype"
+          },
           "referenceId": {
             "anyOf": [
               {
