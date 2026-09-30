@@ -191,6 +191,8 @@ def test_listing_proposal_is_visible_as_reference_data_review():
     assert item["itemId"] == f"reference:{proposal_id}"
     assert item["category"] == "REFERENCE_DATA_REVIEW"
     assert item["proposalType"] == "CREATE_LISTING"
+    assert item["proposedAt"]
+    assert item["submittedByUserAccountId"] == str(DEMO_IDS["demo_user_account"])
     assert "Review listing" in item["title"]
 
 

@@ -4136,6 +4136,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
             m.reference_data_proposal.c.reference_data_proposal_id,
             m.reference_data_proposal.c.proposal_type,
             m.reference_data_proposal.c.proposed_payload,
+            m.reference_data_proposal.c.proposed_at_utc,
         )
         .where(m.reference_data_proposal.c.tenant_id == tenant_id)
         .where(m.reference_data_proposal.c.status == "PENDING")
@@ -4216,6 +4217,8 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                 detail=detail,
                 status="PENDING",
                 proposalType=proposal.proposal_type,
+                proposedAt=_iso(proposal.proposed_at_utc),
+                submittedByUserAccountId=payload.get("proposedByUserAccountId"),
                 referenceId=proposal.reference_data_proposal_id,
                 reviewPath=(
                     f"/reference-data/review/{proposal.reference_data_proposal_id}"

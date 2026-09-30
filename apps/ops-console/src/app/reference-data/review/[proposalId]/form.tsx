@@ -90,6 +90,9 @@ export default function ReferenceDataProposalReviewForm({ proposal }: { proposal
         </Stack>
 
         <Divider />
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { sm: "center" } }}>
+          {["Submitted", "Pending review", current.status === "APPROVED" ? "Approved" : current.status === "REJECTED" ? "Rejected" : "Decision"].map((step, index) => <Stack key={step} direction="row" spacing={0.75} sx={{ alignItems: "center" }}><Chip label={`${index + 1} · ${step}`} size="small" color={index < 2 || !pending ? "primary" : "default"} variant={index < 2 || !pending ? "filled" : "outlined"} />{index < 2 && <Typography color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>→</Typography>}</Stack>)}
+        </Stack>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2 }}>
           <Field label="Proposal type" value={current.proposalType} />
           <Field label="Submission mode" value={current.submissionMode} />
@@ -137,7 +140,10 @@ export default function ReferenceDataProposalReviewForm({ proposal }: { proposal
               <Button variant="contained" onClick={() => void decide("APPROVED")} disabled={submitting}>{submitting ? "Saving…" : "Approve proposal"}</Button>
             </Stack>
           </>
-        ) : <Button component={Link} href="/" variant="contained" sx={{ alignSelf: "flex-start" }}>Back to operations console</Button>}
+        ) : <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignSelf: "flex-start" }}>
+          {current.status === "APPROVED" && current.referenceNodeId && <Button component={Link} href={`/instruments/${current.referenceNodeId}`} variant="contained">View approved instrument</Button>}
+          <Button component={Link} href="/instruments/requests" variant={current.status === "APPROVED" && current.referenceNodeId ? "outlined" : "contained"}>Back to pending instrument requests</Button>
+        </Stack>}
       </Stack>
     </Card>
   );

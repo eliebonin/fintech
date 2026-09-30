@@ -1085,6 +1085,8 @@ class WorkQueueItemView(BaseModel):
     detail: str
     status: str
     proposal_type: str | None = Field(default=None, alias="proposalType")
+    proposed_at: str | None = Field(default=None, alias="proposedAt")
+    submitted_by_user_account_id: UUID | None = Field(default=None, alias="submittedByUserAccountId")
     reference_id: UUID | None = Field(default=None, alias="referenceId")
     review_path: str | None = Field(default=None, alias="reviewPath")
 

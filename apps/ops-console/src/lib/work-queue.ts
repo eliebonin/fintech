@@ -8,6 +8,8 @@ export type WorkQueueItem = {
   detail: string;
   status: string;
   proposalType?: string | null;
+  proposedAt?: string | null;
+  submittedByUserAccountId?: string | null;
   referenceId?: string;
   reviewPath?: string | null;
 };

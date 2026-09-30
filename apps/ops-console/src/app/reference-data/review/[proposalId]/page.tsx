@@ -4,7 +4,7 @@ import { Alert, Box, Typography } from "@mui/material";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getReferenceDataProposal, ReferenceApiError } from "@/lib/reference-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { getActiveTenantContext } from "@/lib/tenant-session";
 import ReferenceDataProposalReviewForm from "./form";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function ReferenceDataProposalReviewPage({ params }: { para
   const { proposalId } = await params;
 
   try {
-    const response = await getReferenceDataProposal(proposalId, resolveLocalTenantContext());
+    const response = await getReferenceDataProposal(proposalId, await getActiveTenantContext());
     return (
       <WorkspaceShell>
         <Box sx={{ minHeight: "100vh", bgcolor: "#f3f6fb", p: { xs: 2, md: 5 } }}>

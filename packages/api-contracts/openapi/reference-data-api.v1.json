@@ -7124,6 +7124,17 @@
             ],
             "title": "Proposaltype"
           },
+          "proposedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposedat"
+          },
           "referenceId": {
             "anyOf": [
               {
@@ -7150,6 +7161,18 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "submittedByUserAccountId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submittedbyuseraccountid"
           },
           "title": {
             "title": "Title",
