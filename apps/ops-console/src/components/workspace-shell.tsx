@@ -11,7 +11,7 @@ import { getActiveWorkspaceSection, WORKSPACE_NAV_ITEMS, type WorkspaceSection }
 function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNavigate }: { activeSection: WorkspaceSection; moduleCodes?: string[]; tenantName?: string; membershipRole?: string; onNavigate?: () => void }) {
   const enabledItems = moduleCodes ? WORKSPACE_NAV_ITEMS.filter((item) => {
     if (item.key === "strategies") return moduleCodes.includes("TRADING") || moduleCodes.includes("FUND_MANAGEMENT");
-    if (item.key === "trades") return moduleCodes.includes("TRADING");
+    if (item.key === "trades" || item.key === "book-trade") return moduleCodes.includes("TRADING");
     if (item.key === "market-data" || item.key === "pnl") return moduleCodes.includes("MARKET_DATA");
     return true;
   }) : WORKSPACE_NAV_ITEMS;

@@ -91,7 +91,7 @@ export function InstrumentDetail({ instrument, standalone = false }: { instrumen
           </Box>
         ) : (
           <Table size="small">
-            <TableHead><TableRow><TableCell>Venue</TableCell><TableCell>Symbol</TableCell><TableCell>Trading currency</TableCell><TableCell>Quote factor</TableCell><TableCell>Unit multiplier</TableCell><TableCell>Status</TableCell><TableCell /></TableRow></TableHead>
+            <TableHead><TableRow><TableCell>Venue</TableCell><TableCell>Symbol</TableCell><TableCell>Trading currency</TableCell><TableCell>Quote factor</TableCell><TableCell>Unit multiplier</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
             <TableBody>
               {instrument.listings.map((listing) => (
                 <TableRow key={listing.listingId} hover>
@@ -101,7 +101,6 @@ export function InstrumentDetail({ instrument, standalone = false }: { instrumen
                   <TableCell>{listing.quoteFactor}</TableCell>
                   <TableCell>{listing.unitMultiplier}</TableCell>
                   <TableCell><Chip label={listing.status} color="success" size="small" variant="outlined" /></TableCell>
-                  <TableCell>{listing.status === "ACTIVE" ? <Button component={Link} href={`/trades/new?listingId=${encodeURIComponent(listing.listingId)}`} size="small">Book trade</Button> : null}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -44,7 +44,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
   const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API";
   return (
     <WorkspaceShell sourceLabel={sourceLabel} moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><main className="mvp-page">
-      <header className="mvp-header"><div><p className="eyebrow">TRADE LEDGER</p><h1>Booked executions</h1><p className="muted">One row per booked economic event. Orders and execution fills are outside this read-only MVP view.</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
+      <header className="mvp-header"><div><p className="eyebrow">TRADE LEDGER</p><h1>Booked executions</h1><p className="muted">One row per booked economic event. Orders and execution fills are outside this read-only MVP view.</p></div><div><Link className="clear-link" href="/trades/new">Book trade</Link><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></div></header>
       <form className="date-form trade-filter-form" method="get">
         <label>Portfolio <select name="portfolioCode" defaultValue={portfolioCode}><option value="">All portfolios</option><option value="MVP_US_PORTFOLIO">US portfolio</option><option value="MVP_UK_PORTFOLIO">UK portfolio</option></select></label>
         <label>From <input type="date" name="fromDate" defaultValue={query.fromDate} /></label>

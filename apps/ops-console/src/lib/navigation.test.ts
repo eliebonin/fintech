@@ -7,6 +7,11 @@ describe("workspace navigation", () => {
     expect(WORKSPACE_NAV_ITEMS.find((item) => item.label === "Trades")?.href).toBe("/trades");
   });
 
+  it("exposes a dedicated booking route from workspace navigation", () => {
+    expect(WORKSPACE_NAV_ITEMS.find((item) => item.label === "Book trade")?.href).toBe("/trades/new");
+    expect(getActiveWorkspaceSection("/trades/new")).toBe("book-trade");
+  });
+
   it("uses a dedicated instrument catalogue route", () => {
     expect(WORKSPACE_NAV_ITEMS.find((item) => item.key === "instruments")?.href).toBe("/instruments");
   });
