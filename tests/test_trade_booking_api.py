@@ -49,3 +49,19 @@ def test_booking_rejects_a_client_supplied_listing_currency() -> None:
     response = asyncio.run(request())
 
     assert response.status_code == 422
+
+
+def test_active_listing_can_be_booked_once_and_read_back_in_its_tenant() -> None:
+    async def request():
+        async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://test") as client:
+            booked = await client.post("/v1/trades", json=_payload(), headers=_headers("trade-api-e2e-listing-readback"))
+            trade_id = booked.json()["data"]["trade"]["tradeId"] if booked.status_code == 201 else None
+            detail = await client.get(f"/v1/trades/{trade_id}", headers=_headers("trade-api-e2e-readback")) if trade_id else None
+            return booked, detail
+
+    booked, detail = asyncio.run(request())
+
+    assert booked.status_code == 201
+    assert detail is not None and detail.status_code == 200
+    assert detail.json()["data"]["trade"]["listingId"] == str(DEMO_IDS["hsbc_xlon_listing_node"])
+    assert detail.json()["data"]["trade"]["lifecycleStatus"] == "BOOKED"
