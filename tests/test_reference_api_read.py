@@ -72,6 +72,17 @@ def test_reference_node_search_can_scope_equity_choices_to_venue_listings():
     assert hsbc["tradingSymbol"]
 
 
+def test_reference_node_search_can_resolve_an_active_listing_by_its_exact_identifier():
+    listing_id = str(DEMO_IDS["hsbc_xlon_listing_node"])
+    response = asyncio.run(_request(
+        "GET",
+        f"/v1/reference-nodes/search?q={listing_id}&reference_level=LISTING&limit=10",
+    ))
+
+    assert response.status_code == 200
+    assert [item["referenceNodeId"] for item in response.json()["data"]] == [listing_id]
+
+
 def test_reference_node_search_can_exclude_listings_for_economic_choices():
     response = asyncio.run(_request(
         "GET",

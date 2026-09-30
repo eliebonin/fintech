@@ -107,6 +107,10 @@ export function formatTradeNumber(value: string | null, maximumFractionDigits = 
   return Number.isFinite(parsed) ? parsed.toLocaleString("en-GB", { maximumFractionDigits }) : value;
 }
 
+export function tradeDirection(quantity: string): "BUY" | "SELL" {
+  return Number(quantity) < 0 ? "SELL" : "BUY";
+}
+
 export function formatTradeDateTime(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toISOString().replace("T", " ").replace(".000Z", "Z");

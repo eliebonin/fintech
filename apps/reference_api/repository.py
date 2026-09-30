@@ -1073,6 +1073,7 @@ def search_reference_nodes(
             or_(
                 func.lower(rn.c.canonical_name).contains(normalized),
                 func.lower(rn.c.internal_code).contains(normalized),
+                cast(rn.c.reference_node_id, String) == normalized,
                 func.lower(node_typ.c.type_code).contains(normalized),
                 func.lower(resolved_instrument_type).contains(normalized),
                 func.lower(resolved_asset_class).contains(normalized),

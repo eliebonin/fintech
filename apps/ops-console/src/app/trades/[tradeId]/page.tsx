@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { describeMvpError, getBookedTradeDetail } from "@/lib/mvp-api-client";
-import { formatTradeDateTime, formatTradeNumber, type TradeDetailPayload } from "@/lib/trades";
+import { formatTradeDateTime, formatTradeNumber, tradeDirection, type TradeDetailPayload } from "@/lib/trades";
 import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { WorkspaceShell } from "@/components/workspace-shell";
 
@@ -18,7 +18,7 @@ function DetailContent({ detail }: { detail: TradeDetailPayload["data"] }) {
     <>
       <section className="detail-card">
         <div className="detail-card-heading"><div><p className="eyebrow">BOOKED EXECUTION · {trade.lifecycleStatus}</p><h2>{trade.instrumentName ?? trade.subjectName}</h2><p className="muted">{trade.listingSymbol ? `${trade.listingSymbol} · ${trade.venueMic ?? "venue unavailable"}` : "Instrument-level / OTC subject"}</p></div><span className="quality quality-booked">{trade.tradeType}</span></div>
-        <div className="detail-fields"><Field label="Trade ID" value={trade.tradeId} /><Field label="Portfolio" value={`${trade.strategyCode} · ${trade.strategyName}`} /><Field label="Quantity" value={`${formatTradeNumber(trade.quantity)} ${trade.quantityUnit}`} /><Field label="Execution price" value={`${formatTradeNumber(trade.executionPrice)} ${trade.priceCurrency ?? ""}`} /><Field label="Price basis" value={trade.priceBasis} /><Field label="Trade time (UTC)" value={formatTradeDateTime(trade.tradeDatetimeUtc)} /><Field label="Settlement date" value={trade.settlementDate} /><Field label="Execution channel" value={trade.executionChannel} /></div>
+        <div className="detail-fields"><Field label="Trade ID" value={trade.tradeId} /><Field label="Portfolio" value={`${trade.strategyCode} · ${trade.strategyName}`} /><Field label="Side" value={tradeDirection(trade.quantity)} /><Field label="Quantity" value={`${formatTradeNumber(trade.quantity)} ${trade.quantityUnit}`} /><Field label="Execution price" value={`${formatTradeNumber(trade.executionPrice)} ${trade.priceCurrency ?? ""}`} /><Field label="Price basis" value={trade.priceBasis} /><Field label="Trade time (UTC)" value={formatTradeDateTime(trade.tradeDatetimeUtc)} /><Field label="Settlement date" value={trade.settlementDate} /><Field label="Execution venue" value={trade.venueName ?? trade.venueMic} /><Field label="Execution channel" value={trade.executionChannel} /></div>
       </section>
       <div className="detail-columns">
         <section className="detail-card"><div className="detail-card-heading"><div><p className="eyebrow">PARTIES &amp; PEOPLE</p><h2>Who is involved</h2></div></div><div className="party-list">{detail.parties.map((party) => <div className="party-row" key={party.tradePartyRoleId}><div><strong>{party.partyName}</strong><small>{party.role}</small></div><code>{party.organisationId ?? party.personId ?? "—"}</code></div>)}{trade.traderPersonId ? <div className="party-row"><div><strong>Trader</strong><small>Primary trader person</small></div><code>{trade.traderPersonId}</code></div> : null}<div className="party-row"><div><strong>Booked by</strong><small>Authenticated account</small></div><code>{trade.bookedByUserAccountId}</code></div></div></section>
