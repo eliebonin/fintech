@@ -10,7 +10,7 @@ from .product_booking import ProductBookingError, require_visible, append_conven
 from .product_booking_contracts import SwapConvention
 
 
-def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, lock=False) -> dict:
+def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, lock=False, as_of=None) -> dict:
     """Check canonical facts, locking source rows before rereading at approval."""
     def rows(table, predicate):
         statement = select(table).where(predicate).order_by(*table.primary_key.columns)
@@ -53,7 +53,7 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
     if types[reference_id] == 'INSTRUMENT':
         instruments = rows(m.instrument, m.instrument.c.instrument_node_id == reference_id)
         definitions = rows(m.instrument_definition_version, m.instrument_definition_version.c.instrument_node_id == reference_id)
-        today = date.today()
+        today = as_of or date.today()
         approved = [row for row in definitions if row['status'] == 'APPROVED' and row['is_current']
             and row['effective_from'] <= today and (row['effective_to'] is None or row['effective_to'] >= today)]
         if len(instruments) != 1 or len(approved) != 1 or not instruments[0]['is_current']:
@@ -109,6 +109,8 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
     return dict(performanceReference=nodes[reference_id], performanceDefinition=definition, performanceIndex=index,
         performanceReferenceProfile=reference_profile, returnProfile=profile, currency=currency,
         fundingReference=funding, dayCountConvention=daycount,
+        referenceTypes=node_types, instrumentTypes=instrument_types,
+        currencyReference=nodes.get(currency['reference_node_id']),
         creationReferenceType=creation_reference_type, creationInstrumentType=creation_instrument_type)
 
 

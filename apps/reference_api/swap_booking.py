@@ -8,6 +8,15 @@ def load_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False
     """Return immutable source details; shared booking code supplies convention/identity."""
     from .product_booking import require_visible, instrument_row
 
+    generic = select(m.swap_definition_version.c.instrument_definition_version_id).join(
+        m.instrument_definition_version, m.instrument_definition_version.c.instrument_definition_version_id ==
+        m.swap_definition_version.c.instrument_definition_version_id).where(
+        m.instrument_definition_version.c.instrument_node_id == instrument_id,
+        m.instrument_definition_version.c.is_current, m.instrument_definition_version.c.status == 'APPROVED')
+    if connection.scalar(generic):
+        from .generic_swap_booking import load_generic_swap_context
+        return load_generic_swap_context(connection, tenant_id, instrument_id, as_of, lock=lock)
+
     def rows(table, predicate):
         statement=select(table).where(predicate).order_by(*table.primary_key.columns)
         return [dict(row) for row in connection.execute(statement.with_for_update() if lock else statement).mappings()]

@@ -519,6 +519,7 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             booked_by_user_account_id=actor, created_by_user_account_id=actor, comment=request.comment))
         persist_trade_annotations(connection, tenant, trade_id, request, annotations)
         economics = ProductTradeEconomicsView(terms=terms, amount=decimal_text(dirty if kind == 'BOND' else amount), bondDetails=bond_details,
+            bookedNotional=request.quantity if kind == 'SWAP' and terms.swap_details.generic_terms else None,
             amountKind='ENTRY_REFERENCE_VALUE' if kind == 'SWAP' else 'REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION',
             direction=None if kind in {'FUTURE', 'SWAP'} else ('PAY' if request.side == 'BUY' else 'RECEIVE'))
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type='BOOKED',

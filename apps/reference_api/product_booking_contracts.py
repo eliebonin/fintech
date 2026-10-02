@@ -276,6 +276,8 @@ class BondTradeDetailsView(BaseModel):
 
 
 class ProductTradeEconomicsView(BaseModel):
+    booked_notional: Decimal | None = Field(default=None, alias='bookedNotional', gt=0,
+        exclude_if=lambda value: value is None)
     bond_details: BondTradeDetailsView | None = Field(default=None, alias='bondDetails')
     terms: ProductBookingContextView
     amount: str
