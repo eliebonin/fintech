@@ -632,6 +632,8 @@ def list_return_profiles(connection: Connection, tenant_id: UUID, api_version: s
             m.return_profile.c.description,
             m.return_profile.c.base_return_basis,
             m.return_profile.c.income_treatment,
+            m.return_profile.c.financing_treatment,
+            m.return_profile.c.requires_financing_reference,
         )
         .where(m.return_profile.c.status == "ACTIVE")
         .order_by(m.return_profile.c.sort_order, m.return_profile.c.profile_code)
@@ -645,6 +647,8 @@ def list_return_profiles(connection: Connection, tenant_id: UUID, api_version: s
                 description=row.description,
                 baseReturnBasis=row.base_return_basis,
                 incomeTreatment=row.income_treatment,
+                financingTreatment=row.financing_treatment,
+                requiresFinancingReference=row.requires_financing_reference,
             )
             for row in rows
         ],

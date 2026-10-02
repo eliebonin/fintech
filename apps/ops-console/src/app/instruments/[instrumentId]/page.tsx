@@ -7,7 +7,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { getInstrument, MvpApiError } from "@/lib/mvp-api-client";
 import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { getInstrument as getFixtureInstrument } from "@/lib/instrument-data";
-import {getProductInstrument} from '@/lib/reference-api-client';
+import {getProductInstrument,getSwapTermsLabels} from '@/lib/reference-api-client';
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,8 @@ export default async function InstrumentPage({ params }: { params: Promise<{ ins
   try {
     const response = await getInstrument(context, instrumentId);
     const futureTerms=response.data.instrumentType==='FUTURE' ? await getProductInstrument(context,instrumentId,new URLSearchParams()).then(r=>r.data).catch(()=>undefined) : undefined;
-    return <WorkspaceShell {...shell} sourceLabel="LIVE API"><InstrumentDetail instrument={response.data} futureTerms={futureTerms} standalone /></WorkspaceShell>;
+    const swapLabels=response.data.instrumentType==='SWAP'&&response.data.genericTerms?await getSwapTermsLabels(context,response.data.genericTerms):undefined;
+    return <WorkspaceShell {...shell} sourceLabel="LIVE API"><InstrumentDetail instrument={response.data} futureTerms={futureTerms} swapLabels={swapLabels} standalone /></WorkspaceShell>;
   } catch (error) {
     if (error instanceof MvpApiError && error.status === 404) notFound();
 

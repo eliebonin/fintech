@@ -1,3 +1,5 @@
+import type {components} from 'api-contracts';
+
 export type InstrumentIdentifier = {
   scheme: string;
   value: string;
@@ -64,6 +66,7 @@ export type InstrumentRecord = {
   taxonomy: string[];
   notes: string;
   optionTerms?: OptionInstrumentTerms | null;
+  genericTerms?: components['schemas']['GenericSwapTerms-Output'] | null;
 };
 
 const instruments: InstrumentRecord[] = [

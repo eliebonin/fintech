@@ -29,6 +29,7 @@ export const INSTRUMENT_CREATE_GROUPS: InstrumentCreateGroup[] = [
     description: "Describe the economic contract, rather than a trade booked against it.",
     options: [
       { label: "FX forward", description: "An OTC FX-forward contract definition.", href: "/instruments/fx-forwards/new" },
+      { label: "Swap", description: "A sourced performance swap with optional rate funding, submitted for approval.", href: "/instruments/swaps/new" },
       { label: "Cryptoasset", description: "Native cryptoassets and their economic identity.", href: "/instruments/crypto/new" },
     ],
   },

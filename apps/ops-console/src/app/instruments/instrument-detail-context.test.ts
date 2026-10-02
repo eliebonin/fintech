@@ -1,6 +1,6 @@
 import { beforeEach,expect,it,vi } from 'vitest';
-const mocks=vi.hoisted(()=>({context:vi.fn(),workspace:vi.fn(),instrument:vi.fn(),product:vi.fn()}));
-vi.mock('@/lib/reference-api-client',()=>({getProductInstrument:mocks.product}));
+const mocks=vi.hoisted(()=>({context:vi.fn(),workspace:vi.fn(),instrument:vi.fn(),product:vi.fn(),swapLabels:vi.fn()}));
+vi.mock('@/lib/reference-api-client',()=>({getProductInstrument:mocks.product,getSwapTermsLabels:mocks.swapLabels}));
 vi.mock('@/lib/tenant-session',()=>({getActiveTenantContext:mocks.context,getActiveTenantWorkspace:mocks.workspace}));
 vi.mock('@/lib/mvp-api-client',()=>({getInstrument:mocks.instrument,MvpApiError:class extends Error{status=404;}}));
 vi.mock('next/navigation',()=>({redirect:(path:string)=>{throw new Error(`redirect:${path}`);},notFound:()=>{throw new Error('notFound');}}));
@@ -9,3 +9,8 @@ beforeEach(()=>{vi.clearAllMocks();mocks.context.mockResolvedValue({tenantId:'se
 it('reads the instrument with the selected tenant and renders that identity',async()=>{const page=await InstrumentPage({params:Promise.resolve({instrumentId:'option'})});expect(mocks.instrument).toHaveBeenCalledWith({tenantId:'selected-tenant',userAccountId:'actor'},'option');expect(page.props.tenantName).toBe('Selected tenant');expect(page.props.moduleCodes).toEqual(['TRADING']);});
 it('does not request an instrument when the tenant session is missing',async()=>{mocks.context.mockRejectedValue(new Error('No tenant'));await expect(InstrumentPage({params:Promise.resolve({instrumentId:'option'})})).rejects.toThrow('redirect:/select-tenant');expect(mocks.instrument).not.toHaveBeenCalled();});
 it('loads a future summary with the same trusted tenant and retains the instrument if terms are unavailable',async()=>{mocks.instrument.mockResolvedValue({data:{instrumentId:'es',instrumentType:'FUTURE'}});mocks.product.mockResolvedValue({data:{kind:'FUTURE',underlyingName:'S&P 500'}});const page=await InstrumentPage({params:Promise.resolve({instrumentId:'es'})});expect(mocks.product.mock.calls[0].slice(0,2)).toEqual([{tenantId:'selected-tenant',userAccountId:'actor'},'es']);expect(page.props.children.props.futureTerms.underlyingName).toBe('S&P 500');mocks.product.mockRejectedValue(new Error('Unavailable'));const unavailable=await InstrumentPage({params:Promise.resolve({instrumentId:'es'})});expect(unavailable.props.children.props.instrument.instrumentId).toBe('es');expect(unavailable.props.children.props.futureTerms).toBeUndefined();});
+it('resolves approved swap display labels in the same tenant and skips hidden/legacy terms',async()=>{
+  const terms={performanceReferenceId:'ref'};mocks.instrument.mockResolvedValue({data:{instrumentId:'swap',instrumentType:'SWAP',genericTerms:terms}});mocks.swapLabels.mockResolvedValue({ref:'Visible reference'});
+  const page=await InstrumentPage({params:Promise.resolve({instrumentId:'swap'})});expect(mocks.swapLabels).toHaveBeenCalledWith({tenantId:'selected-tenant',userAccountId:'actor'},terms);expect(page.props.children.props.swapLabels).toEqual({ref:'Visible reference'});
+  mocks.swapLabels.mockClear();mocks.instrument.mockResolvedValue({data:{instrumentId:'swap',instrumentType:'SWAP',genericTerms:null}});await InstrumentPage({params:Promise.resolve({instrumentId:'swap'})});expect(mocks.swapLabels).not.toHaveBeenCalled();
+});

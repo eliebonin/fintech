@@ -1068,6 +1068,8 @@ class ReturnProfileView(BaseModel):
     description: str
     base_return_basis: str = Field(alias="baseReturnBasis")
     income_treatment: str = Field(alias="incomeTreatment")
+    financing_treatment: str = Field(alias="financingTreatment")
+    requires_financing_reference: bool = Field(alias="requiresFinancingReference")
 
     model_config = ConfigDict(populate_by_name=True)
 

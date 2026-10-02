@@ -429,6 +429,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/instruments/swap-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Swap Proposal */
+        post: operations["swap_proposal_v1_instruments_swap_proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/instruments/{instrument_id}": {
         parameters: {
             query?: never;
@@ -2916,6 +2933,222 @@ export interface components {
             /** Termsfingerprint */
             termsFingerprint: string;
         };
+        /** GenericSwapTerms */
+        "GenericSwapTerms-Input": {
+            /**
+             * Additionalfundingacknowledged
+             * @default false
+             */
+            additionalFundingAcknowledged: boolean;
+            /** Additionalfundingevidence */
+            additionalFundingEvidence?: string | null;
+            /** Continuationdescription */
+            continuationDescription?: string | null;
+            /** Contractualnotional */
+            contractualNotional: number | string;
+            /** Daycountconventionid */
+            dayCountConventionId?: string | null;
+            /**
+             * Effectivedate
+             * Format: date
+             */
+            effectiveDate: string;
+            /**
+             * Financingtreatment
+             * @enum {string}
+             */
+            financingTreatment: "NONE" | "EMBEDDED" | "SEPARATE" | "EMBEDDED_AND_SEPARATE";
+            /** Fundingnotionalbasis */
+            fundingNotionalBasis?: ("BOOKED_NOMINAL" | "LEVERAGED_NOMINAL") | null;
+            /** Fundingobservationdescription */
+            fundingObservationDescription?: string | null;
+            /** Fundingpaymentfrequency */
+            fundingPaymentFrequency?: ("AT_MATURITY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL" | "CUSTOM") | null;
+            /** Fundingpaymentscheduledescription */
+            fundingPaymentScheduleDescription?: string | null;
+            /** Fundingreferenceid */
+            fundingReferenceId?: string | null;
+            /** Fundingresetfrequency */
+            fundingResetFrequency?: ("AT_MATURITY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL" | "CUSTOM") | null;
+            /** Fundingresetscheduledescription */
+            fundingResetScheduleDescription?: string | null;
+            /** Fundingspread */
+            fundingSpread?: number | string | null;
+            /** Interestcalculationmethod */
+            interestCalculationMethod?: string | null;
+            /**
+             * Leverage
+             * @default 1
+             */
+            leverage: number | string;
+            /**
+             * Maturitydate
+             * Format: date
+             */
+            maturityDate: string;
+            /**
+             * Notionalcurrencyid
+             * Format: uuid
+             */
+            notionalCurrencyId: string;
+            /**
+             * Performancedirection
+             * @enum {string}
+             */
+            performanceDirection: "PAY" | "RECEIVE";
+            /**
+             * Performancereferenceid
+             * Format: uuid
+             */
+            performanceReferenceId: string;
+            /**
+             * Performanceresetfrequency
+             * @enum {string}
+             */
+            performanceResetFrequency: "AT_MATURITY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL" | "CUSTOM";
+            /** Performancescheduledescription */
+            performanceScheduleDescription?: string | null;
+            /**
+             * Quotecurrencyid
+             * Format: uuid
+             */
+            quoteCurrencyId: string;
+            /** Quotefactor */
+            quoteFactor: number | string;
+            /**
+             * Redemptionrule
+             * @enum {string}
+             */
+            redemptionRule: "TERMINATE" | "CONTINUE";
+            /**
+             * Returnbasis
+             * @enum {string}
+             */
+            returnBasis: "TOTAL" | "EXCESS";
+            /**
+             * Returnprofileid
+             * Format: uuid
+             */
+            returnProfileId: string;
+            /**
+             * Schemaversion
+             * @default 1
+             * @constant
+             */
+            schemaVersion: 1;
+            /** Sourcereference */
+            sourceReference: string;
+            /** Tenantidentifier */
+            tenantIdentifier?: string | null;
+        };
+        /** GenericSwapTerms */
+        "GenericSwapTerms-Output": {
+            /**
+             * Additionalfundingacknowledged
+             * @default false
+             */
+            additionalFundingAcknowledged: boolean;
+            /** Additionalfundingevidence */
+            additionalFundingEvidence?: string | null;
+            /** Continuationdescription */
+            continuationDescription?: string | null;
+            /** Contractualnotional */
+            contractualNotional: string;
+            /** Daycountconventionid */
+            dayCountConventionId?: string | null;
+            /**
+             * Effectivedate
+             * Format: date
+             */
+            effectiveDate: string;
+            /**
+             * Financingtreatment
+             * @enum {string}
+             */
+            financingTreatment: "NONE" | "EMBEDDED" | "SEPARATE" | "EMBEDDED_AND_SEPARATE";
+            /** Fundingnotionalbasis */
+            fundingNotionalBasis?: ("BOOKED_NOMINAL" | "LEVERAGED_NOMINAL") | null;
+            /** Fundingobservationdescription */
+            fundingObservationDescription?: string | null;
+            /** Fundingpaymentfrequency */
+            fundingPaymentFrequency?: ("AT_MATURITY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL" | "CUSTOM") | null;
+            /** Fundingpaymentscheduledescription */
+            fundingPaymentScheduleDescription?: string | null;
+            /** Fundingreferenceid */
+            fundingReferenceId?: string | null;
+            /** Fundingresetfrequency */
+            fundingResetFrequency?: ("AT_MATURITY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL" | "CUSTOM") | null;
+            /** Fundingresetscheduledescription */
+            fundingResetScheduleDescription?: string | null;
+            /** Fundingspread */
+            fundingSpread?: string | null;
+            /** Interestcalculationmethod */
+            interestCalculationMethod?: string | null;
+            /**
+             * Leverage
+             * @default 1
+             */
+            leverage: string;
+            /**
+             * Maturitydate
+             * Format: date
+             */
+            maturityDate: string;
+            /**
+             * Notionalcurrencyid
+             * Format: uuid
+             */
+            notionalCurrencyId: string;
+            /**
+             * Performancedirection
+             * @enum {string}
+             */
+            performanceDirection: "PAY" | "RECEIVE";
+            /**
+             * Performancereferenceid
+             * Format: uuid
+             */
+            performanceReferenceId: string;
+            /**
+             * Performanceresetfrequency
+             * @enum {string}
+             */
+            performanceResetFrequency: "AT_MATURITY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL" | "CUSTOM";
+            /** Performancescheduledescription */
+            performanceScheduleDescription?: string | null;
+            /**
+             * Quotecurrencyid
+             * Format: uuid
+             */
+            quoteCurrencyId: string;
+            /** Quotefactor */
+            quoteFactor: string;
+            /**
+             * Redemptionrule
+             * @enum {string}
+             */
+            redemptionRule: "TERMINATE" | "CONTINUE";
+            /**
+             * Returnbasis
+             * @enum {string}
+             */
+            returnBasis: "TOTAL" | "EXCESS";
+            /**
+             * Returnprofileid
+             * Format: uuid
+             */
+            returnProfileId: string;
+            /**
+             * Schemaversion
+             * @default 1
+             * @constant
+             */
+            schemaVersion: 1;
+            /** Sourcereference */
+            sourceReference: string;
+            /** Tenantidentifier */
+            tenantIdentifier?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -3174,6 +3407,7 @@ export interface components {
             definitionVersion: number;
             /** Effectivefrom */
             effectiveFrom: string | null;
+            genericTerms?: components["schemas"]["GenericSwapTerms-Output"] | null;
             /** Identifiers */
             identifiers: components["schemas"]["InstrumentIdentifierView"][];
             /**
@@ -4240,10 +4474,14 @@ export interface components {
             description: string;
             /** Displayname */
             displayName: string;
+            /** Financingtreatment */
+            financingTreatment: string;
             /** Incometreatment */
             incomeTreatment: string;
             /** Profilecode */
             profileCode: string;
+            /** Requiresfinancingreference */
+            requiresFinancingReference: boolean;
             /**
              * Returnprofileid
              * Format: uuid
@@ -4557,20 +4795,15 @@ export interface components {
              * Format: date
              */
             effectiveDate: string;
-            /**
-             * Fundingdirection
-             * @enum {string}
-             */
-            fundingDirection: "PAY" | "RECEIVE";
-            /**
-             * Fundingreferenceid
-             * Format: uuid
-             */
-            fundingReferenceId: string;
+            /** Fundingdirection */
+            fundingDirection?: ("PAY" | "RECEIVE") | null;
+            /** Fundingreferenceid */
+            fundingReferenceId?: string | null;
             /** Fundingreferencename */
-            fundingReferenceName: string;
+            fundingReferenceName?: string | null;
             /** Fundingspread */
-            fundingSpread: string;
+            fundingSpread?: string | null;
+            genericTerms?: components["schemas"]["GenericSwapTerms-Output"] | null;
             /**
              * Performancedirection
              * @enum {string}
@@ -4589,6 +4822,14 @@ export interface components {
             sourceFacts: {
                 [key: string]: unknown;
             };
+        };
+        /** SwapProposalRequest */
+        SwapProposalRequest: {
+            /** Canonicalname */
+            canonicalName: string;
+            /** Tenantidentifier */
+            tenantIdentifier?: string | null;
+            terms: components["schemas"]["GenericSwapTerms-Input"];
         };
         /** TenantMembershipResponse */
         TenantMembershipResponse: {
@@ -7322,6 +7563,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstrumentSearchResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    swap_proposal_v1_instruments_swap_proposals_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwapProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceDataProposalResponse"];
                 };
             };
             /** @description Invalid request */

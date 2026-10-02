@@ -216,6 +216,23 @@ export function searchFutureFamilies(options:EquityProposalOptions,params:URLSea
 export function submitProductProposal(kind:'future-families'|'futures'|'booking-conventions',payload:unknown,options:EquityProposalOptions) {
   return postBookedTrade<components['schemas']['ReferenceDataProposalResponse']>(kind==='future-families'?'/v1/future-family-proposals':kind==='futures'?'/v1/future-proposals':'/v1/instrument-booking-convention-proposals',payload,options,crypto.randomUUID());
 }
+export function submitSwapProposal(context:EquityProposalOptions,request:components['schemas']['SwapProposalRequest']) {
+  return postBookedTrade<components['schemas']['ReferenceDataProposalResponse']>('/v1/instruments/swap-proposals',request,context,crypto.randomUUID());
+}
+export async function getSwapTermsLabels(context:EquityProposalOptions,terms:components['schemas']['GenericSwapTerms-Output']):Promise<Record<string,string>> {
+  const [performance,funding,currencies,profiles,dayCounts]=await Promise.all([
+    searchReferenceNodes(terms.performanceReferenceId,{...context,nodeType:['INSTRUMENT','INDEX'],referenceLevel:'ECONOMIC'}).catch(()=>undefined),
+    terms.fundingReferenceId?searchReferenceNodes(terms.fundingReferenceId,{...context,nodeType:'RATE_INDEX',referenceLevel:'ECONOMIC'}).catch(()=>undefined):undefined,
+    listCurrencies(context,['REGULAR']).catch(()=>undefined),listReturnProfiles(context).catch(()=>undefined),
+    terms.dayCountConventionId?listDayCountConventions(context).catch(()=>undefined):undefined,
+  ]);
+  return Object.fromEntries([
+    ...(performance?.data??[]).filter(r=>r.referenceNodeId===terms.performanceReferenceId).map(r=>[r.referenceNodeId,r.canonicalName]),
+    ...(funding?.data??[]).filter(r=>r.referenceNodeId===terms.fundingReferenceId).map(r=>[r.referenceNodeId,r.canonicalName]),
+    ...(currencies?.data??[]).flatMap(g=>g.items).map(c=>[c.currencyId,c.currencyCode]),
+    ...(profiles?.data??[]).map(p=>[p.returnProfileId,p.displayName]),...(dayCounts?.data??[]).map(c=>[c.dayCountConventionId,c.displayName]),
+  ]);
+}
 export function searchOptionBookingListings(options: EquityProposalOptions, query: string, offset=0) {
   return listReferenceCatalogue<components["schemas"]["OptionBookingListingSearchResponse"]>(`/v1/trades/option-listings?q=${encodeURIComponent(query)}&limit=25&offset=${offset}`,options);
 }

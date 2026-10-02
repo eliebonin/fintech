@@ -4725,6 +4725,683 @@
         "title": "FxForwardTradeEconomicsView",
         "type": "object"
       },
+      "GenericSwapTerms-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "additionalFundingAcknowledged": {
+            "default": false,
+            "title": "Additionalfundingacknowledged",
+            "type": "boolean"
+          },
+          "additionalFundingEvidence": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additionalfundingevidence"
+          },
+          "continuationDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continuationdescription"
+          },
+          "contractualNotional": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Contractualnotional"
+          },
+          "dayCountConventionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daycountconventionid"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "title": "Effectivedate",
+            "type": "string"
+          },
+          "financingTreatment": {
+            "enum": [
+              "NONE",
+              "EMBEDDED",
+              "SEPARATE",
+              "EMBEDDED_AND_SEPARATE"
+            ],
+            "title": "Financingtreatment",
+            "type": "string"
+          },
+          "fundingNotionalBasis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "BOOKED_NOMINAL",
+                  "LEVERAGED_NOMINAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingnotionalbasis"
+          },
+          "fundingObservationDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingobservationdescription"
+          },
+          "fundingPaymentFrequency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "AT_MATURITY",
+                  "MONTHLY",
+                  "QUARTERLY",
+                  "SEMIANNUAL",
+                  "ANNUAL",
+                  "CUSTOM"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingpaymentfrequency"
+          },
+          "fundingPaymentScheduleDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingpaymentscheduledescription"
+          },
+          "fundingReferenceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingreferenceid"
+          },
+          "fundingResetFrequency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "AT_MATURITY",
+                  "MONTHLY",
+                  "QUARTERLY",
+                  "SEMIANNUAL",
+                  "ANNUAL",
+                  "CUSTOM"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingresetfrequency"
+          },
+          "fundingResetScheduleDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingresetscheduledescription"
+          },
+          "fundingSpread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,21}0*$)\\d{0,12}\\.\\d{0,8}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingspread"
+          },
+          "interestCalculationMethod": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interestcalculationmethod"
+          },
+          "leverage": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "1",
+            "title": "Leverage"
+          },
+          "maturityDate": {
+            "format": "date",
+            "title": "Maturitydate",
+            "type": "string"
+          },
+          "notionalCurrencyId": {
+            "format": "uuid",
+            "title": "Notionalcurrencyid",
+            "type": "string"
+          },
+          "performanceDirection": {
+            "enum": [
+              "PAY",
+              "RECEIVE"
+            ],
+            "title": "Performancedirection",
+            "type": "string"
+          },
+          "performanceReferenceId": {
+            "format": "uuid",
+            "title": "Performancereferenceid",
+            "type": "string"
+          },
+          "performanceResetFrequency": {
+            "enum": [
+              "AT_MATURITY",
+              "MONTHLY",
+              "QUARTERLY",
+              "SEMIANNUAL",
+              "ANNUAL",
+              "CUSTOM"
+            ],
+            "title": "Performanceresetfrequency",
+            "type": "string"
+          },
+          "performanceScheduleDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performancescheduledescription"
+          },
+          "quoteCurrencyId": {
+            "format": "uuid",
+            "title": "Quotecurrencyid",
+            "type": "string"
+          },
+          "quoteFactor": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,21}0*$)\\d{0,12}\\.\\d{0,8}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Quotefactor"
+          },
+          "redemptionRule": {
+            "enum": [
+              "TERMINATE",
+              "CONTINUE"
+            ],
+            "title": "Redemptionrule",
+            "type": "string"
+          },
+          "returnBasis": {
+            "enum": [
+              "TOTAL",
+              "EXCESS"
+            ],
+            "title": "Returnbasis",
+            "type": "string"
+          },
+          "returnProfileId": {
+            "format": "uuid",
+            "title": "Returnprofileid",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": 1,
+            "default": 1,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "sourceReference": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Sourcereference",
+            "type": "string"
+          },
+          "tenantIdentifier": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenantidentifier"
+          }
+        },
+        "required": [
+          "performanceReferenceId",
+          "contractualNotional",
+          "notionalCurrencyId",
+          "effectiveDate",
+          "maturityDate",
+          "performanceDirection",
+          "returnBasis",
+          "returnProfileId",
+          "quoteCurrencyId",
+          "quoteFactor",
+          "sourceReference",
+          "financingTreatment",
+          "performanceResetFrequency",
+          "redemptionRule"
+        ],
+        "title": "GenericSwapTerms",
+        "type": "object"
+      },
+      "GenericSwapTerms-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "additionalFundingAcknowledged": {
+            "default": false,
+            "title": "Additionalfundingacknowledged",
+            "type": "boolean"
+          },
+          "additionalFundingEvidence": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additionalfundingevidence"
+          },
+          "continuationDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continuationdescription"
+          },
+          "contractualNotional": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+            "title": "Contractualnotional",
+            "type": "string"
+          },
+          "dayCountConventionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daycountconventionid"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "title": "Effectivedate",
+            "type": "string"
+          },
+          "financingTreatment": {
+            "enum": [
+              "NONE",
+              "EMBEDDED",
+              "SEPARATE",
+              "EMBEDDED_AND_SEPARATE"
+            ],
+            "title": "Financingtreatment",
+            "type": "string"
+          },
+          "fundingNotionalBasis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "BOOKED_NOMINAL",
+                  "LEVERAGED_NOMINAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingnotionalbasis"
+          },
+          "fundingObservationDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingobservationdescription"
+          },
+          "fundingPaymentFrequency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "AT_MATURITY",
+                  "MONTHLY",
+                  "QUARTERLY",
+                  "SEMIANNUAL",
+                  "ANNUAL",
+                  "CUSTOM"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingpaymentfrequency"
+          },
+          "fundingPaymentScheduleDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingpaymentscheduledescription"
+          },
+          "fundingReferenceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingreferenceid"
+          },
+          "fundingResetFrequency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "AT_MATURITY",
+                  "MONTHLY",
+                  "QUARTERLY",
+                  "SEMIANNUAL",
+                  "ANNUAL",
+                  "CUSTOM"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingresetfrequency"
+          },
+          "fundingResetScheduleDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingresetscheduledescription"
+          },
+          "fundingSpread": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,21}0*$)\\d{0,12}\\.\\d{0,8}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingspread"
+          },
+          "interestCalculationMethod": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interestcalculationmethod"
+          },
+          "leverage": {
+            "default": "1",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+            "title": "Leverage",
+            "type": "string"
+          },
+          "maturityDate": {
+            "format": "date",
+            "title": "Maturitydate",
+            "type": "string"
+          },
+          "notionalCurrencyId": {
+            "format": "uuid",
+            "title": "Notionalcurrencyid",
+            "type": "string"
+          },
+          "performanceDirection": {
+            "enum": [
+              "PAY",
+              "RECEIVE"
+            ],
+            "title": "Performancedirection",
+            "type": "string"
+          },
+          "performanceReferenceId": {
+            "format": "uuid",
+            "title": "Performancereferenceid",
+            "type": "string"
+          },
+          "performanceResetFrequency": {
+            "enum": [
+              "AT_MATURITY",
+              "MONTHLY",
+              "QUARTERLY",
+              "SEMIANNUAL",
+              "ANNUAL",
+              "CUSTOM"
+            ],
+            "title": "Performanceresetfrequency",
+            "type": "string"
+          },
+          "performanceScheduleDescription": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performancescheduledescription"
+          },
+          "quoteCurrencyId": {
+            "format": "uuid",
+            "title": "Quotecurrencyid",
+            "type": "string"
+          },
+          "quoteFactor": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,21}0*$)\\d{0,12}\\.\\d{0,8}0*$)",
+            "title": "Quotefactor",
+            "type": "string"
+          },
+          "redemptionRule": {
+            "enum": [
+              "TERMINATE",
+              "CONTINUE"
+            ],
+            "title": "Redemptionrule",
+            "type": "string"
+          },
+          "returnBasis": {
+            "enum": [
+              "TOTAL",
+              "EXCESS"
+            ],
+            "title": "Returnbasis",
+            "type": "string"
+          },
+          "returnProfileId": {
+            "format": "uuid",
+            "title": "Returnprofileid",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": 1,
+            "default": 1,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "sourceReference": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Sourcereference",
+            "type": "string"
+          },
+          "tenantIdentifier": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenantidentifier"
+          }
+        },
+        "required": [
+          "performanceReferenceId",
+          "contractualNotional",
+          "notionalCurrencyId",
+          "effectiveDate",
+          "maturityDate",
+          "performanceDirection",
+          "returnBasis",
+          "returnProfileId",
+          "quoteCurrencyId",
+          "quoteFactor",
+          "sourceReference",
+          "financingTreatment",
+          "performanceResetFrequency",
+          "redemptionRule"
+        ],
+        "title": "GenericSwapTerms",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -5591,6 +6268,16 @@
               }
             ],
             "title": "Effectivefrom"
+          },
+          "genericTerms": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenericSwapTerms-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "identifiers": {
             "items": {
@@ -9077,6 +9764,10 @@
             "title": "Displayname",
             "type": "string"
           },
+          "financingTreatment": {
+            "title": "Financingtreatment",
+            "type": "string"
+          },
           "incomeTreatment": {
             "title": "Incometreatment",
             "type": "string"
@@ -9084,6 +9775,10 @@
           "profileCode": {
             "title": "Profilecode",
             "type": "string"
+          },
+          "requiresFinancingReference": {
+            "title": "Requiresfinancingreference",
+            "type": "boolean"
           },
           "returnProfileId": {
             "format": "uuid",
@@ -9097,7 +9792,9 @@
           "displayName",
           "description",
           "baseReturnBasis",
-          "incomeTreatment"
+          "incomeTreatment",
+          "financingTreatment",
+          "requiresFinancingReference"
         ],
         "title": "ReturnProfileView",
         "type": "object"
@@ -9862,26 +10559,64 @@
             "type": "string"
           },
           "fundingDirection": {
-            "enum": [
-              "PAY",
-              "RECEIVE"
+            "anyOf": [
+              {
+                "enum": [
+                  "PAY",
+                  "RECEIVE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Fundingdirection",
-            "type": "string"
+            "title": "Fundingdirection"
           },
           "fundingReferenceId": {
-            "format": "uuid",
-            "title": "Fundingreferenceid",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingreferenceid"
           },
           "fundingReferenceName": {
-            "title": "Fundingreferencename",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingreferencename"
           },
           "fundingSpread": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Fundingspread",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fundingspread"
+          },
+          "genericTerms": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenericSwapTerms-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "performanceDirection": {
             "enum": [
@@ -9915,14 +10650,43 @@
           "performanceReferenceName",
           "performanceDirection",
           "returnProfileCode",
-          "fundingReferenceId",
-          "fundingReferenceName",
-          "fundingDirection",
-          "fundingSpread",
           "effectiveDate",
           "sourceFacts"
         ],
         "title": "SwapDetailsView",
+        "type": "object"
+      },
+      "SwapProposalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "canonicalName": {
+            "maxLength": 250,
+            "minLength": 1,
+            "title": "Canonicalname",
+            "type": "string"
+          },
+          "tenantIdentifier": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenantidentifier"
+          },
+          "terms": {
+            "$ref": "#/components/schemas/GenericSwapTerms-Input"
+          }
+        },
+        "required": [
+          "canonicalName",
+          "terms"
+        ],
+        "title": "SwapProposalRequest",
         "type": "object"
       },
       "TenantMembershipResponse": {
@@ -15470,6 +16234,143 @@
           }
         },
         "summary": "Search"
+      }
+    },
+    "/v1/instruments/swap-proposals": {
+      "post": {
+        "operationId": "swap_proposal_v1_instruments_swap_proposals_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwapProposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceDataProposalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Swap Proposal"
       }
     },
     "/v1/instruments/{instrument_id}": {

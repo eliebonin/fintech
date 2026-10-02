@@ -3,6 +3,11 @@ import {renderToStaticMarkup} from 'react-dom/server';
 vi.mock('next/navigation',()=>({useRouter:()=>({push:vi.fn(),refresh:vi.fn()})}));
 import {buildProductPayload,validateProductDraft,productAmount,type ProductTerms,type ProductDraft} from './product-ticket-model';
 import {ProductFacts,ProductReview,ProductTicket} from './product-ticket';
+it('labels absent optional funding explicitly in existing product facts',()=>{
+  const markup=renderToStaticMarkup(<ProductFacts terms={{...terms,swapDetails:{...terms.swapDetails!,fundingReferenceId:null,fundingReferenceName:null,fundingSpread:null}}}/>);
+  expect(markup).toContain('No separate funding leg');
+  expect(markup).not.toContain('Canonical funding direction');expect(markup).not.toContain('Funding spread (decimal)');
+});
 import {ProductConventionForm} from '@/components/product-convention-form';
 import type {TradeBookingContext} from '@/lib/browser-api-client';
 const terms:ProductTerms={instrumentId:'swap',name:'Autocall swap',kind:'SWAP',executionRoute:'OTC',currency:'GBP',maturityDate:'2029-08-28',bookingEligible:true,termsFingerprint:'a'.repeat(64),
