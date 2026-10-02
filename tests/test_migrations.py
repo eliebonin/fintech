@@ -36,7 +36,7 @@ def _recreate_test_database() -> None:
         connection.execute(text(f"CREATE DATABASE {TEST_DATABASE_NAME}"))
 
 
-def test_migrations_create_and_remove_all_security_master_schemas() -> None:
+def test_migrations_create_schemas_and_preserve_forward_only_history() -> None:
     _recreate_test_database()
 
     upgrade = _run_alembic("upgrade", "head")
@@ -44,6 +44,7 @@ def test_migrations_create_and_remove_all_security_master_schemas() -> None:
 
     engine = create_engine(TEST_DATABASE_URL)
     with engine.connect() as connection:
+        revision_before = connection.scalar(text('SELECT version_num FROM public.alembic_version'))
         schema_names = set(connection.scalars(text("SELECT schema_name FROM information_schema.schemata")))
         assert {"secm", "ten", "ing", "md", "trd", "nav", "cal", "fee"}.issubset(schema_names)
         table_names = set(
@@ -160,8 +161,10 @@ def test_migrations_create_and_remove_all_security_master_schemas() -> None:
         assert "payout_multiplicity" in action_columns
 
     downgrade = _run_alembic("downgrade", "base")
-    assert downgrade.returncode == 0, downgrade.stderr
+    assert downgrade.returncode != 0
+    assert 'Forward-only' in downgrade.stderr
 
     with engine.connect() as connection:
         remaining_schema_names = set(connection.scalars(text("SELECT schema_name FROM information_schema.schemata")))
-        assert not {"secm", "ten", "ing", "md", "trd", "nav", "cal", "fee"}.intersection(remaining_schema_names)
+        assert {"secm", "ten", "ing", "md", "trd", "nav", "cal", "fee"}.issubset(remaining_schema_names)
+        assert connection.scalar(text('SELECT version_num FROM public.alembic_version')) == revision_before

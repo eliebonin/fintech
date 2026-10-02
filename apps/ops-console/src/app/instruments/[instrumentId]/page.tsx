@@ -1,27 +1,33 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Alert, Box, Typography } from "@mui/material";
 
 import { InstrumentDetail } from "@/components/instrument-detail";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getInstrument, MvpApiError } from "@/lib/mvp-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { getInstrument as getFixtureInstrument } from "@/lib/instrument-data";
+import {getProductInstrument} from '@/lib/reference-api-client';
 
 export const dynamic = "force-dynamic";
 
 export default async function InstrumentPage({ params }: { params: Promise<{ instrumentId: string }> }) {
   const { instrumentId } = await params;
+  let context, workspace;
+  try { [context, workspace] = await Promise.all([getActiveTenantContext(),getActiveTenantWorkspace()]); }
+  catch { redirect('/select-tenant'); }
+  const shell = {tenantName:workspace.tenantName,membershipRole:workspace.membershipRole,moduleCodes:workspace.moduleCodes};
   try {
-    const response = await getInstrument(resolveLocalTenantContext(), instrumentId);
-    return <WorkspaceShell sourceLabel="LIVE API"><InstrumentDetail instrument={response.data} standalone /></WorkspaceShell>;
+    const response = await getInstrument(context, instrumentId);
+    const futureTerms=response.data.instrumentType==='FUTURE' ? await getProductInstrument(context,instrumentId,new URLSearchParams()).then(r=>r.data).catch(()=>undefined) : undefined;
+    return <WorkspaceShell {...shell} sourceLabel="LIVE API"><InstrumentDetail instrument={response.data} futureTerms={futureTerms} standalone /></WorkspaceShell>;
   } catch (error) {
     if (error instanceof MvpApiError && error.status === 404) notFound();
 
     const allowFixtureFallback = process.env.NODE_ENV !== "production" && process.env.ALLOW_FIXTURE_FALLBACK === "true";
     const fixture = allowFixtureFallback ? getFixtureInstrument(instrumentId) : undefined;
     if (fixture) {
-      return <WorkspaceShell sourceLabel="LOCAL FIXTURE"><InstrumentDetail instrument={fixture} standalone /></WorkspaceShell>;
+      return <WorkspaceShell {...shell} sourceLabel="LOCAL FIXTURE"><InstrumentDetail instrument={fixture} standalone /></WorkspaceShell>;
     }
 
     const message = error instanceof MvpApiError && error.status === 403
@@ -30,7 +36,7 @@ export default async function InstrumentPage({ params }: { params: Promise<{ ins
         ? error.message
         : "The canonical instrument could not be loaded.";
     return (
-      <WorkspaceShell sourceLabel="API UNAVAILABLE">
+      <WorkspaceShell {...shell} sourceLabel="API UNAVAILABLE">
         <Box sx={{ minHeight: "100vh", bgcolor: "#f3f6fb", p: { xs: 2, md: 5 } }}>
           <Box sx={{ maxWidth: 860, mx: "auto" }}>
             <Typography variant="caption" color="text.secondary"><Link href="/">WORKSPACE / INSTRUMENTS</Link></Typography>

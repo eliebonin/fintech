@@ -1,0 +1,11 @@
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { expect,it,vi } from "vitest";
+import { FxForwardTicket, FxForwardReview } from "./fx-forward-ticket";
+vi.mock("next/navigation",()=>({useRouter:()=>({push:()=>{},refresh:()=>{}})}));
+const context={tenantId:"tenant",bookedByUserAccountId:"actor",properties:[],tags:[]};
+const instrument={instrumentId:"instrument",name:"EUR/USD December",baseCurrency:"EUR",quoteCurrency:"USD",quoteConvention:"USD_PER_EUR",agreedRate:"1.10",settlementDate:"2026-12-15",maturityDate:"2026-12-15",settlementType:"DELIVERABLE",termsFingerprint:"a".repeat(64),bookingEligible:true};
+const draft={strategyId:"strategy",side:"BUY" as const,quantity:"1000000",tradeDatetime:"2026-10-01T10:00:00Z",counterpartyOrganisationId:"bank",counterpartyName:"Governed bank",tradePurpose:"HEDGING" as const,properties:{},tagIds:[],externalReferences:[]};
+it("starts with economic contract search rather than listing search",()=>{const html=renderToStaticMarkup(<FxForwardTicket strategies={[]} context={context}/>);expect(html).toContain("Search FX-forward contracts");expect(html).not.toContain("Search active listings");});
+it("locks terms and makes counterparty required",()=>{const html=renderToStaticMarkup(<FxForwardTicket strategies={[]} context={context} initialInstrument={instrument}/>);expect(html).toContain("Counterparty (required)");expect(html).toContain("1.10");expect(html).toContain("2026-12-15");expect(html).not.toContain('name="settlementDate"');expect(html).not.toContain("T+2");});
+it("reviews exact obligations without cash gross consideration",()=>{const html=renderToStaticMarkup(<FxForwardReview instrument={instrument} draft={draft} context={context} strategies={[]}/>);expect(html).toContain("1000000 EUR");expect(html).toContain("1100000 USD");expect(html).toContain("Governed bank");expect(html).not.toContain("Gross consideration");});

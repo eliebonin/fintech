@@ -2,6 +2,9 @@
 
 The alpha begins with an authenticated actor's active tenant membership; it is not a support or platform-admin impersonation flow.
 
+The live `/trades` history upgrade, its query semantics, verification scope,
+and researched UX sources are documented in [Trade history alpha](trade-history-alpha.md).
+
 - `GET /v1/session/memberships` is available before a tenant is selected.
 - `GET /v1/tenant-workspace` resolves the selected tenant's effective membership, enabled module codes, and separately held platform role.
 - The console stores the selected tenant in the HttpOnly `active_tenant` cookie. Its value is HMAC-signed with `ACTIVE_TENANT_COOKIE_SECRET`; production must configure that secret. Local development uses a development-only fallback secret.
@@ -24,3 +27,34 @@ The alpha begins with an authenticated actor's active tenant membership; it is n
 - This is deliberately limited to manual, already-executed, listing-backed cash trades (equity/ETP-style). It excludes order management, fills/allocation workflows, amendment/cancel/correct lifecycle events, fees, broker/trader/tag selection, entitlement-aware counterparty selection, FX/derivatives/funds/OTC booking, position validation, valuation, and P&L calculation. Those remain later modules, not hidden form fields. The boundary follows the controls documented in the design specification, including ESMA’s [MiFID II transaction-reporting guidance](https://www.esma.europa.eu/sites/default/files/library/esma65-8-2594_mifir_data_reporting_qas.pdf), the FCA’s [transaction-reporting page](https://www.fca.org.uk/markets/markets-reporting/transaction-reporting), and the SEC’s [books-and-records requirements](https://www.ecfr.gov/current/title-17/chapter-II/part-240/section-240.17a-3).
 
 This remains an alpha boundary: the demo actor environment seam is still used, and existing legacy pages have not yet been migrated from their static demo tenant context. The next hardening pass must add end-to-end identity integration, mutation idempotency, audit events, and broader browser/API tests.
+
+## Settlement-date default (2026-09-30)
+
+The listed-cash booking ticket defaults settlement to two weekdays after the
+calendar date written in the entered trade timestamp, excluding the trade date
+and skipping Saturday/Sunday. New tickets start with the current UTC timestamp.
+Changing trade time recalculates the suggestion until settlement is manually
+edited; an explicit manual date (including clearing the field) is then preserved
+through subsequent trade-time edits. Incomplete timestamps do not erase the
+previous settlement date, and normal booking validation still applies.
+
+This is an editable, user-requested alpha convenience, **not** a universal
+settlement-cycle rule. Although calendar tables exist, the ticket has no
+settlement-calendar/holiday feed. Public holidays are therefore not excluded;
+the field explicitly warns users to review and adjust the date. Venue/currency
+holiday calendars and instrument-specific settlement cycles are future work.
+No booking API contract, persisted trade, or existing history date is changed.
+
+Tests cover weekday/weekend counting, year and leap-day boundaries, offset
+timestamps without calendar-date shifting, invalid timestamps, initial rendered
+field value, recalculation, and manual override preservation. The complete
+console suite passes (177 tests); TypeScript and production build are also
+checked for this frontend-only change. The Python suite is not rerun because
+backend code is unchanged.
+
+## Enriched listed-cash booking — 2026-09-30
+
+The dedicated ticket now supports independent counterparty/broker, eligible
+trader versus server booker, classification, typed tenant properties, tags,
+structured references, and review/edit/confirm with unchanged-request retries.
+See [delivery evidence and limitations](enriched-trade-booking-alpha.md).

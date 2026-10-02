@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Box, Chip, Divider, Drawer, IconButton, Stack, Typography } from "@mui/material";
 
 import { getActiveWorkspaceSection, WORKSPACE_NAV_ITEMS, type WorkspaceSection } from "@/lib/navigation";
+import type { ActiveTenantWorkspace } from '@/lib/tenant-session';
 
 function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNavigate }: { activeSection: WorkspaceSection; moduleCodes?: string[]; tenantName?: string; membershipRole?: string; onNavigate?: () => void }) {
   const enabledItems = moduleCodes ? WORKSPACE_NAV_ITEMS.filter((item) => {
@@ -34,7 +35,7 @@ function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNav
           })}
         </Stack>
       </Box>
-      <Box sx={{ p: 2, borderTop: "1px solid #28344d" }}><Typography variant="caption" sx={{ color: "#8290aa", display: "block" }}>TENANT CONTEXT</Typography><Typography variant="body2" sx={{ color: "white", fontWeight: 700, mt: 0.5 }}>{tenantName ?? "Demo investment office"}</Typography><Typography variant="caption" sx={{ color: "#8290aa" }}>{membershipRole ?? "Local mock session · analyst"}</Typography>{tenantName ? <Box component={Link} href="/select-tenant" onClick={onNavigate} sx={{ display: "inline-block", mt: 0.8, color: "#8cabff", fontSize: 12, fontWeight: 700 }}>Change tenant</Box> : null}</Box>
+      <Box sx={{ p: 2, borderTop: "1px solid #28344d" }}><Typography variant="caption" sx={{ color: "#8290aa", display: "block" }}>TENANT CONTEXT</Typography><Typography variant="body2" sx={{ color: "white", fontWeight: 700, mt: 0.5 }}>{tenantName ?? "Tenant context unavailable"}</Typography><Typography variant="caption" sx={{ color: "#8290aa" }}>{membershipRole ?? "Select a tenant or retry"}</Typography>{<Box component={Link} href="/select-tenant" onClick={onNavigate} sx={{ display: "inline-block", mt: 0.8, color: "#8cabff", fontSize: 12, fontWeight: 700 }}>{tenantName ? "Change tenant" : "Select tenant"}</Box>}</Box>
     </Box>
   );
 }
@@ -43,6 +44,22 @@ export function WorkspaceShell({ children, sourceLabel = "LIVE API", moduleCodes
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hash, setHash] = useState("");
+  const [loadedWorkspace,setLoadedWorkspace] = useState<{pathname:string;workspace:ActiveTenantWorkspace} | null>(null);
+  useEffect(() => {
+    if (tenantName) return;
+    const controller = new AbortController();
+    fetch('/api/session/active-tenant',{cache:'no-store',signal:controller.signal})
+      .then(async response => { if (!response.ok) throw new Error('Workspace unavailable'); return response.json() as Promise<ActiveTenantWorkspace>; })
+      .then(workspace => {if (!controller.signal.aborted) setLoadedWorkspace({pathname,workspace});})
+      .catch(() => {if (!controller.signal.aborted) setLoadedWorkspace(null);});
+    return () => controller.abort();
+  },[pathname,tenantName]);
+  const inherited = loadedWorkspace?.pathname === pathname ? loadedWorkspace.workspace : null;
+  const sidebarContext = {
+    moduleCodes:moduleCodes ?? inherited?.moduleCodes ?? [],
+    tenantName:tenantName ?? inherited?.tenantName,
+    membershipRole:membershipRole ?? inherited?.membershipRole,
+  };
   useEffect(() => {
     const updateHash = () => setHash(window.location.hash);
     updateHash();
@@ -53,8 +70,8 @@ export function WorkspaceShell({ children, sourceLabel = "LIVE API", moduleCodes
   const activeItem = WORKSPACE_NAV_ITEMS.find((item) => item.key === activeSection);
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f3f6fb" }}>
-      <Box sx={{ display: { xs: "none", md: "block" } }}><Sidebar activeSection={activeSection} moduleCodes={moduleCodes} tenantName={tenantName} membershipRole={membershipRole} /></Box>
-      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { xs: "block", md: "none" }, "& .MuiDrawer-paper": { bgcolor: "#101a2d" } }}><Sidebar activeSection={activeSection} moduleCodes={moduleCodes} tenantName={tenantName} membershipRole={membershipRole} onNavigate={() => setMobileOpen(false)} /></Drawer>
+      <Box sx={{ display: { xs: "none", md: "block" } }}><Sidebar activeSection={activeSection} {...sidebarContext} /></Box>
+      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { xs: "block", md: "none" }, "& .MuiDrawer-paper": { bgcolor: "#101a2d" } }}><Sidebar activeSection={activeSection} {...sidebarContext} onNavigate={() => setMobileOpen(false)} /></Drawer>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ height: 68, px: { xs: 2, md: 3.5 }, bgcolor: "white", borderBottom: "1px solid #e7ecf4", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Stack direction="row" spacing={1.2} sx={{ alignItems: "center" }}><IconButton onClick={() => setMobileOpen(true)} sx={{ display: { xs: "inline-flex", md: "none" }, color: "#1f5eff" }} aria-label="Open navigation">☰</IconButton><Box><Typography variant="caption" color="text.secondary">WORKSPACE / {activeItem?.label.toUpperCase()}</Typography><Typography variant="body2" sx={{ fontWeight: 750, mt: 0.25 }}>{activeItem?.label}</Typography></Box></Stack>

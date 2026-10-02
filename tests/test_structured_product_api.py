@@ -8,7 +8,9 @@ from apps.reference_api.repository import (
 
 
 def test_structured_product_proposal_routes_are_explicit() -> None:
-    paths = {route.path for route in create_app().routes}
+    # Included routers can be lazy wrappers without .path in this FastAPI version.
+    # Assert the published API boundary, including router-mounted operations.
+    paths = set(create_app().openapi()["paths"])
 
     assert "/v1/structured-product-proposals" in paths
     assert "/v1/structured-product-proposals/{proposal_id}/decision" in paths

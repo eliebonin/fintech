@@ -1,0 +1,10 @@
+import {expect,it} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {ProductFacts} from '@/app/trades/new/product-ticket';
+import {InstrumentDetail} from './instrument-detail';
+import {searchInstruments} from '@/lib/instrument-data';
+import type {ProductTerms} from '@/app/trades/new/product-ticket-model';
+const terms:ProductTerms={instrumentId:'es',name:'ES December 2026',kind:'FUTURE',bookingEligible:true,executionRoute:'LISTED',currency:'USD',underlyingName:'S&P 500',underlyingId:'index',contractMonth:'2026-12-01',listingUnitMultiplier:'1',convention:{kind:'FUTURE',effectiveFrom:'2026-10-02',priceCurrencyId:'usd',sourceReference:'CME',quantityUnit:'CONTRACTS',priceBasis:'INDEX_POINTS',monetaryMultiplier:'50',quoteFactor:'1',tickSize:'0.25',settlementMethod:'CASH',allowNegativePrice:false,lastTradingAtUtc:'2026-12-18T14:30:00Z',finalSettlementDate:'2026-12-18'}};
+it('separates contract multiplier, listing conversion and exact tick value',()=>{const html=renderToStaticMarkup(<ProductFacts terms={terms}/>);for(const fact of ['S&amp;P 500','50 USD/point','Contracts per listed unit','12.5 USD','0.25 index points','2026-12','CASH'])expect(html).toContain(fact);expect(html).not.toContain('Monetary value per price unit');});
+it('shows futures economics on canonical detail and gives the listing column units',()=>{const html=renderToStaticMarkup(<InstrumentDetail instrument={{...searchInstruments('')[0],instrumentType:'FUTURE'}} futureTerms={terms}/>);expect(html).toContain('50 USD/point');expect(html).toContain('Contracts per listed unit');});
+it('does not infer a missing contract multiplier from listing data',()=>{const html=renderToStaticMarkup(<InstrumentDetail instrument={{...searchInstruments('')[0],instrumentType:'FUTURE'}}/>);expect(html).toContain('Approved contract facts unavailable');expect(html).not.toContain('50 USD/point');});

@@ -1,6 +1,8 @@
 """Focused tests for replay-safe Market Data snapshot repository operations."""
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from threading import Barrier
 from uuid import uuid4
 
 import pytest
@@ -89,6 +91,30 @@ def test_create_replay_conflict_and_frozen_read(seeded_engine) -> None:
             assert frozen == created
         finally:
             transaction.rollback()
+
+
+def test_concurrent_identical_creates_replay_one_snapshot(seeded_engine) -> None:
+    """Concurrent first uses of one key must not create competing snapshots."""
+
+    payload = _payload()
+    idempotency_key = f"concurrent-{uuid4()}"
+    start = Barrier(2)
+
+    def create_once():
+        with seeded_engine.begin() as connection:
+            start.wait(timeout=10)
+            return create_market_data_resolution_snapshot(
+                connection,
+                DEMO_IDS["tenant"],
+                payload,
+                idempotency_key,
+                "concurrent-test-request",
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        created = list(executor.map(lambda _: create_once(), range(2)))
+
+    assert created[0].market_data_resolution_snapshot_id == created[1].market_data_resolution_snapshot_id
 
 
 def test_active_policy_lookup_is_tenant_scoped(seeded_engine) -> None:

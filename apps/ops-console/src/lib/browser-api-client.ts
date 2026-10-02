@@ -51,6 +51,17 @@ export type {
 } from "api-contracts";
 
 export type TradeBookingRequest = components["schemas"]["TradeBookingRequest"];
+export type FxForwardBookingRequest = components["schemas"]["FxForwardBookingRequest"];
+export type FxForwardBookingInstrumentView = components["schemas"]["FxForwardBookingInstrumentView"];
+export function searchFxForwardBookingInstrumentsFromBff(query:string, fetchImpl:typeof fetch=fetch, offset=0) {
+  return bffGet<components["schemas"]["FxForwardBookingInstrumentSearchResponse"]>(`/api/trades/fx-forward-instruments?q=${encodeURIComponent(query)}&limit=25&offset=${offset}`,fetchImpl);
+}
+export function getFxForwardBookingInstrumentFromBff(instrumentId:string, fetchImpl:typeof fetch=fetch) {
+  return bffGet<components["schemas"]["FxForwardBookingInstrumentResponse"]>(`/api/trades/fx-forward-instruments/${encodeURIComponent(instrumentId)}`,fetchImpl);
+}
+export function submitFxForwardTradeFromBff(payload:FxForwardBookingRequest,key:string,expectedTenantId:string,fetchImpl:typeof fetch=fetch) {
+  return bffPost<components["schemas"]["TradeDetailResponse"]>("/api/trades/fx-forwards",payload,key,fetchImpl,{"X-Expected-Tenant-Id":expectedTenantId});
+}
 
 export function flattenCurrencyGroups(groups: CurrencyPayload["data"]): CurrencyPayload["data"][number]["items"][number][] {
   return groups.flatMap((group) => group.items);
@@ -73,6 +84,7 @@ export async function bffPost<T>(
   payload: unknown,
   idempotencyKey?: string,
   fetchImpl: FetchImplementation = fetch,
+  extraHeaders: Record<string, string> = {},
 ): Promise<T> {
   const response = await fetchImpl(path, {
     method: "POST",
@@ -81,6 +93,7 @@ export async function bffPost<T>(
       Accept: "application/json",
       "Content-Type": "application/json",
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      ...extraHeaders,
     },
     body: JSON.stringify(payload),
   });
@@ -185,8 +198,32 @@ export function submitBookedTradeFromBff(
   payload: TradeBookingRequest,
   idempotencyKey: string,
   fetchImpl: FetchImplementation = fetch,
+  expectedTenantId?: string,
 ): Promise<import("./trades").TradeDetailPayload> {
-  return bffPost<import("./trades").TradeDetailPayload>("/api/trades", payload, idempotencyKey, fetchImpl);
+  return bffPost<import("./trades").TradeDetailPayload>("/api/trades", payload, idempotencyKey, fetchImpl, expectedTenantId ? {"X-Expected-Tenant-Id":expectedTenantId} : {});
+}
+
+export type TradeBookingContext = components["schemas"]["TradeBookingContextView"];
+export type OptionBookingRequest = components['schemas']['OptionBookingRequest'];
+export type OptionBookingListingView = components['schemas']['OptionBookingListingView'];
+export function searchOptionBookingListingsFromBff(query:string,fetchImpl:typeof fetch=fetch,offset=0) {
+  return bffGet<components['schemas']['OptionBookingListingSearchResponse']>(`/api/trades/option-listings?q=${encodeURIComponent(query)}&offset=${offset}`,fetchImpl);
+}
+export function getOptionBookingListingFromBff(id:string,fetchImpl:typeof fetch=fetch) {
+  return bffGet<components['schemas']['OptionBookingListingResponse']>(`/api/trades/option-listings/${encodeURIComponent(id)}`,fetchImpl);
+}
+export function submitOptionTradeFromBff(payload:OptionBookingRequest,key:string,tenant:string,fetchImpl:typeof fetch=fetch) {
+  return bffPost<import('./trades').TradeDetailPayload>('/api/trades/options',payload,key,fetchImpl,{'X-Expected-Tenant-Id':tenant});
+}
+export function submitOptionProposalFromBff(payload:components['schemas']['OptionProposalRequest'],fetchImpl:typeof fetch=fetch) {
+  return bffPost<components['schemas']['ReferenceDataProposalResponse']>('/api/instruments/options',payload,undefined,fetchImpl);
+}
+export type TradeTraderOption = components["schemas"]["TradeTraderOption"];
+export function getTradeBookingContextFromBff(fetchImpl: FetchImplementation = fetch): Promise<{data:TradeBookingContext}> {
+  return bffGet("/api/trades/booking-context", fetchImpl);
+}
+export function searchTradeTradersFromBff(query: string, fetchImpl: FetchImplementation = fetch): Promise<{data:TradeTraderOption[]}> {
+  return bffGet(`/api/trades/traders?q=${encodeURIComponent(query)}`, fetchImpl);
 }
 
 export function getCryptoAssetProposalFromBff(proposalId: string, fetchImpl: FetchImplementation = fetch): Promise<CryptoAssetProposalPayload> {

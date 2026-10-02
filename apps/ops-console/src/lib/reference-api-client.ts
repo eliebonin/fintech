@@ -71,6 +71,7 @@ export class ReferenceApiError extends Error {
     message: string,
     public readonly code?: string,
     public readonly requestId?: string,
+    public readonly fieldErrors?: Record<string, string[]>,
   ) {
     super(code ? message : `Reference API returned HTTP ${status}`);
     this.name = "ReferenceApiError";
@@ -190,8 +191,54 @@ export async function bookListedCashTrade(
   options: EquityProposalOptions,
   idempotencyKey: string,
 ): Promise<TradeDetailResponse> {
+  return postBookedTrade("/v1/trades", payload, options, idempotencyKey);
+}
+
+export function bookFxForwardTrade(payload: components["schemas"]["FxForwardBookingRequest"], options: EquityProposalOptions, idempotencyKey: string): Promise<TradeDetailResponse> {
+  return postBookedTrade("/v1/trades/fx-forwards", payload, options, idempotencyKey);
+}
+
+export function bookOptionTrade(payload: components["schemas"]["OptionBookingRequest"], options: EquityProposalOptions, key: string) {
+  return postBookedTrade("/v1/trades/options",payload,options,key);
+}
+export function bookProductTrade(product:'structured-products'|'futures'|'bonds',payload:components['schemas']['ProductBookingRequest'],options:EquityProposalOptions,key:string) {
+  return postBookedTrade(`/v1/trades/${product}`,payload,options,key);
+}
+export function searchProductInstruments(options:EquityProposalOptions,params:URLSearchParams) {
+  return listReferenceCatalogue<components['schemas']['ProductBookingSearchResponse']>(`/v1/trades/product-instruments?${params}`,options);
+}
+export function getProductInstrument(options:EquityProposalOptions,id:string,params:URLSearchParams) {
+  return listReferenceCatalogue<components['schemas']['ProductBookingContextResponse']>(`/v1/trades/product-instruments/${encodeURIComponent(id)}?${params}`,options);
+}
+export function searchFutureFamilies(options:EquityProposalOptions,params:URLSearchParams) {
+  return listReferenceCatalogue<components['schemas']['FutureFamilySearchResponse']>(`/v1/future-families?${params}`,options);
+}
+export function submitProductProposal(kind:'future-families'|'futures'|'booking-conventions',payload:unknown,options:EquityProposalOptions) {
+  return postBookedTrade<components['schemas']['ReferenceDataProposalResponse']>(kind==='future-families'?'/v1/future-family-proposals':kind==='futures'?'/v1/future-proposals':'/v1/instrument-booking-convention-proposals',payload,options,crypto.randomUUID());
+}
+export function searchOptionBookingListings(options: EquityProposalOptions, query: string, offset=0) {
+  return listReferenceCatalogue<components["schemas"]["OptionBookingListingSearchResponse"]>(`/v1/trades/option-listings?q=${encodeURIComponent(query)}&limit=25&offset=${offset}`,options);
+}
+export function getOptionBookingListing(options: EquityProposalOptions, id: string) {
+  return listReferenceCatalogue<components["schemas"]["OptionBookingListingResponse"]>(`/v1/trades/option-listings/${encodeURIComponent(id)}`,options);
+}
+export async function submitOptionProposal(payload: components["schemas"]["OptionProposalRequest"],options: EquityProposalOptions) {
+  const response=await (options.fetchImpl??fetch)(new URL('/v1/option-proposals',options.baseUrl??process.env.REFERENCE_API_URL??'http://localhost:8000'),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-Tenant-Id':options.tenantId,'X-User-Account-Id':options.userAccountId},body:JSON.stringify(payload)});
+  if(!response.ok)throw new ReferenceApiError(response.status,(await response.json()).detail??'Option proposal failed.');
+  return await response.json() as components['schemas']['ReferenceDataProposalResponse'];
+}
+
+export function searchFxForwardBookingInstruments(options: EquityProposalOptions, query: string, offset=0) {
+  return listReferenceCatalogue<components["schemas"]["FxForwardBookingInstrumentSearchResponse"]>(`/v1/trades/fx-forward-instruments?q=${encodeURIComponent(query)}&limit=25&offset=${offset}`, options);
+}
+
+export function getFxForwardBookingInstrument(options: EquityProposalOptions, instrumentId: string) {
+  return listReferenceCatalogue<components["schemas"]["FxForwardBookingInstrumentResponse"]>(`/v1/trades/fx-forward-instruments/${encodeURIComponent(instrumentId)}`, options);
+}
+
+async function postBookedTrade<T=TradeDetailResponse>(path: string, payload: unknown, options: EquityProposalOptions, idempotencyKey: string): Promise<T> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
-  const response = await (options.fetchImpl ?? fetch)(new URL("/v1/trades", baseUrl), {
+  const response = await (options.fetchImpl ?? fetch)(new URL(path, baseUrl), {
     method: "POST",
     cache: "no-store",
     headers: {
@@ -212,11 +259,23 @@ export async function bookListedCashTrade(
       // Invalid upstream bodies remain an opaque status error at the BFF boundary.
     }
     if (isReferenceApiProblem(problem)) {
-      throw new ReferenceApiError(response.status, problem.detail, problem.code, problem.requestId);
+      const fieldErrors: Record<string, string[]> = {};
+      for (const issue of (problem.errors ?? [])) {
+        const field = issue.location.filter((part) => part !== "body").join(".");
+        (fieldErrors[field] ??= []).push(issue.message);
+      }
+      throw new ReferenceApiError(response.status, problem.detail, problem.code, problem.requestId, fieldErrors);
     }
     throw new ReferenceApiError(response.status, `Reference API returned HTTP ${response.status}`);
   }
-  return (await response.json()) as TradeDetailResponse;
+  return (await response.json()) as T;
+}
+
+export function getTradeBookingContext(options: EquityProposalOptions): Promise<components["schemas"]["TradeBookingContextResponse"]> {
+  return listReferenceCatalogue("/v1/trades/booking-context", options);
+}
+export function searchTradeTraders(options: EquityProposalOptions, query: string): Promise<components["schemas"]["TradeTraderResponse"]> {
+  return listReferenceCatalogue(`/v1/trades/traders?q=${encodeURIComponent(query)}`, options);
 }
 
 export async function getReferenceDataProposal(proposalId: string, options: EquityProposalOptions): Promise<ReferenceDataProposalPayload> {

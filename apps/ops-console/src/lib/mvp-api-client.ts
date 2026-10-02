@@ -79,15 +79,24 @@ export function getPortfolioPnl(context: TenantContext, portfolioCode: string, a
   return getJson<PortfolioPnlPayload>(`/v1/portfolios/${encodeURIComponent(portfolioCode)}/pnl?asOfDate=${encodeURIComponent(asOfDate)}`, context);
 }
 
-export function getBookedTrades(context: TenantContext, params: { portfolioCode?: string; fromDate?: string; toDate?: string; limit?: number } = {}) {
+export function getBookedTrades(context: TenantContext, params: { portfolioCode?: string; fromDate?: string; toDate?: string; q?: string; side?: string; lifecycleStatus?: string; limit?: number; offset?: number } = {}) {
   const query = new URLSearchParams();
   if (params.portfolioCode) query.set("portfolioCode", params.portfolioCode);
   if (params.fromDate) query.set("fromDate", params.fromDate);
   if (params.toDate) query.set("toDate", params.toDate);
+  if (params.q) query.set("q", params.q);
+  if (params.side) query.set("side", params.side);
+  if (params.lifecycleStatus) query.set("lifecycleStatus", params.lifecycleStatus);
+  query.set("offset", String(params.offset ?? 0));
   query.set("limit", String(params.limit ?? 50));
   return getJson<TradePayload>(`/v1/trades?${query.toString()}`, context);
 }
 
 export function getBookedTradeDetail(context: TenantContext, tradeId: string) {
   return getJson<TradeDetailPayload>(`/v1/trades/${encodeURIComponent(tradeId)}`, context);
+}
+
+export type HistoryStrategy = { strategyId: string; strategyCode: string; displayName: string; status: string };
+export function getHistoryStrategies(context: TenantContext) {
+  return getJson<{ data: HistoryStrategy[] }>("/v1/strategies", context);
 }

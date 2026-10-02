@@ -1,6 +1,7 @@
 """FastAPI application factory for canonical reference-data services."""
 
 from datetime import date
+from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, status
@@ -61,6 +62,10 @@ from .contracts import (
 )
 from .structured_product_contracts import AutocallDraftRequest, StructuredProductDraftError
 from .db import get_engine
+from .trade_properties import get_trade_booking_context, list_trade_traders, TradeFieldError
+from .contracts import TradeBookingContextResponse, TradeTraderResponse
+from .problem_details import ValidationIssue
+from .product_booking import ProductBookingError, ProductValuationUnsupported
 from .repository import IdempotencyKeyConflict, InvalidCatalogueValue, InvalidWorkflowState, RepositoryNotFound, book_listed_cash_trade, create_market_data_resolution_snapshot, create_mapping_proposal, decide_crypto_asset_proposal, decide_etp_proposal, decide_fx_forward_proposal, decide_index_family_proposal, decide_index_proposal, decide_mapping_proposal, decide_bond_proposal, decide_equity_proposal, decide_reference_data_proposal, decide_structured_product_proposal, get_market_data_resolution_snapshot, get_booked_trade_detail, get_crypto_asset_proposal, get_instrument, get_reference_data_proposal, list_active_valuation_policies, list_booked_trades, list_currencies, list_day_count_conventions, list_index_families, list_index_kinds, list_market_data_series, list_market_venues, list_organisations, list_return_profiles, parse_currency_groups, portfolio_pnl, search_instruments, search_reference_nodes, submit_bond_proposal, submit_crypto_asset_proposal, submit_etp_proposal, submit_fx_forward_proposal, submit_equity_listing_proposal, submit_equity_proposal, submit_index_family_proposal, submit_index_proposal, submit_structured_product_proposal, work_queue
 from .tenant_context import TenantContext, get_tenant_context, require_actor
 from .tenant_context import ActorContext, get_actor_context
@@ -85,6 +90,15 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def connection_dependency():
         with (engine or get_engine(resolved_settings)).begin() as connection:
             yield connection
+
+    from .trade_configuration_routes import configuration_router
+    app.include_router(configuration_router(connection_dependency))
+    from .fx_forward_booking import fx_forward_booking_router
+    app.include_router(fx_forward_booking_router(connection_dependency, _assert_tenant_membership))
+    from .option_booking import option_router
+    app.include_router(option_router(connection_dependency, _assert_tenant_membership))
+    from .product_booking_routes import product_booking_router
+    app.include_router(product_booking_router(connection_dependency, _assert_tenant_membership))
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -274,8 +288,10 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
                 )
         except RepositoryNotFound as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-        except InvalidWorkflowState as exc:
+        except (InvalidWorkflowState, ProductBookingError) as exc:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        except TenantActionForbidden as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
         return ReferenceDataProposalResponse(
             data=proposal,
             meta={
@@ -905,6 +921,24 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         _assert_tenant_membership(connection, context)
         return list_index_families(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id))
 
+    @app.get("/v1/trades/booking-context", response_model=TradeBookingContextResponse)
+    def trade_booking_context(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+        actor_id = _assert_tenant_membership(connection, context)
+        try:
+            data = get_trade_booking_context(connection, context.tenant_id, actor_id)
+        except TenantActionForbidden as exc:
+            raise HTTPException(status_code=403, detail="Trade booking is not permitted") from exc
+        return {"data": data, "meta": {"tenantContext":str(context.tenant_id), "source":"live-reference-api", "apiVersion":resolved_settings.api_version, "correlationId":current_request_id()}}
+
+    @app.get("/v1/trades/traders", response_model=TradeTraderResponse)
+    def trade_traders(q: str = Query(default="", max_length=250), limit: int = Query(default=25, ge=1, le=100), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+        actor_id = _assert_tenant_membership(connection, context)
+        try:
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "TRADE_WRITE")
+        except TenantActionForbidden as exc:
+            raise HTTPException(status_code=403, detail="Trade booking is not permitted") from exc
+        return {"data": list_trade_traders(connection, context.tenant_id, q, limit), "meta": {"tenantContext":str(context.tenant_id), "source":"live-reference-api", "apiVersion":resolved_settings.api_version, "correlationId":current_request_id(), "limit":limit}}
+
     @app.post("/v1/trades", response_model=TradeDetailResponse, status_code=status.HTTP_201_CREATED)
     def book_trade(
         request: TradeBookingRequest,
@@ -924,6 +958,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             raise ApiProblem(status.HTTP_409_CONFLICT, "idempotency.key_reused", "Idempotency key conflict", "The idempotency key has already been used for a different request.") from exc
         except RepositoryNotFound as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing or strategy not found") from exc
+        except TradeFieldError as exc:
+            raise ApiProblem(422, "request.validation_failed", "Request validation failed", str(exc), errors=[ValidationIssue(location=["body", exc.field], message=str(exc), kind="value_error")]) from exc
         except (InvalidCatalogueValue, ValueError) as exc:
             raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "request.validation_failed", "Request validation failed", "One or more request fields are invalid.") from exc
         response.headers["Location"] = f"/v1/trades/{result.data.trade.trade_id}"
@@ -932,6 +968,9 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     @app.get("/v1/trades", response_model=TradeResponse)
     def booked_trades(
         portfolio_code: str | None = Query(default=None, alias="portfolioCode", max_length=100),
+        q: str | None = Query(default=None, max_length=200),
+        side: Literal["BUY", "SELL"] | None = Query(default=None),
+        lifecycle_status: str | None = Query(default=None, alias="lifecycleStatus", min_length=1, max_length=30),
         from_date: date | None = Query(default=None, alias="fromDate"),
         to_date: date | None = Query(default=None, alias="toDate"),
         limit: int = Query(default=50, ge=1, le=200),
@@ -943,7 +982,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         _assert_tenant_membership(connection, context)
         if from_date and to_date and from_date > to_date:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="fromDate must be on or before toDate")
-        return list_booked_trades(connection, context.tenant_id, portfolio_code, from_date, to_date, limit, offset, resolved_settings.api_version, _correlation_id(x_correlation_id))
+        return list_booked_trades(connection, context.tenant_id, portfolio_code, from_date, to_date, limit, offset, resolved_settings.api_version, _correlation_id(x_correlation_id), query=q, side=side, lifecycle_status=lifecycle_status)
 
     @app.get("/v1/trades/{trade_id}", response_model=TradeDetailResponse)
     def booked_trade_detail(
@@ -967,7 +1006,16 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         x_correlation_id: str | None = Header(default=None),
     ) -> PortfolioPnlResponse:
         _assert_tenant_membership(connection, context)
-        result = portfolio_pnl(connection, context.tenant_id, portfolio_code, as_of_date, resolved_settings.api_version, _correlation_id(x_correlation_id))
+        from .fx_forward_booking import FxForwardValuationUnsupported
+        from .option_booking import OptionValuationUnsupported
+        try:
+            result = portfolio_pnl(connection, context.tenant_id, portfolio_code, as_of_date, resolved_settings.api_version, _correlation_id(x_correlation_id))
+        except FxForwardValuationUnsupported as error:
+            raise ApiProblem(422, "valuation.fx_forward_unsupported", "Unsupported FX-forward valuation", str(error)) from error
+        except OptionValuationUnsupported as error:
+            raise ApiProblem(422,"valuation.option_unsupported","Unsupported option valuation",str(error)) from error
+        except ProductValuationUnsupported as error:
+            raise ApiProblem(422, 'valuation.product_unsupported', 'Unsupported product valuation', str(error)) from error
         if result is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
         return result

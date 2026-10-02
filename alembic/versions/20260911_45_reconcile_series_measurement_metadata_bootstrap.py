@@ -63,8 +63,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove only the reconciliation controls created by this revision."""
+    """Keep revision 44's schema objects for its own downgrade.
 
-    op.execute("DROP INDEX IF EXISTS md.ix_market_data_series_measure_definition")
-    op.execute("ALTER TABLE md.market_data_series DROP CONSTRAINT IF EXISTS fk_market_data_series_measure_definition")
-    op.execute("ALTER TABLE md.market_data_series DROP COLUMN IF EXISTS measure_definition_id")
+    This revision only reconciles installations where the objects were absent;
+    it does not own the column, constraint, or index created by revision 44.
+    """

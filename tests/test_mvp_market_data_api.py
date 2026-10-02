@@ -80,7 +80,9 @@ def test_booked_trades_returns_seeded_executions_and_supports_portfolio_filter()
     assert response.status_code == 200
     payload = response.json()
     assert len(payload["data"]) >= 6
-    first = payload["data"][0]
+    # Real/custom bookings can precede the seeded MVP executions.
+    # Check the known fixture instead of assuming the newest trade's strategy.
+    first = next(item for item in payload["data"] if item["tradeId"] == str(uuid5(MVP_NAMESPACE, "trade:us_equity")))
     assert first["tradeId"]
     assert first["strategyCode"] in {"MVP_US_PORTFOLIO", "MVP_UK_PORTFOLIO"}
     assert first["subjectName"]

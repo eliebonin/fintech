@@ -1,11 +1,11 @@
 """Stable, view-oriented API contracts for the reference-data service."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
 
 
 class ApiMeta(BaseModel):
@@ -333,7 +333,94 @@ class PortfolioPnlResponse(BaseModel):
     meta: ApiMeta
 
 
+class FxForwardTradeEconomicsView(BaseModel):
+    base_currency: str = Field(alias="baseCurrency")
+    quote_currency: str = Field(alias="quoteCurrency")
+    quote_convention: str = Field(alias="quoteConvention")
+    agreed_rate: str = Field(alias="agreedRate")
+    settlement_date: str = Field(alias="settlementDate")
+    receive_currency: str = Field(alias="receiveCurrency")
+    receive_amount: str = Field(alias="receiveAmount")
+    pay_currency: str = Field(alias="payCurrency")
+    pay_amount: str = Field(alias="payAmount")
+    terms_fingerprint: str = Field(alias="termsFingerprint")
+    source: Literal["BOOKING_SNAPSHOT"] = "BOOKING_SNAPSHOT"
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FxForwardBookingInstrumentView(BaseModel):
+    instrument_id: UUID = Field(alias="instrumentId")
+    name: str
+    base_currency: str | None = Field(alias="baseCurrency")
+    quote_currency: str | None = Field(alias="quoteCurrency")
+    quote_convention: str | None = Field(alias="quoteConvention")
+    agreed_rate: str | None = Field(alias="agreedRate")
+    maturity_date: str | None = Field(alias="maturityDate")
+    settlement_date: str | None = Field(alias="settlementDate")
+    settlement_type: str | None = Field(alias="settlementType")
+    terms_fingerprint: str | None = Field(alias="termsFingerprint")
+    booking_eligible: bool = Field(alias="bookingEligible")
+    ineligibility_code: str | None = Field(default=None, alias="ineligibilityCode")
+    ineligibility_message: str | None = Field(default=None, alias="ineligibilityMessage")
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FxForwardBookingInstrumentResponse(BaseModel):
+    data: FxForwardBookingInstrumentView
+    meta: ApiMeta
+
+
+class FxForwardBookingInstrumentSearchResponse(BaseModel):
+    data: list[FxForwardBookingInstrumentView]
+    meta: ApiMeta
+
+
+class OptionBookingListingView(BaseModel):
+    strike_currency: str | None = Field(alias="strikeCurrency")
+    deliverable_units: str | None = Field(alias="deliverableUnits")
+    listing_id: UUID = Field(alias="listingId")
+    instrument_id: UUID = Field(alias="instrumentId")
+    name: str
+    listing_name: str = Field(alias="listingName")
+    option_type: str | None = Field(alias="optionType")
+    underlying_id: UUID | None = Field(alias="underlyingId")
+    strike: str | None
+    expiry_date: str | None = Field(alias="expiryDate")
+    last_trading_at_utc: str | None = Field(alias="lastTradingAtUtc")
+    exercise_style: str | None = Field(alias="exerciseStyle")
+    settlement_method: str | None = Field(alias="settlementMethod")
+    premium_currency: str | None = Field(alias="premiumCurrency")
+    premium_multiplier: str | None = Field(alias="premiumMultiplier")
+    quote_factor: str | None = Field(alias="quoteFactor")
+    terms_fingerprint: str | None = Field(alias="termsFingerprint")
+    booking_eligible: bool = Field(alias="bookingEligible")
+    ineligibility_message: str | None = Field(default=None,alias="ineligibilityMessage")
+    model_config=ConfigDict(populate_by_name=True)
+
+
+class OptionTradeEconomicsView(BaseModel):
+    terms: OptionBookingListingView
+    gross_premium: str = Field(alias="grossPremium")
+    premium_direction: Literal["PAY","RECEIVE"] = Field(alias="premiumDirection")
+    source: Literal["BOOKING_SNAPSHOT"] = "BOOKING_SNAPSHOT"
+    model_config=ConfigDict(populate_by_name=True)
+
+
+class OptionBookingListingSearchResponse(BaseModel):
+    data: list[OptionBookingListingView]
+    meta: ApiMeta
+
+
+class OptionBookingListingResponse(BaseModel):
+    data: OptionBookingListingView
+    meta: ApiMeta
+
+
 class TradeView(BaseModel):
+    product_economics: dict[str, object] | None = Field(default=None, alias="productEconomics")
+    position_effect: Literal["OPEN","CLOSE"] | None = Field(default=None,alias="positionEffect")
+    option_economics: OptionTradeEconomicsView | None = Field(default=None,alias="optionEconomics")
+    fx_forward_economics: FxForwardTradeEconomicsView | None = Field(default=None, alias="fxForwardEconomics")
     trade_id: UUID = Field(alias="tradeId")
     trade_subject_reference_node_id: UUID = Field(alias="subjectReferenceNodeId")
     subject_name: str = Field(alias="subjectName")
@@ -378,6 +465,64 @@ class TradeResponse(BaseModel):
     meta: ApiMeta
 
 
+class TradePropertyInput(BaseModel):
+    definition_id: UUID = Field(alias="definitionId")
+    value: StrictStr | StrictBool
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+class TradeReferenceInput(BaseModel):
+    reference_type: Literal["SOURCE_TRADE_ID", "CLIENT_REFERENCE", "BROKER_REFERENCE"] = Field(alias="referenceType")
+    reference_value: str = Field(alias="referenceValue", min_length=1, max_length=500)
+    source_system_id: str | None = Field(default=None, alias="sourceSystemId", max_length=100)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+    @field_validator("reference_value")
+    @classmethod
+    def nonblank(cls, value):
+        if not value.strip(): raise ValueError("Reference is required.")
+        return value.strip()
+
+class TradePropertyDefinitionView(BaseModel):
+    definition_id: UUID = Field(alias="definitionId")
+    code: str
+    label: str
+    value_type: Literal["TEXT", "INTEGER", "DECIMAL", "DATE", "BOOLEAN", "CHOICE", "REFERENCE"] = Field(alias="valueType")
+    catalogue_id: UUID | None = Field(default=None, alias="catalogueId")
+    required: bool
+    choices: list[str]
+    description: str | None = None
+    model_config = ConfigDict(populate_by_name=True)
+
+class TradeTagView(BaseModel):
+    tag_id: UUID = Field(alias="tagId")
+    code: str
+    label: str
+    model_config = ConfigDict(populate_by_name=True)
+
+class TradeTraderOption(BaseModel):
+    person_id: UUID = Field(alias="personId")
+    display_name: str = Field(alias="displayName")
+    model_config = ConfigDict(populate_by_name=True)
+
+class TradeBookingContextView(BaseModel):
+    tenant_id: UUID = Field(alias="tenantId")
+    booked_by_user_account_id: UUID = Field(alias="bookedByUserAccountId")
+    properties: list[TradePropertyDefinitionView]
+    tags: list[TradeTagView]
+    model_config = ConfigDict(populate_by_name=True)
+
+class TradeBookingContextResponse(BaseModel):
+    data: TradeBookingContextView
+    meta: ApiMeta
+
+class TradeTraderResponse(BaseModel):
+    data: list[TradeTraderOption]
+    meta: ApiMeta
+
+class TradePropertyValueView(TradePropertyDefinitionView):
+    value: StrictStr | StrictBool
+    display_value: str | None = Field(default=None, alias="displayValue")
+    record_version: int | None = Field(default=None, alias="recordVersion")
+
 class TradeBookingRequest(BaseModel):
     listing_id: UUID = Field(alias="listingId")
     strategy_id: UUID = Field(alias="strategyId")
@@ -389,6 +534,13 @@ class TradeBookingRequest(BaseModel):
     counterparty_organisation_id: UUID | None = Field(default=None, alias="counterpartyOrganisationId")
     external_reference: str | None = Field(default=None, alias="externalReference", max_length=500)
     comment: str | None = Field(default=None, max_length=10000)
+    executing_broker_organisation_id: UUID | None = Field(default=None, alias="executingBrokerOrganisationId")
+    trader_person_id: UUID | None = Field(default=None, alias="traderPersonId")
+    trade_purpose: Literal["INVESTMENT", "REBALANCING", "HEDGING", "OTHER"] = Field(default="INVESTMENT", alias="tradePurpose")
+    market_activity: Literal["PRIMARY", "SECONDARY"] | None = Field(default=None, alias="marketActivity")
+    tag_ids: list[UUID] = Field(default_factory=list, alias="tagIds", max_length=100)
+    properties: list[TradePropertyInput] = Field(default_factory=list, max_length=1000)
+    external_references: list[TradeReferenceInput] = Field(default_factory=list, alias="externalReferences", max_length=20)
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
@@ -397,12 +549,87 @@ class TradeBookingRequest(BaseModel):
     def _trim_optional_text(cls, value: str | None) -> str | None:
         return value.strip() if value else None
 
+    def _validate_annotations(self) -> None:
+        if self.trade_purpose == "OTHER" and not self.comment: raise ValueError("OTHER purpose requires a comment.")
+        if self.external_reference and self.external_references: raise ValueError("Use legacy externalReference or structured references, not both.")
+        if len(set(self.tag_ids)) != len(self.tag_ids): raise ValueError("Duplicate tag IDs.")
+        if len({p.definition_id for p in self.properties}) != len(self.properties): raise ValueError("Duplicate property IDs.")
+        if len({(r.reference_type, r.source_system_id, r.reference_value) for r in self.external_references}) != len(self.external_references): raise ValueError("Duplicate external references.")
+
     @model_validator(mode="after")
     def _validate_dates_and_timezone(self) -> "TradeBookingRequest":
+        self._validate_annotations()
         if self.trade_datetime.tzinfo is None or self.trade_datetime.utcoffset() is None:
             raise ValueError("tradeDatetime must include a timezone offset")
         if self.settlement_date < self.trade_datetime.date():
             raise ValueError("settlementDate must not be before tradeDatetime")
+        return self
+
+
+class OptionBookingRequest(TradeBookingRequest):
+    execution_price: Decimal = Field(alias="executionPrice",ge=0,max_digits=30,decimal_places=12)
+    quantity: Decimal = Field(gt=0,max_digits=18,decimal_places=0)
+    position_effect: Literal["OPEN","CLOSE"] = Field(alias="positionEffect")
+    expected_terms_fingerprint: str = Field(alias="expectedTermsFingerprint",pattern="^[0-9a-f]{64}$")
+
+
+class OptionProposalRequest(BaseModel):
+    deliverable_units: Decimal = Field(alias="deliverableUnits",gt=0,max_digits=30,decimal_places=12)
+    canonical_name: str = Field(alias="canonicalName",min_length=1,max_length=250)
+    effective_from: date = Field(alias="effectiveFrom")
+    underlying_id: UUID = Field(alias="underlyingId")
+    option_type: Literal["CALL","PUT"] = Field(alias="optionType")
+    strike: Decimal = Field(gt=0,max_digits=30,decimal_places=12)
+    strike_currency_id: UUID = Field(alias="strikeCurrencyId")
+    premium_currency_id: UUID = Field(alias="premiumCurrencyId")
+    premium_multiplier: Decimal = Field(alias="premiumMultiplier",gt=0,max_digits=30,decimal_places=12)
+    expiry_date: date = Field(alias="expiryDate")
+    last_trading_at_utc: datetime = Field(alias="lastTradingAtUtc")
+    exercise_style: Literal["EUROPEAN","AMERICAN"] = Field(alias="exerciseStyle")
+    settlement_method: Literal["CASH","PHYSICAL"] = Field(alias="settlementMethod")
+    model_config=ConfigDict(populate_by_name=True,extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_terms(self):
+        self.canonical_name=self.canonical_name.strip()
+        if not self.canonical_name: raise ValueError("Name is required.")
+        if self.last_trading_at_utc.tzinfo is None or self.last_trading_at_utc.utcoffset() is None: raise ValueError("Trading cutoff needs an explicit timezone.")
+        if self.expiry_date < self.effective_from or not self.effective_from <= self.last_trading_at_utc.astimezone(timezone.utc).date() <= self.expiry_date: raise ValueError("Trading cutoff must fall between effective and expiry dates.")
+        return self
+
+
+class FxForwardBookingRequest(BaseModel):
+    instrument_id: UUID = Field(alias="instrumentId")
+    strategy_id: UUID = Field(alias="strategyId")
+    side: Literal["BUY", "SELL"]
+    quantity: Decimal = Field(gt=0, max_digits=30, decimal_places=12)
+    trade_datetime: datetime = Field(alias="tradeDatetime")
+    counterparty_organisation_id: UUID = Field(alias="counterpartyOrganisationId")
+    expected_terms_fingerprint: str = Field(alias="expectedTermsFingerprint", pattern="^[0-9a-f]{64}$")
+    executing_broker_organisation_id: UUID | None = Field(default=None, alias="executingBrokerOrganisationId")
+    trader_person_id: UUID | None = Field(default=None, alias="traderPersonId")
+    trade_purpose: Literal["INVESTMENT", "REBALANCING", "HEDGING", "OTHER"] = Field(default="INVESTMENT", alias="tradePurpose")
+    comment: str | None = Field(default=None, max_length=10000)
+    external_reference: str | None = Field(default=None, alias="externalReference", max_length=500)
+    tag_ids: list[UUID] = Field(default_factory=list, alias="tagIds", max_length=100)
+    properties: list[TradePropertyInput] = Field(default_factory=list, max_length=1000)
+    external_references: list[TradeReferenceInput] = Field(default_factory=list, alias="externalReferences", max_length=20)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    @field_validator("external_reference", "comment")
+    @classmethod
+    def trim_text(cls, value):
+        return value.strip() if value else None
+
+    @model_validator(mode="after")
+    def validate_booking(self):
+        if self.trade_datetime.tzinfo is None or self.trade_datetime.utcoffset() is None:
+            raise ValueError("tradeDatetime must include a timezone offset")
+        if self.trade_purpose == "OTHER" and not self.comment: raise ValueError("OTHER purpose requires a comment.")
+        if self.external_reference and self.external_references: raise ValueError("Use legacy externalReference or structured references, not both.")
+        if len(set(self.tag_ids)) != len(self.tag_ids): raise ValueError("Duplicate tag IDs.")
+        if len({p.definition_id for p in self.properties}) != len(self.properties): raise ValueError("Duplicate property IDs.")
+        if len({(r.reference_type,r.source_system_id,r.reference_value) for r in self.external_references}) != len(self.external_references): raise ValueError("Duplicate external references.")
         return self
 
 
@@ -469,6 +696,9 @@ class TradeDetailView(BaseModel):
     fees: list[TradeFeeView] = Field(default_factory=list)
     external_references: list[TradeExternalReferenceView] = Field(default_factory=list, alias="externalReferences")
     lifecycle_events: list[TradeLifecycleEventView] = Field(default_factory=list, alias="lifecycleEvents")
+    properties: list[TradePropertyValueView] = Field(default_factory=list)
+    tags: list[TradeTagView] = Field(default_factory=list)
+    trader_name: str | None = Field(default=None, alias="traderName")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -493,6 +723,25 @@ class InstrumentListingView(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class OptionInstrumentTermsView(BaseModel):
+    option_type: str = Field(alias="optionType")
+    underlying_id: UUID | None = Field(alias="underlyingId")
+    underlying_name: str | None = Field(alias="underlyingName")
+    strike: str | None
+    strike_basis: str = Field(alias="strikeBasis")
+    strike_currency: str | None = Field(alias="strikeCurrency")
+    expiry_date: str | None = Field(alias="expiryDate")
+    last_trading_at_utc: str | None = Field(alias="lastTradingAtUtc")
+    exercise_style: str = Field(alias="exerciseStyle")
+    settlement_method: str = Field(alias="settlementMethod")
+    settlement_currency: str | None = Field(alias="settlementCurrency")
+    deliverable_units: str | None = Field(alias="deliverableUnits")
+    premium_currency: str | None = Field(alias="premiumCurrency")
+    premium_multiplier: str | None = Field(alias="premiumMultiplier")
+    premium_style: str | None = Field(alias="premiumStyle")
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class InstrumentView(BaseModel):
     instrument_id: UUID = Field(alias="instrumentId")
     canonical_name: str = Field(alias="canonicalName")
@@ -509,6 +758,7 @@ class InstrumentView(BaseModel):
     instrument_market_data: list[MarketDataPointView] = Field(alias="instrumentMarketData")
     taxonomy: list[str]
     notes: str
+    option_terms: OptionInstrumentTermsView | None = Field(default=None, alias="optionTerms")
 
     model_config = ConfigDict(populate_by_name=True)
 

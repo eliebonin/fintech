@@ -1,0 +1,220 @@
+"""Real API boundary: instrument-backed trades, not synthetic listings."""
+import asyncio
+from uuid import UUID, uuid4
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select, update, func
+from apps.reference_api.main import create_app
+from apps.reference_api.db import get_engine
+from security_master_schema.demo_data import DEMO_IDS, load_demo_data
+from security_master_schema import models as m
+
+def request(method, path, payload=None, key=None, tenant="tenant"):
+    async def run():
+        async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://test") as client:
+            return await client.request(method, path, json=payload, headers={"X-Tenant-Id":str(DEMO_IDS[tenant]), "X-User-Account-Id":str(DEMO_IDS["demo_user_account"]), "Idempotency-Key":key or str(uuid4())})
+    return asyncio.run(run())
+
+@pytest.fixture(scope="module")
+def instrument():
+    load_demo_data(get_engine())
+    proposed = request("POST", "/v1/fx-forward-proposals", {"canonicalName":f"Booking EUR/USD {uuid4()}", "effectiveFrom":"2026-09-01", "baseCurrencyId":str(DEMO_IDS["eur_currency"]), "quoteCurrencyId":str(DEMO_IDS["usd_currency"]), "quoteConvention":"USD_PER_EUR", "agreedForwardRate":"1.10", "settlementType":"DELIVERABLE", "maturityDate":"2026-12-15", "submissionMode":"MANUAL"})
+    assert proposed.status_code == 201, proposed.text
+    approved = request("POST", f"/v1/reference-data-proposals/{proposed.json()['data']['proposalId']}/decision", {"decision":"APPROVED", "reason":"Verified terms for synthetic booking tests."})
+    assert approved.status_code == 200, approved.text
+    return approved.json()["data"]["referenceNodeId"]
+
+def payload(instrument, **changes):
+    view = request("GET", f"/v1/trades/fx-forward-instruments/{instrument}")
+    assert view.status_code == 200, view.text
+    return {"instrumentId":instrument, "strategyId":str(DEMO_IDS["strategy"]), "side":"BUY", "quantity":"1000000", "tradeDatetime":"2026-10-01T10:00:00Z", "counterpartyOrganisationId":str(DEMO_IDS["bank_a_organisation"]), "expectedTermsFingerprint":view.json()["data"]["termsFingerprint"]} | changes
+
+@pytest.mark.parametrize("side,receive,pay", [("BUY","EUR","USD"),("SELL","USD","EUR")])
+def test_books_one_forward_with_inherited_economics(instrument, side, receive, pay):
+    response = request("POST", "/v1/trades/fx-forwards", payload(instrument, side=side))
+    assert response.status_code == 201, response.text
+    trade = response.json()["data"]["trade"]
+    assert trade["listingId"] is None
+    assert trade["instrumentId"] == instrument
+    assert trade["quantityUnit"] == "CURRENCY_AMOUNT"
+    assert trade["priceBasis"] == "RATE"
+    assert trade["priceCurrency"] == "USD"
+    assert trade["executionPrice"].rstrip("0").rstrip(".") == "1.1"
+    assert trade["settlementDate"] == "2026-12-15"
+    economics = trade["fxForwardEconomics"]
+    assert economics["receiveCurrency"] == receive
+    assert economics["payCurrency"] == pay
+    assert economics["receiveAmount"] == ("1000000" if side == "BUY" else "1100000")
+    assert economics["payAmount"] == ("1100000" if side == "BUY" else "1000000")
+
+@pytest.mark.parametrize("field,value", [("executionPrice","1.20"),("settlementDate","2027-01-01"),("listingId",str(uuid4())),("marketActivity","SECONDARY"),("tradeDatetime","2026-10-01T10:00:00"),("quantity","0")])
+def test_rejects_overrides_and_invalid_inputs(instrument, field, value):
+    assert request("POST", "/v1/trades/fx-forwards", payload(instrument, **{field:value})).status_code == 422
+
+def test_counterparty_is_required(instrument):
+    data = payload(instrument)
+    data.pop("counterpartyOrganisationId")
+    assert request("POST", "/v1/trades/fx-forwards", data).status_code == 422
+
+def test_execution_after_settlement_rejected(instrument):
+    response = request("POST", "/v1/trades/fx-forwards", payload(instrument, tradeDatetime="2026-12-16T10:00:00Z"))
+    assert response.status_code == 422
+
+def test_search_returns_visible_contract_without_listing(instrument):
+    response = request("GET", "/v1/trades/fx-forward-instruments?q=Booking%20EUR%2FUSD")
+    assert response.status_code == 200
+    item = next(item for item in response.json()["data"] if item["instrumentId"] == instrument)
+    assert item["bookingEligible"] is True
+    assert item["settlementDate"] == "2026-12-15"
+
+@pytest.fixture
+def connection():
+    with get_engine().connect() as c:
+        tx=c.begin()
+        try: yield c
+        finally: tx.rollback()
+
+def direct_payload(connection,instrument,**changes):
+    from apps.reference_api.fx_forward_booking import get_fx_forward_booking_instrument
+    from apps.reference_api.contracts import FxForwardBookingRequest
+    view=get_fx_forward_booking_instrument(connection,DEMO_IDS["tenant"],UUID(instrument))
+    return FxForwardBookingRequest.model_validate({"instrumentId":instrument,"strategyId":str(DEMO_IDS["strategy"]),"side":"BUY","quantity":"1000000","tradeDatetime":"2026-10-01T10:00:00Z","counterpartyOrganisationId":str(DEMO_IDS["bank_a_organisation"]),"expectedTermsFingerprint":view.terms_fingerprint}|changes)
+
+def direct_book(connection,data,key=None):
+    from apps.reference_api.fx_forward_booking import book_fx_forward_trade
+    return book_fx_forward_trade(connection,DEMO_IDS["tenant"],DEMO_IDS["demo_user_account"],data,key or str(uuid4()),"fx-test")
+
+@pytest.mark.parametrize("table,column,value",[
+    (m.fx_forward_terms,"settlement_type","NDF"),(m.fx_forward_terms,"settlement_type","CASH"),
+    (m.fx_forward_terms,"quote_convention","EUR_PER_USD"),(m.instrument_dates,"settlement_date",__import__("datetime").date(2026,12,16)),
+    (m.instrument,"is_current",False),(m.financial_reference_node,"status","INACTIVE")])
+def test_ineligible_terms_do_not_create_a_trade(connection,instrument,table,column,value):
+    from security_master_schema.fx_forward_booking import FxForwardBookingError
+    data=direct_payload(connection,instrument)
+    id_column=table.c.reference_node_id if table is m.financial_reference_node else table.c.instrument_node_id
+    connection.execute(update(table).where(id_column==UUID(instrument)).values({column:value}))
+    before=connection.scalar(select(func.count()).select_from(m.trade))
+    with pytest.raises(FxForwardBookingError):direct_book(connection,data)
+    assert connection.scalar(select(func.count()).select_from(m.trade))==before
+
+def test_stale_terms_and_changed_key_conflict_do_not_duplicate(connection,instrument):
+    from apps.reference_api.repository import IdempotencyKeyConflict
+    from security_master_schema.fx_forward_booking import FxForwardBookingError
+    data=direct_payload(connection,instrument);key=str(uuid4())
+    first=direct_book(connection,data,key)
+    assert direct_book(connection,data,key).data.trade.trade_id==first.data.trade.trade_id
+    with pytest.raises(IdempotencyKeyConflict):direct_book(connection,data.model_copy(update={"quantity":data.quantity+1}),key)
+    before=connection.scalar(select(func.count()).select_from(m.trade))
+    connection.execute(update(m.fx_forward_terms).where(m.fx_forward_terms.c.instrument_node_id==UUID(instrument)).values(agreed_forward_rate="1.25"))
+    with pytest.raises(FxForwardBookingError,match="terms changed"):direct_book(connection,data)
+    assert connection.scalar(select(func.count()).select_from(m.trade))==before
+
+def test_replay_after_contract_and_counterparty_retirement(connection,instrument):
+    data=direct_payload(connection,instrument);key=str(uuid4());first=direct_book(connection,data,key)
+    connection.execute(update(m.instrument).where(m.instrument.c.instrument_node_id==UUID(instrument)).values(is_current=False))
+    connection.execute(update(m.organisation).where(m.organisation.c.organisation_id==DEMO_IDS["bank_a_organisation"]).values(status="INACTIVE"))
+    replay=direct_book(connection,data,key)
+    assert replay.data.trade.trade_id==first.data.trade.trade_id
+    assert replay.data.trade.fx_forward_economics==first.data.trade.fx_forward_economics
+
+@pytest.mark.parametrize("field",["strategyId","counterpartyOrganisationId"])
+def test_unknown_tenant_references_fail_atomically(connection,instrument,field):
+    from apps.reference_api.repository import RepositoryNotFound
+    from apps.reference_api.trade_properties import TradeFieldError
+    data=direct_payload(connection,instrument,**{field:str(uuid4())})
+    before=connection.scalar(select(func.count()).select_from(m.trade))
+    with pytest.raises((RepositoryNotFound,TradeFieldError,ValueError)):direct_book(connection,data)
+    assert connection.scalar(select(func.count()).select_from(m.trade))==before
+
+def test_annotation_and_duplicate_reference_failures_rollback(connection,instrument):
+    from apps.reference_api.trade_properties import TradeFieldError
+    source=f"fx-{uuid4()}";data=direct_payload(connection,instrument,externalReferences=[{"referenceType":"SOURCE_TRADE_ID","referenceValue":source,"sourceSystemId":"FX_TEST"}])
+    direct_book(connection,data)
+    before=connection.scalar(select(func.count()).select_from(m.trade))
+    with pytest.raises(TradeFieldError):direct_book(connection,data)
+    with pytest.raises(TradeFieldError):direct_book(connection,direct_payload(connection,instrument,properties=[{"definitionId":str(uuid4()),"value":"Unknown"}]))
+    assert connection.scalar(select(func.count()).select_from(m.trade))==before
+
+def test_inactive_currency_and_absent_terms_are_rejected(connection,instrument):
+    from security_master_schema.fx_forward_booking import FxForwardBookingError
+    data=direct_payload(connection,instrument)
+    connection.execute(update(m.currency).where(m.currency.c.currency_id==DEMO_IDS["eur_currency"]).values(status="INACTIVE"))
+    with pytest.raises(FxForwardBookingError):direct_book(connection,data)
+    connection.execute(update(m.currency).where(m.currency.c.currency_id==DEMO_IDS["eur_currency"]).values(status="ACTIVE"))
+    connection.execute(m.fx_forward_terms.delete().where(m.fx_forward_terms.c.instrument_node_id==UUID(instrument)))
+    with pytest.raises(FxForwardBookingError):direct_book(connection,data)
+
+@pytest.mark.parametrize("column,value",[("status","DRAFT"),("status","RETIRED"),("is_current",False),("effective_from",__import__("datetime").date(2027,1,1)),("effective_to",__import__("datetime").date(2026,9,30))])
+def test_only_current_approved_effective_definition_can_be_booked(connection,instrument,column,value):
+    from apps.reference_api.fx_forward_booking import get_fx_forward_booking_instrument
+    from security_master_schema.fx_forward_booking import FxForwardBookingError
+    data=direct_payload(connection,instrument)
+    # Approved versions are immutable. Build a separate fixture in the target state,
+    # rather than bypassing production immutability triggers.
+    clone=uuid4()
+    for table,key in [(m.financial_reference_node,"reference_node_id"),(m.instrument,"instrument_node_id"),(m.fx_forward_terms,"instrument_node_id"),(m.instrument_dates,"instrument_node_id")]:
+        row=dict(connection.execute(select(table).where(table.c[key]==UUID(instrument))).mappings().one())
+        row[key]=clone
+        for primary in table.primary_key.columns:
+            if primary.name!=key:row[primary.name]=uuid4()
+        if table is m.financial_reference_node:row.update(internal_code=f"FX_TEST_{clone.hex}",canonical_name=f"FX clone {clone}")
+        connection.execute(table.insert().values(**row))
+    version=dict(connection.execute(select(m.instrument_definition_version).where(m.instrument_definition_version.c.instrument_node_id==UUID(instrument))).mappings().one())
+    version.update(instrument_definition_version_id=uuid4(),instrument_node_id=clone)
+    version[column]=value
+    connection.execute(m.instrument_definition_version.insert().values(**version))
+    view=get_fx_forward_booking_instrument(connection,DEMO_IDS["tenant"],clone)
+    assert not view.booking_eligible
+    with pytest.raises(FxForwardBookingError):direct_book(connection,data.model_copy(update={"instrument_id":clone}))
+
+def test_private_scope_cannot_be_read_or_booked_by_other_tenant(connection,instrument):
+    from apps.reference_api.fx_forward_booking import get_fx_forward_booking_instrument,search_fx_forward_booking_instruments,load_fx_forward_booking_terms
+    from apps.reference_api.repository import RepositoryNotFound
+    connection.execute(update(m.reference_node_scope).where(m.reference_node_scope.c.reference_node_id==UUID(instrument)).values(scope_type="TENANT_PRIVATE",owner_tenant_id=DEMO_IDS["tenant"]))
+    assert get_fx_forward_booking_instrument(connection,DEMO_IDS["tenant"],UUID(instrument)).booking_eligible
+    with pytest.raises(RepositoryNotFound):load_fx_forward_booking_terms(connection,DEMO_IDS["second_tenant"],UUID(instrument),for_update=True)
+    data,total=search_fx_forward_booking_instruments(connection,DEMO_IDS["second_tenant"],"Booking EUR/USD",100,0)
+    assert not any(str(row.instrument_id)==instrument for row in data)
+
+def test_concurrent_same_key_creates_exactly_one_trade(instrument):
+    from concurrent.futures import ThreadPoolExecutor
+    data=payload(instrument);key=str(uuid4())
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        responses=list(pool.map(lambda _:request("POST","/v1/trades/fx-forwards",data,key),range(2)))
+    assert [r.status_code for r in responses]==[201,201]
+    ids={r.json()["data"]["trade"]["tradeId"] for r in responses}
+    assert len(ids)==1
+    with get_engine().connect() as c:
+        assert c.scalar(select(func.count()).select_from(m.trade_booking_idempotency).where(m.trade_booking_idempotency.c.idempotency_key==key))==1
+
+def test_missing_or_inactive_actor_has_no_booking_access(instrument):
+    data=payload(instrument)
+    async def run():
+        async with AsyncClient(transport=ASGITransport(app=create_app()),base_url="http://test") as client:
+            return await client.post("/v1/trades/fx-forwards",json=data,headers={"X-Tenant-Id":str(DEMO_IDS["tenant"]),"X-User-Account-Id":str(uuid4()),"Idempotency-Key":str(uuid4())})
+    assert asyncio.run(run()).status_code==403
+
+def test_current_draft_does_not_shadow_or_duplicate_approved_definition(connection,instrument):
+    from apps.reference_api.fx_forward_booking import get_fx_forward_booking_instrument,search_fx_forward_booking_instruments
+    version=dict(connection.execute(select(m.instrument_definition_version).where(m.instrument_definition_version.c.instrument_node_id==UUID(instrument))).mappings().one())
+    version.update(instrument_definition_version_id=uuid4(),sequence_no=version["sequence_no"]+1,status="DRAFT",is_current=True)
+    connection.execute(m.instrument_definition_version.insert().values(**version))
+    view=get_fx_forward_booking_instrument(connection,DEMO_IDS["tenant"],UUID(instrument))
+    assert view.booking_eligible
+    rows,total=search_fx_forward_booking_instruments(connection,DEMO_IDS["tenant"],"Booking EUR/USD",100,0)
+    assert sum(str(row.instrument_id)==instrument for row in rows)==1
+    assert direct_book(connection,direct_payload(connection,instrument)).data.trade.instrument_id==UUID(instrument)
+
+def test_active_member_without_trade_write_cannot_book(instrument):
+    data=payload(instrument)
+    clause=(m.tenant_user_account.c.tenant_id==DEMO_IDS["tenant"]) & (m.tenant_user_account.c.user_account_id==DEMO_IDS["demo_user_account"])
+    with get_engine().begin() as c:
+        original=c.scalar(select(m.tenant_user_account.c.membership_role).where(clause))
+        before=c.scalar(select(func.count()).select_from(m.trade))
+        c.execute(update(m.tenant_user_account).where(clause).values(membership_role="VIEWER"))
+    try:
+        response=request("POST","/v1/trades/fx-forwards",data)
+        assert response.status_code==403,response.text
+        with get_engine().connect() as c:assert c.scalar(select(func.count()).select_from(m.trade))==before
+    finally:
+        with get_engine().begin() as c:c.execute(update(m.tenant_user_account).where(clause).values(membership_role=original))

@@ -141,7 +141,7 @@ export default function ReferenceDataProposalReviewForm({ proposal }: { proposal
             </Stack>
           </>
         ) : <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignSelf: "flex-start" }}>
-          {current.status === "APPROVED" && current.referenceNodeId && <Button component={Link} href={`/instruments/${current.referenceNodeId}`} variant="contained">View approved instrument</Button>}
+          {current.proposalType === "CREATE_FUTURE_FAMILY" && current.status === "APPROVED" ? <Button component={Link} href="/instruments/future-families?view=browse" variant="contained">View approved families</Button> : current.status === "APPROVED" && current.referenceNodeId && <Button component={Link} href={`/instruments/${current.referenceNodeId}`} variant="contained">View approved instrument</Button>}
           <Button component={Link} href="/instruments/requests" variant={current.status === "APPROVED" && current.referenceNodeId ? "outlined" : "contained"}>Back to pending instrument requests</Button>
         </Stack>}
       </Stack>

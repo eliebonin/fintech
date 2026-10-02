@@ -19,6 +19,8 @@ import {
 } from "@mui/material";
 
 import type { InstrumentRecord } from "@/lib/instrument-data";
+import { ProductFacts } from '@/app/trades/new/product-ticket';
+import type { ProductTerms } from '@/app/trades/new/product-ticket-model';
 
 function Section({ title, eyebrow, action, children }: { title: string; eyebrow?: string; action?: ReactNode; children: ReactNode }) {
   return (
@@ -46,7 +48,8 @@ function KeyValue({ label, value, mono = false }: { label: string; value: string
   );
 }
 
-export function InstrumentDetail({ instrument, standalone = false }: { instrument: InstrumentRecord; standalone?: boolean }) {
+export function InstrumentDetail({ instrument, standalone = false, futureTerms }: { instrument: InstrumentRecord; standalone?: boolean; futureTerms?: ProductTerms }) {
+  const option = instrument.optionTerms;
   const marketDataRows = [
     ...instrument.instrumentMarketData.map((point) => ({ subject: "INSTRUMENT", symbol: "Economic instrument", point })),
     ...instrument.listings.flatMap((listing) => listing.marketData.map((point) => ({ subject: listing.marketVenueMic, symbol: listing.tradingSymbol, point }))),
@@ -69,6 +72,26 @@ export function InstrumentDetail({ instrument, standalone = false }: { instrumen
           <Chip label={`Definition v${instrument.definitionVersion}`} variant="outlined" size="small" />
         </Stack>
       </Stack>
+      {instrument.instrumentType === 'FUTURE' && (futureTerms ? <ProductFacts terms={futureTerms} configuration/> : <Section title="Futures contract facts"><Typography>Approved contract facts unavailable. Inspect conventions to check the underlying, multiplier and dates; no contract multiplier is inferred from the listing conversion.</Typography></Section>)}
+      {['STRUCTURED_PRODUCT','FUTURE','BOND'].includes(instrument.instrumentType)?<Section title="Booking conventions" action={<Button component={Link} href={`/instruments/${instrument.instrumentId}/booking-conventions`}>Inspect / configure conventions</Button>}><Typography>Authoritative quantity, quote and contract conventions are approved in Operations. Book trades from the dedicated Trade booking page, not from a listing.</Typography></Section>:null}
+
+      {instrument.instrumentType === 'OPTION' && <Section title="Option terms" eyebrow="CURRENT GOVERNED REFERENCE FACTS">
+        {option ? <Box sx={{ display:'grid', gridTemplateColumns:{xs:'1fr',sm:'repeat(3, 1fr)'}, gap:2 }}>
+          <KeyValue label="Option type" value={option.optionType}/>
+          <KeyValue label="Underlying" value={option.underlyingName ?? 'Not available to this tenant'}/>
+          <KeyValue label="Strike" value={option.strike ? `${option.strike} ${option.strikeCurrency ?? ''}`.trim() : 'Not recorded'}/>
+          <KeyValue label="Strike basis" value={option.strikeBasis}/>
+          <KeyValue label="Expiry" value={option.expiryDate ?? 'Not recorded'}/>
+          <KeyValue label="Last trading instant (UTC)" value={option.lastTradingAtUtc ?? 'Not recorded'}/>
+          <KeyValue label="Exercise style" value={option.exerciseStyle}/>
+          <KeyValue label="Exercise settlement" value={`${option.settlementMethod}${option.settlementCurrency ? ` · ${option.settlementCurrency}` : ''}`}/>
+          <KeyValue label="Deliverable units" value={option.deliverableUnits ?? 'Missing or ambiguous'}/>
+          <KeyValue label="Premium currency" value={option.premiumCurrency ?? 'Not recorded'}/>
+          <KeyValue label="Premium multiplier" value={option.premiumMultiplier ?? 'Not recorded'}/>
+          <KeyValue label="Premium style" value={option.premiumStyle ?? 'Not recorded'}/>
+        </Box> : <Typography>No unambiguous current option terms are available. Missing conventions are not defaulted.</Typography>}
+        <Typography variant="body2" color="text.secondary" sx={{mt:2}}>These are current instrument facts, not a historical trade snapshot. Listing quotation factors appear below. Booking eligibility is checked when selecting the listing in Book trade.</Typography>
+      </Section>}
 
       <Section title="Canonical identity" eyebrow="SOURCE OF TRUTH">
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(4, 1fr)" }, gap: 2 }}>
@@ -79,7 +102,7 @@ export function InstrumentDetail({ instrument, standalone = false }: { instrumen
           <KeyValue label="Effective from" value={instrument.effectiveFrom ?? "Not recorded"} />
           <KeyValue label="Current version" value={`v${instrument.definitionVersion} · APPROVED`} />
           <KeyValue label="Taxonomy" value={instrument.taxonomy.join(" · ")} />
-          <KeyValue label="Tradability" value={instrument.listings.length ? "Listed / venue-specific" : "OTC / economic instrument"} />
+          <KeyValue label="Listing coverage" value={instrument.listings.length ? "Listed / venue-specific" : "No listing attached"} />
         </Box>
       </Section>
 
@@ -87,11 +110,11 @@ export function InstrumentDetail({ instrument, standalone = false }: { instrumen
         {instrument.listings.length === 0 ? (
           <Box sx={{ p: 2, bgcolor: "#f7f9fc", borderRadius: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 650 }}>No listing attached</Typography>
-            <Typography variant="body2" color="text.secondary">This record is represented at the economic-instrument level, as expected for an OTC security.</Typography>
+            <Typography variant="body2" color="text.secondary">This economic instrument has no attached venue listing. Absence of a listing does not establish that the instrument is OTC.</Typography>
           </Box>
         ) : (
           <Table size="small">
-            <TableHead><TableRow><TableCell>Venue</TableCell><TableCell>Symbol</TableCell><TableCell>Trading currency</TableCell><TableCell>Quote factor</TableCell><TableCell>Unit multiplier</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
+            <TableHead><TableRow><TableCell>Venue</TableCell><TableCell>Symbol</TableCell><TableCell>Trading currency</TableCell><TableCell>Quote factor</TableCell><TableCell>{instrument.instrumentType==='FUTURE'?'Contracts per listed unit':'Unit multiplier'}</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
             <TableBody>
               {instrument.listings.map((listing) => (
                 <TableRow key={listing.listingId} hover>

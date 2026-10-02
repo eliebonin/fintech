@@ -8,6 +8,7 @@
 - Historic eligibility requires UTC information cuts, provider publication and platform receipt timing, and correction timing at the same cut.
 - Snapshots retain immutable selection outcome, ordering, policy rule, entitlement decision, observation, vintage, dataset, licence, publication and receipt evidence.
 - Snapshot POST is tenant-scoped and idempotent; exact retries replay while conflicting key reuse returns `idempotency.key_reused`.
+- Concurrent first uses of the same idempotency key are serialized by a transaction-scoped PostgreSQL advisory lock, so only one immutable snapshot can be created and the concurrent retry replays it.
 - Snapshot reads use persisted rows only; current entitlement is not re-evaluated.
 - The OpenAPI document is exported from FastAPI and TypeScript is generated from it.
 - The Ops Console submits a one-subject command only through the server BFF, derives the permitted valuation cut from an active policy retrieved through that BFF, and displays frozen evidence through the read BFF. Direct BFF tests cover valuation-date validation, upstream policy query forwarding, and server-side idempotency-key creation.
@@ -23,6 +24,8 @@
 | `pnpm --filter ops-console test` | 37 files / 118 tests passed, including the frozen-evidence request builder, outcome/timestamp presentation, active-policy-to-cut selection, and direct BFF route behaviour. |
 | `pnpm --filter ops-console typecheck` | Passed. |
 | `pnpm --filter ops-console build` | Passed; includes the snapshot read/write and active-valuation-policy BFF routes. |
+| `.venv\Scripts\python.exe -m pytest tests/test_reference_api_market_data_resolution_repository.py -v` | 7 passed after the idempotency-concurrency regression test was added. The test failed before the fix with the expected unique-key violation, then passed after the transaction-scoped lock was added. |
+| `.venv\Scripts\python.exe -m pytest -q` | 250 passed in 224.58s after repairing revision `20260911_45` downgrade ownership and aligning authorization tests with the standard safe `403` problem response. |
 
 Schema revisions: `20260928_46` freezes evidence/idempotency; `20260929_47` adds immutable item outcome and request order.
 

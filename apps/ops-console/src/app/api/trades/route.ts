@@ -27,6 +27,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const expectedTenant = request.headers.get("X-Expected-Tenant-Id");
+    const enriched = ["properties", "tagIds", "traderPersonId", "executingBrokerOrganisationId", "tradePurpose", "marketActivity", "externalReferences"].some((field) => field in payload);
+    if (expectedTenant && expectedTenant !== context.tenantId) return NextResponse.json({error:{code:"TENANT_CONTEXT_CHANGED", message:"The active tenant changed. Restart the ticket before booking."}}, {status:409});
+    if (enriched && !expectedTenant) return NextResponse.json({error:{code:"EXPECTED_TENANT_REQUIRED",message:"Reopen the ticket to confirm its tenant context."}}, {status:400});
     return NextResponse.json(await bookListedCashTrade(payload, context, idempotencyKey), { status: 201 });
   } catch (error: unknown) {
     return bffErrorResponse(error, "Trade booking service is unavailable", request, "TRADE_BOOKING_API_UNAVAILABLE");

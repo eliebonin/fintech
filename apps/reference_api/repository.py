@@ -575,6 +575,7 @@ def list_currencies(
 
     selected_groups = parse_currency_groups(groups)
     selected_kinds = tuple(kind for group in selected_groups for kind in _CURRENCY_GROUP_KINDS[group])
+    from .product_booking import visible_clause
 
     rows = connection.execute(
         select(
@@ -585,6 +586,10 @@ def list_currencies(
         )
         .where(m.currency.c.status == "ACTIVE")
         .where(m.currency.c.currency_kind.in_(selected_kinds))
+        .where(or_(m.currency.c.reference_node_id.is_(None), exists(select(1).where(
+            m.financial_reference_node.c.reference_node_id == m.currency.c.reference_node_id,
+            m.financial_reference_node.c.status == 'ACTIVE',
+            visible_clause(m.financial_reference_node.c.reference_node_id, tenant_id)))))
         .order_by(m.currency.c.currency_code)
     ).mappings().all()
 
@@ -857,6 +862,44 @@ def _load_listing_views(connection: Connection, tenant_id: UUID, instrument_id: 
     return views, listing_ids
 
 
+def _option_inspection_terms(connection: Connection, tenant_id: UUID, instrument_id: UUID):
+    """Current reference facts, not an assertion of booking eligibility."""
+    from .contracts import OptionInstrumentTermsView
+    terms = m.option_terms
+    today = date.today()
+    rows = connection.execute(select(terms).where(
+        terms.c.instrument_node_id == instrument_id, terms.c.is_current,
+        terms.c.effective_from <= today,
+        or_(terms.c.effective_to.is_(None), terms.c.effective_to >= today),
+    )).mappings().all()
+    if len(rows) != 1:
+        return None
+    row = rows[0]
+    underlying_id = underlying_name = None
+    try:
+        _visible_reference_node(connection, tenant_id, row.underlying_reference_node_id)
+        underlying_id = row.underlying_reference_node_id
+        underlying_name = connection.scalar(select(m.financial_reference_node.c.canonical_name).where(m.financial_reference_node.c.reference_node_id == underlying_id))
+    except RepositoryNotFound:
+        pass  # Do not disclose a hidden underlying's identity through its option.
+    def currency(key):
+        return connection.scalar(select(m.currency.c.currency_code).where(m.currency.c.currency_id == row[key])) if row[key] else None
+    def number(value):
+        from security_master_schema.fx_forward_booking import decimal_text
+        return decimal_text(value) if value is not None else None
+    expiry = connection.scalar(select(m.instrument_dates.c.expiry_date).where(m.instrument_dates.c.instrument_node_id == instrument_id))
+    units = m.instrument_contract_unit_terms
+    deliverables = connection.execute(select(units.c.unit_multiplier).where(units.c.instrument_node_id == instrument_id, units.c.valid_from <= today, or_(units.c.valid_to.is_(None), units.c.valid_to >= today))).scalars().all()
+    return OptionInstrumentTermsView(
+        optionType=row.option_type, underlyingId=underlying_id, underlyingName=underlying_name,
+        strike=number(row.strike_value), strikeBasis=row.strike_basis, strikeCurrency=currency('strike_currency_id'),
+        expiryDate=_iso(expiry), lastTradingAtUtc=_iso(row.last_trading_at_utc),
+        exerciseStyle=row.exercise_style, settlementMethod=row.settlement_method, settlementCurrency=currency('settlement_currency_id'),
+        deliverableUnits=number(deliverables[0]) if len(deliverables) == 1 else None,
+        premiumCurrency=currency('premium_currency_id'), premiumMultiplier=number(row.premium_multiplier), premiumStyle=row.premium_style,
+    )
+
+
 def get_instrument(connection: Connection, tenant_id: UUID, instrument_id: UUID) -> InstrumentView | None:
     _, _, _, _, _, stmt = _base_instrument_select(tenant_id)
     row = connection.execute(stmt.where(m.financial_reference_node.c.reference_node_id == instrument_id)).mappings().first()
@@ -879,6 +922,7 @@ def get_instrument(connection: Connection, tenant_id: UUID, instrument_id: UUID)
         instrumentMarketData=_load_market_data(connection, tenant_id, [instrument_id]),
         taxonomy=_load_taxonomy(connection, instrument_id),
         notes="Canonical reference-data view returned by the reference API.",
+        optionTerms=_option_inspection_terms(connection, tenant_id, instrument_id) if row.instrument_type == "OPTION" else None,
     )
 
 
@@ -1336,6 +1380,12 @@ def decide_reference_data_proposal(
         "CREATE_FX_FORWARD": decide_fx_forward_proposal,
         "CREATE_STRUCTURED_PRODUCT": decide_structured_product_proposal,
     }
+    from .option_onboarding import decide_option_proposal
+    dispatchers["CREATE_OPTION"] = decide_option_proposal
+    from .product_booking import decide_proposal
+    dispatchers["CREATE_FUTURE"] = decide_proposal
+    dispatchers["CREATE_FUTURE_FAMILY"] = decide_proposal
+    dispatchers["CONFIGURE_BOOKING_CONVENTION"] = decide_proposal
     dispatcher = dispatchers.get(proposal.proposal_type)
     if dispatcher is None:
         raise InvalidWorkflowState(f"Unsupported reference-data proposal type: {proposal.proposal_type}")
@@ -1600,8 +1650,8 @@ def _materialize_equity_listing(
     instrument = get_instrument(connection, tenant_id, instrument_id)
     if instrument is None or instrument.status != "ACTIVE":
         raise RepositoryNotFound("Parent instrument does not exist, is not approved, or is not visible in this tenant context")
-    if instrument.instrument_type not in {"EQUITY", "DIGITAL_ASSET", "ETF", "ETC", "ETN", "ETV", "ETI"}:
-        raise InvalidWorkflowState("This listing workflow supports equity, ETP, and digital-asset instruments")
+    if instrument.instrument_type not in {"EQUITY", "DIGITAL_ASSET", "ETF", "ETC", "ETN", "ETV", "ETI", "OPTION", "FUTURE", "STRUCTURED_PRODUCT", "BOND"}:
+        raise InvalidWorkflowState("This listing workflow supports equity, ETP, digital-asset, option, futures, structured-security and bond instruments")
     node_type_id = connection.execute(
         select(m.reference_node_type.c.reference_node_type_id)
         .where(m.reference_node_type.c.type_code == "LISTING")
@@ -1885,8 +1935,8 @@ def submit_equity_listing_proposal(
     instrument = get_instrument(connection, tenant_id, request.instrument_id)
     if instrument is None or instrument.status != "ACTIVE":
         raise RepositoryNotFound("Parent instrument does not exist, is not approved, or is not visible in this tenant context")
-    if instrument.instrument_type not in {"EQUITY", "DIGITAL_ASSET", "ETF", "ETC", "ETN", "ETV", "ETI"}:
-        raise InvalidWorkflowState("This listing workflow supports equity, ETP, and digital-asset instruments")
+    if instrument.instrument_type not in {"EQUITY", "DIGITAL_ASSET", "ETF", "ETC", "ETN", "ETV", "ETI", "OPTION", "FUTURE", "STRUCTURED_PRODUCT", "BOND"}:
+        raise InvalidWorkflowState("This listing workflow supports equity, ETP, digital-asset, option, futures, structured-security and bond instruments")
     if request.idempotency_key:
         if request.source_system_id is None:
             raise InvalidWorkflowState("idempotencyKey requires sourceSystemId")
@@ -4160,7 +4210,11 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
             "CREATE_INDEX_FAMILY",
             "CREATE_ETP",
             "CREATE_FX_FORWARD",
+            "CREATE_OPTION",
             "CREATE_STRUCTURED_PRODUCT",
+            "CREATE_FUTURE",
+            "CONFIGURE_BOOKING_CONVENTION",
+            "CREATE_FUTURE_FAMILY",
         }
         if proposal.proposal_type == "CREATE_LISTING":
             listing_payload = payload.get("listing", {})
@@ -4205,6 +4259,15 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                 f"{len(payload.get('underlyings', []))} underlyings · "
                 f"{len(payload.get('rows', []))} schedule rows"
             )
+        elif proposal.proposal_type == 'CREATE_FUTURE_FAMILY':
+            title = f"Review futures family {payload.get('canonicalName')}"
+            detail = f"Non-tradable family · {payload.get('familyCode')} · source {payload.get('sourceReference')}"
+        elif proposal.proposal_type in {'CREATE_FUTURE', 'CONFIGURE_BOOKING_CONVENTION'}:
+            title = f"Review {payload.get('canonicalName', 'booking conventions')}"
+            detail = f"{proposal.proposal_type} · {payload.get('convention', {}).get('kind')} · source {payload.get('convention', {}).get('sourceReference')}"
+        elif proposal.proposal_type == 'CREATE_OPTION':
+            title = f"Review {payload.get('canonicalName', 'option')}"
+            detail = f"{payload.get('optionType')} · {payload.get('exerciseStyle')} · expiry {payload.get('expiryDate')} · upfront premium"
         elif is_reference_create:
             title = f"Review {payload.get('canonicalName', 'reference-data create')}"
             detail = f"{payload.get('submissionMode', 'MANUAL')} equity proposal · {payload.get('isin', 'no ISIN')}"
@@ -4234,7 +4297,11 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                         "CREATE_INDEX_FAMILY",
                         "CREATE_ETP",
                         "CREATE_FX_FORWARD",
+                        "CREATE_OPTION",
                         "CREATE_STRUCTURED_PRODUCT",
+                        "CREATE_FUTURE",
+                        "CONFIGURE_BOOKING_CONVENTION",
+                        "CREATE_FUTURE_FAMILY",
                     }
                     else None
                 ),
@@ -4482,8 +4549,11 @@ def list_booked_trades(
     api_version: str,
     correlation_id: str,
     trade_id: UUID | None = None,
+    query: str | None = None,
+    side: str | None = None,
+    lifecycle_status: str | None = None,
 ) -> TradeResponse:
-    """Return booked economic executions visible to the tenant.
+    """Return historical economic executions visible to the tenant.
 
     This is intentionally a read model over ``trd.trade``. It does not expose
     orders, fills, or a universal multi-leg container; one row remains one
@@ -4500,7 +4570,23 @@ def list_booked_trades(
     venue_identifier = m.market_venue_identifier.alias("trade_venue_identifier")
     price_currency = m.currency.alias("trade_price_currency")
     reference_instrument = m.financial_reference_node.alias("trade_reference_instrument")
-    filters = [trade.c.lifecycle_status == "BOOKED", strategy.c.tenant_id == tenant_id, strategy.c.status == "ACTIVE"]
+    # History is tenant-owned, not restricted to currently active strategies
+    # or currently BOOKED trades. Archiving/cancelling must not erase evidence.
+    filters = [strategy.c.tenant_id == tenant_id]
+    if query and query.strip():
+        term = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        filters.append(or_(
+            subject_node.c.canonical_name.ilike(f"%{term}%", escape="\\"),
+            instrument_node.c.canonical_name.ilike(f"%{term}%", escape="\\"),
+            listing.c.trading_symbol.ilike(f"%{term}%", escape="\\"),
+            cast(trade.c.trade_id, String).ilike(f"%{term}%", escape="\\"),
+        ))
+    if side == "BUY":
+        filters.append(trade.c.quantity > 0)
+    elif side == "SELL":
+        filters.append(trade.c.quantity < 0)
+    if lifecycle_status:
+        filters.append(trade.c.lifecycle_status == lifecycle_status)
     if portfolio_code:
         filters.append(strategy.c.strategy_code == portfolio_code)
     if trade_id:
@@ -4509,7 +4595,7 @@ def list_booked_trades(
         filters.append(trade.c.trade_datetime_utc >= datetime.combine(from_date, datetime.min.time(), tzinfo=timezone.utc))
     if to_date:
         filters.append(trade.c.trade_datetime_utc < datetime.combine(to_date + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
-    rows = connection.execute(
+    statement = (
         select(
             trade,
             subject_node.c.canonical_name.label("subject_name"),
@@ -4519,7 +4605,12 @@ def list_booked_trades(
             listing.c.listing_node_id.label("listing_id"),
             listing.c.trading_symbol.label("listing_symbol"),
             venue.c.market_venue_id.label("venue_id"),
-            venue_identifier.c.identifier_value.label("venue_mic"),
+            select(venue_identifier.c.identifier_value)
+            .where(venue_identifier.c.market_venue_id == venue.c.market_venue_id,
+                   venue_identifier.c.identifier_scheme == "ISO_10383_MIC",
+                   venue_identifier.c.is_primary.is_(True))
+            .order_by(venue_identifier.c.market_venue_identifier_id)
+            .limit(1).correlate(venue).scalar_subquery().label("venue_mic"),
             venue.c.display_name.label("venue_name"),
             price_currency.c.currency_code.label("price_currency"),
             strategy.c.strategy_code,
@@ -4534,18 +4625,18 @@ def list_booked_trades(
             .outerjoin(instrument_node, instrument_node.c.reference_node_id == func.coalesce(listing.c.instrument_node_id, trade.c.trade_subject_reference_node_id))
             .outerjoin(instrument_type, instrument_type.c.instrument_type_id == instrument.c.instrument_type_id)
             .outerjoin(venue, venue.c.market_venue_id == listing.c.market_venue_id)
-            .outerjoin(venue_identifier, and_(venue_identifier.c.market_venue_id == venue.c.market_venue_id, venue_identifier.c.is_primary.is_(True)))
             .outerjoin(price_currency, price_currency.c.currency_id == trade.c.price_currency_id)
             .outerjoin(reference_instrument, reference_instrument.c.reference_node_id == trade.c.reference_instrument_node_id)
         )
         .where(*filters)
-        .order_by(trade.c.trade_datetime_utc.desc(), trade.c.trade_id.desc())
-        .offset(offset)
-        .limit(limit)
-    ).mappings().all()
+    )
+    total = connection.scalar(select(func.count()).select_from(statement.subquery())) or 0
+    rows = connection.execute(statement.order_by(trade.c.trade_datetime_utc.desc(), trade.c.trade_id.desc())
+                              .offset(offset).limit(limit)).mappings().all()
     result = [
         TradeView(
             tradeId=row.trade_id,
+            positionEffect=row.position_effect,
             subjectReferenceNodeId=row.trade_subject_reference_node_id,
             subjectName=row.subject_name,
             instrumentId=row.instrument_id,
@@ -4583,9 +4674,21 @@ def list_booked_trades(
         )
         for row in rows
     ]
+    from .fx_forward_booking import load_fx_forward_trade_economics
+    economics = load_fx_forward_trade_economics(connection, [item.trade_id for item in result])
+    for item in result:
+        item.fx_forward_economics = economics.get(item.trade_id)
+    from .option_booking import load_economics
+    option_economics = load_economics(connection,[item.trade_id for item in result])
+    for item in result:
+        item.option_economics = option_economics.get(item.trade_id)
+    from .product_booking import load_economics as load_product_economics
+    product_economics = load_product_economics(connection, [item.trade_id for item in result])
+    for item in result:
+        item.product_economics = product_economics.get(item.trade_id)
     return TradeResponse(
         data=result,
-        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, limit=limit, offset=offset, total=len(result)),
+        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, limit=limit, offset=offset, total=total),
     )
 
 
@@ -4601,6 +4704,9 @@ def get_booked_trade_detail(
     if not listed.data:
         return None
     trade_view = listed.data[0]
+    from .trade_properties import read_trade_annotations
+    property_views, tag_views = read_trade_annotations(connection, tenant_id, trade_id)
+    trader_name = connection.scalar(select(m.person.c.display_name).where(m.person.c.person_id == trade_view.trader_person_id)) if trade_view.trader_person_id else None
     party_role = m.trade_party_role
     organisation = m.organisation
     person = m.person
@@ -4646,6 +4752,9 @@ def get_booked_trade_detail(
     return TradeDetailResponse(
         data=TradeDetailView(
             trade=trade_view,
+            properties=property_views,
+            tags=tag_views,
+            traderName=trader_name,
             parties=[
                 TradePartyView(
                     tradePartyRoleId=row.trade_party_role_id,
@@ -4711,8 +4820,34 @@ def get_booked_trade_detail(
 _TRADE_BOOKING_ENDPOINT = "/v1/trades"
 
 
-def _trade_booking_fingerprint(payload: TradeBookingRequest) -> str:
-    canonical = json.dumps(payload.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":"))
+def _trade_booking_fingerprint(payload: TradeBookingRequest, connection: Connection, tenant_id: UUID) -> str:
+    data = payload.model_dump(mode="json", by_alias=True)
+    # Additive bond fields must not change fingerprints of existing product retries.
+    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence'):
+        if data.get(field) is None: data.pop(field, None)
+    # Immutable definitions remain available after retirement, so replay can
+    # canonicalise values without reapplying today's booking eligibility.
+    from .trade_properties import normalize_property_value, TradeFieldError
+    identifiers = [item.definition_id for item in payload.properties]
+    definitions = {row["definition_id"]: row for row in connection.execute(
+        select(m.trade_property_definition).where(m.trade_property_definition.c.tenant_id == tenant_id)
+        .where(m.trade_property_definition.c.definition_id.in_(identifiers))
+    ).mappings()} if identifiers else {}
+    for item in data["properties"]:
+        definition = definitions.get(UUID(item["definitionId"]))
+        if definition is not None:
+            try:
+                item["value"] = normalize_property_value(item["value"], definition["value_type"], definition["choices"])
+            except ValueError as error:
+                raise TradeFieldError(f"properties.{item['definitionId']}", str(error)) from error
+    enriched = {"executingBrokerOrganisationId":None, "traderPersonId":None, "tradePurpose":"INVESTMENT", "marketActivity":None, "tagIds":[], "properties":[], "externalReferences":[]}
+    if all(data[key] == default for key, default in enriched.items()):
+        for key in enriched: data.pop(key)
+    else:
+        data["tagIds"] = sorted(data["tagIds"])
+        data["properties"] = sorted(data["properties"], key=lambda p:p["definitionId"])
+        data["externalReferences"] = sorted(data["externalReferences"], key=lambda r:(r["referenceType"], r["sourceSystemId"] or "", r["referenceValue"]))
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -4731,7 +4866,7 @@ def book_listed_cash_trade(
 ) -> TradeDetailResponse:
     """Create or replay one immutable listing-backed cash execution."""
 
-    fingerprint = _trade_booking_fingerprint(request)
+    fingerprint = _trade_booking_fingerprint(request, connection, tenant_id)
     connection.execute(select(func.pg_advisory_xact_lock(_trade_booking_idempotency_lock_key(tenant_id, idempotency_key))))
     existing = connection.execute(
         select(m.trade_booking_idempotency)
@@ -4765,6 +4900,10 @@ def book_listed_cash_trade(
     ).mappings().first()
     if listing_row is None:
         raise RepositoryNotFound("Active listing does not exist")
+    product = connection.scalar(select(m.instrument_type.c.type_code).join(m.instrument,m.instrument.c.instrument_type_id==m.instrument_type.c.instrument_type_id).where(m.instrument.c.instrument_node_id==listing_row.instrument_node_id))
+    if product in {"OPTION", "FX_FORWARD", "FUTURE", "SWAP", "STRUCTURED_PRODUCT", "BOND"}:
+        from .trade_properties import TradeFieldError
+        raise TradeFieldError("listingId", "This derivative requires its product-specific booking ticket; cash-share semantics are not permitted.")
     strategy_row = connection.execute(
         select(m.strategy.c.strategy_id)
         .where(m.strategy.c.strategy_id == request.strategy_id)
@@ -4774,15 +4913,8 @@ def book_listed_cash_trade(
     ).mappings().first()
     if strategy_row is None:
         raise RepositoryNotFound("Active strategy does not exist")
-    if request.counterparty_organisation_id is not None:
-        organisation_id = connection.scalar(
-            select(m.organisation.c.organisation_id)
-            .where(m.organisation.c.organisation_id == request.counterparty_organisation_id)
-            .where(m.organisation.c.status == "ACTIVE")
-        )
-        if organisation_id is None:
-            raise InvalidCatalogueValue("counterpartyOrganisationId is not an active organisation")
-
+    from .trade_properties import validate_trade_annotations
+    annotation_values = validate_trade_annotations(connection, tenant_id, request)
     trade_id = uuid4()
     signed_quantity = request.quantity if request.side == "BUY" else -request.quantity
     trade_datetime_utc = request.trade_datetime.astimezone(timezone.utc)
@@ -4793,7 +4925,9 @@ def book_listed_cash_trade(
             reference_instrument_node_id=listing_row["instrument_node_id"],
             strategy_id=strategy_row["strategy_id"],
             trade_type="INVESTMENT",
-            trade_purpose="INVESTMENT",
+            trade_purpose=request.trade_purpose,
+            market_activity=request.market_activity,
+            trader_person_id=request.trader_person_id,
             execution_price=request.execution_price,
             price_basis="UNIT_PRICE",
             price_currency_id=listing_row["trading_currency_id"],
@@ -4809,18 +4943,39 @@ def book_listed_cash_trade(
             comment=request.comment,
         )
     )
-    party_role_id = None
-    if request.counterparty_organisation_id is not None:
-        party_role_id = uuid4()
-        connection.execute(insert(m.trade_party_role).values(trade_party_role_id=party_role_id, trade_id=trade_id, organisation_id=request.counterparty_organisation_id, role="COUNTERPARTY"))
-    if request.external_reference:
-        connection.execute(insert(m.trade_external_reference).values(trade_id=trade_id, trade_party_role_id=party_role_id, reference_type="SOURCE_TRADE_ID", reference_value=request.external_reference))
+    persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values)
     connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, recorded_by_user_account_id=actor_id))
     connection.execute(insert(m.trade_booking_idempotency).values(tenant_id=tenant_id, endpoint=_TRADE_BOOKING_ENDPOINT, idempotency_key=idempotency_key, request_fingerprint=fingerprint, trade_id=trade_id))
     result = get_booked_trade_detail(connection, tenant_id, trade_id, "v1", request_id)
     if result is None:
         raise RepositoryNotFound("Booked trade does not exist")
     return result
+
+
+def persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values):
+    """Shared persistence after tenant-governed annotations have been validated."""
+    party_role_id = None
+    if request.counterparty_organisation_id is not None:
+        party_role_id = uuid4()
+        connection.execute(insert(m.trade_party_role).values(trade_party_role_id=party_role_id, trade_id=trade_id, organisation_id=request.counterparty_organisation_id, role="COUNTERPARTY"))
+    if request.external_reference:
+        connection.execute(insert(m.trade_external_reference).values(trade_id=trade_id, trade_party_role_id=party_role_id, reference_type="SOURCE_TRADE_ID", reference_value=request.external_reference))
+    if request.executing_broker_organisation_id:
+        connection.execute(insert(m.trade_party_role).values(trade_id=trade_id, organisation_id=request.executing_broker_organisation_id, role="EXECUTING_BROKER"))
+    for index, reference in enumerate(request.external_references):
+        from sqlalchemy.exc import IntegrityError
+        from .trade_properties import TradeFieldError
+        try:
+            with connection.begin_nested():
+                connection.execute(insert(m.trade_external_reference).values(trade_id=trade_id, reference_type=reference.reference_type, reference_value=reference.reference_value, source_system_id=reference.source_system_id))
+        except IntegrityError as error:
+            if getattr(getattr(error.orig, "diag", None), "constraint_name", None) != "uq_trade_external_reference_source_value": raise
+            raise TradeFieldError(f"reference-{index}", "This source reference is already recorded. Check its namespace or value.") from error
+    for prop in annotation_values:
+        table = m.trade_property_reference if "record_version_id" in prop else m.trade_property_value
+        connection.execute(insert(table).values(trade_id=trade_id, tenant_id=tenant_id, **prop))
+    for tag_id in request.tag_ids:
+        connection.execute(insert(m.trade_tag_assignment).values(trade_id=trade_id, tenant_id=tenant_id, tag_id=tag_id))
 
 
 def _previous_business_day(value: date) -> date:
@@ -4852,6 +5007,7 @@ def portfolio_pnl(connection: Connection, tenant_id: UUID, portfolio_code: str, 
     local_currency = m.currency.alias("local_currency")
     trades = connection.execute(
         select(
+            m.trade.c.trade_id,
             m.trade.c.trade_subject_reference_node_id,
             m.trade.c.quantity,
             m.trade.c.price_currency_id,
@@ -4879,6 +5035,21 @@ def portfolio_pnl(connection: Connection, tenant_id: UUID, portfolio_code: str, 
         .where(m.trade.c.trade_datetime_utc < datetime.combine(as_of_date + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
         .order_by(m.trade.c.trade_subject_reference_node_id)
     ).mappings().all()
+    forward_ids = tuple(trade.trade_id for trade in trades if trade.instrument_type == "FX_FORWARD")
+    if forward_ids:
+        from .fx_forward_booking import FxForwardValuationUnsupported
+        raise FxForwardValuationUnsupported(forward_ids)
+    if any(trade.instrument_type == "OPTION" for trade in trades):
+        from .option_booking import OptionValuationUnsupported
+        raise OptionValuationUnsupported("Option valuation is not supported yet; no partial strategy total is returned.")
+    # Preserve the existing synthetic price-only demo; new bond bookings carry
+    # immutable product economics and must not enter that legacy valuation path.
+    from .product_booking import load_economics as load_product_economics
+    bond_economics = load_product_economics(connection, [trade.trade_id for trade in trades if trade.instrument_type == 'BOND'])
+    if any(trade.instrument_type in {'STRUCTURED_PRODUCT', 'FUTURE'} or
+           (trade.instrument_type == 'BOND' and trade.trade_id in bond_economics) for trade in trades):
+        from .product_booking import ProductValuationUnsupported
+        raise ProductValuationUnsupported('Structured-product/futures/nominal-bond valuation is deferred; no partial strategy total is returned.')
     gbpusd_node = connection.execute(select(m.financial_reference_node.c.reference_node_id).where(m.financial_reference_node.c.internal_code == "MVP_GBPUSD")).scalar_one_or_none()
     eurusd_node = connection.execute(select(m.financial_reference_node.c.reference_node_id).where(m.financial_reference_node.c.internal_code == "MVP_EURUSD")).scalar_one_or_none()
 

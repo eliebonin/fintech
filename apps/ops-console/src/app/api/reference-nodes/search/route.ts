@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { searchInstruments } from "@/lib/instrument-data";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { getActiveTenantContext } from "@/lib/tenant-session";
 import { searchReferenceNodes } from "@/lib/reference-api-client";
 import type { ReferenceNodeOption } from "api-contracts";
 import { bffErrorResponse } from "@/lib/bff-error";
@@ -15,7 +15,7 @@ function splitFilter(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export function GET(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const query = params.get("q") ?? "";
   const nodeType = params.get("node_type") ?? undefined;
@@ -24,7 +24,9 @@ export function GET(request: NextRequest) {
   const referenceLevel = params.get("reference_level") as "ANY" | "ECONOMIC" | "LISTING" | null;
   const limit = params.get("limit") ?? undefined;
   const offset = params.get("offset") ?? undefined;
-  const context = resolveLocalTenantContext();
+  let context;
+  try { context = await getActiveTenantContext(); }
+  catch { return NextResponse.json({error:{code:'ACTIVE_TENANT_REQUIRED'}},{status:401}); }
 
   return searchReferenceNodes(query, {
     ...context,

@@ -59,4 +59,5 @@ def test_mapping_mutation_requires_an_active_actor_account():
     response = asyncio.run(_request("POST", "/v1/reference-mapping-proposals", headers={"X-Tenant-Id": TENANT, "X-User-Account-Id": str(uuid4())}, json=_proposal_body()))
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "User account is not active"
+    assert response.json()["code"] == "authorization.forbidden"
+    assert response.json()["detail"] == "The request is not permitted."

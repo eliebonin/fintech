@@ -52,7 +52,8 @@ def test_tenant_api_requires_an_active_membership() -> None:
         )
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "User account is not an active member of this tenant"
+    assert response.json()["code"] == "authorization.forbidden"
+    assert response.json()["detail"] == "The request is not permitted."
 
 
 def test_instrument_detail_hides_market_data_without_dataset_entitlement() -> None:

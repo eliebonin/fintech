@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { describeMvpError, getPortfolioPnl } from "@/lib/mvp-api-client";
+import { describeMvpError, getPortfolioPnl, MvpApiError } from "@/lib/mvp-api-client";
 import { formatPnl, formatRate, pnlTone, type PortfolioPnlPayload } from "@/lib/portfolio-pnl";
 import { resolveLocalTenantContext } from "@/lib/tenant-context";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -13,9 +13,10 @@ export default async function PortfolioPnlPage({ params, searchParams }: { param
   const asOfDate = query.asOfDate ?? "2026-08-28";
   let payload: PortfolioPnlPayload | undefined;
   let error = "";
-  try { payload = await getPortfolioPnl(resolveLocalTenantContext(), portfolio === "uk" ? "MVP_UK_PORTFOLIO" : "MVP_US_PORTFOLIO", asOfDate); } catch (caught) { error = describeMvpError(caught, "Portfolio P&L"); }
+  let unsupported=false;
+  try { payload = await getPortfolioPnl(resolveLocalTenantContext(), portfolio === "uk" ? "MVP_UK_PORTFOLIO" : "MVP_US_PORTFOLIO", asOfDate); } catch (caught) { unsupported=caught instanceof MvpApiError&&["valuation.fx_forward_unsupported","valuation.option_unsupported"].includes(caught.code??''); error = unsupported?(caught instanceof MvpApiError&&caught.code==='valuation.option_unsupported'?"This strategy contains options. Option valuation is not supported yet.":"This strategy contains FX forwards. FX-forward valuation is not supported yet."):describeMvpError(caught, "Portfolio P&L"); }
   const data = payload?.data;
-  const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API · DEMO DATA";
+  const sourceLabel = unsupported ? "VALUATION UNSUPPORTED" : error ? "API UNAVAILABLE" : "LIVE API · DEMO DATA";
   return (
     <WorkspaceShell><main className="mvp-page">
       <header className="mvp-header"><div><p className="eyebrow">PORTFOLIO P&amp;L</p><h1>{data?.portfolioName ?? (portfolio === "uk" ? "UK portfolio" : "US portfolio")}</h1><p className="muted">Instrument-level display decomposition from immutable booked trades and observations.</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>

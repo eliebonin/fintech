@@ -1,6 +1,28 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+afterEach(() => vi.unstubAllGlobals());
+
+describe("trade history client", () => {
+  it("forwards filters and pagination to the tenant-scoped API", async () => {
+    const { getBookedTrades } = await import("./mvp-api-client");
+    let requested: URL | undefined;
+    vi.stubGlobal("fetch", async (input: URL) => {
+      requested = input;
+      return new Response(JSON.stringify({ data: [], meta: { total: 143 } }));
+    });
+    const result = await getBookedTrades({ tenantId: "tenant", userAccountId: "user", source: "local-session" }, {
+      q: "ETP", side: "SELL", lifecycleStatus: "BOOKED", portfolioCode: "CUSTOM",
+      limit: 25, offset: 50,
+    });
+    expect(requested?.searchParams.get("q")).toBe("ETP");
+    expect(requested?.searchParams.get("side")).toBe("SELL");
+    expect(requested?.searchParams.get("lifecycleStatus")).toBe("BOOKED");
+    expect(requested?.searchParams.get("portfolioCode")).toBe("CUSTOM");
+    expect(requested?.searchParams.get("offset")).toBe("50");
+    expect(result.meta.total).toBe(143);
+  });
+});
 
 describe("live instrument detail client", () => {
   it("loads a canonical instrument with tenant context", async () => {

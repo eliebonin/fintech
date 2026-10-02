@@ -208,6 +208,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/future-families": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Families */
+        get: operations["families_v1_future_families_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/future-family-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Family Proposal */
+        post: operations["family_proposal_v1_future_family_proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/future-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Future Proposal */
+        post: operations["future_proposal_v1_future_proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/fx-forward-proposals": {
         parameters: {
             query?: never;
@@ -344,6 +395,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/instrument-booking-convention-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Conventions */
+        post: operations["conventions_v1_instrument_booking_convention_proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/instruments/search": {
         parameters: {
             query?: never;
@@ -474,6 +542,23 @@ export interface paths {
         get: operations["market_venues_v1_market_venues_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/option-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose */
+        post: operations["propose_v1_option_proposals_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -745,6 +830,231 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/trade-configuration/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Events */
+        get: operations["events_v1_trade_configuration_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/candidates/{role}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Candidates */
+        get: operations["candidates_v1_trade_configuration_candidates__role__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/catalogues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalogues */
+        get: operations["catalogues_v1_trade_configuration_catalogues_get"];
+        put?: never;
+        /** New Catalogue */
+        post: operations["new_catalogue_v1_trade_configuration_catalogues_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/catalogues/{catalogue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalogue */
+        get: operations["catalogue_v1_trade_configuration_catalogues__catalogue_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/catalogues/{catalogue_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Catalogue */
+        post: operations["publish_catalogue_v1_trade_configuration_catalogues__catalogue_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/catalogues/{catalogue_id}/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Records */
+        get: operations["records_v1_trade_configuration_catalogues__catalogue_id__records_get"];
+        put?: never;
+        /** New Record */
+        post: operations["new_record_v1_trade_configuration_catalogues__catalogue_id__records_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/catalogues/{catalogue_id}/records/{record_id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Correct Record */
+        post: operations["correct_record_v1_trade_configuration_catalogues__catalogue_id__records__record_id__correct_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/catalogues/{catalogue_id}/records/{record_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire Record */
+        post: operations["retire_record_v1_trade_configuration_catalogues__catalogue_id__records__record_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/catalogues/{catalogue_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire Catalogue */
+        post: operations["retire_catalogue_v1_trade_configuration_catalogues__catalogue_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Properties */
+        get: operations["get_properties_v1_trade_configuration_properties_get"];
+        put?: never;
+        /** Post Property */
+        post: operations["post_property_v1_trade_configuration_properties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/properties/{definition_id}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace */
+        post: operations["replace_v1_trade_configuration_properties__definition_id__replace_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/properties/{definition_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire */
+        post: operations["retire_v1_trade_configuration_properties__definition_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trade-configuration/selections/{role}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Selections */
+        get: operations["selections_v1_trade_configuration_selections__role__get"];
+        put?: never;
+        /** Publish Selections */
+        post: operations["publish_selections_v1_trade_configuration_selections__role__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/trades": {
         parameters: {
             query?: never;
@@ -757,6 +1067,227 @@ export interface paths {
         put?: never;
         /** Book Trade */
         post: operations["book_trade_v1_trades_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/bonds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bonds */
+        post: operations["bonds_v1_trades_bonds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/booking-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trade Booking Context */
+        get: operations["trade_booking_context_v1_trades_booking_context_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/futures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Futures */
+        post: operations["futures_v1_trades_futures_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/fx-forward-instruments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_v1_trades_fx_forward_instruments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/fx-forward-instruments/{instrument_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Instrument */
+        get: operations["instrument_v1_trades_fx_forward_instruments__instrument_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/fx-forwards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Book */
+        post: operations["book_v1_trades_fx_forwards_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/option-listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing Search */
+        get: operations["listing_search_v1_trades_option_listings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/option-listings/{listing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing Detail */
+        get: operations["listing_detail_v1_trades_option_listings__listing_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Booking */
+        post: operations["booking_v1_trades_options_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/product-instruments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_v1_trades_product_instruments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/product-instruments/{instrument_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_v1_trades_product_instruments__instrument_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/structured-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Structured */
+        post: operations["structured_v1_trades_structured_products_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/traders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trade Traders */
+        get: operations["trade_traders_v1_trades_traders_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1152,6 +1683,102 @@ export interface components {
             /** Sourcesystemid */
             sourceSystemId?: string | null;
         };
+        /** BondConvention */
+        "BondConvention-Input": {
+            /**
+             * Accrual
+             * @constant
+             */
+            accrual: "MANUAL_CONFIRMATION";
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "BOND";
+            /** Otcallowed */
+            otcAllowed: boolean;
+            /**
+             * Pricebasis
+             * @constant
+             */
+            priceBasis: "PCT_OF_PAR";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /**
+             * Principalbasis
+             * @constant
+             */
+            principalBasis: "UNADJUSTED_NOMINAL";
+            /** Quantityincrement */
+            quantityIncrement: number | string;
+            /** Quantityminimum */
+            quantityMinimum: number | string;
+            /**
+             * Quantityunit
+             * @constant
+             */
+            quantityUnit: "NOMINAL";
+            /** Quotefactor */
+            quoteFactor: number | string;
+            /** Sourcereference */
+            sourceReference: string;
+        };
+        /** BondConvention */
+        "BondConvention-Output": {
+            /**
+             * Accrual
+             * @constant
+             */
+            accrual: "MANUAL_CONFIRMATION";
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "BOND";
+            /** Otcallowed */
+            otcAllowed: boolean;
+            /**
+             * Pricebasis
+             * @constant
+             */
+            priceBasis: "PCT_OF_PAR";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /**
+             * Principalbasis
+             * @constant
+             */
+            principalBasis: "UNADJUSTED_NOMINAL";
+            /** Quantityincrement */
+            quantityIncrement: string;
+            /** Quantityminimum */
+            quantityMinimum: string;
+            /**
+             * Quantityunit
+             * @constant
+             */
+            quantityUnit: "NOMINAL";
+            /** Quotefactor */
+            quoteFactor: string;
+            /** Sourcereference */
+            sourceReference: string;
+        };
         /**
          * BondProposalRequest
          * @description Sparse bond identity proposal; detailed economics may be provider-enriched.
@@ -1251,6 +1878,70 @@ export interface components {
             status: string;
             /** Submissionmode */
             submissionMode: string;
+        };
+        /** CandidateView */
+        CandidateView: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** CandidatesResponse */
+        CandidatesResponse: {
+            /** Data */
+            data: components["schemas"]["CandidateView"][];
+        };
+        /** CatalogueCreate */
+        CatalogueCreate: {
+            /** Code */
+            code: string;
+            /** Description */
+            description?: string | null;
+            /** Label */
+            label: string;
+            /** Reason */
+            reason: string;
+        };
+        /** CatalogueResponse */
+        CatalogueResponse: {
+            data: components["schemas"]["CatalogueView"];
+        };
+        /** CatalogueView */
+        CatalogueView: {
+            /**
+             * Catalogueid
+             * Format: uuid
+             */
+            catalogueId: string;
+            /** Code */
+            code: string;
+            /** Description */
+            description: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "ACTIVE" | "RETIRED";
+        };
+        /** CataloguesResponse */
+        CataloguesResponse: {
+            /** Data */
+            data: components["schemas"]["CatalogueView"][];
+        };
+        /** ConventionProposalRequest */
+        ConventionProposalRequest: {
+            /** Convention */
+            convention: components["schemas"]["StructuredConvention-Input"] | components["schemas"]["FutureConvention-Input"] | components["schemas"]["BondConvention-Input"];
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
         };
         /**
          * CryptoAssetProposalRequest
@@ -1656,6 +2347,37 @@ export interface components {
             /** Submissionmode */
             submissionMode: string;
         };
+        /** EventView */
+        EventView: {
+            /** Action */
+            action: string;
+            /**
+             * Actorid
+             * Format: uuid
+             */
+            actorId: string;
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Reason */
+            reason: string;
+            /**
+             * Recordedatutc
+             * Format: date-time
+             */
+            recordedAtUtc: string;
+        };
+        /** EventsResponse */
+        EventsResponse: {
+            /** Data */
+            data: components["schemas"]["EventView"][];
+        };
         /** ExternalMappingView */
         ExternalMappingView: {
             /** Externalid */
@@ -1666,6 +2388,381 @@ export interface components {
             namespace: string;
             /** Status */
             status: string;
+        };
+        /** FutureConvention */
+        "FutureConvention-Input": {
+            /** Allownegativeprice */
+            allowNegativePrice: boolean;
+            /** Contractsize */
+            contractSize?: number | string | null;
+            /** Contractsizecurrencyid */
+            contractSizeCurrencyId?: string | null;
+            /** Deliveryenddate */
+            deliveryEndDate?: string | null;
+            /** Deliverystartdate */
+            deliveryStartDate?: string | null;
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * Finalsettlementdate
+             * Format: date
+             */
+            finalSettlementDate: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "FUTURE";
+            /**
+             * Lasttradingatutc
+             * Format: date-time
+             */
+            lastTradingAtUtc: string;
+            /** Monetarymultiplier */
+            monetaryMultiplier: number | string;
+            /**
+             * Pricebasis
+             * @enum {string}
+             */
+            priceBasis: "INDEX_POINTS" | "UNDERLYING_UNIT";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /**
+             * Quantityunit
+             * @constant
+             */
+            quantityUnit: "CONTRACTS";
+            /** Quotefactor */
+            quoteFactor: number | string;
+            /**
+             * Settlementmethod
+             * @default CASH
+             * @enum {string}
+             */
+            settlementMethod: "CASH" | "PHYSICAL";
+            /** Sourcereference */
+            sourceReference: string;
+            /** Ticksize */
+            tickSize: number | string;
+        };
+        /** FutureConvention */
+        "FutureConvention-Output": {
+            /** Allownegativeprice */
+            allowNegativePrice: boolean;
+            /** Contractsize */
+            contractSize?: string | null;
+            /** Contractsizecurrencyid */
+            contractSizeCurrencyId?: string | null;
+            /** Deliveryenddate */
+            deliveryEndDate?: string | null;
+            /** Deliverystartdate */
+            deliveryStartDate?: string | null;
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * Finalsettlementdate
+             * Format: date
+             */
+            finalSettlementDate: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "FUTURE";
+            /**
+             * Lasttradingatutc
+             * Format: date-time
+             */
+            lastTradingAtUtc: string;
+            /** Monetarymultiplier */
+            monetaryMultiplier: string;
+            /**
+             * Pricebasis
+             * @enum {string}
+             */
+            priceBasis: "INDEX_POINTS" | "UNDERLYING_UNIT";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /**
+             * Quantityunit
+             * @constant
+             */
+            quantityUnit: "CONTRACTS";
+            /** Quotefactor */
+            quoteFactor: string;
+            /**
+             * Settlementmethod
+             * @default CASH
+             * @enum {string}
+             */
+            settlementMethod: "CASH" | "PHYSICAL";
+            /** Sourcereference */
+            sourceReference: string;
+            /** Ticksize */
+            tickSize: string;
+        };
+        /** FutureFamilyProposalRequest */
+        FutureFamilyProposalRequest: {
+            /** Canonicalname */
+            canonicalName: string;
+            /**
+             * Contractcurrencyid
+             * Format: uuid
+             */
+            contractCurrencyId: string;
+            /** Familycode */
+            familyCode: string;
+            /** Sourcereference */
+            sourceReference: string;
+            specification?: components["schemas"]["FutureFamilySpecification-Input"] | null;
+            /**
+             * Underlyingid
+             * Format: uuid
+             */
+            underlyingId: string;
+        };
+        /** FutureFamilySearchResponse */
+        FutureFamilySearchResponse: {
+            /** Data */
+            data: components["schemas"]["FutureFamilyView"][];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** FutureFamilySpecification */
+        "FutureFamilySpecification-Input": {
+            /** Allownegativeprice */
+            allowNegativePrice: boolean;
+            /** Contractsize */
+            contractSize?: number | string | null;
+            /** Contractsizecurrencyid */
+            contractSizeCurrencyId?: string | null;
+            /** Deliverymonths */
+            deliveryMonths: number[];
+            /** Monetarymultiplier */
+            monetaryMultiplier: number | string;
+            /**
+             * Pricebasis
+             * @enum {string}
+             */
+            priceBasis: "INDEX_POINTS" | "UNDERLYING_UNIT";
+            /** Quotefactor */
+            quoteFactor: number | string;
+            /**
+             * Settlementmethod
+             * @enum {string}
+             */
+            settlementMethod: "CASH" | "PHYSICAL";
+            /** Symbolroot */
+            symbolRoot: string;
+            /** Ticksize */
+            tickSize: number | string;
+            /**
+             * Underlyingkind
+             * @enum {string}
+             */
+            underlyingKind: "INDEX" | "CRYPTOASSET";
+            /**
+             * Yeardigits
+             * @enum {integer}
+             */
+            yearDigits: 1 | 2;
+        };
+        /** FutureFamilySpecification */
+        "FutureFamilySpecification-Output": {
+            /** Allownegativeprice */
+            allowNegativePrice: boolean;
+            /** Contractsize */
+            contractSize?: string | null;
+            /** Contractsizecurrencyid */
+            contractSizeCurrencyId?: string | null;
+            /** Deliverymonths */
+            deliveryMonths: number[];
+            /** Monetarymultiplier */
+            monetaryMultiplier: string;
+            /**
+             * Pricebasis
+             * @enum {string}
+             */
+            priceBasis: "INDEX_POINTS" | "UNDERLYING_UNIT";
+            /** Quotefactor */
+            quoteFactor: string;
+            /**
+             * Settlementmethod
+             * @enum {string}
+             */
+            settlementMethod: "CASH" | "PHYSICAL";
+            /** Symbolroot */
+            symbolRoot: string;
+            /** Ticksize */
+            tickSize: string;
+            /**
+             * Underlyingkind
+             * @enum {string}
+             */
+            underlyingKind: "INDEX" | "CRYPTOASSET";
+            /**
+             * Yeardigits
+             * @enum {integer}
+             */
+            yearDigits: 1 | 2;
+        };
+        /** FutureFamilyView */
+        FutureFamilyView: {
+            /** Canonicalname */
+            canonicalName: string;
+            /**
+             * Contractcurrencyid
+             * Format: uuid
+             */
+            contractCurrencyId: string;
+            /** Currency */
+            currency: string;
+            /** Familycode */
+            familyCode: string;
+            /**
+             * Familyid
+             * Format: uuid
+             */
+            familyId: string;
+            /**
+             * Familynodeid
+             * Format: uuid
+             */
+            familyNodeId: string;
+            specification?: components["schemas"]["FutureFamilySpecification-Output"] | null;
+            /**
+             * Underlyingid
+             * Format: uuid
+             */
+            underlyingId: string;
+            /** Underlyingname */
+            underlyingName: string;
+        };
+        /** FutureProposalRequest */
+        FutureProposalRequest: {
+            /** Canonicalname */
+            canonicalName: string;
+            /**
+             * Contractmonth
+             * Format: date
+             */
+            contractMonth: string;
+            convention: components["schemas"]["FutureConvention-Input"];
+            /** Familycode */
+            familyCode: string;
+            /** Familyid */
+            familyId?: string | null;
+            /**
+             * Underlyingid
+             * Format: uuid
+             */
+            underlyingId: string;
+        };
+        /** FxForwardBookingInstrumentResponse */
+        FxForwardBookingInstrumentResponse: {
+            data: components["schemas"]["FxForwardBookingInstrumentView"];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** FxForwardBookingInstrumentSearchResponse */
+        FxForwardBookingInstrumentSearchResponse: {
+            /** Data */
+            data: components["schemas"]["FxForwardBookingInstrumentView"][];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** FxForwardBookingInstrumentView */
+        FxForwardBookingInstrumentView: {
+            /** Agreedrate */
+            agreedRate: string | null;
+            /** Basecurrency */
+            baseCurrency: string | null;
+            /** Bookingeligible */
+            bookingEligible: boolean;
+            /** Ineligibilitycode */
+            ineligibilityCode?: string | null;
+            /** Ineligibilitymessage */
+            ineligibilityMessage?: string | null;
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /** Maturitydate */
+            maturityDate: string | null;
+            /** Name */
+            name: string;
+            /** Quoteconvention */
+            quoteConvention: string | null;
+            /** Quotecurrency */
+            quoteCurrency: string | null;
+            /** Settlementdate */
+            settlementDate: string | null;
+            /** Settlementtype */
+            settlementType: string | null;
+            /** Termsfingerprint */
+            termsFingerprint: string | null;
+        };
+        /** FxForwardBookingRequest */
+        FxForwardBookingRequest: {
+            /** Comment */
+            comment?: string | null;
+            /**
+             * Counterpartyorganisationid
+             * Format: uuid
+             */
+            counterpartyOrganisationId: string;
+            /** Executingbrokerorganisationid */
+            executingBrokerOrganisationId?: string | null;
+            /** Expectedtermsfingerprint */
+            expectedTermsFingerprint: string;
+            /** Externalreference */
+            externalReference?: string | null;
+            /** Externalreferences */
+            externalReferences?: components["schemas"]["TradeReferenceInput"][];
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /** Properties */
+            properties?: components["schemas"]["TradePropertyInput"][];
+            /** Quantity */
+            quantity: number | string;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "BUY" | "SELL";
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
+            /** Tagids */
+            tagIds?: string[];
+            /**
+             * Tradedatetime
+             * Format: date-time
+             */
+            tradeDatetime: string;
+            /**
+             * Tradepurpose
+             * @default INVESTMENT
+             * @enum {string}
+             */
+            tradePurpose: "INVESTMENT" | "REBALANCING" | "HEDGING" | "OTHER";
+            /** Traderpersonid */
+            traderPersonId?: string | null;
         };
         /**
          * FxForwardProposalRequest
@@ -1772,6 +2869,35 @@ export interface components {
             status: string;
             /** Submissionmode */
             submissionMode: string;
+        };
+        /** FxForwardTradeEconomicsView */
+        FxForwardTradeEconomicsView: {
+            /** Agreedrate */
+            agreedRate: string;
+            /** Basecurrency */
+            baseCurrency: string;
+            /** Payamount */
+            payAmount: string;
+            /** Paycurrency */
+            payCurrency: string;
+            /** Quoteconvention */
+            quoteConvention: string;
+            /** Quotecurrency */
+            quoteCurrency: string;
+            /** Receiveamount */
+            receiveAmount: string;
+            /** Receivecurrency */
+            receiveCurrency: string;
+            /** Settlementdate */
+            settlementDate: string;
+            /**
+             * Source
+             * @default BOOKING_SNAPSHOT
+             * @constant
+             */
+            source: "BOOKING_SNAPSHOT";
+            /** Termsfingerprint */
+            termsFingerprint: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2050,6 +3176,7 @@ export interface components {
             mappings: components["schemas"]["ExternalMappingView"][];
             /** Notes */
             notes: string;
+            optionTerms?: components["schemas"]["OptionInstrumentTermsView"] | null;
             /** Status */
             status: string;
             /** Taxonomy */
@@ -2390,6 +3517,233 @@ export interface components {
             /** Venuetype */
             venueType: string;
         };
+        /** OptionBookingListingResponse */
+        OptionBookingListingResponse: {
+            data: components["schemas"]["OptionBookingListingView"];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** OptionBookingListingSearchResponse */
+        OptionBookingListingSearchResponse: {
+            /** Data */
+            data: components["schemas"]["OptionBookingListingView"][];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** OptionBookingListingView */
+        OptionBookingListingView: {
+            /** Bookingeligible */
+            bookingEligible: boolean;
+            /** Deliverableunits */
+            deliverableUnits: string | null;
+            /** Exercisestyle */
+            exerciseStyle: string | null;
+            /** Expirydate */
+            expiryDate: string | null;
+            /** Ineligibilitymessage */
+            ineligibilityMessage?: string | null;
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /** Lasttradingatutc */
+            lastTradingAtUtc: string | null;
+            /**
+             * Listingid
+             * Format: uuid
+             */
+            listingId: string;
+            /** Listingname */
+            listingName: string;
+            /** Name */
+            name: string;
+            /** Optiontype */
+            optionType: string | null;
+            /** Premiumcurrency */
+            premiumCurrency: string | null;
+            /** Premiummultiplier */
+            premiumMultiplier: string | null;
+            /** Quotefactor */
+            quoteFactor: string | null;
+            /** Settlementmethod */
+            settlementMethod: string | null;
+            /** Strike */
+            strike: string | null;
+            /** Strikecurrency */
+            strikeCurrency: string | null;
+            /** Termsfingerprint */
+            termsFingerprint: string | null;
+            /** Underlyingid */
+            underlyingId: string | null;
+        };
+        /** OptionBookingRequest */
+        OptionBookingRequest: {
+            /** Comment */
+            comment?: string | null;
+            /** Counterpartyorganisationid */
+            counterpartyOrganisationId?: string | null;
+            /** Executingbrokerorganisationid */
+            executingBrokerOrganisationId?: string | null;
+            /** Executionprice */
+            executionPrice: number | string;
+            /** Expectedtermsfingerprint */
+            expectedTermsFingerprint: string;
+            /** Externalreference */
+            externalReference?: string | null;
+            /** Externalreferences */
+            externalReferences?: components["schemas"]["TradeReferenceInput"][];
+            /**
+             * Listingid
+             * Format: uuid
+             */
+            listingId: string;
+            /** Marketactivity */
+            marketActivity?: ("PRIMARY" | "SECONDARY") | null;
+            /**
+             * Positioneffect
+             * @enum {string}
+             */
+            positionEffect: "OPEN" | "CLOSE";
+            /** Properties */
+            properties?: components["schemas"]["TradePropertyInput"][];
+            /** Quantity */
+            quantity: number | string;
+            /**
+             * Settlementdate
+             * Format: date
+             */
+            settlementDate: string;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "BUY" | "SELL";
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
+            /** Tagids */
+            tagIds?: string[];
+            /**
+             * Tradedatetime
+             * Format: date-time
+             */
+            tradeDatetime: string;
+            /**
+             * Tradepurpose
+             * @default INVESTMENT
+             * @enum {string}
+             */
+            tradePurpose: "INVESTMENT" | "REBALANCING" | "HEDGING" | "OTHER";
+            /** Traderpersonid */
+            traderPersonId?: string | null;
+        };
+        /** OptionInstrumentTermsView */
+        OptionInstrumentTermsView: {
+            /** Deliverableunits */
+            deliverableUnits: string | null;
+            /** Exercisestyle */
+            exerciseStyle: string;
+            /** Expirydate */
+            expiryDate: string | null;
+            /** Lasttradingatutc */
+            lastTradingAtUtc: string | null;
+            /** Optiontype */
+            optionType: string;
+            /** Premiumcurrency */
+            premiumCurrency: string | null;
+            /** Premiummultiplier */
+            premiumMultiplier: string | null;
+            /** Premiumstyle */
+            premiumStyle: string | null;
+            /** Settlementcurrency */
+            settlementCurrency: string | null;
+            /** Settlementmethod */
+            settlementMethod: string;
+            /** Strike */
+            strike: string | null;
+            /** Strikebasis */
+            strikeBasis: string;
+            /** Strikecurrency */
+            strikeCurrency: string | null;
+            /** Underlyingid */
+            underlyingId: string | null;
+            /** Underlyingname */
+            underlyingName: string | null;
+        };
+        /** OptionProposalRequest */
+        OptionProposalRequest: {
+            /** Canonicalname */
+            canonicalName: string;
+            /** Deliverableunits */
+            deliverableUnits: number | string;
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * Exercisestyle
+             * @enum {string}
+             */
+            exerciseStyle: "EUROPEAN" | "AMERICAN";
+            /**
+             * Expirydate
+             * Format: date
+             */
+            expiryDate: string;
+            /**
+             * Lasttradingatutc
+             * Format: date-time
+             */
+            lastTradingAtUtc: string;
+            /**
+             * Optiontype
+             * @enum {string}
+             */
+            optionType: "CALL" | "PUT";
+            /**
+             * Premiumcurrencyid
+             * Format: uuid
+             */
+            premiumCurrencyId: string;
+            /** Premiummultiplier */
+            premiumMultiplier: number | string;
+            /**
+             * Settlementmethod
+             * @enum {string}
+             */
+            settlementMethod: "CASH" | "PHYSICAL";
+            /** Strike */
+            strike: number | string;
+            /**
+             * Strikecurrencyid
+             * Format: uuid
+             */
+            strikeCurrencyId: string;
+            /**
+             * Underlyingid
+             * Format: uuid
+             */
+            underlyingId: string;
+        };
+        /** OptionTradeEconomicsView */
+        OptionTradeEconomicsView: {
+            /** Grosspremium */
+            grossPremium: string;
+            /**
+             * Premiumdirection
+             * @enum {string}
+             */
+            premiumDirection: "PAY" | "RECEIVE";
+            /**
+             * Source
+             * @default BOOKING_SNAPSHOT
+             * @constant
+             */
+            source: "BOOKING_SNAPSHOT";
+            terms: components["schemas"]["OptionBookingListingView"];
+        };
         /** OrganisationOptionResponse */
         OrganisationOptionResponse: {
             /** Data */
@@ -2488,6 +3842,271 @@ export interface components {
             title: string;
             /** Format: uri */
             type: string;
+        };
+        /** ProductBookingContextResponse */
+        ProductBookingContextResponse: {
+            data: components["schemas"]["ProductBookingContextView"];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** ProductBookingContextView */
+        ProductBookingContextView: {
+            /**
+             * Bookingeligible
+             * @default false
+             */
+            bookingEligible: boolean;
+            /** Contractmonth */
+            contractMonth?: string | null;
+            /** Convention */
+            convention?: (components["schemas"]["StructuredConvention-Output"] | components["schemas"]["FutureConvention-Output"] | components["schemas"]["BondConvention-Output"]) | null;
+            /** Couponfrequency */
+            couponFrequency?: number | null;
+            /** Couponrate */
+            couponRate?: string | null;
+            /** Coupontype */
+            couponType?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Daycountconvention */
+            dayCountConvention?: string | null;
+            /**
+             * Executionroute
+             * @enum {string}
+             */
+            executionRoute: "LISTED" | "OTC";
+            /** Ineligibilitymessage */
+            ineligibilityMessage?: string | null;
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "STRUCTURED_PRODUCT" | "FUTURE" | "BOND";
+            /** Listingid */
+            listingId?: string | null;
+            /** Listingname */
+            listingName?: string | null;
+            /** Listingunitmultiplier */
+            listingUnitMultiplier?: string | null;
+            /** Maturitydate */
+            maturityDate?: string | null;
+            /** Name */
+            name: string;
+            /** Termsfingerprint */
+            termsFingerprint?: string | null;
+            /** Underlyingid */
+            underlyingId?: string | null;
+            /** Underlyingname */
+            underlyingName?: string | null;
+        };
+        /** ProductBookingRequest */
+        ProductBookingRequest: {
+            /** Accruedinterestamount */
+            accruedInterestAmount?: number | string | null;
+            /** Comment */
+            comment?: string | null;
+            /** Counterpartyorganisationid */
+            counterpartyOrganisationId?: string | null;
+            /** Executingbrokerorganisationid */
+            executingBrokerOrganisationId?: string | null;
+            /** Executionprice */
+            executionPrice: number | string;
+            /**
+             * Executionroute
+             * @enum {string}
+             */
+            executionRoute: "LISTED" | "OTC";
+            /** Expectedtermsfingerprint */
+            expectedTermsFingerprint: string;
+            /** Externalreference */
+            externalReference?: string | null;
+            /** Externalreferences */
+            externalReferences?: components["schemas"]["TradeReferenceInput"][];
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /** Listingid */
+            listingId?: string | null;
+            /** Marketactivity */
+            marketActivity?: ("PRIMARY" | "SECONDARY") | null;
+            /** Positioneffect */
+            positionEffect?: ("OPEN" | "CLOSE") | null;
+            /** Pricetype */
+            priceType?: ("CLEAN" | "DIRTY") | null;
+            /** Properties */
+            properties?: components["schemas"]["TradePropertyInput"][];
+            /** Quantity */
+            quantity: number | string;
+            /** Settlementdate */
+            settlementDate?: string | null;
+            /** Settlementevidence */
+            settlementEvidence?: string | null;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "BUY" | "SELL";
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
+            /** Tagids */
+            tagIds?: string[];
+            /**
+             * Tradedatetime
+             * Format: date-time
+             */
+            tradeDatetime: string;
+            /**
+             * Tradepurpose
+             * @default INVESTMENT
+             * @enum {string}
+             */
+            tradePurpose: "INVESTMENT" | "REBALANCING" | "HEDGING" | "OTHER";
+            /** Traderpersonid */
+            traderPersonId?: string | null;
+        };
+        /** ProductBookingSearchResponse */
+        ProductBookingSearchResponse: {
+            /** Data */
+            data: components["schemas"]["ProductBookingContextView"][];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** PropertiesResponse */
+        PropertiesResponse: {
+            /** Data */
+            data: components["schemas"]["PropertyView"][];
+        };
+        /** PropertyCreate */
+        PropertyCreate: {
+            /**
+             * Acknowledgerequiredimpact
+             * @default false
+             */
+            acknowledgeRequiredImpact: boolean;
+            /** Catalogueid */
+            catalogueId?: string | null;
+            /** Choices */
+            choices?: string[];
+            /** Code */
+            code: string;
+            /** Description */
+            description?: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /**
+             * Valuetype
+             * @enum {string}
+             */
+            valueType: "TEXT" | "INTEGER" | "DECIMAL" | "DATE" | "BOOLEAN" | "REFERENCE";
+        };
+        /** PropertyResponse */
+        PropertyResponse: {
+            data: components["schemas"]["PropertyView"];
+        };
+        /** PropertyView */
+        PropertyView: {
+            /** Catalogueid */
+            catalogueId: string | null;
+            /** Choices */
+            choices: string[];
+            /** Code */
+            code: string;
+            /**
+             * Createdatutc
+             * Format: date-time
+             */
+            createdAtUtc: string;
+            /**
+             * Createdbyuseraccountid
+             * Format: uuid
+             */
+            createdByUserAccountId: string;
+            /**
+             * Definitionid
+             * Format: uuid
+             */
+            definitionId: string;
+            /** Description */
+            description: string | null;
+            /** Label */
+            label: string;
+            /** Required */
+            required: boolean;
+            /** Retiredatutc */
+            retiredAtUtc: string | null;
+            /** Retiredbyuseraccountid */
+            retiredByUserAccountId: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ACTIVE" | "RETIRED";
+            /** Valuetype */
+            valueType: string;
+            /** Versionno */
+            versionNo: number;
+        };
+        /** Reason */
+        Reason: {
+            /** Reason */
+            reason: string;
+        };
+        /** RecordCorrection */
+        RecordCorrection: {
+            /** Description */
+            description?: string | null;
+            /** Label */
+            label: string;
+            /** Reason */
+            reason: string;
+        };
+        /** RecordResponse */
+        RecordResponse: {
+            data: components["schemas"]["RecordView"];
+        };
+        /** RecordView */
+        RecordView: {
+            /** Code */
+            code: string;
+            /** Description */
+            description: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Recordid
+             * Format: uuid
+             */
+            recordId: string;
+            /**
+             * Recordversionid
+             * Format: uuid
+             */
+            recordVersionId: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ACTIVE" | "RETIRED";
+            /** Versionno */
+            versionNo: number;
+        };
+        /** RecordsResponse */
+        RecordsResponse: {
+            /** Data */
+            data: components["schemas"]["RecordView"][];
         };
         /** ReferenceDataProposalResponse */
         ReferenceDataProposalResponse: {
@@ -2613,6 +4232,36 @@ export interface components {
              */
             returnProfileId: string;
         };
+        /** SelectionPublish */
+        SelectionPublish: {
+            /** Expectedversion */
+            expectedVersion: number;
+            /** Ids */
+            ids: string[];
+            /** Reason */
+            reason: string;
+        };
+        /** SelectionResponse */
+        SelectionResponse: {
+            data: components["schemas"]["SelectionView"];
+        };
+        /** SelectionView */
+        SelectionView: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "LEGACY" | "CURATED";
+            /** Records */
+            records: components["schemas"]["CandidateView"][];
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "COUNTERPARTY" | "EXECUTING_BROKER" | "TRADER";
+            /** Versionno */
+            versionNo: number;
+        };
         /** StrategyCreateRequest */
         StrategyCreateRequest: {
             /** Basecurrencycode */
@@ -2662,6 +4311,106 @@ export interface components {
              * Format: uuid
              */
             tenantId: string;
+        };
+        /** StructuredConvention */
+        "StructuredConvention-Input": {
+            /**
+             * Accrual
+             * @enum {string}
+             */
+            accrual: "NONE" | "DIRTY";
+            /** Denomination */
+            denomination?: number | string | null;
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * Funding
+             * @constant
+             */
+            funding: "FULLY_FUNDED";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "STRUCTURED_PRODUCT";
+            /** Otcallowed */
+            otcAllowed: boolean;
+            /**
+             * Pricebasis
+             * @enum {string}
+             */
+            priceBasis: "UNIT_PRICE" | "PCT_OF_PAR";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /** Quantityincrement */
+            quantityIncrement: number | string;
+            /** Quantityminimum */
+            quantityMinimum: number | string;
+            /**
+             * Quantityunit
+             * @enum {string}
+             */
+            quantityUnit: "UNITS" | "NOMINAL";
+            /** Quotefactor */
+            quoteFactor: number | string;
+            /** Sourcereference */
+            sourceReference: string;
+        };
+        /** StructuredConvention */
+        "StructuredConvention-Output": {
+            /**
+             * Accrual
+             * @enum {string}
+             */
+            accrual: "NONE" | "DIRTY";
+            /** Denomination */
+            denomination?: string | null;
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * Funding
+             * @constant
+             */
+            funding: "FULLY_FUNDED";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "STRUCTURED_PRODUCT";
+            /** Otcallowed */
+            otcAllowed: boolean;
+            /**
+             * Pricebasis
+             * @enum {string}
+             */
+            priceBasis: "UNIT_PRICE" | "PCT_OF_PAR";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /** Quantityincrement */
+            quantityIncrement: string;
+            /** Quantityminimum */
+            quantityMinimum: string;
+            /**
+             * Quantityunit
+             * @enum {string}
+             */
+            quantityUnit: "UNITS" | "NOMINAL";
+            /** Quotefactor */
+            quoteFactor: string;
+            /** Sourcereference */
+            sourceReference: string;
         };
         /** StructuredProductProposalResponse */
         StructuredProductProposalResponse: {
@@ -2750,21 +4499,51 @@ export interface components {
             /** Tenantname */
             tenantName: string;
         };
+        /** TradeBookingContextResponse */
+        TradeBookingContextResponse: {
+            data: components["schemas"]["TradeBookingContextView"];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** TradeBookingContextView */
+        TradeBookingContextView: {
+            /**
+             * Bookedbyuseraccountid
+             * Format: uuid
+             */
+            bookedByUserAccountId: string;
+            /** Properties */
+            properties: components["schemas"]["TradePropertyDefinitionView"][];
+            /** Tags */
+            tags: components["schemas"]["TradeTagView"][];
+            /**
+             * Tenantid
+             * Format: uuid
+             */
+            tenantId: string;
+        };
         /** TradeBookingRequest */
         TradeBookingRequest: {
             /** Comment */
             comment?: string | null;
             /** Counterpartyorganisationid */
             counterpartyOrganisationId?: string | null;
+            /** Executingbrokerorganisationid */
+            executingBrokerOrganisationId?: string | null;
             /** Executionprice */
             executionPrice: number | string;
             /** Externalreference */
             externalReference?: string | null;
+            /** Externalreferences */
+            externalReferences?: components["schemas"]["TradeReferenceInput"][];
             /**
              * Listingid
              * Format: uuid
              */
             listingId: string;
+            /** Marketactivity */
+            marketActivity?: ("PRIMARY" | "SECONDARY") | null;
+            /** Properties */
+            properties?: components["schemas"]["TradePropertyInput"][];
             /** Quantity */
             quantity: number | string;
             /**
@@ -2782,11 +4561,21 @@ export interface components {
              * Format: uuid
              */
             strategyId: string;
+            /** Tagids */
+            tagIds?: string[];
             /**
              * Tradedatetime
              * Format: date-time
              */
             tradeDatetime: string;
+            /**
+             * Tradepurpose
+             * @default INVESTMENT
+             * @enum {string}
+             */
+            tradePurpose: "INVESTMENT" | "REBALANCING" | "HEDGING" | "OTHER";
+            /** Traderpersonid */
+            traderPersonId?: string | null;
         };
         /** TradeDetailResponse */
         TradeDetailResponse: {
@@ -2803,7 +4592,13 @@ export interface components {
             lifecycleEvents?: components["schemas"]["TradeLifecycleEventView"][];
             /** Parties */
             parties?: components["schemas"]["TradePartyView"][];
+            /** Properties */
+            properties?: components["schemas"]["TradePropertyValueView"][];
+            /** Tags */
+            tags?: components["schemas"]["TradeTagView"][];
             trade: components["schemas"]["TradeView"];
+            /** Tradername */
+            traderName?: string | null;
         };
         /** TradeExternalReferenceView */
         TradeExternalReferenceView: {
@@ -2906,10 +4701,116 @@ export interface components {
              */
             tradePartyRoleId: string;
         };
+        /** TradePropertyDefinitionView */
+        TradePropertyDefinitionView: {
+            /** Catalogueid */
+            catalogueId?: string | null;
+            /** Choices */
+            choices: string[];
+            /** Code */
+            code: string;
+            /**
+             * Definitionid
+             * Format: uuid
+             */
+            definitionId: string;
+            /** Description */
+            description?: string | null;
+            /** Label */
+            label: string;
+            /** Required */
+            required: boolean;
+            /**
+             * Valuetype
+             * @enum {string}
+             */
+            valueType: "TEXT" | "INTEGER" | "DECIMAL" | "DATE" | "BOOLEAN" | "CHOICE" | "REFERENCE";
+        };
+        /** TradePropertyInput */
+        TradePropertyInput: {
+            /**
+             * Definitionid
+             * Format: uuid
+             */
+            definitionId: string;
+            /** Value */
+            value: string | boolean;
+        };
+        /** TradePropertyValueView */
+        TradePropertyValueView: {
+            /** Catalogueid */
+            catalogueId?: string | null;
+            /** Choices */
+            choices: string[];
+            /** Code */
+            code: string;
+            /**
+             * Definitionid
+             * Format: uuid
+             */
+            definitionId: string;
+            /** Description */
+            description?: string | null;
+            /** Displayvalue */
+            displayValue?: string | null;
+            /** Label */
+            label: string;
+            /** Recordversion */
+            recordVersion?: number | null;
+            /** Required */
+            required: boolean;
+            /** Value */
+            value: string | boolean;
+            /**
+             * Valuetype
+             * @enum {string}
+             */
+            valueType: "TEXT" | "INTEGER" | "DECIMAL" | "DATE" | "BOOLEAN" | "CHOICE" | "REFERENCE";
+        };
+        /** TradeReferenceInput */
+        TradeReferenceInput: {
+            /**
+             * Referencetype
+             * @enum {string}
+             */
+            referenceType: "SOURCE_TRADE_ID" | "CLIENT_REFERENCE" | "BROKER_REFERENCE";
+            /** Referencevalue */
+            referenceValue: string;
+            /** Sourcesystemid */
+            sourceSystemId?: string | null;
+        };
         /** TradeResponse */
         TradeResponse: {
             /** Data */
             data: components["schemas"]["TradeView"][];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** TradeTagView */
+        TradeTagView: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /**
+             * Tagid
+             * Format: uuid
+             */
+            tagId: string;
+        };
+        /** TradeTraderOption */
+        TradeTraderOption: {
+            /** Displayname */
+            displayName: string;
+            /**
+             * Personid
+             * Format: uuid
+             */
+            personId: string;
+        };
+        /** TradeTraderResponse */
+        TradeTraderResponse: {
+            /** Data */
+            data: components["schemas"]["TradeTraderOption"][];
             meta: components["schemas"]["ApiMeta"];
         };
         /** TradeView */
@@ -2929,6 +4830,7 @@ export interface components {
             executionPrice: string | null;
             /** Executionvenueid */
             executionVenueId: string | null;
+            fxForwardEconomics?: components["schemas"]["FxForwardTradeEconomicsView"] | null;
             /** Instructiondate */
             instructionDate: string | null;
             /** Instrumentid */
@@ -2947,10 +4849,17 @@ export interface components {
             lockedYtm: string | null;
             /** Marketactivity */
             marketActivity: string | null;
+            optionEconomics?: components["schemas"]["OptionTradeEconomicsView"] | null;
+            /** Positioneffect */
+            positionEffect?: ("OPEN" | "CLOSE") | null;
             /** Pricebasis */
             priceBasis: string | null;
             /** Pricecurrency */
             priceCurrency: string | null;
+            /** Producteconomics */
+            productEconomics?: {
+                [key: string]: unknown;
+            } | null;
             /** Quantity */
             quantity: string;
             /** Quantityunit */
@@ -4154,6 +6063,279 @@ export interface operations {
             };
         };
     };
+    families_v1_future_families_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FutureFamilySearchResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    family_proposal_v1_future_family_proposals_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FutureFamilyProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceDataProposalResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    future_proposal_v1_future_proposals_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FutureProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceDataProposalResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     propose_fx_forward_v1_fx_forward_proposals_post: {
         parameters: {
             query?: never;
@@ -4820,6 +7002,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IndexProposalResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    conventions_v1_instrument_booking_convention_proposals_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConventionProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceDataProposalResponse"];
                 };
             };
             /** @description Invalid request */
@@ -5555,6 +7828,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MarketVenueResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    propose_v1_option_proposals_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptionProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceDataProposalResponse"];
                 };
             };
             /** @description Invalid request */
@@ -7077,10 +9441,1568 @@ export interface operations {
             };
         };
     };
+    events_v1_trade_configuration_audit_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    candidates_v1_trade_configuration_candidates__role__get: {
+        parameters: {
+            query?: {
+                q?: string;
+                curated?: boolean;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                role: "COUNTERPARTY" | "EXECUTING_BROKER" | "TRADER";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidatesResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    catalogues_v1_trade_configuration_catalogues_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                offset?: number;
+                limit?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CataloguesResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    new_catalogue_v1_trade_configuration_catalogues_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    catalogue_v1_trade_configuration_catalogues__catalogue_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                catalogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_catalogue_v1_trade_configuration_catalogues__catalogue_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                catalogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Reason"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    records_v1_trade_configuration_catalogues__catalogue_id__records_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                offset?: number;
+                limit?: number;
+                history?: boolean;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                catalogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordsResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    new_record_v1_trade_configuration_catalogues__catalogue_id__records_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                catalogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    correct_record_v1_trade_configuration_catalogues__catalogue_id__records__record_id__correct_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                catalogue_id: string;
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordCorrection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    retire_record_v1_trade_configuration_catalogues__catalogue_id__records__record_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                catalogue_id: string;
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Reason"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    retire_catalogue_v1_trade_configuration_catalogues__catalogue_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                catalogue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Reason"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_properties_v1_trade_configuration_properties_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertiesResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    post_property_v1_trade_configuration_properties_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    replace_v1_trade_configuration_properties__definition_id__replace_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                definition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    retire_v1_trade_configuration_properties__definition_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                definition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    selections_v1_trade_configuration_selections__role__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                role: "COUNTERPARTY" | "EXECUTING_BROKER" | "TRADER";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SelectionResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_selections_v1_trade_configuration_selections__role__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                role: "COUNTERPARTY" | "EXECUTING_BROKER" | "TRADER";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectionPublish"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SelectionResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     booked_trades_v1_trades_get: {
         parameters: {
             query?: {
                 portfolioCode?: string | null;
+                q?: string | null;
+                side?: ("BUY" | "SELL") | null;
+                lifecycleStatus?: string | null;
                 fromDate?: string | null;
                 toDate?: string | null;
                 limit?: number;
@@ -7195,6 +11117,1189 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    bonds_v1_trades_bonds_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    trade_booking_context_v1_trades_booking_context_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeBookingContextResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    futures_v1_trades_futures_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    search_v1_trades_fx_forward_instruments_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxForwardBookingInstrumentSearchResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    instrument_v1_trades_fx_forward_instruments__instrument_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                instrument_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxForwardBookingInstrumentResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    book_v1_trades_fx_forwards_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxForwardBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listing_search_v1_trades_option_listings_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptionBookingListingSearchResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listing_detail_v1_trades_option_listings__listing_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptionBookingListingResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    booking_v1_trades_options_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptionBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    search_v1_trades_product_instruments_get: {
+        parameters: {
+            query: {
+                kind: "STRUCTURED_PRODUCT" | "FUTURE" | "BOND";
+                route: "LISTED" | "OTC";
+                q?: string;
+                limit?: number;
+                offset?: number;
+                asOfDate?: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductBookingSearchResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    detail_v1_trades_product_instruments__instrument_id__get: {
+        parameters: {
+            query?: {
+                listingId?: string | null;
+                asOfDate?: string | null;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                instrument_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductBookingContextResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    structured_v1_trades_structured_products_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    trade_traders_v1_trades_traders_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeTraderResponse"];
                 };
             };
             /** @description Invalid request */

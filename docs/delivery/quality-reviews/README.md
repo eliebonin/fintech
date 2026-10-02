@@ -9,3 +9,4 @@ Key dated reviews: [project state](../../architecture/project-state-and-quality-
 # Quality reviews
 
 - [Replay-safe Market Data resolution — 2026-09-28](2026-09-28-replay-safe-market-data-resolution.md)
+- [Listed option booking alpha — 2026-10-01](2026-10-01-option-booking-alpha.md)

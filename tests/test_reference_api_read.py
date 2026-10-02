@@ -52,7 +52,9 @@ def test_reference_node_search_returns_non_instrument_underlyings_and_filters_in
     crypto_payload = crypto_response.json()
     assert crypto_payload["data"]
     assert all(item["instrumentType"] == "DIGITAL_ASSET" for item in crypto_payload["data"])
-    assert {item["canonicalName"] for item in crypto_payload["data"]} >= {"Bitcoin", "Ethereum"}
+    # The governed demo universe contains BTC and USDC; Ethereum is a network
+    # used by USDC deployments, not a separately seeded economic instrument.
+    assert {item["canonicalName"] for item in crypto_payload["data"]} >= {"Bitcoin", "USD Coin"}
 
 
 def test_reference_node_search_can_scope_equity_choices_to_venue_listings():

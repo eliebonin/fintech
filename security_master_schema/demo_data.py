@@ -2,7 +2,7 @@
 
 from datetime import date, datetime, timezone
 import json
-from uuid import UUID
+from uuid import UUID, NAMESPACE_URL, uuid5
 
 from sqlalchemy import Connection, Engine, select, text, update
 from sqlalchemy.dialects.postgresql import insert
@@ -1059,3 +1059,32 @@ def load_demo_data(engine: Engine) -> None:
         from .mvp_demo_data import load_mvp_demo_data
 
         load_mvp_demo_data(connection)
+        _ensure_demo_definition_versions(connection)
+
+
+def _ensure_demo_definition_versions(connection: Connection) -> None:
+    """Give loader-owned synthetic projections immutable approved definitions.
+
+    Never approve arbitrary application records or replace existing versions.
+    Historical migrations cannot bootstrap records inserted after migration.
+    """
+    demo_ids = tuple(DEMO_IDS.values())
+    for table, version, key, version_key, fields in (
+        (m.instrument, m.instrument_definition_version, "instrument_node_id", "instrument_definition_version_id",
+         ("instrument_type_id", "asset_class", "issuer_organisation_id", "base_currency_id", "effective_from", "effective_to")),
+        (m.listing, m.listing_definition_version, "listing_node_id", "listing_definition_version_id",
+         ("market_venue_id", "trading_currency_id", "trading_symbol", "quote_factor", "unit_multiplier", "effective_from", "effective_to")),
+    ):
+        rows = connection.execute(select(table).where(table.c[key].in_(demo_ids))).mappings().all()
+        for row in rows:
+            if connection.scalar(select(version.c[version_key]).where(version.c[key] == row[key]).limit(1)):
+                continue
+            values = {field: row[field] for field in fields}
+            # Original synthetic projections predate effective-dated definitions.
+            # Their documented scenario date supplies only this loader-owned fixture.
+            values["effective_from"] = values["effective_from"] or date(2026, 8, 28)
+            values.update({key: row[key], version_key: uuid5(NAMESPACE_URL, f"fortem-demo:{version.name}:{row[key]}"),
+                           "sequence_no": 1, "is_current": True, "status": "APPROVED",
+                           "approved_by_user_account_id": DEMO_IDS["demo_user_account"],
+                           "approved_at_utc": datetime.now(timezone.utc)})
+            connection.execute(version.insert().values(**values))

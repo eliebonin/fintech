@@ -2,6 +2,8 @@
 
 ## Decision
 
+As of 2026-10-01, approved eligible deliverable contracts can be booked from the dedicated trade page without a listing. See [booking alpha](../delivery/fx-forward-booking-alpha.md) for one-trade semantics, inherited single-date restrictions, governed annotations, immutable snapshots and the explicit unsupported-valuation boundary. Broader onboarding terms remain valid descriptions; not every settlement type/date combination is eligible for this booking slice.
+
 An actual bilateral FX forward is one economic `INSTRUMENT` node. It is not
 an FX quote curve and it does not require a venue `LISTING`. The implementation
 uses the existing canonical tables; it adds no new PostgreSQL table or

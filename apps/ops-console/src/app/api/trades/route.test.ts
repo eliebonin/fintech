@@ -14,6 +14,19 @@ vi.mock("@/lib/bff-error", () => ({ bffErrorResponse: vi.fn() }));
 import { POST } from "./route";
 
 describe("trade booking BFF", () => {
+  it("rejects confirmation after the active tenant has changed", async () => {
+    const response = await POST(new NextRequest("http://ops.test/api/trades", {
+      method:"POST", headers:{"Content-Type":"application/json", "Idempotency-Key":"retry-context", "X-Expected-Tenant-Id":"previous-tenant"},
+      body:JSON.stringify({listingId:"listing-1", tradePurpose:"HEDGING"}),
+    }));
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe("TENANT_CONTEXT_CHANGED");
+  });
+
+  it("requires an expected tenant on enriched tickets", async () => {
+    const response = await POST(new NextRequest("http://ops.test/api/trades", {method:"POST", headers:{"Idempotency-Key":"retry-enriched"}, body:JSON.stringify({properties:[{definitionId:"prop",value:false}]})}));
+    expect(response.status).toBe(400);
+  });
   it("forwards only active session context and the retry key", async () => {
     const request = new NextRequest("http://ops.test/api/trades", {
       method: "POST",

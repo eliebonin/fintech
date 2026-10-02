@@ -1,0 +1,15 @@
+{
+  "catalogues": [{"code":"BOOKING_BUCKET","label":"Booking bucket","description":"Controlled values for Booking bucket.","records":[
+    {"code":"CORE","label":"CORE"},
+    {"code":"TACTICAL","label":"TACTICAL"},
+    {"code":"HEDGE","label":"HEDGE"}
+  ]}],
+  "properties": [
+    {"code":"DESK_NOTE","label":"Desk note","valueType":"TEXT","description":"Optional execution context; not instrument terms."},
+    {"code":"ALLOCATION_WEIGHT","label":"Allocation weight","valueType":"DECIMAL","description":"Optional precise decimal; zero is a supplied value."},
+    {"code":"REVIEW_DATE","label":"Review date","valueType":"DATE"},
+    {"code":"INTERNAL_CROSS","label":"Internal cross","valueType":"BOOLEAN"},
+    {"code":"BOOKING_BUCKET","label":"Booking bucket","valueType":"REFERENCE","catalogueCode":"BOOKING_BUCKET"}
+  ],
+  "tags": [{"code":"CORE","label":"Core"},{"code":"TACTICAL","label":"Tactical"}]
+}

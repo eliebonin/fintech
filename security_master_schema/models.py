@@ -7,6 +7,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     MetaData,
@@ -27,6 +28,170 @@ UUID_V7 = UUID(as_uuid=True)
 UTC_NOW = text("CURRENT_TIMESTAMP")
 UUID_V7_DEFAULT = text("uuidv7()")
 
+# Tenant-owned trade annotations; instrument terms stay in secm.
+trade_property_definition = Table(
+    "trade_property_definition", metadata,
+    Column("definition_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
+    Column("code", String(100), nullable=False), Column("label", String(250), nullable=False),
+    Column("description", Text), Column("value_type", String(20), nullable=False),
+    Column("catalogue_id", UUID_V7, ForeignKey("trd.reference_catalogue.catalogue_id")),
+    Column("required", Boolean, nullable=False, server_default=text("false")),
+    Column("choices", JSONB, nullable=False, server_default=text("'[]'::jsonb")),
+    Column("version_no", Integer, nullable=False, server_default=text("1")),
+    Column("sort_order", Integer, nullable=False, server_default=text("0")),
+    Column("status", String(20), nullable=False, server_default=text("'ACTIVE'")),
+    Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW),
+    Column("retired_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id")),
+    Column("retired_at_utc", DateTime(timezone=True)),
+    UniqueConstraint("tenant_id", "code", "version_no", name="uq_trade_property_version"),
+    CheckConstraint("value_type IN ('TEXT','INTEGER','DECIMAL','DATE','BOOLEAN','CHOICE','REFERENCE') AND version_no > 0", name="ck_trade_property_type"),
+    CheckConstraint("(value_type = 'REFERENCE') = (catalogue_id IS NOT NULL)", name="ck_trade_property_binding"),
+    CheckConstraint("status IN ('ACTIVE','RETIRED') AND (status <> 'RETIRED' OR (retired_by_user_account_id IS NOT NULL AND retired_at_utc IS NOT NULL))", name="ck_trade_property_status"),
+    schema="trd",
+)
+Index("uq_trade_property_active_code", trade_property_definition.c.tenant_id, trade_property_definition.c.code, unique=True, postgresql_where=text("status = 'ACTIVE'"))
+
+trade_tag = Table(
+    "trade_tag", metadata,
+    Column("tag_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
+    Column("code", String(100), nullable=False), Column("label", String(250), nullable=False),
+    Column("status", String(20), nullable=False, server_default=text("'ACTIVE'")),
+    Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW),
+    Column("retired_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id")),
+    Column("retired_at_utc", DateTime(timezone=True)),
+    UniqueConstraint("tenant_id", "code", name="uq_trade_tag_code"),
+    CheckConstraint("status IN ('ACTIVE','RETIRED') AND (status <> 'RETIRED' OR (retired_by_user_account_id IS NOT NULL AND retired_at_utc IS NOT NULL))", name="ck_trade_tag_status"),
+    schema="trd",
+)
+trade_property_value = Table(
+    "trade_property_value", metadata,
+    Column("trade_id", UUID_V7, ForeignKey("trd.trade.trade_id"), primary_key=True),
+    Column("definition_id", UUID_V7, ForeignKey("trd.trade_property_definition.definition_id"), primary_key=True),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
+    Column("value", JSONB, nullable=False),
+    CheckConstraint("jsonb_typeof(value) IN ('string','boolean')", name="ck_trade_property_scalar"),
+    schema="trd",
+)
+trade_tag_assignment = Table(
+    "trade_tag_assignment", metadata,
+    Column("trade_id", UUID_V7, ForeignKey("trd.trade.trade_id"), primary_key=True),
+    Column("tag_id", UUID_V7, ForeignKey("trd.trade_tag.tag_id"), primary_key=True),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
+    schema="trd",
+)
+
+
+_trade_annotation_comments = {
+    "definition_id": "Immutable identifier of a versioned tenant trade-property definition.",
+    "catalogue_id": "Governed tenant catalogue bound to a reference property.",
+    "tenant_id": "Tenant owning this catalogue item or immutable trade annotation.",
+    "code": "Stable tenant-local business code.",
+    "label": "Human-readable label preserved for historical trade display.",
+    "description": "Business meaning and entry guidance for this property.",
+    "value_type": "Controlled scalar type: TEXT, DECIMAL, DATE, BOOLEAN, or CHOICE.",
+    "required": "Whether new bookings must supply this active property.",
+    "choices": "Immutable permitted values for a CHOICE property.",
+    "version_no": "Positive immutable definition version within its tenant and code.",
+    "sort_order": "Catalogue display ordering established at provisioning.",
+    "status": "ACTIVE items accept new bookings; RETIRED items remain readable historically.",
+    "created_by_user_account_id": "Account authorised to provision this catalogue item.",
+    "created_at_utc": "UTC timestamp at which the catalogue item was provisioned.",
+    "retired_by_user_account_id": "Account responsible for audited catalogue retirement.",
+    "retired_at_utc": "UTC timestamp of catalogue retirement, when applicable.",
+    "tag_id": "Immutable identifier of a tenant-owned trade tag.",
+    "trade_id": "Immutable execution to which this annotation belongs.",
+    "value": "Typed scalar value; decimals and dates are canonical strings, booleans remain booleans.",
+}
+for _annotation_table in (trade_property_definition, trade_tag, trade_property_value, trade_tag_assignment):
+    for _annotation_column in _annotation_table.columns:
+        _annotation_column.comment = _trade_annotation_comments[_annotation_column.name]
+
+def _governed_audit_columns():
+    return [Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+            Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW),
+            Column("retired_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id")),
+            Column("retired_at_utc", DateTime(timezone=True))]
+
+reference_catalogue = Table("reference_catalogue", metadata,
+    Column("catalogue_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
+    Column("code", String(100), nullable=False), Column("label", String(250), nullable=False),
+    Column("description", Text), Column("status", String(20), nullable=False, server_default=text("'DRAFT'")),
+    *_governed_audit_columns(),
+    UniqueConstraint("tenant_id", "code", name="uq_reference_catalogue_code"),
+    CheckConstraint("status IN ('DRAFT','ACTIVE','RETIRED')", name="ck_reference_catalogue_status"), schema="trd")
+
+reference_catalogue_record = Table("reference_catalogue_record", metadata,
+    Column("record_version_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("catalogue_id", UUID_V7, ForeignKey("trd.reference_catalogue.catalogue_id"), nullable=False),
+    Column("record_id", UUID_V7, nullable=False), Column("code", String(100), nullable=False),
+    Column("label", String(250), nullable=False), Column("description", Text),
+    Column("version_no", Integer, nullable=False, server_default=text("1")),
+    Column("status", String(20), nullable=False, server_default=text("'ACTIVE'")),
+    *_governed_audit_columns(),
+    UniqueConstraint("catalogue_id", "code", "version_no", name="uq_reference_record_version"),
+    CheckConstraint("version_no > 0 AND status IN ('ACTIVE','RETIRED')", name="ck_reference_record_status"), schema="trd")
+Index("uq_reference_record_active_code", reference_catalogue_record.c.catalogue_id, reference_catalogue_record.c.code,
+      unique=True, postgresql_where=text("status = 'ACTIVE'"))
+
+trade_property_reference = Table("trade_property_reference", metadata,
+    Column("trade_id", UUID_V7, ForeignKey("trd.trade.trade_id"), primary_key=True),
+    Column("definition_id", UUID_V7, ForeignKey("trd.trade_property_definition.definition_id"), primary_key=True),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
+    Column("record_version_id", UUID_V7, ForeignKey("trd.reference_catalogue_record.record_version_id"), nullable=False), schema="trd")
+
+trade_selection_policy = Table("trade_selection_policy", metadata,
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), primary_key=True),
+    Column("role", String(30), primary_key=True),
+    Column("version_no", Integer, nullable=False),
+    Column("updated_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+    Column("updated_at_utc", DateTime(timezone=True), server_default=UTC_NOW, nullable=False),
+    CheckConstraint("role IN ('COUNTERPARTY','EXECUTING_BROKER','TRADER') AND version_no > 0", name="ck_trade_selection_role"), schema="trd")
+
+trade_selection_member = Table("trade_selection_member", metadata,
+    Column("member_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("tenant_id", UUID_V7, nullable=False), Column("role", String(30), nullable=False),
+    Column("organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id")),
+    Column("person_id", UUID_V7, ForeignKey("secm.person.person_id")),
+    ForeignKeyConstraint(["tenant_id", "role"], ["trd.trade_selection_policy.tenant_id", "trd.trade_selection_policy.role"]),
+    UniqueConstraint("tenant_id", "role", "organisation_id", name="uq_trade_selection_organisation"),
+    UniqueConstraint("tenant_id", "role", "person_id", name="uq_trade_selection_person"),
+    CheckConstraint("(role = 'TRADER' AND person_id IS NOT NULL AND organisation_id IS NULL) OR (role IN ('COUNTERPARTY','EXECUTING_BROKER') AND organisation_id IS NOT NULL AND person_id IS NULL)", name="ck_trade_selection_target"), schema="trd")
+
+trade_configuration_event = Table("trade_configuration_event", metadata,
+    Column("event_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
+    Column("actor_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+    Column("action", String(50), nullable=False), Column("subject_id", UUID_V7),
+    Column("reason", Text, nullable=False), Column("payload", JSONB, nullable=False),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW), schema="trd")
+
+_governed_comments = {
+    **_trade_annotation_comments,
+    "catalogue_id": "Stable identity of a tenant-owned controlled-value catalogue.",
+    "record_version_id": "Immutable catalogue entry version selected by a trade.",
+    "record_id": "Stable entry identity shared by label-correction versions; never repurposed.",
+    "role": "First-class trade role whose canonical records this policy makes eligible.",
+    "updated_by_user_account_id": "Administrator publishing the current eligibility version.",
+    "updated_at_utc": "UTC publication time of the current eligibility policy.",
+    "member_id": "Identity of a current eligibility-list member, not a login permission.",
+    "organisation_id": "Canonical organisation eligible for the counterparty or broker role.",
+    "person_id": "Canonical person eligible as trader, subject to active tenant membership.",
+    "event_id": "Immutable identity of an append-only configuration audit event.",
+    "actor_id": "Authenticated administrator responsible for the configuration action.",
+    "action": "Controlled application action recorded in configuration history.",
+    "subject_id": "Catalogue, record or definition identity affected by the event, where applicable.",
+    "reason": "Recorded rationale for this configuration publication or retirement.",
+    "payload": "Server-produced change evidence; eligibility events retain the complete published ID set.",
+    "recorded_at_utc": "UTC timestamp of this immutable configuration audit event.",
+}
+for _governed_table in (reference_catalogue, reference_catalogue_record, trade_property_reference, trade_selection_policy, trade_selection_member, trade_configuration_event):
+    for _governed_column in _governed_table.columns:
+        _governed_column.comment = _governed_comments[_governed_column.name]
 
 # secm: canonical security-master, party, and reference-data domain.
 reference_node_type = Table(
@@ -592,6 +757,8 @@ trade = Table(
     Column("strategy_id", UUID_V7, ForeignKey("trd.strategy.strategy_id"), nullable=False, comment="Primary strategy, portfolio, or ledger receiving the trade."),
     Column("trade_type", String(50), nullable=False, comment="Economic event type such as INVESTMENT, SUBSCRIPTION, REDEMPTION, DIVIDEND, COUPON, RESET, or CASH_FLOW."),
     Column("trade_purpose", String(50), nullable=True, comment="Business intent such as INVESTMENT, HEDGING, REBALANCING, CLIENT_INSTRUCTION, or TRANSFER."),
+    Column("position_effect", String(10), nullable=True, comment="Recorded execution intent OPEN or CLOSE; unspecified for legacy trades, not settlement or position verification."),
+    CheckConstraint("position_effect IS NULL OR position_effect IN ('OPEN','CLOSE')", name="ck_trade_position_effect"),
     Column("market_activity", String(30), nullable=True, comment="Market context such as PRIMARY or SECONDARY when applicable."),
     Column("execution_price", Numeric(30, 12), nullable=True, comment="Booked execution price or contractual rate in the declared price basis."),
     Column("locked_ytm", Numeric(20, 12), nullable=True, comment="Yield-to-maturity locked at booking when supplied by the legacy trade workflow; scale is governed by the declared trade convention."),
@@ -1459,6 +1626,21 @@ schedule_event = Table(
     UniqueConstraint("schedule_id", "event_sequence", name="uq_schedule_event_sequence"), schema="secm",
 )
 
+instrument_booking_convention = Table(
+    "instrument_booking_convention", metadata,
+    Column("instrument_booking_convention_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable approved execution convention version; not a payoff or valuation model."),
+    Column("instrument_node_id", UUID_V7, ForeignKey("secm.instrument.instrument_node_id"), nullable=False, comment="Existing canonical instrument governed by this convention."),
+    Column("version_no", Integer, nullable=False, comment="Monotonic approval version for this instrument."),
+    Column("effective_from", Date, nullable=False, comment="First execution date governed by this convention."),
+    Column("kind", String(30), nullable=False, comment="Bounded supported product kind STRUCTURED_PRODUCT or FUTURE."),
+    Column("convention_payload", Text, nullable=False, comment="Strict typed v1 convention, including source evidence and quantity/quotation economics."),
+    Column("approved_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Actor approving this immutable version."),
+    Column("approved_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="Approval audit timestamp."),
+    UniqueConstraint("instrument_node_id", "version_no", name="uq_instrument_booking_convention_version"),
+    CheckConstraint("version_no > 0 AND kind IN ('STRUCTURED_PRODUCT','FUTURE','BOND')", name="ck_instrument_booking_convention_kind"),
+    schema="secm",
+)
+
 future_family = Table(
     "future_family", metadata,
     Column("future_family_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a non-tradeable reusable futures contract specification."),
@@ -1466,6 +1648,7 @@ future_family = Table(
     Column("underlying_reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=True, comment="Underlying index, commodity, rate, security, or reference object for the futures family."),
     Column("contract_currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Standard contract currency for futures in the family."),
     Column("expiry_cycle", String(100), nullable=True, comment="Standard expiry cycle or month-code rule for the family."),
+    Column("specification_payload", Text, nullable=True, comment="Approved typed family specification; null preserves legacy per-expiry configuration."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the non-tradeable futures family."), schema="secm",
 )
 
@@ -1579,6 +1762,11 @@ option_terms = Table(
     Column("strike_basis", String(30), nullable=False, server_default=text("'ABSOLUTE'"), comment="Meaning of strike_value: ABSOLUTE monetary price, INDEX_POINTS, FX_RATE, PERCENT_OF_SPOT, or PERCENT_OF_INITIAL."),
     Column("strike_currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Currency of an ABSOLUTE or FX_RATE strike; not required for an index-point or percentage strike."),
     Column("premium_currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Convention or quoting currency for option premium. The amount and payment event remain trade-specific."),
+    Column("premium_multiplier", Numeric(30, 12), nullable=True, comment="Currency premium per quoted economic unit; distinct from exercise deliverable. No implicit default."),
+    Column("premium_style", String(30), nullable=True, comment="Premium payment convention such as UPFRONT or FUTURES_STYLE; must be sourced."),
+    CheckConstraint("premium_multiplier IS NULL OR premium_multiplier > 0", name="ck_option_premium_multiplier"),
+    CheckConstraint("premium_style IS NULL OR premium_style IN ('UPFRONT','FUTURES_STYLE')", name="ck_option_premium_style"),
+    Column("last_trading_at_utc", DateTime(timezone=True), nullable=True, comment="Explicit authoritative last trading instant, including timezone; not guessed from expiry date."),
     Column("settlement_method", String(30), nullable=False, comment="Settlement method aligned with FpML: CASH, PHYSICAL, ELECTION, or CASH_OR_PHYSICAL."),
     Column("settlement_currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Currency of a cash settlement payoff; required for CASH and CASH_OR_PHYSICAL during canonical validation."),
     Column("exercise_schedule_id", UUID_V7, ForeignKey("secm.schedule.schedule_id"), nullable=True, comment="Dated permitted exercise schedule for a BERMUDAN option; European and American options use common instrument dates unless a schedule is needed for extra rules."),

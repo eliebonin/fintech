@@ -38,6 +38,14 @@ export type InstrumentListing = {
   marketData: MarketDataPoint[];
 };
 
+export type OptionInstrumentTerms = {
+  optionType: string; underlyingId: string | null; underlyingName: string | null;
+  strike: string | null; strikeBasis: string; strikeCurrency: string | null;
+  expiryDate: string | null; lastTradingAtUtc: string | null; exerciseStyle: string;
+  settlementMethod: string; settlementCurrency: string | null; deliverableUnits: string | null;
+  premiumCurrency: string | null; premiumMultiplier: string | null; premiumStyle: string | null;
+};
+
 export type InstrumentRecord = {
   instrumentId: string;
   canonicalName: string;
@@ -55,6 +63,7 @@ export type InstrumentRecord = {
   instrumentMarketData: MarketDataPoint[];
   taxonomy: string[];
   notes: string;
+  optionTerms?: OptionInstrumentTerms | null;
 };
 
 const instruments: InstrumentRecord[] = [
