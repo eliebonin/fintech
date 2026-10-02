@@ -12,9 +12,9 @@ from security_master_schema.demo_data import DEMO_IDS
 from tests.test_fx_forward_booking_api import request
 
 
-def create_reference(**definition_changes):
+def create_reference(node_id=None, **definition_changes):
     """A separate tenant-owned approved bond: eligibility is not autocall-specific."""
-    node = uuid4()
+    node = node_id or uuid4()
     with get_engine().begin() as connection:
         for table, key in ((m.financial_reference_node, 'reference_node_id'),
                            (m.instrument, 'instrument_node_id'),
@@ -66,7 +66,16 @@ def submit(data):
     return response.json()['data']['proposalId']
 
 
-def decide(proposal_id, decision='APPROVED', tenant='tenant'):
+def decide(proposal_id, decision='APPROVED', tenant='tenant', app=None):
+    if app is not None:
+        import asyncio
+        from httpx import ASGITransport, AsyncClient
+        async def run():
+            async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
+                return await client.post(f'/v1/reference-data-proposals/{proposal_id}/decision',
+                    json=dict(decision=decision, reason='Synthetic confirmation checked.'),
+                    headers={'X-Tenant-Id': str(DEMO_IDS[tenant]), 'X-User-Account-Id': str(DEMO_IDS['demo_user_account'])})
+        return asyncio.run(run())
     return request('POST', f'/v1/reference-data-proposals/{proposal_id}/decision',
         dict(decision=decision, reason='Synthetic confirmation checked.'), tenant=tenant)
 
@@ -167,10 +176,12 @@ def test_approval_revalidates_source_without_partial_materialization(reference, 
 
 
 def test_concurrent_and_duplicate_approval_create_one_instrument(reference):
+    from apps.reference_api.main import create_app
     data = proposal(reference)
     proposal_id = submit(data)
+    app = create_app()
     with ThreadPoolExecutor(max_workers=2) as pool:
-        results = list(pool.map(lambda _: decide(proposal_id), range(2)))
+        results = list(pool.map(lambda _: decide(proposal_id, app=app), range(2)))
     assert sorted(r.status_code for r in results) == [200, 409], [r.text for r in results]
     assert decide(proposal_id).status_code == 409
     with get_engine().connect() as connection:
@@ -330,3 +341,132 @@ def test_validation_locks_reference_scope_and_governed_rows(reference):
                 with pytest.raises(DBAPIError) as error, concurrent.begin_nested():
                     concurrent.execute(table.update().where(table.c[key] == value).values(status='RETIRED'))
                 assert error.value.orig.sqlstate == '55P03'
+
+
+def create_index(profile_id):
+    with get_engine().begin() as connection:
+        node = uuid4()
+        values = dict(connection.execute(select(m.financial_reference_node).where(m.financial_reference_node.c.reference_node_id == DEMO_IDS['mvp_sp500_price_index_node'])).mappings().one())
+        values.update(reference_node_id=node, canonical_name=f'Profiled index {node}', internal_code=f'IDX_{node.hex}')
+        connection.execute(m.financial_reference_node.insert().values(**values))
+        values = dict(connection.execute(select(m.index_terms).where(m.index_terms.c.index_node_id == DEMO_IDS['mvp_sp500_price_index_node'])).mappings().one())
+        values.update(index_node_id=node, return_profile_id=profile_id)
+        connection.execute(m.index_terms.insert().values(**values))
+    return node
+
+
+@pytest.mark.parametrize('funded', [False, True])
+def test_excess_index_cannot_be_declared_as_unfinanced_total_return(funded):
+    node = create_index(clone_profile('EXCESS_TOTAL_RETURN'))
+    response = request('POST', '/v1/instruments/swap-proposals', proposal(node, funded))
+    assert response.status_code == 422, response.text
+
+
+@pytest.mark.parametrize('funded', [False, True])
+def test_excess_index_preserves_embedded_financing_and_optional_acknowledged_charge(funded):
+    profile = clone_profile('EXCESS_TOTAL_RETURN')
+    node = create_index(profile)
+    changes = dict(returnBasis='EXCESS', returnProfileId=str(profile),
+        financingTreatment='EMBEDDED_AND_SEPARATE' if funded else 'EMBEDDED')
+    if funded:
+        changes.update(additionalFundingAcknowledged=True, additionalFundingEvidence='Explicit additional charge in confirmation.')
+    data = proposal(node, funded, **changes)
+    result = decide(submit(data))
+    assert result.status_code == 200, result.text
+    from apps.reference_api.swap_creation import validate_swap_references
+    from apps.reference_api.swap_creation_contracts import GenericSwapTerms
+    with get_engine().connect() as connection:
+        facts = validate_swap_references(connection, DEMO_IDS['tenant'], GenericSwapTerms.model_validate(data['terms']))
+    assert facts.get('performanceReferenceProfile', {}).get('return_profile_id') == profile
+    assert facts['performanceReferenceProfile']['financing_treatment'] == 'SUBTRACT_REFERENCE_RATE'
+
+
+@pytest.mark.parametrize('change', ['financing', 'retired'])
+def test_approval_rechecks_reference_index_profile_without_partial_instrument(change):
+    profile = clone_profile('GROSS_TOTAL_RETURN')
+    node = create_index(profile)
+    data = proposal(node)
+    proposal_id = submit(data)
+    with get_engine().begin() as connection:
+        changes = dict(financing_treatment='SUBTRACT_REFERENCE_RATE', requires_financing_reference=True) if change == 'financing' else dict(status='RETIRED')
+        connection.execute(m.return_profile.update().where(m.return_profile.c.return_profile_id == profile).values(**changes))
+    response = decide(proposal_id)
+    assert response.status_code == 409, response.text
+    with get_engine().connect() as connection:
+        assert connection.scalar(select(func.count()).select_from(m.financial_reference_node).where(m.financial_reference_node.c.canonical_name == data['canonicalName'])) == 0
+
+
+def test_approval_locks_reference_index_profile_for_booking_facts():
+    from apps.reference_api.swap_creation import validate_swap_references
+    from apps.reference_api.swap_creation_contracts import GenericSwapTerms
+    from sqlalchemy import text
+    from sqlalchemy.exc import DBAPIError
+    profile = clone_profile('GROSS_TOTAL_RETURN')
+    node = create_index(profile)
+    with get_engine().begin() as approving:
+        validate_swap_references(approving, DEMO_IDS['tenant'], GenericSwapTerms.model_validate(proposal(node)['terms']), lock=True)
+        with get_engine().begin() as concurrent:
+            concurrent.execute(text("SET LOCAL lock_timeout = '50ms'"))
+            with pytest.raises(DBAPIError) as error, concurrent.begin_nested():
+                concurrent.execute(m.return_profile.update().where(m.return_profile.c.return_profile_id == profile).values(status='RETIRED'))
+            assert error.value.orig.sqlstate == '55P03'
+
+
+def test_distinct_proposal_approvals_do_not_deadlock_on_opposing_reference_type_order():
+    """Two currencies and opposing UUID orders expose the former global type cycle."""
+    from threading import Event, Lock
+    from sqlalchemy import event
+    from sqlalchemy.exc import DBAPIError
+    from apps.reference_api.main import create_app
+
+    def node_id(prefix):
+        return UUID(int=(prefix << 96) | (uuid4().int & ((1 << 96) - 1)))
+
+    references = [create_reference(node_id=node_id(1)), create_reference(node_id=node_id(4))]
+    rates = [node_id(2), node_id(3)]
+    currencies = [uuid4(), uuid4()]
+    with get_engine().begin() as connection:
+        for index in range(2):
+            rate = dict(connection.execute(select(m.financial_reference_node).where(m.financial_reference_node.c.reference_node_id == DEMO_IDS['sonia_rate_index_node'])).mappings().one())
+            rate.update(reference_node_id=rates[index], internal_code=f'RATE_{rates[index].hex}')
+            connection.execute(m.financial_reference_node.insert().values(**rate))
+            currency = dict(connection.execute(select(m.currency).where(m.currency.c.currency_id == DEMO_IDS['gbp_currency'])).mappings().one())
+            currency.update(currency_id=currencies[index], currency_code='TAA' if index == 0 else 'TAB', reference_node_id=None)
+            connection.execute(m.currency.insert().values(**currency))
+    data = [proposal(references[index], True, fundingReferenceId=str(rates[index]),
+        notionalCurrencyId=str(currencies[index]), quoteCurrencyId=str(currencies[index])) for index in range(2)]
+    proposals = [submit(item) for item in data]
+    app = create_app()  # Construct schema once before the concurrent HTTP requests.
+    first_types_acquired, guard, both_started = set(), Lock(), Event()
+
+    def schedule_first_type_locks(connection, cursor, statement, parameters, context, executemany):
+        if 'FROM secm.reference_node_type' not in statement or 'FOR UPDATE' not in statement:
+            return
+        with guard:
+            identity = id(connection)
+            if identity in first_types_acquired:
+                return
+            first_types_acquired.add(identity)
+            if len(first_types_acquired) == 2:
+                both_started.set()
+        # Yield after each transaction's first successful type lock. Disjoint
+        # first locks reach this point together; one deterministic batch causes
+        # the second transaction to wait safely until the first completes.
+        both_started.wait(timeout=0.5)
+
+    def approve_distinct(proposal_id):
+        try:
+            return decide(proposal_id, app=app).status_code
+        except DBAPIError as error:
+            return error.orig.sqlstate
+
+    engine = get_engine()
+    event.listen(engine, 'after_cursor_execute', schedule_first_type_locks)
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(approve_distinct, proposals))
+    finally:
+        event.remove(engine, 'after_cursor_execute', schedule_first_type_locks)
+    assert results == [200, 200], results
+    with engine.connect() as connection:
+        assert connection.scalar(select(func.count()).select_from(m.reference_data_approval).where(m.reference_data_approval.c.reference_data_proposal_id.in_([UUID(item) for item in proposals]))) == 2

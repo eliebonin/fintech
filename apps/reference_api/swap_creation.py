@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from security_master_schema import models as m
 from .swap_creation_contracts import GenericSwapTerms, SwapProposalRequest
 from .product_booking import ProductBookingError, require_visible, append_convention
@@ -18,14 +18,16 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
             statement = statement.with_for_update()
         return [dict(row) for row in connection.execute(statement).mappings()]
 
-    def active(table, predicate, label):
-        values = rows(table, predicate)
+    def checked_active(values, label):
         if len(values) != 1 or values[0]['status'] != 'ACTIVE':
             raise ProductBookingError(f'An active governed {label} is required.')
         return values[0]
 
-    # Lock identities in stable order, including scope rows: status or ownership
-    # changes must serialize with this approval, not race a visibility check.
+    def active(table, predicate, label):
+        return checked_active(rows(table, predicate), label)
+
+    # Acquire identities/scopes completely before shared catalogue rows. A type
+    # row must never be interleaved with the next identity's UUID lock order.
     node_ids = {terms.performance_reference_id}
     if terms.funding_reference_id:
         node_ids.add(terms.funding_reference_id)
@@ -33,14 +35,18 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
     if currency['reference_node_id']:
         node_ids.add(currency['reference_node_id'])
     nodes = {}
-    types = {}
     for node_id in sorted(node_ids, key=str):
         rows(m.financial_reference_node, m.financial_reference_node.c.reference_node_id == node_id)
         rows(m.reference_node_scope, m.reference_node_scope.c.reference_node_id == node_id)
         node = dict(require_visible(connection, tenant_id, node_id))
         nodes[node_id] = node
-        types[node_id] = active(m.reference_node_type,
-            m.reference_node_type.c.reference_node_type_id == node['reference_node_type_id'], 'reference type')['type_code']
+    node_types = rows(m.reference_node_type, or_(
+        m.reference_node_type.c.reference_node_type_id.in_({node['reference_node_type_id'] for node in nodes.values()}),
+        m.reference_node_type.c.type_code == 'INSTRUMENT'))
+    types = {node_id: checked_active([item for item in node_types
+        if item['reference_node_type_id'] == node['reference_node_type_id']], 'reference type')['type_code']
+        for node_id, node in nodes.items()}
+    creation_reference_type = next((item for item in node_types if item['type_code'] == 'INSTRUMENT'), None)
 
     reference_id = terms.performance_reference_id
     definition = index = None
@@ -53,9 +59,6 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
         if len(instruments) != 1 or len(approved) != 1 or not instruments[0]['is_current']:
             raise ProductBookingError('An active current approved performance instrument is required.')
         instrument, definition = instruments[0], approved[0]
-        kind = active(m.instrument_type, m.instrument_type.c.instrument_type_id == definition['instrument_type_id'], 'instrument type')
-        if kind['type_code'] == 'SWAP':
-            raise ProductBookingError('Swap-on-swap performance references are not supported.')
         if any(instrument[key] != definition[key] for key in ('instrument_type_id', 'base_currency_id',
                 'issuer_organisation_id', 'effective_from', 'effective_to', 'sequence_no', 'asset_class')):
             raise ProductBookingError('Performance instrument differs from its approved definition.')
@@ -64,11 +67,38 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
     else:
         raise ProductBookingError('Performance reference must be an approved instrument or active index.')
 
+    # Include materialization's target type in the same sorted catalogue phase;
+    # creation reuses these facts and cannot acquire a late reverse-order lock.
+    instrument_types = rows(m.instrument_type, or_(
+        m.instrument_type.c.instrument_type_id.in_([definition['instrument_type_id']] if definition else []),
+        m.instrument_type.c.type_code == 'SWAP'))
+    creation_instrument_type = next((item for item in instrument_types if item['type_code'] == 'SWAP'), None)
+    if definition:
+        kind = checked_active([item for item in instrument_types
+            if item['instrument_type_id'] == definition['instrument_type_id']], 'instrument type')
+        if kind['type_code'] == 'SWAP':
+            raise ProductBookingError('Swap-on-swap performance references are not supported.')
+
+    profile_ids = {terms.return_profile_id}
+    if index:
+        if index['return_profile_id'] is None:
+            raise ProductBookingError('An active governed reference-index return profile is required.')
+        profile_ids.add(index['return_profile_id'])
+    # Acquire source and selected profiles together so neither can change while
+    # the approval checks whether financing is already embedded in the index.
+    rows(m.return_profile, m.return_profile.c.return_profile_id.in_(profile_ids))
     profile = active(m.return_profile, m.return_profile.c.return_profile_id == terms.return_profile_id, 'return profile')
     financing = 'SUBTRACT_REFERENCE_RATE' if terms.return_basis == 'EXCESS' else 'NONE'
     if (profile['base_return_basis'] != 'TOTAL' or profile['financing_treatment'] != financing
             or profile['requires_financing_reference'] != (terms.return_basis == 'EXCESS')):
         raise ProductBookingError('Return profile must agree with the contractual total/excess return and financing treatment.')
+    reference_profile = None
+    if index:
+        reference_profile = active(m.return_profile,
+            m.return_profile.c.return_profile_id == index['return_profile_id'], 'reference-index return profile')
+        if (reference_profile['financing_treatment'] != financing
+                or reference_profile['requires_financing_reference'] != (terms.return_basis == 'EXCESS')):
+            raise ProductBookingError('Declared financing must agree with the governed reference-index return profile.')
     funding = daycount = None
     if terms.funding_reference_id:
         if types[terms.funding_reference_id] != 'RATE_INDEX':
@@ -77,25 +107,25 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
         daycount = active(m.day_count_convention,
             m.day_count_convention.c.day_count_convention_id == terms.day_count_convention_id, 'day-count convention')
     return dict(performanceReference=nodes[reference_id], performanceDefinition=definition, performanceIndex=index,
-        returnProfile=profile, currency=currency, fundingReference=funding, dayCountConvention=daycount)
+        performanceReferenceProfile=reference_profile, returnProfile=profile, currency=currency,
+        fundingReference=funding, dayCountConvention=daycount,
+        creationReferenceType=creation_reference_type, creationInstrumentType=creation_instrument_type)
 
 
 def materialize_swap(connection, tenant_id, actor_id, request: SwapProposalRequest) -> UUID:
     """Write the entire approved canonical contract in the caller's transaction."""
     terms = request.terms
-    validate_swap_references(connection, tenant_id, terms, lock=True)
+    facts = validate_swap_references(connection, tenant_id, terms, lock=True)
 
-    def type_id(table, key, code):
-        value = connection.scalar(select(table.c[key]).where(table.c.type_code == code,
-            table.c.status == 'ACTIVE').with_for_update())
-        if value is None:
+    def type_id(fact, key, code):
+        if fact is None or fact['status'] != 'ACTIVE':
             raise ProductBookingError(f'An active {code} catalogue is required.')
-        return value
+        return fact[key]
 
     node_id = connection.scalar(m.financial_reference_node.insert().values(
-        reference_node_type_id=type_id(m.reference_node_type, 'reference_node_type_id', 'INSTRUMENT'),
+        reference_node_type_id=type_id(facts['creationReferenceType'], 'reference_node_type_id', 'INSTRUMENT'),
         canonical_name=request.canonical_name, is_tradable=True, status='ACTIVE').returning(m.financial_reference_node.c.reference_node_id))
-    fields = dict(instrument_type_id=type_id(m.instrument_type, 'instrument_type_id', 'SWAP'),
+    fields = dict(instrument_type_id=type_id(facts['creationInstrumentType'], 'instrument_type_id', 'SWAP'),
         asset_class='DERIVATIVE', base_currency_id=terms.notional_currency_id,
         effective_from=terms.effective_date, is_current=True, sequence_no=1)
     connection.execute(m.instrument.insert().values(instrument_node_id=node_id, **fields))
