@@ -1,7 +1,7 @@
 """Closed, typed contracts for funded securities, index futures and plain bonds."""
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Any
 from uuid import UUID
 from pydantic import BaseModel, Field, StrictBool, field_validator, model_validator
 from .contracts import TradeBookingRequest, ApiMeta
@@ -120,7 +120,16 @@ class BondConvention(ConventionBase):
         return self
 
 
-BookingConvention = Annotated[StructuredConvention | FutureConvention | BondConvention, Field(discriminator='kind')]
+class SwapConvention(ConventionBase):
+    kind: Literal['SWAP']
+    quantity_unit: Literal['NOMINAL'] = Field(alias='quantityUnit')
+    price_basis: Literal['SWAP_VALUE_PER_NOTIONAL'] = Field(alias='priceBasis')
+    quantity_minimum: Decimal = Field(alias='quantityMinimum', gt=0, max_digits=30, decimal_places=12)
+    quantity_increment: Decimal = Field(alias='quantityIncrement', gt=0, max_digits=30, decimal_places=12)
+    otc_allowed: StrictBool = Field(alias='otcAllowed')
+
+
+BookingConvention = Annotated[StructuredConvention | FutureConvention | BondConvention | SwapConvention, Field(discriminator='kind')]
 
 
 class ConventionProposalRequest(BaseModel):
@@ -206,10 +215,24 @@ class ProductBookingRequest(TradeBookingRequest):
         return self
 
 
+class SwapDetailsView(BaseModel):
+    performance_reference_id: UUID = Field(alias='performanceReferenceId')
+    performance_reference_name: str = Field(alias='performanceReferenceName')
+    performance_direction: Literal['PAY', 'RECEIVE'] = Field(alias='performanceDirection')
+    return_profile_code: str = Field(alias='returnProfileCode')
+    funding_reference_id: UUID = Field(alias='fundingReferenceId')
+    funding_reference_name: str = Field(alias='fundingReferenceName')
+    funding_direction: Literal['PAY', 'RECEIVE'] = Field(alias='fundingDirection')
+    funding_spread: Decimal = Field(alias='fundingSpread')
+    effective_date: date = Field(alias='effectiveDate')
+    source_facts: dict[str, Any] = Field(alias='sourceFacts')
+    model_config = dict(populate_by_name=True)
+
+
 class ProductBookingContextView(BaseModel):
     instrument_id: UUID = Field(alias='instrumentId')
     name: str
-    kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND']
+    kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP']
     coupon_type: str | None = Field(default=None, alias='couponType')
     coupon_rate: Decimal | None = Field(default=None, alias='couponRate')
     coupon_frequency: int | None = Field(default=None, alias='couponFrequency')
@@ -227,6 +250,7 @@ class ProductBookingContextView(BaseModel):
     underlying_name: str | None = Field(default=None, alias='underlyingName')
     listing_unit_multiplier: Decimal | None = Field(default=None, alias='listingUnitMultiplier')
     maturity_date: date | None = Field(default=None, alias='maturityDate')
+    swap_details: SwapDetailsView | None = Field(default=None, alias='swapDetails')
     model_config = dict(populate_by_name=True)
 
 
@@ -253,6 +277,6 @@ class ProductTradeEconomicsView(BaseModel):
     bond_details: BondTradeDetailsView | None = Field(default=None, alias='bondDetails')
     terms: ProductBookingContextView
     amount: str
-    amount_kind: Literal['CONSIDERATION', 'REFERENCE_CONTRACT_VALUE'] = Field(alias='amountKind')
+    amount_kind: Literal['CONSIDERATION', 'REFERENCE_CONTRACT_VALUE', 'ENTRY_REFERENCE_VALUE'] = Field(alias='amountKind')
     direction: Literal['PAY', 'RECEIVE'] | None = None
     model_config = dict(populate_by_name=True)

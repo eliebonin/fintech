@@ -1637,7 +1637,7 @@ instrument_booking_convention = Table(
     Column("approved_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Actor approving this immutable version."),
     Column("approved_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="Approval audit timestamp."),
     UniqueConstraint("instrument_node_id", "version_no", name="uq_instrument_booking_convention_version"),
-    CheckConstraint("version_no > 0 AND kind IN ('STRUCTURED_PRODUCT','FUTURE','BOND')", name="ck_instrument_booking_convention_kind"),
+    CheckConstraint("version_no > 0 AND kind IN ('STRUCTURED_PRODUCT','FUTURE','BOND','SWAP')", name="ck_instrument_booking_convention_kind"),
     schema="secm",
 )
 

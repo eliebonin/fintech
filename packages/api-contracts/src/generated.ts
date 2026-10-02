@@ -1277,6 +1277,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/trades/swaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Swaps */
+        post: operations["swaps_v1_trades_swaps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/trades/traders": {
         parameters: {
             query?: never;
@@ -1936,7 +1953,7 @@ export interface components {
         /** ConventionProposalRequest */
         ConventionProposalRequest: {
             /** Convention */
-            convention: components["schemas"]["StructuredConvention-Input"] | components["schemas"]["FutureConvention-Input"] | components["schemas"]["BondConvention-Input"];
+            convention: components["schemas"]["StructuredConvention-Input"] | components["schemas"]["FutureConvention-Input"] | components["schemas"]["BondConvention-Input"] | components["schemas"]["SwapConvention-Input"];
             /**
              * Instrumentid
              * Format: uuid
@@ -3858,7 +3875,7 @@ export interface components {
             /** Contractmonth */
             contractMonth?: string | null;
             /** Convention */
-            convention?: (components["schemas"]["StructuredConvention-Output"] | components["schemas"]["FutureConvention-Output"] | components["schemas"]["BondConvention-Output"]) | null;
+            convention?: (components["schemas"]["StructuredConvention-Output"] | components["schemas"]["FutureConvention-Output"] | components["schemas"]["BondConvention-Output"] | components["schemas"]["SwapConvention-Output"]) | null;
             /** Couponfrequency */
             couponFrequency?: number | null;
             /** Couponrate */
@@ -3885,7 +3902,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "STRUCTURED_PRODUCT" | "FUTURE" | "BOND";
+            kind: "STRUCTURED_PRODUCT" | "FUTURE" | "BOND" | "SWAP";
             /** Listingid */
             listingId?: string | null;
             /** Listingname */
@@ -3896,6 +3913,7 @@ export interface components {
             maturityDate?: string | null;
             /** Name */
             name: string;
+            swapDetails?: components["schemas"]["SwapDetailsView"] | null;
             /** Termsfingerprint */
             termsFingerprint?: string | null;
             /** Underlyingid */
@@ -4455,6 +4473,122 @@ export interface components {
             submissionMode: string;
             /** Termsid */
             termsId?: string | null;
+        };
+        /** SwapConvention */
+        "SwapConvention-Input": {
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "SWAP";
+            /** Otcallowed */
+            otcAllowed: boolean;
+            /**
+             * Pricebasis
+             * @constant
+             */
+            priceBasis: "SWAP_VALUE_PER_NOTIONAL";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /** Quantityincrement */
+            quantityIncrement: number | string;
+            /** Quantityminimum */
+            quantityMinimum: number | string;
+            /**
+             * Quantityunit
+             * @constant
+             */
+            quantityUnit: "NOMINAL";
+            /** Quotefactor */
+            quoteFactor: number | string;
+            /** Sourcereference */
+            sourceReference: string;
+        };
+        /** SwapConvention */
+        "SwapConvention-Output": {
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "SWAP";
+            /** Otcallowed */
+            otcAllowed: boolean;
+            /**
+             * Pricebasis
+             * @constant
+             */
+            priceBasis: "SWAP_VALUE_PER_NOTIONAL";
+            /**
+             * Pricecurrencyid
+             * Format: uuid
+             */
+            priceCurrencyId: string;
+            /** Quantityincrement */
+            quantityIncrement: string;
+            /** Quantityminimum */
+            quantityMinimum: string;
+            /**
+             * Quantityunit
+             * @constant
+             */
+            quantityUnit: "NOMINAL";
+            /** Quotefactor */
+            quoteFactor: string;
+            /** Sourcereference */
+            sourceReference: string;
+        };
+        /** SwapDetailsView */
+        SwapDetailsView: {
+            /**
+             * Effectivedate
+             * Format: date
+             */
+            effectiveDate: string;
+            /**
+             * Fundingdirection
+             * @enum {string}
+             */
+            fundingDirection: "PAY" | "RECEIVE";
+            /**
+             * Fundingreferenceid
+             * Format: uuid
+             */
+            fundingReferenceId: string;
+            /** Fundingreferencename */
+            fundingReferenceName: string;
+            /** Fundingspread */
+            fundingSpread: string;
+            /**
+             * Performancedirection
+             * @enum {string}
+             */
+            performanceDirection: "PAY" | "RECEIVE";
+            /**
+             * Performancereferenceid
+             * Format: uuid
+             */
+            performanceReferenceId: string;
+            /** Performancereferencename */
+            performanceReferenceName: string;
+            /** Returnprofilecode */
+            returnProfileCode: string;
+            /** Sourcefacts */
+            sourceFacts: {
+                [key: string]: unknown;
+            };
         };
         /** TenantMembershipResponse */
         TenantMembershipResponse: {
@@ -12003,7 +12137,7 @@ export interface operations {
     search_v1_trades_product_instruments_get: {
         parameters: {
             query: {
-                kind: "STRUCTURED_PRODUCT" | "FUTURE" | "BOND";
+                kind: "STRUCTURED_PRODUCT" | "FUTURE" | "BOND" | "SWAP";
                 route: "LISTED" | "OTC";
                 q?: string;
                 limit?: number;
@@ -12187,6 +12321,98 @@ export interface operations {
         };
     };
     structured_v1_trades_structured_products_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    swaps_v1_trades_swaps_post: {
         parameters: {
             query?: never;
             header: {

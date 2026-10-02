@@ -73,7 +73,7 @@ export function InstrumentDetail({ instrument, standalone = false, futureTerms }
         </Stack>
       </Stack>
       {instrument.instrumentType === 'FUTURE' && (futureTerms ? <ProductFacts terms={futureTerms} configuration/> : <Section title="Futures contract facts"><Typography>Approved contract facts unavailable. Inspect conventions to check the underlying, multiplier and dates; no contract multiplier is inferred from the listing conversion.</Typography></Section>)}
-      {['STRUCTURED_PRODUCT','FUTURE','BOND'].includes(instrument.instrumentType)?<Section title="Booking conventions" action={<Button component={Link} href={`/instruments/${instrument.instrumentId}/booking-conventions`}>Inspect / configure conventions</Button>}><Typography>Authoritative quantity, quote and contract conventions are approved in Operations. Book trades from the dedicated Trade booking page, not from a listing.</Typography></Section>:null}
+      {['STRUCTURED_PRODUCT','FUTURE','BOND','SWAP'].includes(instrument.instrumentType)?<Section title="Booking conventions" action={<Button component={Link} href={`/instruments/${instrument.instrumentId}/booking-conventions`}>Inspect / configure conventions</Button>}><Typography>Authoritative quantity, quote and contract conventions are approved in Operations. Book trades from the dedicated Trade booking page, not from a listing.</Typography></Section>:null}
 
       {instrument.instrumentType === 'OPTION' && <Section title="Option terms" eyebrow="CURRENT GOVERNED REFERENCE FACTS">
         {option ? <Box sx={{ display:'grid', gridTemplateColumns:{xs:'1fr',sm:'repeat(3, 1fr)'}, gap:2 }}>

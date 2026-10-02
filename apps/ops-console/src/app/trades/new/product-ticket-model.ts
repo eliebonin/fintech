@@ -46,11 +46,13 @@ export function validateProductDraft(terms:ProductTerms,draft:ProductDraft,conte
   if(!draft.strategyId)errors.push({field:'strategyId',message:'Select a strategy.'});
   const qty=part(draft.quantity),price=part(draft.executionPrice);
   if(!qty||qty.value<=0||!c||(c.kind==='FUTURE'?!/^\d{1,18}$/.test(draft.quantity):!aligned(draft.quantity,String(c.quantityIncrement),String(c.quantityMinimum))))errors.push({field:'quantity',message:'Enter a positive quantity matching the approved minimum and increment.'});
-  if(!price||productAmount(terms,draft.quantity,draft.executionPrice)==='—'||(price.value<0&&(c?.kind!=='FUTURE'||!c.allowNegativePrice)))errors.push({field:'executionPrice',message:'Enter an exact supported price under the approved convention.'});
+  if(!price||productAmount(terms,draft.quantity,draft.executionPrice)==='—'||(price.value<0&&c?.kind!=='SWAP'&&(c?.kind!=='FUTURE'||!c.allowNegativePrice)))errors.push({field:'executionPrice',message:'Enter an exact supported price under the approved convention.'});
   if(c?.kind==='FUTURE'&&price){const positive=draft.executionPrice.replace(/^-/, '');if(!aligned(positive,String(c.tickSize)))errors.push({field:'executionPrice',message:'Single-fill price must match the approved tick increment.'});}
   const time=new Date(draft.tradeDatetime),validTime=/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(draft.tradeDatetime)&&!Number.isNaN(time.getTime());
   if(!validTime||(c?.kind==='FUTURE'&&time>new Date(c.lastTradingAtUtc)))errors.push({field:'tradeDatetime',message:'Enter an execution timestamp with timezone within the contract trading period.'});
   if(c?.kind==='FUTURE'&&!['OPEN','CLOSE'].includes(draft.positionEffect))errors.push({field:'positionEffect',message:'Select OPEN or CLOSE execution intent.'});
+  if(c?.kind==='SWAP'&&!draft.counterpartyOrganisationId)errors.push({field:'counterpartyOrganisationId',message:'Select the OTC swap counterparty.'});
+  if(c?.kind==='SWAP'&&validTime&&(!terms.swapDetails||time.toISOString().slice(0,10)<terms.swapDetails.effectiveDate||!terms.maturityDate||time.toISOString().slice(0,10)>=terms.maturityDate))errors.push({field:'tradeDatetime',message:'Execution must be within the swap effective and maturity dates. Reselect terms if the date changed.'});
   if(c?.kind==='STRUCTURED_PRODUCT'||c?.kind==='BOND'){
     const date=new Date(`${draft.settlementDate}T00:00:00Z`);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(draft.settlementDate)||Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==draft.settlementDate||(validTime&&draft.settlementDate<time.toISOString().slice(0,10)))errors.push({field:'settlementDate',message:'Enter the actual security settlement date on or after execution.'});
@@ -66,7 +68,7 @@ export function validateProductDraft(terms:ProductTerms,draft:ProductDraft,conte
 export function buildProductPayload(terms:ProductTerms,draft:ProductDraft):ProductRequest {
   return {...(terms.kind==='BOND'?{priceType:draft.priceType as 'CLEAN'|'DIRTY',accruedInterestAmount:draft.accruedInterestAmount,settlementEvidence:draft.settlementEvidence?.trim()}:{}),instrumentId:terms.instrumentId,listingId:terms.listingId??null,executionRoute:terms.executionRoute,
     expectedTermsFingerprint:terms.termsFingerprint??'',strategyId:draft.strategyId,side:draft.side,quantity:draft.quantity,
-    executionPrice:draft.executionPrice,tradeDatetime:draft.tradeDatetime,settlementDate:terms.kind==='FUTURE'?null:draft.settlementDate,
+    executionPrice:draft.executionPrice,tradeDatetime:draft.tradeDatetime,settlementDate:terms.kind==='FUTURE'||terms.kind==='SWAP'?null:draft.settlementDate,
     positionEffect:terms.kind==='FUTURE'?draft.positionEffect:null,tradePurpose:draft.tradePurpose,marketActivity:draft.marketActivity||null,
     counterpartyOrganisationId:draft.counterpartyOrganisationId||null,executingBrokerOrganisationId:draft.executingBrokerOrganisationId||null,
     traderPersonId:draft.traderPersonId||null,comment:draft.comment?.trim()||null,tagIds:draft.tagIds,

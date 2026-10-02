@@ -12,6 +12,16 @@ def exact_amount(value: Decimal) -> Decimal:
     return value
 
 
+def swap_reference_value(signed_notional: Decimal, price: Decimal, quote_factor: Decimal) -> Decimal:
+    """Entry reference value in canonical holder orientation; never a cash posting."""
+    nominal, price, factor = map(Decimal, (signed_notional, price, quote_factor))
+    if not all(value.is_finite() for value in (nominal, price, factor)) or nominal == 0 or factor <= 0:
+        raise ValueError('Finite nonzero nominal and positive quotation divisor are required.')
+    with localcontext() as context:
+        context.prec = 100
+        return exact_amount(nominal * price / factor)
+
+
 def execution_amount(quantity, price, *, quantity_unit, price_basis, quote_factor,
                      denomination=None, multiplier=None):
     with localcontext() as context:

@@ -1949,7 +1949,8 @@
               "mapping": {
                 "BOND": "#/components/schemas/BondConvention-Input",
                 "FUTURE": "#/components/schemas/FutureConvention-Input",
-                "STRUCTURED_PRODUCT": "#/components/schemas/StructuredConvention-Input"
+                "STRUCTURED_PRODUCT": "#/components/schemas/StructuredConvention-Input",
+                "SWAP": "#/components/schemas/SwapConvention-Input"
               },
               "propertyName": "kind"
             },
@@ -1962,6 +1963,9 @@
               },
               {
                 "$ref": "#/components/schemas/BondConvention-Input"
+              },
+              {
+                "$ref": "#/components/schemas/SwapConvention-Input"
               }
             ],
             "title": "Convention"
@@ -7859,7 +7863,8 @@
                   "mapping": {
                     "BOND": "#/components/schemas/BondConvention-Output",
                     "FUTURE": "#/components/schemas/FutureConvention-Output",
-                    "STRUCTURED_PRODUCT": "#/components/schemas/StructuredConvention-Output"
+                    "STRUCTURED_PRODUCT": "#/components/schemas/StructuredConvention-Output",
+                    "SWAP": "#/components/schemas/SwapConvention-Output"
                   },
                   "propertyName": "kind"
                 },
@@ -7872,6 +7877,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/BondConvention-Output"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SwapConvention-Output"
                   }
                 ]
               },
@@ -7965,7 +7973,8 @@
             "enum": [
               "STRUCTURED_PRODUCT",
               "FUTURE",
-              "BOND"
+              "BOND",
+              "SWAP"
             ],
             "title": "Kind",
             "type": "string"
@@ -8020,6 +8029,16 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "swapDetails": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SwapDetailsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "termsFingerprint": {
             "anyOf": [
@@ -9671,6 +9690,239 @@
           "proposedAt"
         ],
         "title": "StructuredProductProposalView",
+        "type": "object"
+      },
+      "SwapConvention-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "effectiveFrom": {
+            "format": "date",
+            "title": "Effectivefrom",
+            "type": "string"
+          },
+          "kind": {
+            "const": "SWAP",
+            "title": "Kind",
+            "type": "string"
+          },
+          "otcAllowed": {
+            "title": "Otcallowed",
+            "type": "boolean"
+          },
+          "priceBasis": {
+            "const": "SWAP_VALUE_PER_NOTIONAL",
+            "title": "Pricebasis",
+            "type": "string"
+          },
+          "priceCurrencyId": {
+            "format": "uuid",
+            "title": "Pricecurrencyid",
+            "type": "string"
+          },
+          "quantityIncrement": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Quantityincrement"
+          },
+          "quantityMinimum": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Quantityminimum"
+          },
+          "quantityUnit": {
+            "const": "NOMINAL",
+            "title": "Quantityunit",
+            "type": "string"
+          },
+          "quoteFactor": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,21}0*$)\\d{0,12}\\.\\d{0,8}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Quotefactor"
+          },
+          "sourceReference": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Sourcereference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "effectiveFrom",
+          "priceCurrencyId",
+          "quoteFactor",
+          "sourceReference",
+          "kind",
+          "quantityUnit",
+          "priceBasis",
+          "quantityMinimum",
+          "quantityIncrement",
+          "otcAllowed"
+        ],
+        "title": "SwapConvention",
+        "type": "object"
+      },
+      "SwapConvention-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "effectiveFrom": {
+            "format": "date",
+            "title": "Effectivefrom",
+            "type": "string"
+          },
+          "kind": {
+            "const": "SWAP",
+            "title": "Kind",
+            "type": "string"
+          },
+          "otcAllowed": {
+            "title": "Otcallowed",
+            "type": "boolean"
+          },
+          "priceBasis": {
+            "const": "SWAP_VALUE_PER_NOTIONAL",
+            "title": "Pricebasis",
+            "type": "string"
+          },
+          "priceCurrencyId": {
+            "format": "uuid",
+            "title": "Pricecurrencyid",
+            "type": "string"
+          },
+          "quantityIncrement": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+            "title": "Quantityincrement",
+            "type": "string"
+          },
+          "quantityMinimum": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,18}|(?=[\\d.]{1,31}0*$)\\d{0,18}\\.\\d{0,12}0*$)",
+            "title": "Quantityminimum",
+            "type": "string"
+          },
+          "quantityUnit": {
+            "const": "NOMINAL",
+            "title": "Quantityunit",
+            "type": "string"
+          },
+          "quoteFactor": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,21}0*$)\\d{0,12}\\.\\d{0,8}0*$)",
+            "title": "Quotefactor",
+            "type": "string"
+          },
+          "sourceReference": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Sourcereference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "effectiveFrom",
+          "priceCurrencyId",
+          "quoteFactor",
+          "sourceReference",
+          "kind",
+          "quantityUnit",
+          "priceBasis",
+          "quantityMinimum",
+          "quantityIncrement",
+          "otcAllowed"
+        ],
+        "title": "SwapConvention",
+        "type": "object"
+      },
+      "SwapDetailsView": {
+        "properties": {
+          "effectiveDate": {
+            "format": "date",
+            "title": "Effectivedate",
+            "type": "string"
+          },
+          "fundingDirection": {
+            "enum": [
+              "PAY",
+              "RECEIVE"
+            ],
+            "title": "Fundingdirection",
+            "type": "string"
+          },
+          "fundingReferenceId": {
+            "format": "uuid",
+            "title": "Fundingreferenceid",
+            "type": "string"
+          },
+          "fundingReferenceName": {
+            "title": "Fundingreferencename",
+            "type": "string"
+          },
+          "fundingSpread": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Fundingspread",
+            "type": "string"
+          },
+          "performanceDirection": {
+            "enum": [
+              "PAY",
+              "RECEIVE"
+            ],
+            "title": "Performancedirection",
+            "type": "string"
+          },
+          "performanceReferenceId": {
+            "format": "uuid",
+            "title": "Performancereferenceid",
+            "type": "string"
+          },
+          "performanceReferenceName": {
+            "title": "Performancereferencename",
+            "type": "string"
+          },
+          "returnProfileCode": {
+            "title": "Returnprofilecode",
+            "type": "string"
+          },
+          "sourceFacts": {
+            "additionalProperties": true,
+            "title": "Sourcefacts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "performanceReferenceId",
+          "performanceReferenceName",
+          "performanceDirection",
+          "returnProfileCode",
+          "fundingReferenceId",
+          "fundingReferenceName",
+          "fundingDirection",
+          "fundingSpread",
+          "effectiveDate",
+          "sourceFacts"
+        ],
+        "title": "SwapDetailsView",
         "type": "object"
       },
       "TenantMembershipResponse": {
@@ -23203,7 +23455,8 @@
               "enum": [
                 "STRUCTURED_PRODUCT",
                 "FUTURE",
-                "BOND"
+                "BOND",
+                "SWAP"
               ],
               "title": "Kind",
               "type": "string"
@@ -23706,6 +23959,154 @@
           }
         },
         "summary": "Structured"
+      }
+    },
+    "/v1/trades/swaps": {
+      "post": {
+        "operationId": "swaps_v1_trades_swaps_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductBookingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Swaps"
       }
     },
     "/v1/trades/traders": {

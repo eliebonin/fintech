@@ -27,7 +27,7 @@ def product_booking_router(connection_dependency, membership):
                     correlationId=current_request_id(), **pagination)
 
     @router.get('/v1/trades/product-instruments', response_model=ProductBookingSearchResponse)
-    def search(kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND'], route: Literal['LISTED', 'OTC'],
+    def search(kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP'], route: Literal['LISTED', 'OTC'],
                q: str = Query(default='', max_length=250), limit: int = Query(default=20, ge=1, le=100),
                offset: int = Query(default=0, ge=0), as_of: date = Query(default=None, alias='asOfDate'),
                context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
@@ -67,6 +67,12 @@ def product_booking_router(connection_dependency, membership):
                 key: str = Header(alias='Idempotency-Key', min_length=1, max_length=255),
                 context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
         return booking(request, response, key, context, connection, 'FUTURE')
+
+    @router.post('/v1/trades/swaps', response_model=TradeDetailResponse, status_code=201)
+    def swaps(request: ProductBookingRequest, response: Response,
+              key: str = Header(alias='Idempotency-Key', min_length=1, max_length=255),
+              context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+        return booking(request, response, key, context, connection, 'SWAP')
 
     def propose(request, context, connection):
         actor = authorized(connection, context)

@@ -5046,10 +5046,10 @@ def portfolio_pnl(connection: Connection, tenant_id: UUID, portfolio_code: str, 
     # immutable product economics and must not enter that legacy valuation path.
     from .product_booking import load_economics as load_product_economics
     bond_economics = load_product_economics(connection, [trade.trade_id for trade in trades if trade.instrument_type == 'BOND'])
-    if any(trade.instrument_type in {'STRUCTURED_PRODUCT', 'FUTURE'} or
+    if any(trade.instrument_type in {'STRUCTURED_PRODUCT', 'FUTURE', 'SWAP'} or
            (trade.instrument_type == 'BOND' and trade.trade_id in bond_economics) for trade in trades):
         from .product_booking import ProductValuationUnsupported
-        raise ProductValuationUnsupported('Structured-product/futures/nominal-bond valuation is deferred; no partial strategy total is returned.')
+        raise ProductValuationUnsupported('Structured-product/futures/swaps/nominal-bond valuation is deferred; no partial strategy total is returned.')
     gbpusd_node = connection.execute(select(m.financial_reference_node.c.reference_node_id).where(m.financial_reference_node.c.internal_code == "MVP_GBPUSD")).scalar_one_or_none()
     eurusd_node = connection.execute(select(m.financial_reference_node.c.reference_node_id).where(m.financial_reference_node.c.internal_code == "MVP_EURUSD")).scalar_one_or_none()
 

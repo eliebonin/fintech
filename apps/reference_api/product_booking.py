@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from pydantic import TypeAdapter
 from sqlalchemy import select, exists, and_, or_, func
 from security_master_schema import models as m
-from security_master_schema.product_booking import execution_amount, validate_increment, bond_amounts
+from security_master_schema.product_booking import execution_amount, validate_increment, bond_amounts, swap_reference_value
 from security_master_schema.fx_forward_booking import decimal_text
 from .product_booking_contracts import (
     BookingConvention, ConventionProposalRequest, FutureProposalRequest, FutureFamilyProposalRequest, FutureFamilyView, FutureFamilySpecification,
@@ -60,7 +60,7 @@ def instrument_row(connection, tenant, node_id):
         m.instrument_type.c.status.label('type_status')).join(m.instrument_type,
         m.instrument_type.c.instrument_type_id == m.instrument.c.instrument_type_id).where(
         m.instrument.c.instrument_node_id == node_id)).mappings().first()
-    if row is None or row.type_code not in {'STRUCTURED_PRODUCT', 'FUTURE', 'BOND'}:
+    if row is None or row.type_code not in {'STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP'}:
         raise RepositoryNotFound('A structured security or futures instrument is required.')
     return node, row
 
@@ -359,6 +359,12 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
             values.update(maturityDate=dates.maturity_date, couponType=bond.coupon_type, couponRate=bond.coupon_rate,
                 couponFrequency=bond.coupon_frequency_per_year, dayCountConvention=bond.day_count_convention)
             facts['bondTerms'] = dict(bond)
+        elif convention.kind == 'SWAP':
+            if listing_id or not convention.otc_allowed:
+                raise ValueError('This swap slice requires an approved OTC convention, without a listing.')
+            from .swap_booking import load_swap_context
+            details, maturity = load_swap_context(connection, tenant, instrument_id, as_of, lock=lock)
+            values.update(swapDetails=details, maturityDate=maturity)
         else:
             future = connection.execute(select(m.future_terms).where(m.future_terms.c.instrument_node_id == instrument_id)).mappings().one_or_none()
             if future:
@@ -429,7 +435,7 @@ def search(connection, tenant, kind, route, query, limit, offset, as_of):
 def book(connection, tenant, actor, request, key, kind, request_id):
     from .repository import _trade_booking_fingerprint, IdempotencyKeyConflict, RepositoryNotFound, get_booked_trade_detail, persist_trade_annotations
     from .trade_properties import validate_trade_annotations
-    endpoint = '/v1/trades/' + {'STRUCTURED_PRODUCT': 'structured-products', 'FUTURE': 'futures', 'BOND': 'bonds'}[kind]
+    endpoint = '/v1/trades/' + {'STRUCTURED_PRODUCT': 'structured-products', 'FUTURE': 'futures', 'BOND': 'bonds', 'SWAP': 'swaps'}[kind]
     with connection.begin_nested():
         connection.execute(select(func.pg_advisory_xact_lock(int.from_bytes(sha256(f'{tenant}\x1f{endpoint}\x1f{key}'.encode()).digest()[:8], 'big', signed=True))))
         with localcontext() as decimal_context:
@@ -472,6 +478,12 @@ def book(connection, tenant, actor, request, key, kind, request_id):
                 validate_increment(request.quantity, 1, minimum=1)
                 validate_increment(request.execution_price, convention.tick_size)
             except ValueError as error: raise ProductBookingError(str(error), 'executionPrice' if request.quantity % 1 == 0 else 'quantity') from error
+        elif kind == 'SWAP':
+            if request.settlement_date is not None: raise ProductBookingError('Swap booking does not create a payment or settlement date.', 'settlementDate')
+            if request.execution_route != 'OTC' or request.listing_id: raise ProductBookingError('Swap booking requires the OTC canonical contract.', 'executionRoute')
+            if request.counterparty_organisation_id is None: raise ProductBookingError('Swap execution requires a counterparty.', 'counterpartyOrganisationId')
+            try: validate_increment(request.quantity, convention.quantity_increment, minimum=convention.quantity_minimum)
+            except ValueError as error: raise ProductBookingError(str(error), 'quantity') from error
         else:
             if request.position_effect is not None: raise ProductBookingError('Structured securities do not use futures execution intent.', 'positionEffect')
             if request.settlement_date is None: raise ProductBookingError('Enter the actual security settlement date.', 'settlementDate')
@@ -482,9 +494,10 @@ def book(connection, tenant, actor, request, key, kind, request_id):
         if not connection.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.strategy_id == request.strategy_id,
             m.strategy.c.tenant_id == tenant, m.strategy.c.status == 'ACTIVE').with_for_update()): raise RepositoryNotFound('Active tenant strategy was not found.')
         annotations = validate_trade_annotations(connection, tenant, request)
-        try: amount = execution_amount(request.quantity, request.execution_price, quantity_unit=convention.quantity_unit,
-            price_basis=convention.price_basis, quote_factor=convention.quote_factor,
-            denomination=getattr(convention, 'denomination', None), multiplier=getattr(convention, 'monetary_multiplier', None))
+        try:
+            amount = swap_reference_value(request.quantity if request.side == 'BUY' else request.quantity.copy_negate(), request.execution_price, convention.quote_factor) if kind == 'SWAP' else execution_amount(request.quantity, request.execution_price, quantity_unit=convention.quantity_unit,
+                price_basis=convention.price_basis, quote_factor=convention.quote_factor,
+                denomination=getattr(convention, 'denomination', None), multiplier=getattr(convention, 'monetary_multiplier', None))
         except ValueError as error: raise ProductBookingError(str(error), 'executionPrice') from error
         trade_id = uuid4()
         venue = connection.scalar(select(m.listing.c.market_venue_id).where(m.listing.c.listing_node_id == request.listing_id)) if request.listing_id else None
@@ -498,8 +511,8 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             booked_by_user_account_id=actor, created_by_user_account_id=actor, comment=request.comment))
         persist_trade_annotations(connection, tenant, trade_id, request, annotations)
         economics = ProductTradeEconomicsView(terms=terms, amount=decimal_text(dirty if kind == 'BOND' else amount), bondDetails=bond_details,
-            amountKind='REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION',
-            direction=None if kind == 'FUTURE' else ('PAY' if request.side == 'BUY' else 'RECEIVE'))
+            amountKind='ENTRY_REFERENCE_VALUE' if kind == 'SWAP' else 'REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION',
+            direction=None if kind in {'FUTURE', 'SWAP'} else ('PAY' if request.side == 'BUY' else 'RECEIVE'))
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type='BOOKED',
             event_datetime_utc=execution, source_event_id=key, payload_hash=fingerprint,
             event_payload=json.dumps({'schemaVersion': 1, 'kind': 'PRODUCT_BOOKING', 'economics': economics.model_dump(mode='json', by_alias=True)}, sort_keys=True),

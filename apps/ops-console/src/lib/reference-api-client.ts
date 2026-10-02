@@ -201,7 +201,7 @@ export function bookFxForwardTrade(payload: components["schemas"]["FxForwardBook
 export function bookOptionTrade(payload: components["schemas"]["OptionBookingRequest"], options: EquityProposalOptions, key: string) {
   return postBookedTrade("/v1/trades/options",payload,options,key);
 }
-export function bookProductTrade(product:'structured-products'|'futures'|'bonds',payload:components['schemas']['ProductBookingRequest'],options:EquityProposalOptions,key:string) {
+export function bookProductTrade(product:'structured-products'|'futures'|'bonds'|'swaps',payload:components['schemas']['ProductBookingRequest'],options:EquityProposalOptions,key:string) {
   return postBookedTrade(`/v1/trades/${product}`,payload,options,key);
 }
 export function searchProductInstruments(options:EquityProposalOptions,params:URLSearchParams) {
