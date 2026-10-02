@@ -13,6 +13,7 @@ from .product_booking_contracts import (
     BookingConvention, ConventionProposalRequest, FutureProposalRequest, FutureFamilyProposalRequest, FutureFamilyView, FutureFamilySpecification,
     ProductBookingContextView, ProductTradeEconomicsView,
 )
+from .swap_creation_contracts import SwapProposalRequest
 
 CONVENTION = TypeAdapter(BookingConvention)
 
@@ -108,7 +109,11 @@ def append_convention(connection, instrument_id, convention, actor):
 
 def submit_proposal(connection, tenant, actor, request):
     from .repository import get_reference_data_proposal
-    if isinstance(request, ConventionProposalRequest):
+    if isinstance(request, SwapProposalRequest):
+        from .swap_creation import validate_swap_references
+        validate_swap_references(connection, tenant, request.terms)
+        kind = 'CREATE_SWAP'
+    elif isinstance(request, ConventionProposalRequest):
         validate_convention_references(connection, tenant, request.instrument_id, request.convention)
         kind = 'CONFIGURE_BOOKING_CONVENTION'
     elif isinstance(request, FutureFamilyProposalRequest):
@@ -234,14 +239,17 @@ def decide_proposal(connection, tenant, actor, proposal_id, decision, reason):
         m.reference_data_proposal.c.reference_data_proposal_id == proposal_id,
         m.reference_data_proposal.c.tenant_id == tenant).with_for_update()).mappings().first()
     if not row: raise RepositoryNotFound('Proposal was not found.')
-    if row.status != 'PENDING' or row.proposal_type not in {'CREATE_FUTURE', 'CREATE_FUTURE_FAMILY', 'CONFIGURE_BOOKING_CONVENTION'}:
+    if row.status != 'PENDING' or row.proposal_type not in {'CREATE_SWAP', 'CREATE_FUTURE', 'CREATE_FUTURE_FAMILY', 'CONFIGURE_BOOKING_CONVENTION'}:
         raise InvalidWorkflowState('Only pending product booking proposals can be decided.')
     payload = json.loads(row.proposed_payload)
     payload.pop('proposedByUserAccountId', None)
-    request = {'CREATE_FUTURE': FutureProposalRequest, 'CREATE_FUTURE_FAMILY': FutureFamilyProposalRequest, 'CONFIGURE_BOOKING_CONVENTION': ConventionProposalRequest}[row.proposal_type].model_validate(payload)
+    request = {'CREATE_SWAP': SwapProposalRequest, 'CREATE_FUTURE': FutureProposalRequest, 'CREATE_FUTURE_FAMILY': FutureFamilyProposalRequest, 'CONFIGURE_BOOKING_CONVENTION': ConventionProposalRequest}[row.proposal_type].model_validate(payload)
     node_id = None
     if decision == 'APPROVED':
-        if isinstance(request, FutureFamilyProposalRequest): node_id = materialize_family(connection, tenant, request)
+        if isinstance(request, SwapProposalRequest):
+            from .swap_creation import materialize_swap
+            node_id = materialize_swap(connection, tenant, actor, request)
+        elif isinstance(request, FutureFamilyProposalRequest): node_id = materialize_family(connection, tenant, request)
         elif isinstance(request, FutureProposalRequest): node_id = materialize_future(connection, tenant, actor, request)
         else:
             connection.execute(select(m.instrument).where(m.instrument.c.instrument_node_id == request.instrument_id).with_for_update()).all()

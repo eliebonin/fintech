@@ -6,6 +6,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
+from .swap_creation_contracts import GenericSwapTerms
 
 
 class ApiMeta(BaseModel):
@@ -759,6 +760,7 @@ class InstrumentView(BaseModel):
     taxonomy: list[str]
     notes: str
     option_terms: OptionInstrumentTermsView | None = Field(default=None, alias="optionTerms")
+    generic_terms: GenericSwapTerms | None = Field(default=None, alias="genericTerms")
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -901,9 +901,14 @@ def _option_inspection_terms(connection: Connection, tenant_id: UUID, instrument
 
 
 def get_instrument(connection: Connection, tenant_id: UUID, instrument_id: UUID) -> InstrumentView | None:
+    from .swap_creation import inspection_terms
     _, _, _, _, _, stmt = _base_instrument_select(tenant_id)
     row = connection.execute(stmt.where(m.financial_reference_node.c.reference_node_id == instrument_id)).mappings().first()
     if row is None:
+        return None
+    try:
+        generic_terms = inspection_terms(connection, tenant_id, instrument_id, row.definition_version) if row.instrument_type == 'SWAP' else None
+    except RepositoryNotFound:
         return None
     listings, listing_ids = _load_listing_views(connection, tenant_id, instrument_id)
     return InstrumentView(
@@ -923,6 +928,7 @@ def get_instrument(connection: Connection, tenant_id: UUID, instrument_id: UUID)
         taxonomy=_load_taxonomy(connection, instrument_id),
         notes="Canonical reference-data view returned by the reference API.",
         optionTerms=_option_inspection_terms(connection, tenant_id, instrument_id) if row.instrument_type == "OPTION" else None,
+        genericTerms=generic_terms,
     )
 
 
@@ -1384,6 +1390,7 @@ def decide_reference_data_proposal(
     dispatchers["CREATE_OPTION"] = decide_option_proposal
     from .product_booking import decide_proposal
     dispatchers["CREATE_FUTURE"] = decide_proposal
+    dispatchers["CREATE_SWAP"] = decide_proposal
     dispatchers["CREATE_FUTURE_FAMILY"] = decide_proposal
     dispatchers["CONFIGURE_BOOKING_CONVENTION"] = decide_proposal
     dispatcher = dispatchers.get(proposal.proposal_type)
@@ -4213,6 +4220,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
             "CREATE_OPTION",
             "CREATE_STRUCTURED_PRODUCT",
             "CREATE_FUTURE",
+            "CREATE_SWAP",
             "CONFIGURE_BOOKING_CONVENTION",
             "CREATE_FUTURE_FAMILY",
         }
@@ -4259,6 +4267,10 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                 f"{len(payload.get('underlyings', []))} underlyings · "
                 f"{len(payload.get('rows', []))} schedule rows"
             )
+        elif proposal.proposal_type == 'CREATE_SWAP':
+            title = f"Review swap · {payload.get('canonicalName', 'new swap')}"
+            terms = payload.get('terms', {})
+            detail = f"{terms.get('returnBasis')} return · leverage {terms.get('leverage', '1')} · {terms.get('financingTreatment')} · source {terms.get('sourceReference')}"
         elif proposal.proposal_type == 'CREATE_FUTURE_FAMILY':
             title = f"Review futures family {payload.get('canonicalName')}"
             detail = f"Non-tradable family · {payload.get('familyCode')} · source {payload.get('sourceReference')}"
@@ -4300,6 +4312,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                         "CREATE_OPTION",
                         "CREATE_STRUCTURED_PRODUCT",
                         "CREATE_FUTURE",
+                        "CREATE_SWAP",
                         "CONFIGURE_BOOKING_CONVENTION",
                         "CREATE_FUTURE_FAMILY",
                     }

@@ -11,6 +11,7 @@ from .product_booking_contracts import (ProductBookingRequest, ProductBookingCon
 from . import product_booking as service
 from .repository import RepositoryNotFound, IdempotencyKeyConflict, InvalidWorkflowState
 from .trade_properties import TradeFieldError
+from .swap_creation_contracts import SwapProposalRequest
 
 
 def product_booking_router(connection_dependency, membership):
@@ -91,6 +92,10 @@ def product_booking_router(connection_dependency, membership):
 
     @router.post('/v1/instrument-booking-convention-proposals', response_model=ReferenceDataProposalResponse, status_code=201)
     def conventions(request: ConventionProposalRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+        return propose(request, context, connection)
+
+    @router.post('/v1/instruments/swap-proposals', response_model=ReferenceDataProposalResponse, status_code=201)
+    def swap_proposal(request: SwapProposalRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
         return propose(request, context, connection)
 
     @router.post('/v1/future-proposals', response_model=ReferenceDataProposalResponse, status_code=201)

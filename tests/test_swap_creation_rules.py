@@ -73,3 +73,19 @@ def test_sourced_custom_rules():
         redemptionRule='CONTINUE',continuationDescription='Source 6 cash proceeds').redemption_rule=='CONTINUE'
     with pytest.raises(ValidationError): terms(**funding(fundingResetFrequency='CUSTOM'))
     assert terms(**funding(fundingResetFrequency='CUSTOM',fundingResetScheduleDescription='Source 7 dates')).funding_reset_frequency=='CUSTOM'
+
+
+@pytest.mark.parametrize('identifier,expected', [(' CONF-42 ', 'CONF-42'), (' ', None), ('', None), (None, None)])
+def test_proposal_normalizes_optional_identifier_into_approved_terms(identifier, expected):
+    from apps.reference_api.swap_creation_contracts import SwapProposalRequest
+    value = SwapProposalRequest(canonicalName='Swap', tenantIdentifier=identifier, terms=payload())
+    assert value.terms.model_dump(mode='json', by_alias=True).get('tenantIdentifier') == expected
+    assert value.tenant_identifier == expected
+
+
+def test_conflicting_identifiers_in_proposal_and_terms_are_rejected():
+    from apps.reference_api.swap_creation_contracts import SwapProposalRequest
+    with pytest.raises(ValidationError):
+        SwapProposalRequest(canonicalName='Swap', tenantIdentifier='CONF-42', terms=payload(tenantIdentifier='CONF-43'))
+    value = SwapProposalRequest(canonicalName='Swap', terms=payload(tenantIdentifier=' CONF-42 '))
+    assert value.tenant_identifier == 'CONF-42'

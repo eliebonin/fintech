@@ -24,6 +24,7 @@ def spread_from_basis_points(value: str | Decimal) -> Decimal:
 
 class GenericSwapTerms(BaseModel):
     schema_version: Literal[1] = Field(default=1, alias='schemaVersion')
+    tenant_identifier: str | None = Field(default=None, alias='tenantIdentifier', min_length=1, max_length=100)
     performance_reference_id: UUID = Field(alias='performanceReferenceId')
     contractual_notional: Decimal = Field(alias='contractualNotional', gt=0, max_digits=30, decimal_places=12)
     notional_currency_id: UUID = Field(alias='notionalCurrencyId')
@@ -54,6 +55,11 @@ class GenericSwapTerms(BaseModel):
     redemption_rule: Literal['TERMINATE', 'CONTINUE'] = Field(alias='redemptionRule')
     continuation_description: str | None = Field(default=None, alias='continuationDescription', min_length=1, max_length=2000)
     model_config = dict(populate_by_name=True, extra='forbid')
+
+    @field_validator('tenant_identifier', mode='before')
+    @classmethod
+    def optional_identifier(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
 
     @field_validator('contractual_notional', 'leverage', 'quote_factor', 'funding_spread', mode='before')
     @classmethod
@@ -117,7 +123,7 @@ class SwapProposalRequest(BaseModel):
     terms: GenericSwapTerms
     model_config = dict(populate_by_name=True, extra='forbid')
 
-    @field_validator('canonical_name', 'tenant_identifier')
+    @field_validator('canonical_name')
     @classmethod
     def nonblank(cls, value):
         if value is not None:
@@ -125,3 +131,17 @@ class SwapProposalRequest(BaseModel):
             if not value:
                 raise ValueError('A nonblank value is required.')
         return value
+
+    @field_validator('tenant_identifier', mode='before')
+    @classmethod
+    def optional_identifier(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+    @model_validator(mode='after')
+    def preserve_identifier(self):
+        if (self.tenant_identifier is not None and self.terms.tenant_identifier is not None
+                and self.tenant_identifier != self.terms.tenant_identifier):
+            raise ValueError('Proposal and terms tenant identifiers must agree.')
+        self.tenant_identifier = self.tenant_identifier or self.terms.tenant_identifier
+        self.terms = self.terms.model_copy(update={'tenant_identifier': self.tenant_identifier})
+        return self
