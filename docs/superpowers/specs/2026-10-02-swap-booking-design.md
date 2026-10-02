@@ -1,7 +1,8 @@
 # Swap booking: agreed model and proposed alpha design
 
-**Date:** 2026-10-02  
-**Status:** Approved; booking implementation delivered and verified in an isolated environment. See the [delivery record](../../delivery/swap-booking-alpha.md).  
+**Date:** 2026-10-02
+
+**Status:** Approved; booking implementation delivered and verified in an isolated environment. See the [delivery record](../../delivery/swap-booking-alpha.md).
 **Scope:** Booking OTC swaps referencing an existing economic instrument, starting with autocalls. Valuation remains deferred.
 
 ## Intent and final decisions
