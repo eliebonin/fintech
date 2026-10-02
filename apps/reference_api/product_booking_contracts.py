@@ -5,6 +5,7 @@ from typing import Annotated, Literal, Any
 from uuid import UUID
 from pydantic import BaseModel, Field, StrictBool, field_validator, model_validator
 from .contracts import TradeBookingRequest, ApiMeta
+from .swap_creation_contracts import GenericSwapTerms
 
 
 class ConventionBase(BaseModel):
@@ -220,10 +221,11 @@ class SwapDetailsView(BaseModel):
     performance_reference_name: str = Field(alias='performanceReferenceName')
     performance_direction: Literal['PAY', 'RECEIVE'] = Field(alias='performanceDirection')
     return_profile_code: str = Field(alias='returnProfileCode')
-    funding_reference_id: UUID = Field(alias='fundingReferenceId')
-    funding_reference_name: str = Field(alias='fundingReferenceName')
-    funding_direction: Literal['PAY', 'RECEIVE'] = Field(alias='fundingDirection')
-    funding_spread: Decimal = Field(alias='fundingSpread')
+    funding_reference_id: UUID | None = Field(default=None, alias='fundingReferenceId')
+    funding_reference_name: str | None = Field(default=None, alias='fundingReferenceName')
+    funding_direction: Literal['PAY', 'RECEIVE'] | None = Field(default=None, alias='fundingDirection')
+    funding_spread: Decimal | None = Field(default=None, alias='fundingSpread')
+    generic_terms: GenericSwapTerms | None = Field(default=None, alias='genericTerms')
     effective_date: date = Field(alias='effectiveDate')
     source_facts: dict[str, Any] = Field(alias='sourceFacts')
     model_config = dict(populate_by_name=True)
