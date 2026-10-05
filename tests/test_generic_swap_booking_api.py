@@ -332,3 +332,142 @@ def test_untyped_leg_economics_cannot_be_accepted_by_refreshing_ticket(change):
             profile = connection.scalar(select(m.swap_leg.c.return_profile_id).where(predicate, m.swap_leg.c.leg_role == 'PERFORMANCE'))
             connection.execute(m.swap_leg.update().where(predicate, m.swap_leg.c.leg_role == 'FUNDING').values(return_profile_id=profile))
     assert not context(node)['bookingEligible']
+
+
+@pytest.mark.parametrize('entry_point', ['product_booking', 'direct_loader', 'proposal_approval'])
+def test_direct_bond_booking_and_swap_source_path_do_not_deadlock(entry_point):
+    """Observe actual locks to schedule the former currency/identity cycle."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from sqlalchemy import event
+    from apps.reference_api import product_booking as service
+    from apps.reference_api.generic_swap_booking import load_generic_swap_context
+    from apps.reference_api.product_booking_contracts import ProductBookingRequest
+    from tests.test_bond_booking_api import bond as bond_fixture, ticket as bond_ticket
+
+    bond = bond_fixture.__wrapped__()
+    node = UUID(create_swap(reference=UUID(bond)))
+    bond_request = ProductBookingRequest.model_validate(bond_ticket(bond))
+    swap_request = ProductBookingRequest.model_validate(ticket(str(node)))
+    proposal_id = UUID(submit(proposal(UUID(bond)))) if entry_point == 'proposal_approval' else None
+    bond_identity_acquired = Event()
+    swap_currency_attempted = Event()
+    swap_currency_acquired = Event()
+    engine = get_engine()
+
+    def before_execute(connection, cursor, statement, parameters, execution_context, executemany):
+        if (connection.info.get('cross_path_role') == 'swap' and 'FROM secm.currency' in statement
+                and 'FOR UPDATE' in statement):
+            swap_currency_attempted.set()
+
+    def after_execute(connection, cursor, statement, parameters, execution_context, executemany):
+        if 'FOR UPDATE' not in statement:
+            return
+        role = connection.info.get('cross_path_role')
+        if 'FROM secm.currency' in statement:
+            if role == 'swap':
+                swap_currency_acquired.set()
+            elif role == 'bond':
+                connection.info['cross_path_currency_held'] = True
+        if (role == 'bond' and 'FROM secm.financial_reference_node' in statement
+                and not bond_identity_acquired.is_set()):
+            bond_identity_acquired.set()
+            # Original code holds bond identity while the other transaction
+            # acquires currency. Correct code already holds currency; release
+            # it after observing the other transaction's real lock attempt.
+            pending = swap_currency_attempted if connection.info.get('cross_path_currency_held') else swap_currency_acquired
+            assert pending.wait(timeout=5), 'Swap did not reach the currency lock.'
+
+    def run(role):
+        try:
+            with engine.begin() as connection:
+                connection.info['cross_path_role'] = role
+                try:
+                    connection.execute(text("SET LOCAL statement_timeout = '10s'"))
+                    if role == 'bond':
+                        result = service.book(connection, DEMO_IDS['tenant'], DEMO_IDS['demo_user_account'],
+                            bond_request, str(uuid4()), 'BOND', 'cross-path-bond')
+                        return ('BOOKED', str(result.data.trade.trade_id))
+                    if entry_point == 'product_booking':
+                        result = service.book(connection, DEMO_IDS['tenant'], DEMO_IDS['demo_user_account'],
+                            swap_request, str(uuid4()), 'SWAP', 'cross-path-swap')
+                        return ('BOOKED', str(result.data.trade.trade_id))
+                    if entry_point == 'direct_loader':
+                        details, maturity = load_generic_swap_context(connection, DEMO_IDS['tenant'], node, date(2026, 10, 1), lock=True)
+                        assert details.generic_terms.contractual_notional == 1000000
+                        return ('LOADED', str(node))
+                    result = service.decide_proposal(connection, DEMO_IDS['tenant'], DEMO_IDS['demo_user_account'],
+                        proposal_id, 'APPROVED', 'Synthetic source verified under concurrent booking.')
+                    return ('APPROVED', str(result.reference_node_id))
+                finally:
+                    connection.info.pop('cross_path_role', None)
+                    connection.info.pop('cross_path_currency_held', None)
+        except DBAPIError as error:
+            return (error.orig.sqlstate, None)
+
+    event.listen(engine, 'before_cursor_execute', before_execute)
+    event.listen(engine, 'after_cursor_execute', after_execute)
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            bond_work = pool.submit(run, 'bond')
+            assert bond_identity_acquired.wait(timeout=5), 'Bond did not acquire its identity.'
+            swap_work = pool.submit(run, 'swap')
+            results = [bond_work.result(timeout=20), swap_work.result(timeout=20)]
+    finally:
+        event.remove(engine, 'before_cursor_execute', before_execute)
+        event.remove(engine, 'after_cursor_execute', after_execute)
+    expected = {'product_booking': 'BOOKED', 'direct_loader': 'LOADED', 'proposal_approval': 'APPROVED'}[entry_point]
+    assert [status for status, identifier in results] == ['BOOKED', expected], results
+    with engine.connect() as connection:
+        trade_ids = [UUID(identifier) for status, identifier in results if status == 'BOOKED']
+        assert connection.scalar(select(func.count()).select_from(m.trade).where(m.trade.c.trade_id.in_(trade_ids))) == len(trade_ids)
+
+
+@pytest.mark.parametrize('entry_point', ['product_context', 'direct_loader'])
+def test_currency_discovery_drift_is_rejected_without_late_currency_lock(entry_point):
+    from sqlalchemy import event
+    from apps.reference_api.product_booking import load_context
+    from apps.reference_api.generic_swap_booking import load_generic_swap_context
+    node = UUID(create_swap())
+    engine = get_engine()
+    currencies_locked = []
+    changed = {'done': False}
+
+    def change_after_discovery(connection, cursor, statement, parameters, execution_context, executemany):
+        if (connection.info.get('discovery_drift') and 'FROM secm.currency' in statement
+                and 'FOR UPDATE' in statement and not changed['done']):
+            changed['done'] = True
+            # An actual distinct transaction changes the discovered currency
+            # before booking owns the instrument; no DB triggers are bypassed.
+            with engine.begin() as editing:
+                editing.execute(text("SET LOCAL statement_timeout = '2s'"))
+                editing.execute(m.instrument.update().where(m.instrument.c.instrument_node_id == node)
+                    .values(base_currency_id=DEMO_IDS['usd_currency']))
+
+    def record_acquired_currency(connection, cursor, statement, parameters, execution_context, executemany):
+        if connection.info.get('discovery_drift') and 'FROM secm.currency' in statement and 'FOR UPDATE' in statement:
+            currencies_locked.extend(value for value in parameters.values() if isinstance(value, UUID))
+
+    event.listen(engine, 'before_cursor_execute', change_after_discovery)
+    event.listen(engine, 'after_cursor_execute', record_acquired_currency)
+    try:
+        with engine.begin() as booking:
+            booking.info['discovery_drift'] = True
+            try:
+                if entry_point == 'product_context':
+                    value = load_context(booking, DEMO_IDS['tenant'], node, as_of=date(2026, 10, 1), lock=True)
+                    assert not value.booking_eligible
+                    assert 'currency changed' in value.ineligibility_message
+                else:
+                    with pytest.raises(ValueError, match='currency changed'):
+                        load_generic_swap_context(booking, DEMO_IDS['tenant'], node, date(2026, 10, 1), lock=True)
+                assert changed['done']
+                assert currencies_locked == [DEMO_IDS['gbp_currency']]
+                with engine.begin() as competing:
+                    # USD was never acquired late by the booking transaction.
+                    competing.execute(select(m.currency).where(m.currency.c.currency_id == DEMO_IDS['usd_currency']).with_for_update(nowait=True)).all()
+            finally:
+                booking.info.pop('discovery_drift', None)
+    finally:
+        event.remove(engine, 'before_cursor_execute', change_after_discovery)
+        event.remove(engine, 'after_cursor_execute', record_acquired_currency)

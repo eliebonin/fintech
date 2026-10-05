@@ -264,8 +264,18 @@ def decide_proposal(connection, tenant, actor, proposal_id, decision, reason):
     return get_reference_data_proposal(connection, tenant, proposal_id)
 
 
+def lock_booking_currency(connection, instrument_id):
+    """Acquire the common currency phase before contract/source identity rows."""
+    currency_id = connection.scalar(select(m.instrument.c.base_currency_id).where(
+        m.instrument.c.instrument_node_id == instrument_id))
+    if currency_id is not None:
+        connection.execute(select(m.currency).where(m.currency.c.currency_id == currency_id).with_for_update()).all()
+    return currency_id
+
+
 def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None, lock=False):
     as_of = as_of or date.today()
+    locked_currency_id = lock_booking_currency(connection, instrument_id) if lock else None
     if lock:
         # Lock the canonical instrument before reading conventions and listing projections.
         for table, key, value in [(m.financial_reference_node, 'reference_node_id', instrument_id),
@@ -286,6 +296,8 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
         listingId=listing_id, listingName=listing_node.canonical_name if listing_node else None,
         executionRoute='LISTED' if listing_id else 'OTC')
     try:
+        if lock and instrument.base_currency_id != locked_currency_id:
+            raise ValueError('Instrument currency changed while acquiring booking locks. Reselect the instrument.')
         if not node.is_tradable or not instrument.is_current or instrument.type_status != 'ACTIVE':
             raise ValueError('An active tradable instrument is required.')
         definitions = connection.execute(select(m.instrument_definition_version).where(

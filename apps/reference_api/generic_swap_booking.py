@@ -7,13 +7,14 @@ from .swap_creation_contracts import GenericSwapTerms
 
 
 def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False) -> tuple[SwapDetailsView, date]:
-    from .product_booking import CONVENTION, require_visible
+    from .product_booking import CONVENTION, require_visible, lock_booking_currency
     from .swap_creation import validate_swap_references
 
     def rows(table, predicate):
         statement = select(table).where(predicate).order_by(*table.primary_key.columns)
         return [dict(row) for row in connection.execute(statement.with_for_update() if lock else statement).mappings()]
 
+    locked_currency_id = lock_booking_currency(connection, instrument_id) if lock else None
     rows(m.financial_reference_node, m.financial_reference_node.c.reference_node_id == instrument_id)
     rows(m.reference_node_scope, m.reference_node_scope.c.reference_node_id == instrument_id)
     require_visible(connection, tenant_id, instrument_id)
@@ -32,6 +33,8 @@ def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lo
     if generic[0]['schema_version'] != terms.schema_version:
         raise ValueError('Generic swap schema version differs from approved economics.')
     instruments = rows(m.instrument, m.instrument.c.instrument_node_id == instrument_id)
+    if lock and (len(instruments) != 1 or instruments[0]['base_currency_id'] != locked_currency_id):
+        raise ValueError('Instrument currency changed while acquiring booking locks. Reselect the instrument.')
     if len(instruments) != 1 or not instruments[0]['is_current'] or any(
             definition[key] != instruments[0][key] for key in ('base_currency_id', 'instrument_type_id',
                 'issuer_organisation_id', 'effective_from', 'effective_to', 'sequence_no', 'asset_class')):
