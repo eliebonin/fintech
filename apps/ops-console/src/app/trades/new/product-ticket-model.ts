@@ -10,6 +10,15 @@ export function createProductDraft():ProductDraft {
 type DecimalPart={value:bigint;scale:number};
 function part(text:string):DecimalPart|null {
   text=text.replace(/^(-?)\./,'$10.');
+  const scientific=/^(-?\d{1,30})(?:\.(\d{1,30}))?[eE]([+-]?\d{1,2})$/.exec(text);
+  if(scientific){
+    // Decimal JSON can use exponent notation; shift exact integers, not money floats.
+    let value=BigInt(scientific[1]+(scientific[2]??'')),scale=(scientific[2]?.length??0)-Number(scientific[3]);
+    if(scale<0){value*=BigInt(10)**BigInt(-scale);scale=0;}
+    while(scale>0&&value%BigInt(10)===BigInt(0)){value/=BigInt(10);scale--;}
+    if(scale>12||(value<0?-value:value).toString().length-scale>18)return null;
+    return {value,scale};
+  }
   if(!/^-?\d{1,18}(?:\.\d{1,12})?$/.test(text))return null;
   return {value:BigInt(text.replace('.','')),scale:text.split('.')[1]?.length??0};
 }

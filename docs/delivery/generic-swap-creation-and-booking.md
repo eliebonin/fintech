@@ -1,6 +1,6 @@
 # Generic swap creation and booking
 
-Date: 2026-10-05. Status: implemented; final acceptance and whole-branch review in progress. Operating activation has not occurred. This extends the [legacy autocall-reference booking alpha](swap-booking-alpha.md); it does not make arbitrary legacy SWAP records eligible.
+Date: 2026-10-05. Status: implemented and alpha acceptance verified in an isolated environment. Whole-feature review identified two Important defects; both were reproduced and corrected, with direct fix inspection and a fresh green full suite after the user switched to sequential execution. Operating activation has not occurred. This extends the [legacy autocall-reference booking alpha](swap-booking-alpha.md); it does not make arbitrary legacy SWAP records eligible.
 
 ## Creation and approval
 
@@ -28,7 +28,7 @@ One immutable BOOKED snapshot retains both nominal amounts, approved version, re
 
 Revision `20261002_60` adds version-owned JSONB economics with FK/unique ownership and schema shape checks. Additive revision `20261005_61` closes PostgreSQL CHECK's JSON-null version hole; revision 60 remains unchanged. Both are forward-only. Service contracts validate the complete economics; database shape checks are not a full JSON-schema enforcement layer. Approval immutability is enforced by the service boundary; no generic amendment endpoint is delivered.
 
-Final verification and real-browser evidence are recorded in the [execution log](generic-swap-execution-log.md). The form's native required constraints, funding off/on/off clearing, review/back-edit, exact funded conversion, pending Requests/Operations and tenant switching were exercised in a new isolated database and production UI. Automatic approval review currently blocks synthetic approval; approved-detail, booking and history browser proof therefore remain outstanding. Automated backend coverage is distinct from that browser proof.
+Final verification and real-browser evidence are recorded in the [execution log](generic-swap-execution-log.md). The form's native required constraints, funding off/on/off clearing, review/back-edit, exact funded conversion, Requests/Operations and tenant switching were exercised in a new isolated database and production UI. After explicit user approval, both contracts were approved through Operations and four mock trades were booked through the dedicated ticket and inspected in history. Partial nominal, zero/negative quotes, BUY/SELL and custom properties were verified. Fresh checks: 696 Python tests and 403 frontend tests passed; typecheck/build/contracts passed. Existing warnings remain recorded, not concealed.
 
 No operating database was migrated, no operating service was restarted, and no operating trade was created. Activation requires an authorized migration through revision 61 and deployment/restart of matching API/UI code, followed by operating health/tenant checks. This record does not claim activation or production/valuation sign-off.
 

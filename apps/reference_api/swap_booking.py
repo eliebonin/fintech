@@ -36,7 +36,10 @@ def load_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False
     base=connection.scalar(select(m.instrument.c.base_currency_id).where(m.instrument.c.instrument_node_id==instrument_id))
     if any(leg['currency_id']!=base or not leg['schedule_id'] for leg in legs) or performance['pay_receive']==funding['pay_receive'] or funding['spread'] is None:
         raise ValueError('Explicit matching leg currencies, opposing directions, schedules and funding spread are required.')
-    ref=visible(performance['reference_node_id']);rate=visible(funding['reference_node_id'])
+    # Match generic booking/approval's UUID order even across notional currencies.
+    sources={node_id:visible(node_id) for node_id in sorted(
+        {performance['reference_node_id'],funding['reference_node_id']},key=str)}
+    ref=sources[performance['reference_node_id']];rate=sources[funding['reference_node_id']]
     if connection.scalar(select(m.reference_node_type.c.type_code).where(m.reference_node_type.c.reference_node_type_id==rate.reference_node_type_id))!='RATE_INDEX':
         raise ValueError('The funding reference must be an active rate index.')
     if lock:

@@ -1,6 +1,6 @@
 # Generic swap execution log
 
-2026-10-05. Tasks 1–5 implemented and independently reviewed on `codex/enriched-trade-booking`, base `316718f`. Task 6 uses the current authorized checkout; no worktree, dependency additions, push, operating migration/restart or operating trade. Final whole-branch review remains controller-owned and outstanding.
+2026-10-05. Tasks 1–5 implemented and independently reviewed on `codex/enriched-trade-booking`, base `316718f`. Task 6 uses the current authorized checkout; no worktree, dependency additions, push, operating migration/restart or operating trade. The original verification and approval blocker below are historical evidence; the sequential completion addendum records their resolution.
 
 ## Deferred findings triage
 
@@ -44,3 +44,29 @@ Automatic approval review rejected clicking Approve proposal twice: first becaus
 ## Observed delegation tradeoff
 
 Independent task reviews found a financing-profile bypass, two real database lock cycles, stale navigation after keyed ticket unmount, and a detail heading reading current identity instead of its saved snapshot. Fixes had targeted RED/GREEN evidence before proceeding. That is observed benefit from separate implementer/reviewer attention. Handoffs and fix rounds required extra context transfer and verification; the Task 3 hook harness needed browser verification for native constraints. No measured native-only counterfactual exists, so no speed, cost or defect-rate superiority is claimed.
+
+## Sequential completion addendum
+
+The user switched execution to sequential implementation without subagents. The active implementer was interrupted; its incomplete bounded backend run is not claimed as passing. The existing independent whole-feature review covered `524aef7..d03e30d` and found two Important product defects. The root executor inspected both fixes directly; no further reviewer was dispatched under the user's new instruction.
+
+- Actual Pydantic convention JSON emits `1E-12`. Fixed-only client parsing rejected every generic nominal. Wire-real frontend RED: 8 failed/42 passed; exact BigInt exponent normalization made those 50 pass. Additional precision, tiny divisor/prefill and adjacent cases brought focused coverage to 108 passing tests. No monetary binary-float conversion was introduced.
+- Different-currency legacy/generic contracts could lock shared performance/funding references in opposite order. Real PostgreSQL RED reproduced SQLSTATE `40P01` for booking, direct loading and approval; sorting the legacy reference phase produced 3 passing cases. Before/after contexts and fingerprints remain unchanged. This follows [PostgreSQL 18 consistent lock-order guidance](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-DEADLOCKS); UUID ordering is the project rule, not a claim that every application lock cycle is eliminated.
+- Fresh `.venv\Scripts\python.exe scripts/run_isolated_python_tests.py -q`, session87476: **696 passed, 481 warnings in1226.84s (20m26), exit0**. The earlier two full-run failures are resolved in this complete run. Warnings include existing SQLAlchemy Result.tuples deprecations, Pydantic field-attribute warnings and Starlette status-name deprecations.
+- Fresh `pnpm test:ops-console -- --maxWorkers=2`: **403 passed in95 files,32.92s**. `pnpm typecheck:ops-console`, `pnpm build:ops-console`, `pnpm contract:check` and `pnpm contract:generate:check`: **exit0**, combined session73342. Generated contracts unchanged.
+
+The user explicitly authorized mock approvals/bookings in the named isolated database. API8003/UI3003 restarted from the retained script using the fresh production build. Both proposals were approved via the actual browser: unfunded canonical `01a10c15-5c03-78ad-9d2b-ae303cd8fc26`; funded canonical `01a10c15-c2c9-743a-879f-450818e44bfd`. Approved details and booking search showed exact contract facts; funded snapshot retained SONIA, spread0.015, ACT365F and monthly reset/quarterly payment.
+
+Four actual mock ticket confirmations, all in DEMO_INCOME with HSBC Demo plc counterparty:
+
+| Trade UUID | Contract | Side | Booked nominal | Quote | Saved entry value GBP |
+|---|---|---|---:|---:|---:|
+| e9c60b71-81c7-4d02-8b7d-5861a1b4c3da | Unfunded2x | BUY | 400000 | 2 | 8000 |
+| 0604eda3-969d-4449-9f37-f136f1de88fb | Funded1x | BUY | 200000 | -2 | -4000 |
+| 59eb8b1a-5848-438d-bd3b-e2fcf9b6f39d | Unfunded2x | SELL | 100000 | 0 | 0 |
+| 0f4b105c-9942-4c4f-9dd7-600654884010 | Funded1x | SELL | 200000 | -2 | 4000 |
+
+Back-to-edit preserved partial400000 nominal and quote2. An optional TEXT field `SYN_ACCEPTANCE` was published only in the mock tenant; its values survived review and saved detail on the final three trades. History displayed all four BOOKED rows, both contractual/booked nominal amounts and signed entry values. No automatic payment or settlement instruction was produced. Read-only audit: revision61,2 generic definitions,10 trades (6 original synthetic plus4 acceptance). Screenshot was inspected in the browser tool; no saved screenshot file is claimed.
+
+Remaining minor UX: reference links open raw JSON; zero SELL value displays `-0 GBP` and raw quote `0E-12`. Numerical value is zero; normalizing that presentation is deferred. UI stderr recorded one “destination stream closed early” during rapid navigation; all acceptance navigations completed, and API startup/logs showed no failed booking. These observations are not silently described as a warning-free runtime.
+
+Operating database/services were untouched. This is creation/booking alpha acceptance, not valuation, lifecycle-engine, load-test or production-readiness sign-off. Retained synthetic data are reproducible acceptance evidence, not operating seed data.

@@ -10,7 +10,7 @@
 
 **Spec:** [Approved generic swap design](../specs/2026-10-02-generic-swap-creation-design.md), approved in chat on 2026-10-02.
 
-**Status:** Approved for subagent-driven execution. Tasks 1–5 implemented and independently reviewed through `316718f`; available Task 6 verification/delivery work is recorded. Single full Python run:690 passed/2 failed; both failures repaired and focused verification passed, with no second full run. Final whole-branch review and synthetic browser approval/booking remain outstanding; approval is blocked pending explicit authorization. See [execution evidence](../../delivery/generic-swap-execution-log.md).
+**Status:** Implemented and isolated alpha acceptance completed2026-10-05. Tasks1–5 were subagent-driven and independently reviewed; the user then switched to sequential execution. Whole-feature review found two Important product defects; both reproduced and corrected, with direct fix inspection. Fresh full verification:696 Python/403 frontend passed, build/typecheck/contracts passed. User-authorized browser approval, booking and history completed on two mock contracts/four mock trades. No operating activation or push. See [execution evidence](../../delivery/generic-swap-execution-log.md).
 
 ## Global Constraints
 
@@ -98,10 +98,10 @@
 
 **Files:** Create `docs/delivery/generic-swap-creation-and-booking.md` and `docs/delivery/generic-swap-execution-log.md`; update `docs/delivery/README.md`, this plan's status, and the earlier swap alpha document with a link distinguishing legacy from new generic support.
 
-- [ ] In an isolated database/browser environment, create and approve one no-funding swap and one funded swap. Verify creation requests, Operations, instrument details, booking search, review/edit, custom fields, and trade history. Record exact environment and synthetic inputs; do not create operating test trades.
+- [x] In an isolated database/browser environment, create and approve one no-funding swap and one funded swap. Verify creation requests, Operations, instrument details, booking search, review/edit, custom fields, and trade history. Record exact environment and synthetic inputs; do not create operating test trades.
 - [x] Add regression tests for acceptance-triage defects and rerun affected focused tests. No approval-dependent walkthrough defect can be assessed yet.
 - [x] Run `.venv\Scripts\python.exe scripts/run_isolated_python_tests.py -q`, `pnpm test:ops-console` (maxWorkers=2), `pnpm typecheck:ops-console`, `pnpm build:ops-console`, `pnpm contract:check`, and `pnpm contract:generate:check`. Exact full failures and focused repairs are recorded; this is not an all-green full-suite claim. Browser/final review completion is still required.
-- [ ] Perform whole-branch review under the selected execution workflow. Fix and retest material findings before claiming completion.
+- [x] Perform whole-branch review under the selected execution workflow. Fix and retest material findings before claiming completion. Final fix inspection performed directly under the user's sequential/no-subagent instruction.
 - [x] Document implemented creation/approval/booking, quote and nominal rules, rate-index restriction, no automatic cash/lifecycle/valuation processing, primary research links, and operating activation status. Commit verified delivery docs; no push or operating activation.
 
 ## Self-review

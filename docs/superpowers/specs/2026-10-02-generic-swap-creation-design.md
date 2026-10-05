@@ -1,6 +1,6 @@
 # Generic swap creation and booking
 
-Date: 2026-10-02. Status: approved in chat on 2026-10-02; Tasks 1–5 implemented and independently reviewed. Final verification/browser acceptance and whole-branch review remain in progress. This is design intent, not an implementation-completion report; see [delivery evidence](../../delivery/generic-swap-creation-and-booking.md).
+Date: 2026-10-02. Status: approved in chat on 2026-10-02; implementation and isolated creation/booking alpha acceptance completed on 2026-10-05. Whole-feature review findings were corrected and checked directly after the user switched to sequential execution; full suites passed. This is design intent, not production/valuation sign-off; see [delivery evidence](../../delivery/generic-swap-creation-and-booking.md).
 
 ## Intended outcome
 

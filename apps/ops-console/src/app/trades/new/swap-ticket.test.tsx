@@ -18,6 +18,18 @@ const terms:ProductTerms={instrumentId:'swap',name:'Autocall swap',kind:'SWAP',e
 const draft:ProductDraft={strategyId:'s',side:'BUY',positionEffect:'OPEN',quantity:'1000000',executionPrice:'2',tradeDatetime:'2026-10-01T10:00:00Z',settlementDate:'',tradePurpose:'INVESTMENT',properties:{},tagIds:[],externalReferences:[],counterpartyOrganisationId:'bank'};
 const context={tenantId:'tenant',bookedByUserAccountId:'actor',properties:[],tags:[]} as TradeBookingContext;
 describe('swap ticket',()=>{
+ it('accepts a serialized small divisor and quote without floating-point rounding',()=>{
+  const wireTerms={...terms,convention:{...terms.convention!,quoteFactor:'1E-8',quantityMinimum:'1E-12',quantityIncrement:'1E-12'}};
+  expect(validateProductDraft(wireTerms,{...draft,quantity:'400000',executionPrice:'2E-8'},context)).toEqual([]);expect(productAmount(wireTerms,'400000','2E-8')).toBe('800000');
+ });
+ it.each([['400000','2','8000'],['0.000000000001','0','0'],['1E-12','0','0'],['123456789012345678.123456789012','0','0'],['1.23456789012345678123456789012E+17','0','0']])('accepts wire-real generic minimum/increment for nominal %s', (quantity,executionPrice,amount)=>{
+  const wireTerms={...terms,convention:{...terms.convention!,quantityMinimum:'1E-12',quantityIncrement:'1E-12'},swapDetails:{...terms.swapDetails!,genericTerms:generic}};
+  expect(validateProductDraft(wireTerms,{...draft,quantity,executionPrice},context)).toEqual([]);expect(productAmount(wireTerms,quantity,executionPrice)).toBe(amount);
+ });
+ it.each(['1E-13','1E18','1E-1000000','NaN','Infinity','-1E-12','0'])('rejects unsupported generic nominal %s without rounding',quantity=>{
+  const wireTerms={...terms,convention:{...terms.convention!,quantityMinimum:'1E-12',quantityIncrement:'1E-12'}};
+  expect(validateProductDraft(wireTerms,{...draft,quantity,executionPrice:'0'},context).some(error=>error.field==='quantity')).toBe(true);
+ });
  it('shows full approved generic no-funding terms rather than legacy funding assumptions',()=>{
   const markup=renderToStaticMarkup(<ProductFacts terms={{...terms,swapDetails:{...terms.swapDetails!,genericTerms:generic,fundingReferenceId:null,fundingReferenceName:null,fundingSpread:null}}}/>);
   for(const value of ['Autocall swap','Contractual notional','1000000 GBP','2×','TOTAL','NONE','Confirmation reset schedule','Reinvest proceeds under section 6','Signed whole-swap confirmation','No separate funding leg','Leverage is not applied again'])expect(markup).toContain(value);

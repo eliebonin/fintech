@@ -32,6 +32,16 @@ def ticket(node, **changes):
         expectedTermsFingerprint=context(node)['termsFingerprint']) | changes
 
 
+def test_generic_context_exposes_actual_decimal_json_wire_notation():
+    node = create_swap(contractualNotional='0.000000000001', quoteFactor='0.00000001')
+    value = context(node)
+    assert value['bookingEligible'], value
+    assert value['convention']['quantityMinimum'] == '1E-12'
+    assert value['convention']['quantityIncrement'] == '1E-12'
+    assert value['convention']['quoteFactor'] == '1E-8'
+    assert value['swapDetails']['genericTerms']['contractualNotional'] == '1E-12'
+
+
 @pytest.mark.parametrize('funded', [False, True])
 def test_generic_non_autocall_context_preserves_approved_contract_and_optional_funding(funded):
     node = create_swap(funded)
@@ -421,6 +431,109 @@ def test_direct_bond_booking_and_swap_source_path_do_not_deadlock(entry_point):
     with engine.connect() as connection:
         trade_ids = [UUID(identifier) for status, identifier in results if status == 'BOOKED']
         assert connection.scalar(select(func.count()).select_from(m.trade).where(m.trade.c.trade_id.in_(trade_ids))) == len(trade_ids)
+
+
+@pytest.mark.parametrize('entry_point', ['product_booking', 'direct_loader', 'proposal_approval'])
+def test_cross_currency_legacy_and_generic_shared_sources_do_not_deadlock(entry_point):
+    """Real PostgreSQL P/F cycle: GBP legacy and USD generic, with F < P."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from sqlalchemy import event
+    from apps.reference_api import product_booking as service
+    from apps.reference_api.generic_swap_booking import load_generic_swap_context
+    from apps.reference_api.product_booking_contracts import ProductBookingRequest
+    from tests.test_swap_booking_api import swap as legacy_fixture, ticket as legacy_ticket, context as legacy_context
+
+    engine = get_engine()
+    performance = DEMO_IDS['autocall_instrument_node']
+    funding = UUID(int=uuid4().int % (1 << 64))
+    assert str(funding) < str(performance)
+    legacy = UUID(legacy_fixture.__wrapped__())
+    with engine.begin() as connection:
+        values = dict(connection.execute(select(m.financial_reference_node).where(
+            m.financial_reference_node.c.reference_node_id == DEMO_IDS['sonia_rate_index_node'])).mappings().one())
+        values.update(reference_node_id=funding, canonical_name=f'Synthetic early-UUID funding index {funding}', internal_code=f'EARLY_FUNDING_{funding.hex}')
+        connection.execute(m.financial_reference_node.insert().values(**values))
+        connection.execute(m.reference_node_scope.insert().values(reference_node_id=funding,
+            scope_type='TENANT_PRIVATE', owner_tenant_id=DEMO_IDS['tenant'], status='ACTIVE'))
+        connection.execute(m.swap_leg.update().where(m.swap_leg.c.swap_instrument_node_id == legacy,
+            m.swap_leg.c.leg_role == 'FUNDING').values(reference_node_id=funding))
+    terms = dict(fundingReferenceId=str(funding), notionalCurrencyId=str(DEMO_IDS['usd_currency']),
+        quoteCurrencyId=str(DEMO_IDS['usd_currency']))
+    node = UUID(create_swap(True, reference=performance, **terms))
+    legacy_request = ProductBookingRequest.model_validate(legacy_ticket(str(legacy)))
+    generic_request = ProductBookingRequest.model_validate(ticket(str(node)))
+    legacy_before = legacy_context(str(legacy))
+    generic_before = context(str(node))
+    assert legacy_before['currency'] == 'GBP' and generic_before['currency'] == 'USD'
+    proposal_id = UUID(submit(proposal(performance, True, **terms))) if entry_point == 'proposal_approval' else None
+    first_legacy_source = Event()
+    generic_funding_attempted = Event()
+    generic_funding_acquired = Event()
+
+    def source_lock(statement, parameters):
+        if 'FROM secm.financial_reference_node' in statement and 'FOR UPDATE' in statement:
+            return next((value for value in parameters.values() if value in {performance, funding}), None)
+        return None
+
+    def before_execute(connection, cursor, statement, parameters, execution_context, executemany):
+        if connection.info.get('mixed_swap_role') == 'generic' and source_lock(statement, parameters) == funding:
+            generic_funding_attempted.set()
+
+    def after_execute(connection, cursor, statement, parameters, execution_context, executemany):
+        source = source_lock(statement, parameters)
+        role = connection.info.get('mixed_swap_role')
+        if role == 'generic' and source == funding:
+            generic_funding_acquired.set()
+        if role == 'legacy' and source is not None and not first_legacy_source.is_set():
+            first_legacy_source.set()
+            # Old P-first code waits until generic holds F. Sorted F-first code
+            # already owns F: let legacy finish after generic attempts that lock.
+            pending = generic_funding_attempted if source == funding else generic_funding_acquired
+            assert pending.wait(timeout=5), 'Generic path did not reach its shared funding lock.'
+
+    def run(role):
+        try:
+            with engine.begin() as connection:
+                connection.info['mixed_swap_role'] = role
+                try:
+                    connection.execute(text("SET LOCAL statement_timeout = '10s'"))
+                    if role == 'legacy' or entry_point == 'product_booking':
+                        draft = legacy_request if role == 'legacy' else generic_request
+                        result = service.book(connection, DEMO_IDS['tenant'], DEMO_IDS['demo_user_account'],
+                            draft, str(uuid4()), 'SWAP', 'mixed-swap-' + role)
+                        return ('BOOKED', str(result.data.trade.trade_id))
+                    if entry_point == 'direct_loader':
+                        details, maturity = load_generic_swap_context(connection, DEMO_IDS['tenant'], node, date(2026, 10, 1), lock=True)
+                        assert details.generic_terms.contractual_notional == 1000000
+                        return ('LOADED', str(node))
+                    result = service.decide_proposal(connection, DEMO_IDS['tenant'], DEMO_IDS['demo_user_account'],
+                        proposal_id, 'APPROVED', 'Synthetic cross-currency shared sources verified.')
+                    return ('APPROVED', str(result.reference_node_id))
+                finally:
+                    connection.info.pop('mixed_swap_role', None)
+        except DBAPIError as error:
+            return (error.orig.sqlstate, None)
+
+    event.listen(engine, 'before_cursor_execute', before_execute)
+    event.listen(engine, 'after_cursor_execute', after_execute)
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            legacy_work = pool.submit(run, 'legacy')
+            assert first_legacy_source.wait(timeout=5), 'Legacy path did not acquire a shared source.'
+            generic_work = pool.submit(run, 'generic')
+            results = [legacy_work.result(timeout=20), generic_work.result(timeout=20)]
+    finally:
+        event.remove(engine, 'before_cursor_execute', before_execute)
+        event.remove(engine, 'after_cursor_execute', after_execute)
+    expected = {'product_booking': 'BOOKED', 'direct_loader': 'LOADED', 'proposal_approval': 'APPROVED'}[entry_point]
+    assert [status for status, identifier in results] == ['BOOKED', expected], results
+    with engine.connect() as connection:
+        trade_ids = [UUID(identifier) for status, identifier in results if status == 'BOOKED']
+        assert connection.scalar(select(func.count()).select_from(m.trade).where(m.trade.c.trade_id.in_(trade_ids))) == len(trade_ids)
+    # Prelocking changes no legacy/generic source facts or fingerprint semantics.
+    assert legacy_context(str(legacy)) == legacy_before
+    assert context(str(node)) == generic_before
 
 
 @pytest.mark.parametrize('entry_point', ['product_context', 'direct_loader'])
