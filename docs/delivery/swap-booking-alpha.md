@@ -2,6 +2,8 @@
 
 Date: 2026-10-02. Status: delivered and verified in an isolated environment; not activated against operating data.
 
+This records legacy autocall-reference eligibility. The later [generic swap creation and booking delivery](generic-swap-creation-and-booking.md) adds versioned tenant creation and optional funding with its own eligibility path; legacy snapshots and eligibility remain unchanged. Follow its execution log for current acceptance and activation status.
+
 ## Delivered scope
 
 The dedicated Book trade page now offers Swap. It searches eligible existing canonical OTC TOTAL_RETURN swaps, inherits the performance reference and funding terms, and records nominal, signed swap-value quote, strategy, legal counterparty and the existing governed trade annotations. Approved booking conventions can be proposed from instrument detail and approved through the existing Operations workflow.

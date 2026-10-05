@@ -1840,7 +1840,7 @@ swap_definition_version = Table(
     Column('instrument_definition_version_id', UUID_V7, ForeignKey('secm.instrument_definition_version.instrument_definition_version_id'), primary_key=True, comment='Canonical definition version owning these generic swap economics; one payload per version.'),
     Column('schema_version', Integer, nullable=False, comment='Strict GenericSwapTerms schema version.'),
     Column('economics_payload', JSONB, nullable=False, comment='Validated GenericSwapTerms JSON with decimal strings and sourced conventions; immutable after approval at the service boundary.'),
-    CheckConstraint("schema_version = 1 AND jsonb_typeof(economics_payload) = 'object' AND economics_payload ? 'schemaVersion' AND economics_payload->>'schemaVersion' = schema_version::text", name='ck_swap_definition_version_payload'),
+    CheckConstraint("schema_version = 1 AND jsonb_typeof(economics_payload) = 'object' AND economics_payload ? 'schemaVersion' AND COALESCE(economics_payload->>'schemaVersion' = schema_version::text, false)", name='ck_swap_definition_version_payload'),
     schema='secm',
 )
 

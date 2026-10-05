@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Content type:** Delivery index  
 **Owner:** Engineering delivery team  
-**Last reviewed:** 2026-10-02
+**Last reviewed:** 2026-10-05
 
 Use [specifications](specifications/README.md) for approved design intent, [implementation plans](implementation-plans/README.md) for execution sequences, and [quality reviews](quality-reviews/README.md) for dated evidence. None is automatically current architecture without a link from a canonical page.
 # Delivery documentation
@@ -18,6 +18,8 @@ Use [specifications](specifications/README.md) for approved design intent, [impl
 - [Futures creation and contract conventions alpha — delivered scope, local seed, multiplier semantics and remaining gaps](futures-creation-and-contract-conventions-alpha.md)
 - [Bond booking alpha](bond-booking-alpha.md)
 - [OTC autocall-reference swap booking alpha](swap-booking-alpha.md)
+- [Generic swap creation and booking — implemented scope and activation limits](generic-swap-creation-and-booking.md)
+- [Generic swap execution evidence and acceptance status](generic-swap-execution-log.md)
 - [Swap booking — approved design and research](../superpowers/specs/2026-10-02-swap-booking-design.md)
 - [Swap booking implementation plan and execution evidence](../superpowers/plans/2026-10-02-swap-booking.md)
 - [Listed option booking quality review](quality-reviews/2026-10-01-option-booking-alpha.md)

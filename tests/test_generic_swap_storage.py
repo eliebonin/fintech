@@ -14,7 +14,8 @@ def test_definition_is_unique_and_has_version_fk():
     ddl=str(CreateTable(table).compile(dialect=postgresql.dialect()))
     assert 'JSONB NOT NULL' in ddl
 
-def test_migration_storage_round_trip():
+@pytest.fixture
+def migrated_engine():
     # An isolated PostgreSQL database, never the operating database.
     from tests.test_migrations import _recreate_test_database, _run_alembic, TEST_DATABASE_URL
     _recreate_test_database()
@@ -22,8 +23,14 @@ def test_migration_storage_round_trip():
     assert result.returncode==0,result.stderr
     engine=create_engine(TEST_DATABASE_URL)
     from security_master_schema.demo_data import load_demo_data
-    load_demo_data(engine)
-    with engine.begin() as c:
+    try:
+        load_demo_data(engine)
+        yield engine
+    finally:
+        engine.dispose()
+
+def test_migration_storage_round_trip(migrated_engine):
+    with migrated_engine.begin() as c:
         assert c.scalar(text('SELECT count(*) FROM secm.swap_definition_version'))==0
         # Use a real parent definition written by the demo seed migration.
         parent=c.scalar(text('SELECT instrument_definition_version_id FROM secm.instrument_definition_version LIMIT 1'))
@@ -34,6 +41,11 @@ def test_migration_storage_round_trip():
         stored=c.execute(m.swap_definition_version.select()).mappings().one()
         from apps.reference_api.swap_creation_contracts import GenericSwapTerms
         assert GenericSwapTerms.model_validate(stored['economics_payload']).contractual_notional==1000000
+        for invalid_version in [None, 2, '']:
+            with pytest.raises(IntegrityError):
+                with c.begin_nested():
+                    c.execute(m.swap_definition_version.update().values(
+                        economics_payload={**stored['economics_payload'], 'schemaVersion': invalid_version}))
         for values in [dict(instrument_definition_version_id=parent,schema_version=1),
             dict(instrument_definition_version_id=uuid4(),schema_version=1)]:
             with pytest.raises(IntegrityError):

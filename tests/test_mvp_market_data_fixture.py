@@ -110,16 +110,21 @@ def test_mvp_fixture_has_generic_return_profiles_and_index_variants() -> None:
         index_rows = connection.execute(
             text(
                 """
-                SELECT n.canonical_name, f.family_node_id, p.profile_code
+                SELECT i.index_node_id, n.canonical_name, f.family_node_id, p.profile_code
                 FROM secm.index_terms i
                 JOIN secm.financial_reference_node n ON n.reference_node_id = i.index_node_id
                 JOIN secm.index_family f ON f.index_family_id = i.index_family_id
                 JOIN secm.return_profile p ON p.return_profile_id = i.return_profile_id
                 WHERE f.family_node_id = :family_node_id
+                  AND i.index_node_id IN (:price_node, :net_node)
                 ORDER BY n.canonical_name
                 """
             ),
-            {"family_node_id": DEMO_IDS["mvp_index_family_node"]},
+            {
+                "family_node_id": DEMO_IDS["mvp_index_family_node"],
+                "price_node": DEMO_IDS["mvp_sp500_price_index_node"],
+                "net_node": DEMO_IDS["mvp_sp500_net_index_node"],
+            },
         ).mappings().all()
         methodology_count = connection.scalar(
             text(
@@ -133,7 +138,10 @@ def test_mvp_fixture_has_generic_return_profiles_and_index_variants() -> None:
         )
 
     assert profile_count == 6
-    assert {row["profile_code"] for row in index_rows} == {"PRICE_RETURN", "NET_TOTAL_RETURN"}
+    assert {row["index_node_id"]: row["profile_code"] for row in index_rows} == {
+        DEMO_IDS["mvp_sp500_price_index_node"]: "PRICE_RETURN",
+        DEMO_IDS["mvp_sp500_net_index_node"]: "NET_TOTAL_RETURN",
+    }
     assert methodology_count == 2
 
 

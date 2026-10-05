@@ -23,7 +23,7 @@ function spreadRate(bp:string):string {
 function validDecimal(value:string,maxDigits:number,maxPlaces:number,positive=true):boolean {
   if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value))return false;
   const [integer,fraction='']=value.replace('-','').split('.');
-  return (!positive||(!value.startsWith('-')&&/[1-9]/.test(value)))&&fraction.length<=maxPlaces&&(integer.replace(/^0+/,'').length+fraction.length)<=maxDigits;
+  return (!positive||(!value.startsWith('-')&&/[1-9]/.test(value)))&&fraction.length<=maxPlaces&&integer.replace(/^0+/,'').length<=maxDigits-maxPlaces;
 }
 
 export function SwapCreationForm({tenantId}:{tenantId:string}) {

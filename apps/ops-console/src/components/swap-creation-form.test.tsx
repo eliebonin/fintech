@@ -30,6 +30,12 @@ function review(){find(render(),n=>n.type==='form').props.onSubmit({preventDefau
 async function submit(){h.send.mockResolvedValue({data:{proposalId:'pending-1'}});review();const submitButton=button('Submit swap for approval');expect(submitButton,'valid contract reaches review').toBeDefined();await submitButton.props.onClick();return h.send.mock.calls.at(-1)![1];}
 async function funding(){change('includeFunding','on');h.search.mockResolvedValue({data:[{referenceNodeId:'sonia',canonicalName:'SONIA',nodeType:'RATE_INDEX',status:'ACTIVE'}]});change('fundingQuery','sonia');await button('Search funding reference').props.onClick();button('SONIA').props.onClick();for(const [name,value] of Object.entries({fundingSpreadBp:'150.1234',fundingNotionalBasis:'LEVERAGED_NOMINAL',dayCountConventionId:'act365',interestCalculationMethod:'Compounded overnight, confirmation section 5',fundingResetFrequency:'MONTHLY',fundingPaymentFrequency:'QUARTERLY'}))change(name,value);}
 afterEach(()=>{h.slots=[];h.cursor=0;h.effects=[];h.get.mockReset();h.send.mockReset();h.search.mockReset();});
+it.each([['contractualNotional','1000000000000000000'],['leverage','1000000000000000000'],['quoteFactor','1000000000000']])('rejects fixed-scale integer overflow for %s before review',async(name,value)=>{
+  await setup();change(name,value);review();expect(button('Submit swap for approval')).toBeUndefined();
+});
+it('rejects fixed-scale funding spread integer overflow before review',async()=>{
+  await setup();await funding();change('fundingSpreadBp','10000000000000000');review();expect(button('Submit swap for approval')).toBeUndefined();
+});
 it('has four form groups and uses tenant-visible economic reference lookup',async()=>{
   await setup();expect(all(render(),n=>n.type==='fieldset')).toHaveLength(4);
   expect(h.get).toHaveBeenCalledWith('/api/currencies?groups=REGULAR');
