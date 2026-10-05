@@ -96,3 +96,78 @@ An intermediate TypeScript run identified four TS7053/TS2339 errors while narrow
 Re-read the Task 5 brief and approved booking spec; checked conditional funding, source evidence, nominal separation, side/quote arithmetic, selection timing, stale tenant/instrument state, retry immutability and snapshot compatibility. No review agents/helpers were spawned. No party/property/navigation subsystem or second BFF was added.
 
 Targeted tests use the repository's existing state-hook harness and real ticket event handlers plus server-rendered facts/history/details. They do not constitute browser evidence. Full frontend/Python suites, build and browser/integration verification belong to Task 6 as directed; no running-app activation claim is made. Lifecycle/schedules, cash generation/settlement, valuation/exposure and contractual-capacity enforcement remain outside scope.
+
+## Review fix round 1 — 2026-10-05
+
+Base: `240f115cd7d735531f9197dafd1bc5415fa59945`. Addressed both Important findings after checking their root causes against the implementation.
+
+### Keyed ticket unmount and pending confirmation
+
+Verified that `trades/new/page.tsx` keys `ProductTicket` by tenant and product. The previous tenant/sequence guards worked only while the same hook instance remained alive. Destroying the keyed instance left its own refs unchanged, and the navigation-listener cleanup only removed listeners. A pending confirmation therefore still called `router.push` after a new tenant/product ticket mounted. The earlier A → B → A test reused hooks and did not represent this production lifecycle.
+
+Added a dedicated empty-dependency lifecycle effect to `product-ticket.tsx`; its cleanup increments the existing request sequence. Old search/select/confirm promises then fail their existing sequence checks. This lifecycle effect is independent of the navigation listener effect's retry/blocked dependencies, so rebinding listeners for current-instance retries does not invalidate a current confirmation. Strict effect cleanup/setup increments the sequence before new user work; subsequent current-instance requests capture the new sequence normally.
+
+Updated the existing state-test harness to retain state setters against their own instance slots, execute effect setup/cleanup on dependency changes, destroy hook slots on unmount and create fresh slots on keyed remount. New regressions exercise old confirmation delivery after a new tenant instance mounts and after A → B → A with fresh instances. A separate test replays effect cleanup/setup and verifies a genuine current-instance uncertain retry submits the identical payload/key/header and navigates successfully.
+
+RED:
+```text
+pnpm --filter ops-console test -- src/app/trades/new/product-ticket-state.test.tsx
+Test Files  1 failed (1)
+     Tests  2 failed | 11 passed (13)
+Exit 1
+```
+Both failing tests observed `/trades/old-booking` navigation from the destroyed instance. The strict effect/current retry test passed before implementation and continues to protect compatibility.
+
+GREEN after dedicated lifecycle cleanup:
+```text
+pnpm --filter ops-console test -- src/app/trades/new/product-ticket-state.test.tsx
+Test Files  1 passed (1)
+     Tests  13 passed (13)
+Exit 0
+```
+
+### Generic booked identity throughout details
+
+Verified that repository `instrumentName`/`subjectName` are current canonical-name joins while `productEconomics.terms.name` is immutable booking evidence. The snapshot card used the latter but `DetailContent`'s recorded-trade h2 and the outer page h1 still used the former.
+
+Changed both generic detail headings to prefer the snapshot name, preserving the existing non-generic fallback. The new regression supplies `CURRENT instrument name` and `CURRENT subject name` against `Swap at booking`, renders both `DetailContent` and the complete detail page, and requires the booked name in h2/h1 with no `CURRENT` name anywhere in either rendered result.
+
+RED then GREEN:
+```text
+pnpm --filter ops-console test -- src/app/trades/trade-history-page.test.tsx -t 'snapshot identity'
+RED:   Test Files 1 failed (1); Tests 1 failed | 16 skipped (17); exit 1
+GREEN: Test Files 1 passed (1); Tests 1 passed | 16 skipped (17); exit 0
+```
+
+### Final round-1 checks and self-review
+
+The turn was interrupted during an initial combined verification dispatch. On resume, preserved all four task-owned dirty files and inspected process command lines before rerunning; no lingering Vitest/compiler/contract processes remained. The sandbox initially denied the read-only process query; the escalated query succeeded. No processes were terminated and no duplicate test run was started.
+
+```text
+pnpm --filter ops-console test -- src/app/trades/new/swap-ticket.test.tsx src/app/trades/new/product-ticket-state.test.tsx src/app/trades/new/product-ticket-model.test.ts src/app/trades/new/bond-ticket.test.tsx src/app/trades/new/trade-ticket.test.tsx src/lib/trade-history.test.ts src/app/trades/trade-history-page.test.tsx
+ RUN  v4.1.11 C:/Users/forte/Elie/projects/python/fintech/apps/ops-console
+ Test Files  7 passed (7)
+      Tests  92 passed (92)
+   Start at  08:09:54
+   Duration  2.63s (transform 987ms, setup 0ms, import 2.63s, tests 2.31s, environment 1ms)
+Exit 0
+
+pnpm --filter ops-console typecheck
+> tsc --noEmit
+Exit 0
+
+pnpm contract:check
+> .\.venv\Scripts\python.exe scripts/export_openapi_contract.py --check
+Exit 0
+
+pnpm contract:generate:check
+> pnpm generate && git diff --exit-code -- src/generated.ts
+✨ openapi-typescript 7.10.1
+🚀 openapi/reference-data-api.v1.json → src/generated.ts [252.4ms]
+Exit 0; no generated artifact diff
+
+git diff --check
+Exit 0; no whitespace errors
+```
+
+Self-review: the dedicated lifecycle cleanup invalidates old promises without broadening the listener dependency behavior or changing idempotency payloads; keyed remount and effect replay are exercised by real ticket callbacks. Both generic identity headings consistently use snapshot evidence, with legacy detail fallback retained. No helpers/review agents, unrelated redesign, backend edits, new endpoint, push, runtime activation, full suites or browser work occurred. Full/browser verification remains assigned to Task 6.

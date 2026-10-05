@@ -46,6 +46,8 @@ export function ProductTicket({kind,strategies,context}:{kind:'STRUCTURED_PRODUC
   const [draft,setDraft]=useState<ProductDraft>(createProductDraft);
   const latest=useRef(draft),dirty=useRef(false),inFlight=useRef(false),sequence=useRef(0),frozen=useRef<{payload:ProductRequest;key:string;tenant:string}|null>(null),summary=useRef<HTMLDivElement>(null),tenant=useRef(context.tenantId);
   const [error,setError]=useState(''),[errors,setErrors]=useState<TicketError[]>([]),[reviewing,setReviewing]=useState(false),[saving,setSaving]=useState(false),[retry,setRetry]=useState(false),[blocked,setBlocked]=useState(false),[focus,setFocus]=useState(0);
+  // Keyed tenant/product switches destroy this instance; its promises retain these refs.
+  useEffect(()=>()=>{sequence.current++;},[]);
   useEffect(()=>{if(focus)summary.current?.focus();},[focus]);
   useEffect(()=>{
     const url=window.location.href,state=window.history.state,unresolved=()=>inFlight.current||retry||blocked;

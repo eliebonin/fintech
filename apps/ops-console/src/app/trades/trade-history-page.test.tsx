@@ -25,12 +25,12 @@ const trade: BookedTrade = {
   lifecycleStatus: "BOOKED", referenceInstrumentId: null, comment: null,
 };
 
-function fakeApi(data: BookedTrade[] = [trade], total = 143) {
+function fakeApi(data: BookedTrade[] = [trade], total = 143, detailTrade:BookedTrade=trade) {
   vi.stubGlobal("fetch", async (input: URL) => {
     const payload = input.pathname === "/v1/strategies"
       ? { data: [{ strategyId: "strategy-1", strategyCode: "CUSTOM", displayName: "Custom sleeve", status: "ARCHIVED" }] }
       : input.pathname === "/v1/trades/trade-1"
-        ? { data: { trade, parties: [], fees: [], externalReferences: [], lifecycleEvents: [] } }
+        ? { data: { trade:detailTrade, parties: [], fees: [], externalReferences: [], lifecycleEvents: [] } }
         : { data, meta: { total } };
     return new Response(JSON.stringify(payload));
   });
@@ -43,6 +43,13 @@ describe("trade history rendered pages", () => {
     const html=renderToStaticMarkup(<DetailContent detail={{trade:genericTrade,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
     for(const value of ['Booked nominal','400,000 GBP','Contractual notional','1000000 GBP','Equity at booking','Historical reset rule','Historical proceeds rule','Historical confirmation','No separate funding leg','-8,000 GBP','not independently verified MTM'])expect(html).toContain(value);
     expect(html).not.toContain('Funding spread (decimal)');expect(html).not.toContain('Canonical funding direction');
+  },15000);
+  it('uses the generic snapshot identity throughout details even when current master names conflict',async()=>{
+    const current={...genericTrade,instrumentName:'CURRENT instrument name',subjectName:'CURRENT subject name'};
+    const {DetailContent,default:Page}=await import('./[tradeId]/page');
+    const detailHtml=renderToStaticMarkup(<DetailContent detail={{trade:current,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
+    fakeApi([current],1,current);const pageHtml=renderToStaticMarkup(await Page({params:Promise.resolve({tradeId:'trade-1'}),searchParams:Promise.resolve({})}));
+    expect(detailHtml).toContain('<h2>Swap at booking</h2>');expect(detailHtml).not.toContain('CURRENT');expect(pageHtml).toContain('<h1>Swap at booking</h1>');expect(pageHtml).not.toContain('CURRENT');
   },15000);
   it('shows both generic nominal amounts and labels the immutable entry value in history',async()=>{
     fakeApi([{...genericTrade,quantity:'-500000'}]);const {default:Page}=await import('./page');const html=renderToStaticMarkup(await Page({searchParams:Promise.resolve({range:'all'})}));
