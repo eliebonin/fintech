@@ -130,8 +130,14 @@ def validate_trade_annotations(connection, tenant_id, request):
         else: values.append(dict(definition_id=prop.definition_id, value=value))
     tags = connection.execute(select(m.trade_tag.c.tag_id).where(m.trade_tag.c.tenant_id == tenant_id, m.trade_tag.c.status == "ACTIVE", m.trade_tag.c.tag_id.in_(request.tag_ids)).order_by(m.trade_tag.c.tag_id).with_for_update()).scalars().all()
     if set(tags) != set(request.tag_ids): raise TradeFieldError("tagIds", "A tag is unavailable in this tenant.")
-    for field, organisation_id in (("counterpartyOrganisationId", request.counterparty_organisation_id), ("executingBrokerOrganisationId", request.executing_broker_organisation_id)):
-        if organisation_id is not None and not connection.scalar(select(m.organisation.c.organisation_id).where(m.organisation.c.organisation_id == organisation_id, m.organisation.c.status == "ACTIVE").with_for_update()): raise TradeFieldError(field, "Select an active shared organisation.")
+    parties = (("counterpartyOrganisationId", request.counterparty_organisation_id), ("executingBrokerOrganisationId", request.executing_broker_organisation_id))
+    # Tenant-local catalogue locks do not serialize globally shared party rows.
+    active_parties = set()
+    for organisation_id in sorted({identifier for _, identifier in parties if identifier is not None}, key=str):
+        if connection.scalar(select(m.organisation.c.organisation_id).where(m.organisation.c.organisation_id == organisation_id, m.organisation.c.status == "ACTIVE").with_for_update()):
+            active_parties.add(organisation_id)
+    for field, organisation_id in parties:
+        if organisation_id is not None and organisation_id not in active_parties: raise TradeFieldError(field, "Select an active shared organisation.")
         if organisation_id is not None:
             from .governed_trade_configuration import assert_selection
             assert_selection(connection, tenant_id, "COUNTERPARTY" if field == "counterpartyOrganisationId" else "EXECUTING_BROKER", organisation_id, field)

@@ -1,22 +1,13 @@
 import type { OptionBookingListingView,OptionBookingRequest,TradeBookingContext } from '@/lib/browser-api-client';
 import { grossConsideration,validateTradeAnnotations,type EnrichedTicketDraft,type TicketError } from './ticket-model';
+import {multiplyBookingDecimals,exactBookingAmount} from '@/lib/booking-decimal';
 export type OptionTicketDraft=EnrichedTicketDraft&{positionEffect:'OPEN'|'CLOSE'};
 
 /** Exact base-10 arithmetic. This preview never rounds an unrepresentable amount. */
 export function previewOptionPremium(terms:OptionBookingListingView,quantity:string,premium:string):string {
-  const product=grossConsideration(grossConsideration(quantity,premium),terms.premiumMultiplier??'');
+  const product=multiplyBookingDecimals([grossConsideration(quantity,premium),terms.premiumMultiplier??'']);
   const factor=terms.quoteFactor??'';
-  if(product==='—'||!/^\d+(?:\.\d+)?$/.test(factor)||factor.length>80)return '—';
-  const scale=(product.split('.')[1]?.length??0),factorScale=(factor.split('.')[1]?.length??0);
-  const divisor=BigInt(factor.replace('.',''));
-  if(divisor===BigInt(0))return '—';
-  const numerator=BigInt(product.replace('.',''))*BigInt(10)**BigInt(factorScale+12);
-  const denominator=divisor*BigInt(10)**BigInt(scale);
-  if(numerator%denominator!==BigInt(0))return '—';
-  const amount=numerator/denominator;
-  if(amount>=BigInt(10)**BigInt(30))return '—';
-  const digits=amount.toString().padStart(13,'0');
-  return `${digits.slice(0,-12)}.${digits.slice(-12)}`.replace(/0+$/,'').replace(/\.$/,'');
+  return exactBookingAmount([product],factor,{integerDigits:80,fractionDigits:80});
 }
 export function validateOptionTicketDraft(terms:OptionBookingListingView,draft:OptionTicketDraft,context:TradeBookingContext):TicketError[] {
   const errors=validateTradeAnnotations(draft,context);

@@ -2,9 +2,15 @@ import {NextRequest,NextResponse} from 'next/server';
 import {getActiveTenantContext} from './tenant-session';
 import {bookProductTrade,submitProductProposal} from './reference-api-client';
 import {bffErrorResponse} from './bff-error';
+import {readBookingWrite} from './booking-write-guard';
 
 export async function productWrite(request:NextRequest,kind:'structured-products'|'futures'|'future-families'|'bonds'|'swaps',proposal=false) {
   if(kind==='future-families'&&!proposal)return NextResponse.json({error:{message:'Families are not tradable.'}},{status:400});
+  if(!proposal){
+    const envelope=await readBookingWrite(request);if(envelope.response)return envelope.response;
+    try{return NextResponse.json(await bookProductTrade(kind as 'structured-products'|'futures'|'bonds'|'swaps',envelope.payload as Parameters<typeof bookProductTrade>[1],envelope.context,envelope.key),{status:201});}
+    catch(error){return bffErrorResponse(error,'Product write unavailable',request,'PRODUCT_WRITE_UNAVAILABLE');}
+  }
   const key=request.headers.get('Idempotency-Key')?.trim(),expected=request.headers.get('X-Expected-Tenant-Id');
   if(!proposal&&!key)return NextResponse.json({error:{code:'IDEMPOTENCY_KEY_REQUIRED',message:'Idempotency-Key is required.'}},{status:400});
   if(!expected)return NextResponse.json({error:{code:'EXPECTED_TENANT_REQUIRED',message:'Reopen this page to confirm the tenant.'}},{status:400});

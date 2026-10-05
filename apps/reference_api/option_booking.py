@@ -9,6 +9,7 @@ from security_master_schema import models as m
 from security_master_schema.option_booking import OptionBookingError,gross_option_premium,validate_option_execution
 from security_master_schema.fx_forward_booking import decimal_text
 from .contracts import OptionBookingListingView,OptionTradeEconomicsView,OptionBookingRequest
+from .booking_controls import authorize_booking, lock_booking_strategy, find_booking_replay, record_booking_replay
 
 ENDPOINT='/v1/trades/options'
 
@@ -124,14 +125,14 @@ def book(connection,tenant_id,actor,request,key,request_id):
     from .repository import _trade_booking_fingerprint,IdempotencyKeyConflict,RepositoryNotFound,get_booked_trade_detail,persist_trade_annotations
     from .trade_properties import validate_trade_annotations
     with connection.begin_nested():
-        lock=int.from_bytes(sha256(f'{tenant_id}\x1f{ENDPOINT}\x1f{key}'.encode()).digest()[:8],'big',signed=True)
-        connection.execute(select(func.pg_advisory_xact_lock(lock)))
+        authorize_booking(connection, tenant_id, actor)
         normalized=request.model_copy(update={'quantity':request.quantity.normalize(),'execution_price':request.execution_price.normalize(),'trade_datetime':request.trade_datetime.astimezone(timezone.utc)})
         fingerprint=_trade_booking_fingerprint(normalized,connection,tenant_id)
-        existing=connection.execute(select(m.trade_booking_idempotency).where(m.trade_booking_idempotency.c.tenant_id==tenant_id,m.trade_booking_idempotency.c.endpoint==ENDPOINT,m.trade_booking_idempotency.c.idempotency_key==key)).mappings().first()
+        existing=find_booking_replay(connection,tenant_id,ENDPOINT,key,fingerprint)
         if existing:
-            if existing.request_fingerprint!=fingerprint: raise IdempotencyKeyConflict('Idempotency key was used with another payload.')
-            return get_booked_trade_detail(connection,tenant_id,existing.trade_id,'v1',request_id)
+            detail=get_booked_trade_detail(connection,tenant_id,existing,'v1',request_id)
+            if detail is None: raise RepositoryNotFound('Booked trade does not exist')
+            return detail
         row,terms=load(connection,tenant_id,request.listing_id,True)
         if not terms.booking_eligible: raise OptionBookingError('option.ineligible_listing','listingId',terms.ineligibility_message)
         if terms.terms_fingerprint!=request.expected_terms_fingerprint: raise OptionBookingError('option.terms_changed','listingId','Terms changed. Reselect the option listing.')
@@ -139,7 +140,7 @@ def book(connection,tenant_id,actor,request,key,request_id):
         validate_option_execution(execution,row.last_trading_at_utc,request.position_effect)
         if execution.date()<row.effective_from or execution.date()<row.listing_from: raise OptionBookingError('option.execution_before_effective','tradeDatetime','Execution is before the approved effective date.')
         if request.settlement_date<execution.date(): raise OptionBookingError('option.invalid_settlement_date','settlementDate','Premium settlement cannot precede execution.')
-        if not connection.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.strategy_id==request.strategy_id,m.strategy.c.tenant_id==tenant_id,m.strategy.c.status=='ACTIVE').with_for_update()): raise RepositoryNotFound('Active tenant strategy was not found.')
+        lock_booking_strategy(connection, tenant_id, request.strategy_id)
         annotations=validate_trade_annotations(connection,tenant_id,request)
         gross=gross_option_premium(request.quantity,request.execution_price,row.premium_multiplier,row.quote_factor)
         trade_id=uuid4()
@@ -147,7 +148,7 @@ def book(connection,tenant_id,actor,request,key,request_id):
         persist_trade_annotations(connection,tenant_id,trade_id,request,annotations)
         economics=OptionTradeEconomicsView(terms=terms,grossPremium=decimal_text(gross),premiumDirection='PAY' if request.side=='BUY' else 'RECEIVE')
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id,sequence_no=1,event_type='BOOKED',event_datetime_utc=execution,source_event_id=key,payload_hash=fingerprint,event_payload=json.dumps({'schemaVersion':1,'kind':'OPTION_BOOKING','positionEffect':request.position_effect,'economics':economics.model_dump(mode='json',by_alias=True)},sort_keys=True),recorded_by_user_account_id=actor))
-        connection.execute(m.trade_booking_idempotency.insert().values(tenant_id=tenant_id,endpoint=ENDPOINT,idempotency_key=key,request_fingerprint=fingerprint,trade_id=trade_id))
+        record_booking_replay(connection,tenant_id,ENDPOINT,key,fingerprint,trade_id)
         return get_booked_trade_detail(connection,tenant_id,trade_id,'v1',request_id)
 
 

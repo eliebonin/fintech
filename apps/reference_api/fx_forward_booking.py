@@ -9,6 +9,7 @@ from sqlalchemy.engine import Connection
 from security_master_schema import models as m
 from security_master_schema.fx_forward_booking import FxForwardBookingTerms, FxForwardBookingError, resolve_fx_forward_settlement, derive_fx_forward_obligations, fx_forward_terms_fingerprint, decimal_text
 from .contracts import FxForwardBookingRequest, FxForwardBookingInstrumentView, FxForwardTradeEconomicsView
+from .booking_controls import authorize_booking, lock_booking_strategy, find_booking_replay, record_booking_replay
 
 ENDPOINT = "/v1/trades/fx-forwards"
 
@@ -126,13 +127,11 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
     from .trade_properties import validate_trade_annotations
     # Savepoint also makes direct repository callers atomic on validation/persistence errors.
     with connection.begin_nested():
-        lock = int.from_bytes(sha256(f"{tenant_id}\x1f{ENDPOINT}\x1f{idempotency_key}".encode()).digest()[:8], "big", signed=True)
-        connection.execute(select(func.pg_advisory_xact_lock(lock)))
+        authorize_booking(connection, tenant_id, actor_id)
         fingerprint = _fingerprint(connection, tenant_id, request)
-        existing = connection.execute(select(m.trade_booking_idempotency).where(m.trade_booking_idempotency.c.tenant_id == tenant_id, m.trade_booking_idempotency.c.endpoint == ENDPOINT, m.trade_booking_idempotency.c.idempotency_key == idempotency_key).with_for_update()).mappings().first()
+        existing = find_booking_replay(connection, tenant_id, ENDPOINT, idempotency_key, fingerprint)
         if existing:
-            if existing.request_fingerprint != fingerprint: raise IdempotencyKeyConflict("Idempotency key was already used with a different request")
-            detail = get_booked_trade_detail(connection, tenant_id, existing.trade_id, "v1", request_id)
+            detail = get_booked_trade_detail(connection, tenant_id, existing, "v1", request_id)
             if detail is None: raise RepositoryNotFound("Booked trade does not exist")
             return detail
         terms = load_fx_forward_booking_terms(connection, tenant_id, request.instrument_id, for_update=True)
@@ -145,8 +144,7 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
         effective = connection.execute(select(m.instrument.c.effective_from, m.instrument.c.effective_to).where(m.instrument.c.instrument_node_id == terms.instrument_id)).one()
         if (effective.effective_from and execution.date() < effective.effective_from) or (effective.effective_to and execution.date() > effective.effective_to):
             raise FxForwardBookingError("fx_forward.inactive_contract", "tradeDatetime", "Execution is outside the instrument's effective dates.")
-        strategy = connection.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.strategy_id == request.strategy_id, m.strategy.c.tenant_id == tenant_id, m.strategy.c.status == "ACTIVE").with_for_update())
-        if strategy is None: raise RepositoryNotFound("Active strategy does not exist")
+        strategy = lock_booking_strategy(connection, tenant_id, request.strategy_id)
         values = validate_trade_annotations(connection, tenant_id, request)
         trade_id = uuid4()
         connection.execute(m.trade.insert().values(trade_id=trade_id, trade_subject_reference_node_id=terms.instrument_id, reference_instrument_node_id=terms.instrument_id,
@@ -158,7 +156,7 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
             receiveCurrency=obligations.receive_currency, receiveAmount=decimal_text(obligations.receive_amount), payCurrency=obligations.pay_currency, payAmount=decimal_text(obligations.pay_amount), termsFingerprint=request.expected_terms_fingerprint)
         snapshot = dict(schemaVersion=1, kind="FX_FORWARD_BOOKING", baseCurrencyId=str(terms.base_currency_id), quoteCurrencyId=str(terms.quote_currency_id), economics=economics.model_dump(by_alias=True))
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=execution, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(snapshot, sort_keys=True), recorded_by_user_account_id=actor_id))
-        connection.execute(m.trade_booking_idempotency.insert().values(tenant_id=tenant_id, endpoint=ENDPOINT, idempotency_key=idempotency_key, request_fingerprint=fingerprint, trade_id=trade_id))
+        record_booking_replay(connection, tenant_id, ENDPOINT, idempotency_key, fingerprint, trade_id)
         return get_booked_trade_detail(connection, tenant_id, trade_id, "v1", request_id)
 
 

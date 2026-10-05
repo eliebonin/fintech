@@ -10,6 +10,9 @@ Use [specifications](specifications/README.md) for approved design intent, [impl
 
 - [API error responses](api-problems.md)
 - [API contract delivery and dependency policy](api-contracts.md)
+- [Current instrument creation and booking capability matrix](booking-capability-matrix.md)
+- [Shared booking controls, replay compatibility and locking](booking-controls.md)
+- [Booking consolidation acceptance and self-review](quality-reviews/2026-10-05-booking-consolidation.md)
 - [Tenant workspace and strategy alpha](tenant-workspace-strategy-alpha.md)
 - [Enriched trade booking alpha](enriched-trade-booking-alpha.md)
 - [Deliverable FX-forward booking alpha](fx-forward-booking-alpha.md)

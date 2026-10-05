@@ -5,6 +5,7 @@ from decimal import Decimal
 import hashlib
 import json
 from uuid import UUID, uuid4
+from .booking_errors import RepositoryNotFound, InvalidWorkflowState, InvalidCatalogueValue, IdempotencyKeyConflict
 
 from sqlalchemy import Connection, and_, cast, exists, func, insert, or_, select, String, true
 
@@ -129,22 +130,6 @@ from .structured_product_contracts import (
     underlying_aggregation_for_scope,
     validate_autocall_draft,
 )
-
-
-class RepositoryNotFound(LookupError):
-    """Raised when a requested visible reference object does not exist."""
-
-
-class InvalidWorkflowState(ValueError):
-    """Raised when an append-only workflow transition is not permitted."""
-
-
-class InvalidCatalogueValue(InvalidWorkflowState):
-    """Raised when a request names a missing or inactive governed catalogue value."""
-
-
-class IdempotencyKeyConflict(InvalidWorkflowState):
-    """Raised when one tenant reuses an idempotency key for another payload."""
 
 
 _CURRENCY_GROUP_KINDS: dict[str, tuple[str, ...]] = {
@@ -4869,8 +4854,8 @@ def _trade_booking_fingerprint(payload: TradeBookingRequest, connection: Connect
 
 
 def _trade_booking_idempotency_lock_key(tenant_id: UUID, idempotency_key: str) -> int:
-    scope = f"{tenant_id}\x1f{_TRADE_BOOKING_ENDPOINT}\x1f{idempotency_key}"
-    return int.from_bytes(hashlib.sha256(scope.encode("utf-8")).digest()[:8], byteorder="big", signed=True)
+    from .booking_controls import booking_lock_key
+    return booking_lock_key(tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key)
 
 
 def book_listed_cash_trade(
@@ -4883,19 +4868,19 @@ def book_listed_cash_trade(
 ) -> TradeDetailResponse:
     """Create or replay one immutable listing-backed cash execution."""
 
+    from .booking_controls import authorize_booking
+    with connection.begin_nested():
+        authorize_booking(connection, tenant_id, actor_id)
+        return _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotency_key, request_id)
+
+
+def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotency_key, request_id):
+    from .booking_controls import find_booking_replay, record_booking_replay
+
     fingerprint = _trade_booking_fingerprint(request, connection, tenant_id)
-    connection.execute(select(func.pg_advisory_xact_lock(_trade_booking_idempotency_lock_key(tenant_id, idempotency_key))))
-    existing = connection.execute(
-        select(m.trade_booking_idempotency)
-        .where(m.trade_booking_idempotency.c.tenant_id == tenant_id)
-        .where(m.trade_booking_idempotency.c.endpoint == _TRADE_BOOKING_ENDPOINT)
-        .where(m.trade_booking_idempotency.c.idempotency_key == idempotency_key)
-        .with_for_update()
-    ).mappings().first()
+    existing = find_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint)
     if existing is not None:
-        if existing["request_fingerprint"] != fingerprint:
-            raise IdempotencyKeyConflict("Idempotency key was already used with a different request")
-        replay = get_booked_trade_detail(connection, tenant_id, existing["trade_id"], "v1", request_id)
+        replay = get_booked_trade_detail(connection, tenant_id, existing, "v1", request_id)
         if replay is None:
             raise RepositoryNotFound("Booked trade does not exist")
         return replay
@@ -4921,15 +4906,8 @@ def book_listed_cash_trade(
     if product in {"OPTION", "FX_FORWARD", "FUTURE", "SWAP", "STRUCTURED_PRODUCT", "BOND"}:
         from .trade_properties import TradeFieldError
         raise TradeFieldError("listingId", "This derivative requires its product-specific booking ticket; cash-share semantics are not permitted.")
-    strategy_row = connection.execute(
-        select(m.strategy.c.strategy_id)
-        .where(m.strategy.c.strategy_id == request.strategy_id)
-        .where(m.strategy.c.tenant_id == tenant_id)
-        .where(m.strategy.c.status == "ACTIVE")
-        .with_for_update()
-    ).mappings().first()
-    if strategy_row is None:
-        raise RepositoryNotFound("Active strategy does not exist")
+    from .booking_controls import lock_booking_strategy
+    strategy_id = lock_booking_strategy(connection, tenant_id, request.strategy_id)
     from .trade_properties import validate_trade_annotations
     annotation_values = validate_trade_annotations(connection, tenant_id, request)
     trade_id = uuid4()
@@ -4940,7 +4918,7 @@ def book_listed_cash_trade(
             trade_id=trade_id,
             trade_subject_reference_node_id=listing_row["listing_node_id"],
             reference_instrument_node_id=listing_row["instrument_node_id"],
-            strategy_id=strategy_row["strategy_id"],
+            strategy_id=strategy_id,
             trade_type="INVESTMENT",
             trade_purpose=request.trade_purpose,
             market_activity=request.market_activity,
@@ -4962,7 +4940,7 @@ def book_listed_cash_trade(
     )
     persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values)
     connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, recorded_by_user_account_id=actor_id))
-    connection.execute(insert(m.trade_booking_idempotency).values(tenant_id=tenant_id, endpoint=_TRADE_BOOKING_ENDPOINT, idempotency_key=idempotency_key, request_fingerprint=fingerprint, trade_id=trade_id))
+    record_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint, trade_id)
     result = get_booked_trade_detail(connection, tenant_id, trade_id, "v1", request_id)
     if result is None:
         raise RepositoryNotFound("Booked trade does not exist")

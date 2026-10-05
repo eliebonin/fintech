@@ -14,6 +14,7 @@ from .product_booking_contracts import (
     ProductBookingContextView, ProductTradeEconomicsView,
 )
 from .swap_creation_contracts import SwapProposalRequest
+from .booking_controls import authorize_booking, lock_booking_strategy, find_booking_replay, record_booking_replay
 
 CONVENTION = TypeAdapter(BookingConvention)
 
@@ -457,18 +458,17 @@ def book(connection, tenant, actor, request, key, kind, request_id):
     from .trade_properties import validate_trade_annotations
     endpoint = '/v1/trades/' + {'STRUCTURED_PRODUCT': 'structured-products', 'FUTURE': 'futures', 'BOND': 'bonds', 'SWAP': 'swaps'}[kind]
     with connection.begin_nested():
-        connection.execute(select(func.pg_advisory_xact_lock(int.from_bytes(sha256(f'{tenant}\x1f{endpoint}\x1f{key}'.encode()).digest()[:8], 'big', signed=True))))
+        authorize_booking(connection, tenant, actor)
         with localcontext() as decimal_context:
             decimal_context.prec = 100
             normalized = request.model_copy(update={'quantity': request.quantity.normalize(), 'execution_price': request.execution_price.normalize(), 'trade_datetime': request.trade_datetime.astimezone(timezone.utc),
                 'accrued_interest_amount': request.accrued_interest_amount.normalize() if request.accrued_interest_amount is not None else None})
         fingerprint = _trade_booking_fingerprint(normalized, connection, tenant)
-        existing = connection.execute(select(m.trade_booking_idempotency).where(
-            m.trade_booking_idempotency.c.tenant_id == tenant, m.trade_booking_idempotency.c.endpoint == endpoint,
-            m.trade_booking_idempotency.c.idempotency_key == key)).mappings().first()
+        existing = find_booking_replay(connection, tenant, endpoint, key, fingerprint)
         if existing:
-            if existing.request_fingerprint != fingerprint: raise IdempotencyKeyConflict('Idempotency key was used for another payload.')
-            return get_booked_trade_detail(connection, tenant, existing.trade_id, 'v1', request_id)
+            detail = get_booked_trade_detail(connection, tenant, existing, 'v1', request_id)
+            if detail is None: raise RepositoryNotFound('Booked trade does not exist')
+            return detail
         execution = request.trade_datetime.astimezone(timezone.utc)
         terms = load_context(connection, tenant, request.instrument_id, request.listing_id, execution.date(), True)
         if terms.kind != kind or not terms.booking_eligible: raise ProductBookingError(terms.ineligibility_message or 'Wrong booking product.')
@@ -511,8 +511,7 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             if request.execution_route == 'OTC' and request.counterparty_organisation_id is None: raise ProductBookingError('OTC execution requires a counterparty.', 'counterpartyOrganisationId')
             try: validate_increment(request.quantity, convention.quantity_increment, minimum=convention.quantity_minimum)
             except ValueError as error: raise ProductBookingError(str(error), 'quantity') from error
-        if not connection.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.strategy_id == request.strategy_id,
-            m.strategy.c.tenant_id == tenant, m.strategy.c.status == 'ACTIVE').with_for_update()): raise RepositoryNotFound('Active tenant strategy was not found.')
+        lock_booking_strategy(connection, tenant, request.strategy_id)
         annotations = validate_trade_annotations(connection, tenant, request)
         try:
             amount = swap_reference_value(request.quantity if request.side == 'BUY' else request.quantity.copy_negate(), request.execution_price, convention.quote_factor) if kind == 'SWAP' else execution_amount(request.quantity, request.execution_price, quantity_unit=convention.quantity_unit,
@@ -538,8 +537,7 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             event_datetime_utc=execution, source_event_id=key, payload_hash=fingerprint,
             event_payload=json.dumps({'schemaVersion': 1, 'kind': 'PRODUCT_BOOKING', 'economics': economics.model_dump(mode='json', by_alias=True)}, sort_keys=True),
             recorded_by_user_account_id=actor))
-        connection.execute(m.trade_booking_idempotency.insert().values(tenant_id=tenant, endpoint=endpoint, idempotency_key=key,
-            request_fingerprint=fingerprint, trade_id=trade_id))
+        record_booking_replay(connection, tenant, endpoint, key, fingerprint, trade_id)
         return get_booked_trade_detail(connection, tenant, trade_id, 'v1', request_id)
 
 
@@ -610,4 +608,3 @@ def search_families(connection, tenant, query, limit, offset):
         underlyingId=r.underlying_reference_node_id, underlyingName=r.underlying_name,
         contractCurrencyId=r.contract_currency_id, currency=r.currency_code,
         specification=FutureFamilySpecification.model_validate_json(r.specification_payload) if r.specification_payload else None) for r in rows], total
-

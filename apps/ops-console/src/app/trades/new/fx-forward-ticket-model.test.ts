@@ -14,6 +14,9 @@ it("submits inherited identity and fingerprint, never cash overrides",()=>{
  expect(payload.instrumentId).toBe(instrument.instrumentId);expect(payload.expectedTermsFingerprint).toBe("a".repeat(64));
  for(const key of ["listingId","executionPrice","settlementDate","marketActivity"])expect(payload).not.toHaveProperty(key);
 });
+it('accepts a scientific API rate without changing currency obligations',()=>{
+ expect(previewFxForwardObligations({...instrument,agreedRate:'1E-8'},'BUY','1000000').payAmount).toBe('0.01');
+});
 it.each(["0","-1","0.0000000000001","1000000000000000000"])("rejects invalid base quantity %s",quantity=>expect(validateFxForwardTicketDraft(instrument,{...draft,quantity},context).some(e=>e.field==="quantity")).toBe(true));
 it("requires counterparty and rejects ineligible instrument",()=>{
  expect(validateFxForwardTicketDraft(instrument,{...draft,counterpartyOrganisationId:""},context).some(e=>e.field==="counterpartyOrganisationId")).toBe(true);

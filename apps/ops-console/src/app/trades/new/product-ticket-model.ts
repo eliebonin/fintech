@@ -1,43 +1,20 @@
 import type {components} from 'api-contracts';
 import type {TradeBookingContext} from '@/lib/browser-api-client';
 import {validateTradeAnnotations,type EnrichedTicketDraft,type TicketError} from './ticket-model';
+import {parseBookingDecimal as part, exactBookingAmount, formatBookingDecimal, type BookingDecimal as DecimalPart} from '@/lib/booking-decimal';
 export type ProductTerms=components['schemas']['ProductBookingContextView'];
 export type ProductRequest=components['schemas']['ProductBookingRequest'];
 export type ProductDraft=EnrichedTicketDraft&{positionEffect:'OPEN'|'CLOSE';priceType?:'CLEAN'|'DIRTY'|'';accruedInterestAmount?:string;settlementEvidence?:string};
 export function createProductDraft():ProductDraft {
   return {strategyId:'',side:'BUY',positionEffect:'OPEN',quantity:'',executionPrice:'',tradeDatetime:new Date().toISOString(),settlementDate:'',tradePurpose:'INVESTMENT',properties:{},tagIds:[],externalReferences:[]};
 }
-type DecimalPart={value:bigint;scale:number};
-function part(text:string):DecimalPart|null {
-  text=text.replace(/^(-?)\./,'$10.');
-  const scientific=/^(-?\d{1,30})(?:\.(\d{1,30}))?[eE]([+-]?\d{1,2})$/.exec(text);
-  if(scientific){
-    // Decimal JSON can use exponent notation; shift exact integers, not money floats.
-    let value=BigInt(scientific[1]+(scientific[2]??'')),scale=(scientific[2]?.length??0)-Number(scientific[3]);
-    if(scale<0){value*=BigInt(10)**BigInt(-scale);scale=0;}
-    while(scale>0&&value%BigInt(10)===BigInt(0)){value/=BigInt(10);scale--;}
-    if(scale>12||(value<0?-value:value).toString().length-scale>18)return null;
-    return {value,scale};
-  }
-  if(!/^-?\d{1,18}(?:\.\d{1,12})?$/.test(text))return null;
-  return {value:BigInt(text.replace('.','')),scale:text.split('.')[1]?.length??0};
-}
 /** Exact preview in supported database precision; never use binary floats for money. */
 export function productAmount(terms:ProductTerms,quantity:string,price:string):string {
   const c=terms.convention;if(!c)return '—';
-  const inputs=[quantity,price,c.kind==='FUTURE'?c.monetaryMultiplier:c.priceBasis==='PCT_OF_PAR'&&c.quantityUnit==='UNITS'?c.denomination??'': '1'].map(value=>part(String(value)));
-  const divisor=part(String(c.quoteFactor));if(inputs.some(v=>!v)||!divisor||divisor.value<=0)return '—';
-  const values=inputs as DecimalPart[];
-  const numerator=values.reduce((value,next)=>value*next.value,BigInt(1))*BigInt(10)**BigInt(divisor.scale+12);
-  const denominator=divisor.value*BigInt(10)**BigInt(values.reduce((value,next)=>value+next.scale,0));
-  if(numerator%denominator!==BigInt(0))return '—';
-  const result=numerator/denominator,negative=result<BigInt(0),absolute=negative?-result:result;
-  if(absolute>=BigInt(10)**BigInt(30))return '—';
-  const digits=absolute.toString().padStart(13,'0');
-  return `${negative?'-':''}${digits.slice(0,-12)}.${digits.slice(-12)}`.replace(/0+$/,'').replace(/\.$/,'');
+  return exactBookingAmount([quantity,price,String(c.kind==='FUTURE'?c.monetaryMultiplier:c.priceBasis==='PCT_OF_PAR'&&c.quantityUnit==='UNITS'?c.denomination??'': '1')],String(c.quoteFactor));
 }
 function aligned(value:string,step:string,minimum='0') {
-  const parts=[value,step,minimum].map(part);if(parts.some(v=>!v))return false;
+  const parts=[value,step,minimum].map(text=>part(text));if(parts.some(v=>!v))return false;
   const [v,s,m]=parts as DecimalPart[],scale=Math.max(v.scale,s.scale,m.scale);
   const integer=(p:DecimalPart)=>p.value*BigInt(10)**BigInt(scale-p.scale);
   return integer(s)>0&&integer(v)>=integer(m)&&(integer(v)-integer(m))%integer(s)===BigInt(0);
@@ -49,7 +26,7 @@ export function bondAmounts(terms:ProductTerms,draft:ProductDraft):{clean:string
   const scaled=(p:DecimalPart)=>p.value*BigInt(10)**BigInt(12-p.scale);
   const q=scaled(quoted),a=scaled(accrued),clean=draft.priceType==='CLEAN'?q:q-a,dirty=draft.priceType==='DIRTY'?q:q+a;
   if(clean<0||dirty<0||clean>=BigInt(10)**BigInt(30)||dirty>=BigInt(10)**BigInt(30))return null;
-  const text=(n:bigint)=>{const s=n.toString().padStart(13,'0');return `${s.slice(0,-12)}.${s.slice(-12)}`.replace(/0+$/,'').replace(/\.$/,'');};
+  const text=(n:bigint)=>formatBookingDecimal(n,12);
   return {clean:text(clean),dirty:text(dirty)};
 }
 export function validateProductDraft(terms:ProductTerms,draft:ProductDraft,context:TradeBookingContext):TicketError[] {

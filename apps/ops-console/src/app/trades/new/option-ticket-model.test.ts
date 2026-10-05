@@ -5,6 +5,9 @@ const terms={listingId:'listing',instrumentId:'instrument',name:'Call',listingNa
 const context={properties:[],tags:[]} as unknown as TradeBookingContext;
 const draft:OptionTicketDraft={strategyId:'strategy',side:'BUY',positionEffect:'OPEN',quantity:'10',executionPrice:'2.5',tradeDatetime:'2026-10-01T10:00:00Z',settlementDate:'2026-10-05',tradePurpose:'INVESTMENT',properties:{},tagIds:[],externalReferences:[]};
 describe('option ticket economics',()=>{
+  it('accepts scientific API multipliers and divisors without changing quoted premium',()=>{
+    expect(previewOptionPremium({...terms,premiumMultiplier:'1E+2',quoteFactor:'1E+2'},'10','250')).toBe('2500');
+  });
   it('converts major and minor quoted premiums exactly',()=>{expect(previewOptionPremium(terms,'10','2.5')).toBe('2500');expect(previewOptionPremium({...terms,quoteFactor:'100'},'10','250')).toBe('2500');});
   it('accepts zero premium and rejects unrepresentable previews',()=>{expect(previewOptionPremium(terms,'10','0')).toBe('0');expect(previewOptionPremium({...terms,quoteFactor:'3'},'1','1')).toBe('—');expect(previewOptionPremium(terms,'','2')).toBe('—');});
   it('requires integer contracts and explicit premium date',()=>{expect(validateOptionTicketDraft(terms,draft,context)).toEqual([]);expect(validateOptionTicketDraft(terms,{...draft,quantity:'1.5',settlementDate:''},context).map(e=>e.field)).toEqual(expect.arrayContaining(['quantity','settlementDate']));});

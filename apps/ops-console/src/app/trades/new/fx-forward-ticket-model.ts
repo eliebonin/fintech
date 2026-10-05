@@ -1,8 +1,9 @@
 import type { FxForwardBookingInstrumentView, FxForwardBookingRequest, TradeBookingContext } from "@/lib/browser-api-client";
 import { grossConsideration, validateTradeAnnotations, type EnrichedTicketDraft, type TicketError } from "./ticket-model";
+import {multiplyBookingDecimals} from '@/lib/booking-decimal';
 export type FxForwardTicketDraft=Omit<EnrichedTicketDraft,"executionPrice"|"settlementDate"|"marketActivity">;
 export function previewFxForwardObligations(instrument:FxForwardBookingInstrumentView,side:"BUY"|"SELL",quantity:string) {
-  const amount=grossConsideration(quantity,instrument.agreedRate??"");
+  const amount=multiplyBookingDecimals([quantity,instrument.agreedRate??""]);
   return side==="BUY"?{receiveCurrency:instrument.baseCurrency,receiveAmount:quantity,payCurrency:instrument.quoteCurrency,payAmount:amount}:{receiveCurrency:instrument.quoteCurrency,receiveAmount:amount,payCurrency:instrument.baseCurrency,payAmount:quantity};
 }
 export function validateFxForwardTicketDraft(instrument:FxForwardBookingInstrumentView,draft:FxForwardTicketDraft,context:TradeBookingContext):TicketError[] {

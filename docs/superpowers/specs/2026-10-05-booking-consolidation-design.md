@@ -1,6 +1,6 @@
 # Booking consolidation
 
-**Status:** Scope approved; written design awaiting user review  
+**Status:** Implemented and verified for the approved scope
 **Content type:** Design specification  
 **Owner:** Engineering delivery team  
 **Last reviewed:** 2026-10-05
@@ -117,4 +117,4 @@ Use isolated synthetic environments for browser/transaction acceptance. Existing
 
 Valuation/P&L, positions/lots, trade corrections, lifecycle processing, coupon/dividend/payment engines, production authentication, physical tenant routing, instrument amendment workflows, reference-data bulk repair and general UX redesign are separate tasks.
 
-This written specification requires user approval before an implementation plan is prepared. The subsequent plan will preserve sequential execution and lightweight-first verification. Implementation has not started.
+The user subsequently instructed implementation. The [implementation plan](../plans/2026-10-05-booking-consolidation.md) preserves sequential execution and lightweight-first verification. Current delivery and evidence are maintained in [shared booking controls](../../delivery/booking-controls.md).

@@ -2,6 +2,8 @@
 
 The alpha begins with an authenticated actor's active tenant membership; it is not a support or platform-admin impersonation flow.
 
+For current cross-product creation/listing/booking support, use the [booking capability matrix](booking-capability-matrix.md). This dated delivery record is not the current product-support matrix; shared booking safeguards are described in [booking controls](booking-controls.md).
+
 The live `/trades` history upgrade, its query semantics, verification scope,
 and researched UX sources are documented in [Trade history alpha](trade-history-alpha.md).
 

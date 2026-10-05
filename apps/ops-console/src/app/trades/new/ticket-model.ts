@@ -1,5 +1,6 @@
 import type { TradeBookingRequest, TradeBookingContext } from "@/lib/browser-api-client";
 import { BffApiError } from "@/lib/api-errors";
+import {multiplyBookingDecimals} from '@/lib/booking-decimal';
 import { buildTicketPayload, validateBasicTicketFields, type TicketListing, type TicketDraft } from "./trade-ticket";
 
 export type EnrichedTicketDraft = TicketDraft & {
@@ -17,9 +18,7 @@ export type EnrichedTicketDraft = TicketDraft & {
 };
 export type TicketError = {field:string;message:string};
 
-export function freezeBookingSubmission(payload:TradeBookingRequest,key:string,expectedTenantId:string) {
-  return {payload:structuredClone(payload),key,expectedTenantId};
-}
+export {freezeBookingSubmission} from '@/lib/booking-submission';
 
 export function bookingFailureMode(error:unknown):"RETRY_REQUIRED"|"BLOCKED"|"EDITING" {
   if(!(error instanceof BffApiError)||error.status>=500||error.status===408||error.status===429)return "RETRY_REQUIRED";
@@ -28,10 +27,7 @@ export function bookingFailureMode(error:unknown):"RETRY_REQUIRED"|"BLOCKED"|"ED
 
 export function grossConsideration(quantity:string, price:string):string {
   if (![quantity,price].every(value=>/^\d+(?:\.\d+)?$/.test(value) && value.length <= 80)) return "—";
-  const scale = (quantity.split(".")[1]?.length ?? 0)+(price.split(".")[1]?.length ?? 0);
-  const product = BigInt(quantity.replace(".",""))*BigInt(price.replace(".",""));
-  const digits = product.toString().padStart(scale+1,"0");
-  return scale ? `${digits.slice(0,-scale)}.${digits.slice(-scale)}`.replace(/0+$/,"").replace(/\.$/,"") : digits;
+  return multiplyBookingDecimals([quantity,price]);
 }
 
 export function validateEnrichedTicketDraft(draft:EnrichedTicketDraft, context:TradeBookingContext):TicketError[] {

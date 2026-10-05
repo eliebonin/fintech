@@ -1,3 +1,4 @@
+import {bookingSubmissionOptions} from './booking-submission';
 import type {
   BondProposalPayload,
   CurrencyGroupCode,
@@ -86,17 +87,18 @@ export async function bffPost<T>(
   fetchImpl: FetchImplementation = fetch,
   extraHeaders: Record<string, string> = {},
 ): Promise<T> {
-  const response = await fetchImpl(path, {
+  const options:RequestInit=idempotencyKey&&extraHeaders['X-Expected-Tenant-Id']
+    ?bookingSubmissionOptions({payload,key:idempotencyKey,expectedTenantId:extraHeaders['X-Expected-Tenant-Id']}) : {
     method: "POST",
     cache: "no-store",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-      ...extraHeaders,
     },
     body: JSON.stringify(payload),
-  });
+  };
+  const response = await fetchImpl(path,{...options,headers:{...options.headers,...extraHeaders}});
   if (!response.ok) throw await parseApiErrorResponse(response, `BFF request returned HTTP ${response.status}`);
   return await response.json() as T;
 }
