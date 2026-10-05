@@ -171,3 +171,73 @@ Exit 0; no whitespace errors
 ```
 
 Self-review: the dedicated lifecycle cleanup invalidates old promises without broadening the listener dependency behavior or changing idempotency payloads; keyed remount and effect replay are exercised by real ticket callbacks. Both generic identity headings consistently use snapshot evidence, with legacy detail fallback retained. No helpers/review agents, unrelated redesign, backend edits, new endpoint, push, runtime activation, full suites or browser work occurred. Full/browser verification remains assigned to Task 6.
+
+## Consolidated final review fix wave — 2026-10-05
+
+Base `d03e30de419978ca7086ae03aa903fe1266c7e3d`. Read the completed final review artifact and addressed only its two Important product findings. The full root-cause evidence, exact commands/output, file/interface inventory and limitations are in sibling `final-fix-report.md`. The Minor raw-JSON reference-link suggestion is explicitly deferred. No helpers/agents, browser actions, operating data changes, push or runtime activation were performed. The parent owns the separately authorized browser acceptance and scoped re-review.
+
+### Decimal serialization RED/GREEN
+
+Read-only construction of the actual installed Pydantic `SwapConvention` confirmed `Decimal('0.000000000001')` serializes minimum/increment as `"1E-12"`. Fixed-notation-only `part()` made `aligned()` reject every generic nominal; state fixtures had hidden the boundary mismatch. The shared private parser now handles bounded scientific notation with BigInt coefficient/scale shifts and exact trailing-zero normalization, enforcing the existing 18 integer/12 fractional envelope without monetary float conversion or rounding. Existing fixed parsing, amount/side/leverage rules and request strings are unchanged.
+
+```text
+pnpm --filter ops-console test -- src/app/trades/new/swap-ticket.test.tsx src/app/trades/new/product-ticket-model.test.ts src/app/trades/new/product-ticket-state.test.tsx
+RED:   3 failed files; 8 failed | 42 passed (50); 838ms; exit 1
+GREEN: 3 passed files; 50 passed (50); 862ms; exit 0
+
+pnpm --filter ops-console test -- src/app/trades/new/swap-ticket.test.tsx -t '1.23456789012345678123456789012'
+Additional exact maximum-precision scientific-mantissa RED:
+1 failed file; 1 failed | 31 skipped (32); 1.14s; exit 1
+```
+
+The initial scientific parser bound was tightened correctly around expanded precision, allowing this supported 30-digit nominal. Final focused GREEN below covers it, wire-real minimum/increment, malformed/huge/overprecision inputs, a serialized `1E-8` divisor, and a `1E-12` contractual prefill through actual selection/review/confirmation unchanged. The backend test also asserts those exact wire strings from a genuinely approved generic context.
+
+### Mixed-currency P/F lock inversion RED/GREEN
+
+Confirmed the legacy source loader locked performance then funding, unlike generic booking/direct loading/proposal approval's UUID-sorted identities/scopes. Initial currency prelocks do not serialize legacy GBP against generic USD. The new isolated test shares performance and a cloned funding index with funding UUID < performance; SQL execution events schedule real PostgreSQL lock acquisition/attempts (no mocked locks or sleeps).
+
+An initial harness run failed with `currencyId` KeyError; after using actual context field `currency`, all three cases reached the intended deadlock assertion. The concise confirmatory RED was:
+
+```text
+.\.venv\Scripts\python.exe scripts/run_isolated_python_tests.py tests/test_generic_swap_booking_api.py -k cross_currency_legacy -q --tb=short
+product_booking:   BOOKED / 40P01
+direct_loader:     BOOKED / 40P01
+proposal_approval: 40P01 / APPROVED
+3 failed, 48 deselected in 21.36s; exit 1
+```
+
+The minimal legacy source phase now evaluates `visible()` on P/F in UUID order, recovering the same role-specific variables afterwards. Tenant checks, complete locks, legacy eligibility, source facts and snapshots remain intact; generic validation already uses this order and needs no production change. This follows [PostgreSQL 18 consistent lock-order guidance](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-DEADLOCKS); the concrete UUID rule is a project decision, not a claim of global lock freedom.
+
+```text
+.\.venv\Scripts\python.exe scripts/run_isolated_python_tests.py tests/test_generic_swap_booking_api.py -k cross_currency_legacy -q --tb=short
+3 passed, 48 deselected in 21.30s; exit 0
+```
+
+The tests check expected success statuses across booking/direct loader/approval, persisted trade counts and byte-for-byte equivalent context values/fingerprints/source facts before/after. All test data belongs to runner-created disposable PostgreSQL databases, dropped by the runner on exit.
+
+### Final focused checks
+
+```text
+pnpm --filter ops-console test -- src/app/trades/new/swap-ticket.test.tsx src/app/trades/new/product-ticket-state.test.tsx src/app/trades/new/product-ticket-model.test.ts src/app/trades/new/bond-ticket.test.tsx src/app/trades/new/trade-ticket.test.tsx src/lib/trade-history.test.ts src/app/trades/trade-history-page.test.tsx
+7 passed files; 108 passed tests; Start 13:00:02; Duration 6.91s; exit 0
+
+pnpm --filter ops-console typecheck
+> tsc --noEmit
+Exit 0
+
+pnpm contract:check
+> .\.venv\Scripts\python.exe scripts/export_openapi_contract.py --check
+Exit 0
+
+pnpm contract:generate:check
+> pnpm generate && git diff --exit-code -- src/generated.ts
+openapi-typescript 7.10.1
+openapi/reference-data-api.v1.json → src/generated.ts [321.1ms]
+Exit 0; no generated artifact diff
+```
+
+Bounded backend verification and final diff review results follow in the completion addendum when the active run finishes. Whole-suite/browser acceptance is not asserted by this implementer.
+
+## Root sequential completion addendum — 2026-10-05
+
+The user switched to sequential execution. The active implementer was interrupted; its incomplete bounded backend run is not asserted as passing. Root inspected the final fixes and obtained fresh full acceptance: 696 Python tests passed (481 warnings), 403 frontend tests passed, typecheck/build/API-contract checks passed. Root then approved two synthetic swaps and booked four mock trades through the isolated UI/API, verifying partial nominal, signs, properties and history. Operating data/services were untouched. Full evidence and remaining minor observations are in `docs/delivery/generic-swap-execution-log.md`; the wider project review is `docs/delivery/quality-reviews/2026-10-05-project-state-and-roadmap.md`.
