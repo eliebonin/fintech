@@ -4,6 +4,9 @@ import {validateTradeAnnotations,type EnrichedTicketDraft,type TicketError} from
 export type ProductTerms=components['schemas']['ProductBookingContextView'];
 export type ProductRequest=components['schemas']['ProductBookingRequest'];
 export type ProductDraft=EnrichedTicketDraft&{positionEffect:'OPEN'|'CLOSE';priceType?:'CLEAN'|'DIRTY'|'';accruedInterestAmount?:string;settlementEvidence?:string};
+export function createProductDraft():ProductDraft {
+  return {strategyId:'',side:'BUY',positionEffect:'OPEN',quantity:'',executionPrice:'',tradeDatetime:new Date().toISOString(),settlementDate:'',tradePurpose:'INVESTMENT',properties:{},tagIds:[],externalReferences:[]};
+}
 type DecimalPart={value:bigint;scale:number};
 function part(text:string):DecimalPart|null {
   text=text.replace(/^(-?)\./,'$10.');

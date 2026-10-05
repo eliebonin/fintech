@@ -3,21 +3,22 @@ import { redirect } from "next/navigation";
 
 import { describeMvpError, getBookedTrades, getHistoryStrategies, type HistoryStrategy } from "@/lib/mvp-api-client";
 import { formatTradeDateTime, formatTradeNumber, formatTradeExactDecimal, tradeDirection, type BookedTrade } from "@/lib/trades";
-import { historyHref, parseHistoryQuery, type HistorySearchParams } from "@/lib/trade-history";
+import { bookedSwapFacts, historyHref, parseHistoryQuery, type HistorySearchParams } from "@/lib/trade-history";
 import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { WorkspaceShell } from "@/components/workspace-shell";
 
 export const dynamic = "force-dynamic";
 
 function TradeRow({ trade, returnTo }: { trade: BookedTrade; returnTo: string }) {
-  const instrument = trade.instrumentName ?? trade.subjectName;
+  const swap=bookedSwapFacts(trade);
+  const instrument = swap?trade.productEconomics!.terms.name:trade.instrumentName ?? trade.subjectName;
   return <tr>
     <td><strong>{formatTradeDateTime(trade.tradeDatetimeUtc)}</strong></td>
     <td><Link className="trade-subject-link" href={`/trades/${encodeURIComponent(trade.tradeId)}?returnTo=${encodeURIComponent(returnTo)}`}><strong>{instrument}</strong></Link><small>{[trade.listingSymbol, trade.venueMic].filter(Boolean).join(" · ") || trade.instrumentType}</small></td>
     <td><strong>{trade.strategyCode}</strong><small>{trade.strategyName}</small></td>
     <td><span className="quality">{tradeDirection(trade.quantity)}</span>{trade.positionEffect?<small>{trade.positionEffect}</small>:null}</td>
-    <td className="trade-numeric"><strong>{(trade.instrumentType==="FX_FORWARD"||trade.productEconomics?formatTradeExactDecimal:formatTradeNumber)(trade.quantity.replace(/^-/, ""))}</strong><small>{trade.fxForwardEconomics?`Base amount · ${trade.fxForwardEconomics.baseCurrency}`:trade.quantityUnit}</small></td>
-    <td className="trade-numeric"><strong>{(trade.instrumentType==="FX_FORWARD"||trade.instrumentType==="OPTION"||trade.productEconomics?formatTradeExactDecimal:formatTradeNumber)(trade.executionPrice)}</strong><small>{trade.productEconomics?`${trade.priceBasis} · ${trade.priceCurrency}`:trade.fxForwardEconomics?`Rate · ${trade.fxForwardEconomics.quoteConvention} · OTC`:trade.optionEconomics?`Quoted premium · ${trade.priceCurrency}`:trade.priceCurrency ?? "—"}</small></td>
+    <td className="trade-numeric"><strong>{(trade.instrumentType==="FX_FORWARD"||trade.productEconomics?formatTradeExactDecimal:formatTradeNumber)(swap?swap.bookedNotional:trade.quantity.replace(/^-/, ""))}</strong><small>{swap?`Booked nominal · ${trade.productEconomics!.terms.currency}`:trade.fxForwardEconomics?`Base amount · ${trade.fxForwardEconomics.baseCurrency}`:trade.quantityUnit}</small>{swap?<small>Contractual notional · {formatTradeExactDecimal(swap.terms.contractualNotional)} {trade.productEconomics!.terms.currency}</small>:null}</td>
+    <td className="trade-numeric"><strong>{(trade.instrumentType==="FX_FORWARD"||trade.instrumentType==="OPTION"||trade.productEconomics?formatTradeExactDecimal:formatTradeNumber)(trade.executionPrice)}</strong><small>{swap?`SWAP_VALUE_PER_NOTIONAL · ${trade.productEconomics!.terms.currency}`:trade.productEconomics?`${trade.priceBasis} · ${trade.priceCurrency}`:trade.fxForwardEconomics?`Rate · ${trade.fxForwardEconomics.quoteConvention} · OTC`:trade.optionEconomics?`Quoted premium · ${trade.priceCurrency}`:trade.priceCurrency ?? "—"}</small>{swap?<small>Entry reference value (not a payment or verified MTM) · {formatTradeExactDecimal(trade.productEconomics!.amount)} {trade.productEconomics!.terms.currency}</small>:null}</td>
     <td>{trade.settlementDate ?? "—"}</td>
     <td><span className={`quality quality-${trade.lifecycleStatus.toLowerCase()}`}>{trade.lifecycleStatus}</span></td>
   </tr>;

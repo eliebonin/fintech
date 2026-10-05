@@ -37,6 +37,17 @@ function fakeApi(data: BookedTrade[] = [trade], total = 143) {
 }
 
 describe("trade history rendered pages", () => {
+  const genericTrade:BookedTrade={...trade,instrumentType:'SWAP',quantity:'-400000',quantityUnit:'NOMINAL',executionPrice:'2',settlementDate:null,productEconomics:{bookedNotional:'400000',amount:'-8000',amountKind:'ENTRY_REFERENCE_VALUE',terms:{instrumentId:'swap',name:'Swap at booking',kind:'SWAP',executionRoute:'OTC',currency:'GBP',bookingEligible:true,termsFingerprint:'b'.repeat(64),maturityDate:'2029-10-01',swapDetails:{performanceReferenceId:'ref',performanceReferenceName:'Equity at booking',performanceDirection:'RECEIVE',returnProfileCode:'TOTAL',fundingReferenceId:null,effectiveDate:'2026-09-01',sourceFacts:{},genericTerms:{schemaVersion:1,contractualNotional:'1000000',notionalCurrencyId:'gbp',effectiveDate:'2026-09-01',maturityDate:'2029-10-01',performanceDirection:'RECEIVE',performanceReferenceId:'ref',returnBasis:'TOTAL',returnProfileId:'total',leverage:'2',financingTreatment:'NONE',performanceResetFrequency:'CUSTOM',performanceScheduleDescription:'Historical reset rule',redemptionRule:'CONTINUE',continuationDescription:'Historical proceeds rule',quoteCurrencyId:'gbp',quoteFactor:'100',sourceReference:'Historical confirmation',additionalFundingAcknowledged:false}}}}};
+  it('renders both generic notionals and whole-swap entry value from the booked snapshot',async()=>{
+    const {DetailContent}=await import('./[tradeId]/page');
+    const html=renderToStaticMarkup(<DetailContent detail={{trade:genericTrade,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
+    for(const value of ['Booked nominal','400,000 GBP','Contractual notional','1000000 GBP','Equity at booking','Historical reset rule','Historical proceeds rule','Historical confirmation','No separate funding leg','-8,000 GBP','not independently verified MTM'])expect(html).toContain(value);
+    expect(html).not.toContain('Funding spread (decimal)');expect(html).not.toContain('Canonical funding direction');
+  },15000);
+  it('shows both generic nominal amounts and labels the immutable entry value in history',async()=>{
+    fakeApi([{...genericTrade,quantity:'-500000'}]);const {default:Page}=await import('./page');const html=renderToStaticMarkup(await Page({searchParams:Promise.resolve({range:'all'})}));
+    for(const value of ['Swap at booking','<strong>400,000</strong>','Booked nominal','Contractual notional','1,000,000 GBP','SWAP_VALUE_PER_NOTIONAL · GBP','Entry reference value','-8,000 GBP'])expect(html).toContain(value);
+  });
   it("renders FX booking-snapshot obligations and full rate precision",async()=>{
     const {DetailContent}=await import("./[tradeId]/page");
     const fx={baseCurrency:"EUR",quoteCurrency:"USD",quoteConvention:"USD_PER_EUR",agreedRate:"1.123456789012",settlementDate:"2026-12-15",receiveCurrency:"EUR",receiveAmount:"0.000001",payCurrency:"USD",payAmount:"0.000001123456789012",termsFingerprint:"a".repeat(64),source:"BOOKING_SNAPSHOT" as const};

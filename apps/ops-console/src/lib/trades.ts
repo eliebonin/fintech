@@ -1,5 +1,5 @@
 export type BookedTrade = {
-  productEconomics?: {bondDetails?:Record<string,string>|null;terms:import('api-contracts').components['schemas']['ProductBookingContextView'];amount:string;amountKind:'CONSIDERATION'|'REFERENCE_CONTRACT_VALUE'|'ENTRY_REFERENCE_VALUE';direction?:'PAY'|'RECEIVE'|null}|null;
+  productEconomics?: {bookedNotional?:string|null;bondDetails?:Record<string,string>|null;terms:import('api-contracts').components['schemas']['ProductBookingContextView'];amount:string;amountKind:'CONSIDERATION'|'REFERENCE_CONTRACT_VALUE'|'ENTRY_REFERENCE_VALUE';direction?:'PAY'|'RECEIVE'|null}|null;
   positionEffect?: 'OPEN'|'CLOSE'|null;
   optionEconomics?: import('api-contracts').components['schemas']['OptionTradeEconomicsView']|null;
   fxForwardEconomics?: import("api-contracts").components["schemas"]["FxForwardTradeEconomicsView"] | null;

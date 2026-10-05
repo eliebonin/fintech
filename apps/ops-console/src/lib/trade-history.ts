@@ -1,3 +1,28 @@
+import type {components} from 'api-contracts';
+import type {BookedTrade} from './trades';
+
+/** Resolve names from the approved context or booked snapshot, never current master data. */
+export function swapContextLabels(context:components['schemas']['ProductBookingContextView']):Record<string,string> {
+  const swap=context.swapDetails,terms=swap?.genericTerms;
+  if(!swap||!terms)return {};
+  const labels:Record<string,string>={[terms.performanceReferenceId]:swap.performanceReferenceName};
+  if(context.currency){labels[terms.notionalCurrencyId]=context.currency;labels[terms.quoteCurrencyId]=context.currency;}
+  if(terms.fundingReferenceId&&swap.fundingReferenceName)labels[terms.fundingReferenceId]=swap.fundingReferenceName;
+  for(const [key,idField] of [['returnProfile','return_profile_id'],['dayCountConvention','day_count_convention_id']]){
+    const row=swap.sourceFacts[key];
+    if(!row||typeof row!=='object'||Array.isArray(row))continue;
+    const record=row as Record<string,unknown>;
+    if(typeof record[idField]==='string'&&typeof record.display_name==='string')labels[record[idField]]=record.display_name;
+  }
+  return labels;
+}
+
+export function bookedSwapFacts(trade:BookedTrade) {
+  const economics=trade.productEconomics,terms=economics?.terms.swapDetails?.genericTerms;
+  if(economics?.terms.kind!=='SWAP'||!terms)return undefined;
+  return {terms,bookedNotional:economics.bookedNotional??trade.quantity.replace(/^-/,''),labels:swapContextLabels(economics.terms)};
+}
+
 export type HistorySearchParams = Record<string, string | string[] | undefined>;
 export type HistoryQuery = {
   q: string; portfolioCode: string; fromDate: string; toDate: string;
