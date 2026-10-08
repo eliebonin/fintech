@@ -3,7 +3,7 @@ import asyncio
 from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, update, func
+from sqlalchemy import select, update, func, text
 from apps.reference_api.main import create_app
 from apps.reference_api.db import get_engine
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
@@ -55,6 +55,14 @@ def test_counterparty_is_required(instrument):
     data = payload(instrument)
     data.pop("counterpartyOrganisationId")
     assert request("POST", "/v1/trades/fx-forwards", data).status_code == 422
+
+
+def test_historical_fx_definition_must_cover_execution(connection,instrument):
+    from datetime import date
+    from apps.reference_api.fx_forward_booking import load_fx_forward_booking_terms
+    from security_master_schema.fx_forward_booking import FxForwardBookingError
+    with pytest.raises(FxForwardBookingError):
+        load_fx_forward_booking_terms(connection,DEMO_IDS['tenant'],UUID(instrument),as_of=date(2026,8,31))
 
 def test_execution_after_settlement_rejected(instrument):
     response = request("POST", "/v1/trades/fx-forwards", payload(instrument, tradeDatetime="2026-12-16T10:00:00Z"))
@@ -218,3 +226,132 @@ def test_active_member_without_trade_write_cannot_book(instrument):
         with get_engine().connect() as c:assert c.scalar(select(func.count()).select_from(m.trade))==before
     finally:
         with get_engine().begin() as c:c.execute(update(m.tenant_user_account).where(clause).values(membership_role=original))
+
+
+@pytest.mark.parametrize("scope_type", ["TENANT_PRIVATE", "SHARED_CANONICAL"])
+def test_inactive_scope_is_hidden_and_stale_ticket_cannot_book(connection, instrument, scope_type):
+    from apps.reference_api.fx_forward_booking import get_fx_forward_booking_instrument, search_fx_forward_booking_instruments
+    from apps.reference_api.repository import RepositoryNotFound
+    data = direct_payload(connection, instrument)
+    connection.execute(update(m.reference_node_scope).where(
+        m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(
+            scope_type=scope_type, owner_tenant_id=DEMO_IDS["tenant"] if scope_type == "TENANT_PRIVATE" else None,
+            status="INACTIVE"))
+    before = connection.scalar(select(func.count()).select_from(m.trade))
+    with pytest.raises(RepositoryNotFound):
+        get_fx_forward_booking_instrument(connection, DEMO_IDS["tenant"], UUID(instrument))
+    rows, _ = search_fx_forward_booking_instruments(connection, DEMO_IDS["tenant"], "Booking EUR/USD", 100, 0)
+    assert not any(str(row.instrument_id) == instrument for row in rows)
+    with pytest.raises(RepositoryNotFound):
+        direct_book(connection, data)
+    assert connection.scalar(select(func.count()).select_from(m.trade)) == before
+
+
+def test_inactive_scope_preserves_existing_trade_detail_history_and_replay(connection, instrument):
+    from apps.reference_api.repository import get_booked_trade_detail, list_booked_trades
+    data = direct_payload(connection, instrument)
+    key = str(uuid4())
+    first = direct_book(connection, data, key)
+    connection.execute(update(m.reference_node_scope).where(
+        m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(status="INACTIVE"))
+    detail = get_booked_trade_detail(connection, DEMO_IDS["tenant"], first.data.trade.trade_id, "v1", "scope-test")
+    assert detail.data.trade.fx_forward_economics == first.data.trade.fx_forward_economics
+    history = list_booked_trades(connection, DEMO_IDS["tenant"], None, None, None, 100, 0, "v1", "scope-test", trade_id=first.data.trade.trade_id)
+    assert any(trade.trade_id == first.data.trade.trade_id for trade in history.data)
+    assert direct_book(connection, data, key).data.trade.trade_id == first.data.trade.trade_id
+
+
+def test_inactive_scope_is_hidden_from_current_reference_catalogue(connection, instrument):
+    from apps.reference_api.repository import get_instrument, _visible_reference_node, RepositoryNotFound
+    assert get_instrument(connection, DEMO_IDS["tenant"], UUID(instrument)) is not None
+    connection.execute(update(m.reference_node_scope).where(
+        m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(status="INACTIVE"))
+    assert get_instrument(connection, DEMO_IDS["tenant"], UUID(instrument)) is None
+    with pytest.raises(RepositoryNotFound):
+        _visible_reference_node(connection, DEMO_IDS["tenant"], UUID(instrument))
+
+
+def test_booking_terms_lock_scope_against_concurrent_revocation(connection, instrument):
+    from sqlalchemy.exc import OperationalError
+    from apps.reference_api.fx_forward_booking import load_fx_forward_booking_terms
+    load_fx_forward_booking_terms(connection, DEMO_IDS["tenant"], UUID(instrument), for_update=True)
+    with get_engine().begin() as other:
+        other.execute(text("SET LOCAL lock_timeout = '200ms'"))
+        with pytest.raises(OperationalError) as error:
+            other.execute(update(m.reference_node_scope).where(
+                m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(status="INACTIVE"))
+        assert error.value.orig.sqlstate == "55P03"
+
+
+def test_legacy_unscoped_forward_remains_bookable(connection, instrument):
+    connection.execute(m.reference_node_scope.delete().where(
+        m.reference_node_scope.c.reference_node_id == UUID(instrument)))
+    assert direct_book(connection, direct_payload(connection, instrument)).data.trade.instrument_id == UUID(instrument)
+
+
+def test_http_refuses_inactive_scope_without_writing_trade(connection, instrument):
+    data = direct_payload(connection, instrument)
+    connection.execute(update(m.reference_node_scope).where(
+        m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(status="INACTIVE"))
+    before = connection.scalar(select(func.count()).select_from(m.trade))
+    app = create_app()
+    # Cash and included FX routes share this dependency; included routers may be
+    # expanded lazily by FastAPI, so locate it on the directly registered route.
+    route = next(route for route in app.routes if getattr(route, "path", None) == "/v1/trades" and "POST" in getattr(route, "methods", set()))
+    dependency = next(item.call for item in route.dependant.dependencies if item.call.__name__ == "connection_dependency")
+    def injected():
+        yield connection
+    app.dependency_overrides[dependency] = injected
+    async def run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post("/v1/trades/fx-forwards", json=data.model_dump(mode="json", by_alias=True), headers={
+                "X-Tenant-Id": str(DEMO_IDS["tenant"]), "X-User-Account-Id": str(DEMO_IDS["demo_user_account"]),
+                "Idempotency-Key": str(uuid4())})
+    response = asyncio.run(run())
+    assert response.status_code == 404, response.text
+    assert connection.scalar(select(func.count()).select_from(m.trade)) == before
+
+
+def test_revocation_while_waiting_for_scope_lock_is_rechecked(instrument):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from time import monotonic, sleep
+    from apps.reference_api.fx_forward_booking import load_fx_forward_booking_terms
+    from apps.reference_api.repository import RepositoryNotFound
+    ready = Event()
+    worker_pid = []
+    def load():
+        with get_engine().begin() as worker:
+            worker_pid.append(worker.scalar(text("SELECT pg_backend_pid()")))
+            ready.set()
+            with pytest.raises(RepositoryNotFound):
+                load_fx_forward_booking_terms(worker, DEMO_IDS["tenant"], UUID(instrument), for_update=True)
+    with get_engine().connect() as revoker, ThreadPoolExecutor(max_workers=1) as pool:
+        transaction = revoker.begin()
+        try:
+            original = revoker.scalar(select(m.reference_node_scope.c.status).where(
+                m.reference_node_scope.c.reference_node_id == UUID(instrument)))
+            revoker.execute(update(m.reference_node_scope).where(
+                m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(status="INACTIVE"))
+            future = pool.submit(load)
+            assert ready.wait(5), "Booking worker did not start"
+            deadline = monotonic() + 5
+            with get_engine().connect() as observer:
+                while monotonic() < deadline:
+                    if observer.scalar(text("SELECT cardinality(pg_blocking_pids(:pid))"), {"pid": worker_pid[0]}):
+                        break
+                    sleep(0.01)
+                else:
+                    pytest.fail("Booking did not wait for the scope revocation lock")
+            transaction.commit()
+        finally:
+            if transaction.is_active:
+                transaction.rollback()
+            # Release the lock before joining, including on diagnostic failures.
+            if ready.is_set():
+                try:
+                    future.result(timeout=5)
+                finally:
+                    with get_engine().begin() as restore:
+                        restore.execute(update(m.reference_node_scope).where(
+                            m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(status=original))

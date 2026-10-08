@@ -1,9 +1,9 @@
 # P&L attribution subjects and cost ownership
 
-**Status:** Accepted design direction; implementation deferred  
+**Status:** Accepted design direction; TRADE market-only alpha implemented, broader ownership deferred
 **Content type:** Architecture decision  
 **Owner:** Trading, valuation, and operations architecture  
-**Last reviewed:** 2026-09-11
+**Last reviewed:** 2026-10-07
 
 ## Decision
 
@@ -61,9 +61,10 @@ The existing Fortem-core P&L attribution package is the source of operating prin
 
 ## Deferred implementation
 
-- `pnl` schema and attribution run/header/component/review tables;
-- subject-type FK checks/triggers and scope validation;
+The [first delivery](../../delivery/valuation-market-pnl-alpha.md) implements TRADE attribution with a real `trd.trade` FK, tenant/strategy scope triggers, frozen inputs, exact price/FX/cross components and review/publication evidence in the existing `nav` schema. A dedicated `pnl` schema is not necessary for this bounded release. It does not create unvalidated generic subject IDs. Broader typed ownership remains the direction above, not an implemented capability.
+
+- broader attribution subject links and their type-specific FK checks;
 - calculation-method catalogue, including price/FX, model-mark, sensitivity, and cashflow methods;
 - persisted selection of measurement semantics and valuation methodology per run;
 - allocation policies for costs which arrive strategy-level but need downstream fund/share-class allocation;
-- API/UI review and approval workflows.
+- income/cost/allocation and approved manual-adjustment review workflows beyond the implemented market-only review/publication API/UI.

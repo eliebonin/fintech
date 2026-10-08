@@ -249,7 +249,7 @@ class AutocallDraftRequest(BaseModel):
     submission_mode: Literal["MANUAL", "AUTOMATED"] = Field(default="MANUAL", alias="submissionMode")
     source_system_id: UUID | None = Field(default=None, alias="sourceSystemId")
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
     model_config = ConfigDict(populate_by_name=True)

@@ -28,18 +28,22 @@ def underlying_kind(connection,tenant_id,underlying_id):
 
 
 def submit_option_proposal(connection,tenant_id,actor_id,request):
+    from .reference_authority import require_reference_action
+    require_reference_action(connection,tenant_id,actor_id)
+    from .proposal_retries import find_proposal_replay
+    replay=find_proposal_replay(connection,tenant_id,request,require_source=False)
+    if replay is not None:
+        return get_reference_data_proposal(connection,tenant_id,replay)
     validate_references(connection,tenant_id,request)
     payload=request.model_dump(mode='json',by_alias=True)
     payload['proposedByUserAccountId']=str(actor_id)
-    proposal_id=connection.scalar(m.reference_data_proposal.insert().values(tenant_id=tenant_id,proposal_type='CREATE_OPTION',proposed_payload=json.dumps(payload,sort_keys=True),submission_mode='MANUAL',match_status='NEW',payload_schema_version='option.v1',status='PENDING').returning(m.reference_data_proposal.c.reference_data_proposal_id))
+    proposal_id=connection.scalar(m.reference_data_proposal.insert().values(tenant_id=tenant_id,proposal_type='CREATE_OPTION',proposed_payload=json.dumps(payload,sort_keys=True),submission_mode='MANUAL',match_status='NEW',payload_schema_version='option.v1',status='PENDING',idempotency_key=request.idempotency_key).returning(m.reference_data_proposal.c.reference_data_proposal_id))
     return get_reference_data_proposal(connection,tenant_id,proposal_id)
 
 
 def decide_option_proposal(connection,tenant_id,actor_id,proposal_id,decision,reason):
-    workspace=resolve_tenant_workspace(connection,tenant_id,actor_id,date.today())
-    if workspace.membership_role!='TENANT_ADMIN': raise InvalidWorkflowState('Option approval requires tenant administrator authority.')
-    try: require_tenant_action(workspace,'TRADE_WRITE')
-    except TenantActionForbidden as error: raise InvalidWorkflowState('Option approval requires active trading access.') from error
+    from .reference_authority import require_reference_action
+    require_reference_action(connection,tenant_id,actor_id,'REFERENCE_APPROVE')
     row=connection.execute(select(m.reference_data_proposal).where(m.reference_data_proposal.c.tenant_id==tenant_id,m.reference_data_proposal.c.reference_data_proposal_id==proposal_id).with_for_update()).mappings().first()
     if row is None: raise RepositoryNotFound('Option proposal was not found.')
     if row.proposal_type!='CREATE_OPTION' or row.status!='PENDING': raise InvalidWorkflowState('Only pending option proposals can be decided.')

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {redirect} from 'next/navigation';
 
 import { describeMvpError, getMarketDataSeries } from "@/lib/mvp-api-client";
 import {
@@ -8,7 +9,7 @@ import {
   type MarketDataObservation,
   type MarketDataSeries,
 } from "@/lib/market-data-series";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import {getActiveTenantContext, getActiveTenantWorkspace} from '@/lib/tenant-session';
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { MarketDataResolutionForm } from "@/components/market-data-resolution-form";
 
@@ -98,25 +99,49 @@ function HistoryPanel({ series }: { series: MarketDataSeries }) {
   );
 }
 
-export default async function MarketDataPage({ searchParams }: { searchParams: Promise<{ fromDate?: string; toDate?: string; referenceNodeId?: string }> }) {
+export default async function MarketDataPage({ searchParams }: { searchParams: Promise<{ fromDate?: string; toDate?: string; referenceNodeId?: string; offset?: string; observationOffset?: string }> }) {
   const query = await searchParams;
-  const fromDate = query.fromDate ?? "2026-08-21";
-  const toDate = query.toDate ?? "2026-08-28";
+  const yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const beginning = new Date(yesterday); beginning.setUTCDate(beginning.getUTCDate() - 13);
+  const fromDate = query.fromDate ?? beginning.toISOString().slice(0,10);
+  const toDate = query.toDate ?? yesterday.toISOString().slice(0,10);
   const selectedNodeId = query.referenceNodeId;
+  const parseOffset = (value?:string) => value && /^\d+$/.test(value) ? Math.min(Number(value),100000) : 0;
+  const offset = parseOffset(query.offset), observationOffset = parseOffset(query.observationOffset);
+  const limit = selectedNodeId ? 50 : 12, observationLimit = selectedNodeId ? 100 : 1000;
+  let context, workspace;
+  try { [context,workspace] = await Promise.all([getActiveTenantContext(),getActiveTenantWorkspace()]); }
+  catch {redirect('/select-tenant');}
   let series: MarketDataSeries[] = [];
+  let total = 0;
   let error = "";
-  try {
-    series = (await getMarketDataSeries(resolveLocalTenantContext(), { fromDate, toDate, referenceNodeId: selectedNodeId, limit: selectedNodeId ? 50 : 12 })).data;
+  const moduleEnabled = workspace.moduleCodes.includes('MARKET_DATA');
+  if (!moduleEnabled) {
+    error = 'Market data is not enabled for this tenant. Contact your tenant administrator to review module access.';
+  } else try {
+    const payload = await getMarketDataSeries(context, { fromDate, toDate, referenceNodeId: selectedNodeId, limit, offset, observationLimit, observationOffset });
+    series = payload.data; total = payload.meta.total ?? series.length;
   } catch (caught) {
     error = describeMvpError(caught, "Market data");
   }
   const selectedName = series[0]?.referenceNodeName;
-  const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API · DEMO DATA";
+  const personal = series.some(s=>s.providerCode === 'YAHOO_FINANCE_PERSONAL');
+  const sourceLabel = !moduleEnabled ? 'ACCESS RESTRICTED' : error ? "API UNAVAILABLE" : personal ? "LIVE API · PERSONAL PROJECT" : "LIVE API · SOURCE LABELLED";
+  const historyTotal = Math.max(0,...series.map(s=>s.observationTotal ?? s.observations.length));
+  function pageLink(nextOffset:number,nextObservationOffset:number) {
+    const params = new URLSearchParams({fromDate,toDate,offset:String(nextOffset),observationOffset:String(nextObservationOffset)});
+    if(selectedNodeId)params.set('referenceNodeId',selectedNodeId);
+    return `/market-data?${params}`;
+  }
   return (
-    <WorkspaceShell><main className="mvp-page">
-      <header className="mvp-header"><div><p className="eyebrow">MARKET DATA CATALOGUE</p><h1>{selectedNodeId ? `${selectedName ?? "Instrument"} history` : "Series &amp; provenance"}</h1><p className="muted">{selectedNodeId ? "Persisted observations, charted and chronologically sorted by market date." : "Precise observables with their provider, dataset, licence and named cut."}</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
+    <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes}><main className="mvp-page">
+      {moduleEnabled ? <nav aria-label="Market data configuration"><Link href="/market-data/policies">Pricing policies · configure and preview</Link> · <Link href="/market-data/calendars">Fund and strategy calendars</Link></nav> : null}
+      <header className="mvp-header"><div><p className="eyebrow">MARKET DATA CATALOGUE</p><h1>{selectedNodeId ? `${selectedName ?? "Instrument"} history` : "Series & provenance"}</h1><p className="muted">{selectedNodeId ? "Persisted observations, charted and chronologically sorted by market date." : "Precise observables with their provider, dataset, licence and named cut."}</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
       <form className="date-form" method="get"><label>From <input type="date" name="fromDate" defaultValue={fromDate} /></label><label>To <input type="date" name="toDate" defaultValue={toDate} /></label>{selectedNodeId ? <input type="hidden" name="referenceNodeId" value={selectedNodeId} /> : null}<button type="submit">Refresh window</button>{selectedNodeId ? <Link className="clear-link" href={`/market-data?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`}>Back to all series</Link> : null}</form>
-      {selectedNodeId ? <MarketDataResolutionForm subjectReferenceNodeId={selectedNodeId} /> : null}
+      {personal ? <p className="muted">Yahoo personal-project history: Close is split adjusted; adjusted close includes the provider’s distribution adjustments. Neither is an official raw-price tape. Observed timestamps identify daily bars, not certified session closes. Personal-use declaration; no commercial or redistribution rights.</p> : null}
+      {!error && selectedNodeId && !personal ? <MarketDataResolutionForm subjectReferenceNodeId={selectedNodeId} /> : null}
+      {!error && selectedNodeId && historyTotal > observationLimit ? <nav aria-label="Observation history pages"><p>Showing a bounded history page; up to {observationLimit} points per series, starting at {observationOffset + 1}. Charts show this page only.</p>{observationOffset > 0 ? <Link href={pageLink(offset,Math.max(0,observationOffset-observationLimit))}>Previous history page</Link> : null}{observationOffset + observationLimit < historyTotal ? <Link href={pageLink(offset,observationOffset+observationLimit)}>Next history page</Link> : null}</nav> : null}
+      {!error && !selectedNodeId ? <nav aria-label="Series catalogue pages"><p>{total ? `${offset+1}–${Math.min(offset+series.length,total)} of ${total} visible series` : 'No visible observations in this window. Choose another date range or check dataset access.'}</p>{offset > 0 ? <Link href={pageLink(Math.max(0,offset-limit),0)}>Previous series page</Link> : null}{offset+limit < total ? <Link href={pageLink(offset+limit,0)}>Next series page</Link> : null}</nav> : null}
       {error ? <div className="error-panel">{error}</div> : selectedNodeId ? <section className="history-grid">{series.length ? series.map((item) => <HistoryPanel key={item.seriesId} series={item} />) : <div className="error-panel">No market-data series was found for this instrument in the selected date window.</div>}</section> : <section className="series-grid">{series.map((item) => { const summary = summarizeSeries(item.observations); return <article className="series-card" key={item.seriesId}><div className="series-card-top"><div><p className="eyebrow">{item.seriesType} · {item.valueType}</p><h2>{item.referenceNodeName}</h2><p className="muted">{item.datasetName ?? "Uncatalogued dataset"} · Node <code>{item.referenceNodeId.slice(0, 12)}…</code>{item.currency ? ` · ${item.currency}` : ""}</p></div><Sparkline series={item} /></div><div className="metric-row"><span><small>Window</small><strong>{summary.points} pts</strong></span><span><small>Latest</small><strong>{formatMarketDataValue(summary.last, item.valueType)}</strong></span><span><small>Cut</small><strong>{item.valuationCut ?? "—"}</strong></span></div><Provenance series={item} /><Link className="detail-link" href={`/market-data?referenceNodeId=${encodeURIComponent(item.referenceNodeId)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`}>Inspect instrument history →</Link></article>; })}</section>}
     </main></WorkspaceShell>
   );

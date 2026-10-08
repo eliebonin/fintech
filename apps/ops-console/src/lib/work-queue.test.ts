@@ -5,6 +5,13 @@ vi.mock("server-only", () => ({}));
 import { getWorkQueue } from "./work-queue";
 
 describe("work queue client", () => {
+  it('requests an explicit bounded page', async()=>{
+    let url='';
+    await getWorkQueue({tenantId:'tenant',userAccountId:'actor',offset:100,limit:100,
+      fetchImpl:async(input)=>{url=String(input);return new Response(JSON.stringify({items:[],counts:{},meta:{}}));}});
+    expect(new URL(url).searchParams.get('offset')).toBe('100');
+    expect(new URL(url).searchParams.get('limit')).toBe('100');
+  });
   it("calls the tenant-scoped queue endpoint", async () => {
     let requestedUrl = "";
     const fetchImpl: typeof fetch = async (input) => {

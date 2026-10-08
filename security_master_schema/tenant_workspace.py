@@ -87,11 +87,13 @@ def resolve_tenant_workspace(connection: Connection, tenant_id: UUID, user_accou
     return TenantWorkspaceView(membership.tenant_id, membership.tenant_code, membership.tenant_name, membership.membership_role, module_codes, resolve_platform_role(connection, user_account_id, as_of_date))
 
 
-def require_tenant_action(workspace: TenantWorkspaceView, action: Literal["STRATEGY_READ", "STRATEGY_WRITE", "TRADE_WRITE"]) -> None:
+def require_tenant_action(workspace: TenantWorkspaceView, action: Literal["STRATEGY_READ", "STRATEGY_WRITE", "TRADE_WRITE", "REFERENCE_PROPOSE", "REFERENCE_APPROVE"]) -> None:
     if action == "STRATEGY_READ":
         return
     if action == "STRATEGY_WRITE" and workspace.membership_role == "TENANT_ADMIN" and {"TRADING", "FUND_MANAGEMENT"} & workspace.module_codes:
         return
     if action == "TRADE_WRITE" and workspace.membership_role == "TENANT_ADMIN" and "TRADING" in workspace.module_codes:
         return
-    raise TenantActionForbidden("Tenant membership is not permitted to manage strategies")
+    if action in {"REFERENCE_PROPOSE", "REFERENCE_APPROVE"} and workspace.membership_role == "TENANT_ADMIN" and "SECURITY_MASTER" in workspace.module_codes:
+        return
+    raise TenantActionForbidden("Tenant membership is not permitted to perform this action")

@@ -3,16 +3,32 @@
 **Status:** Accepted  
 **Content type:** Delivery index  
 **Owner:** Engineering delivery team  
-**Last reviewed:** 2026-10-05
+**Last reviewed:** 2026-10-07
 
 Use [specifications](specifications/README.md) for approved design intent, [implementation plans](implementation-plans/README.md) for execution sequences, and [quality reviews](quality-reviews/README.md) for dated evidence. None is automatically current architecture without a link from a canonical page.
 # Delivery documentation
 
+- [Legacy P&L demo retirement and fresh valuation/P&L starting boundary](pnl-demo-retirement-and-fresh-start.md)
+- [Yahoo daily equities, layered rights and personal-project activation](yahoo-market-data-alpha.md)
+- [Yahoo five-year personal-research backfill, exception evidence and coverage](yahoo-five-year-backfill.md)
+- [Ingestion hardening — durable jobs, partial retries, continuity reviews and calendar audit](md-ingestion-hardening.md)
+- [Composite pricing policies — mixed session closes, separate fixings, version configuration and input preview](composite-pricing-policy-alpha.md)
+- [Tenant fund and strategy calendars — versioned schedules, sourced exceptions and pinned assignments](tenant-fund-and-strategy-calendars-alpha.md)
+- [Market data ingestion module boundary and provider contracts](market-data-ingestion-boundary.md)
 - [API error responses](api-problems.md)
+- [API boundary hardening — authority, transactions, retries, resource budgets and verification](api-boundary-hardening.md)
 - [API contract delivery and dependency policy](api-contracts.md)
 - [Current instrument creation and booking capability matrix](booking-capability-matrix.md)
+- [Trade-side acceptance checklist, researched rationale and dated evidence](trade-side-acceptance-2026-10-06.md)
+- [Swap identifier search and permission-aware instrument/booking UI](swap-search-and-permission-ui-2026-10-06.md)
+- [S&P 500 and CAC 40 dated security-master seed](index-universe-seed-2026-10-06.md)
+- [Booking readiness frontend and read-only cash eligibility](booking-readiness-alpha.md)
+- [Historical booking rules, record cancellation/replacement and later lifecycle plan](historical-booking-and-record-corrections-alpha.md)
 - [Shared booking controls, replay compatibility and locking](booking-controls.md)
 - [Booking consolidation acceptance and self-review](quality-reviews/2026-10-05-booking-consolidation.md)
+- [Instrument integrity review and confirmed hardening priorities](quality-reviews/2026-10-05-instrument-integrity.md)
+- [FX booking active-scope enforcement and transaction protection](quality-reviews/2026-10-05-fx-scope-hardening.md)
+- [Cash booking integrity and FX/bond/ETP approval revalidation](quality-reviews/2026-10-05-cash-and-approval-integrity.md)
 - [Tenant workspace and strategy alpha](tenant-workspace-strategy-alpha.md)
 - [Enriched trade booking alpha](enriched-trade-booking-alpha.md)
 - [Deliverable FX-forward booking alpha](fx-forward-booking-alpha.md)

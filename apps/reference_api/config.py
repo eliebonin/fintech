@@ -15,6 +15,13 @@ class Settings:
     environment: str
     api_version: str
     demo_tenant_id: UUID
+    max_request_body_bytes: int = 1048576
+    statement_timeout_ms: int = 30000
+    lock_timeout_ms: int = 10000
+
+    def __post_init__(self):
+        if min(self.max_request_body_bytes,self.statement_timeout_ms,self.lock_timeout_ms)<=0:
+            raise ValueError('API resource budgets must be positive')
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -24,5 +31,7 @@ class Settings:
             environment=os.environ.get("APP_ENV", "local"),
             api_version=os.environ.get("REFERENCE_API_VERSION", "2026-09-01"),
             demo_tenant_id=UUID(raw_tenant_id),
+            max_request_body_bytes=int(os.environ.get('REFERENCE_API_MAX_BODY_BYTES','1048576')),
+            statement_timeout_ms=int(os.environ.get('REFERENCE_API_STATEMENT_TIMEOUT_MS','30000')),
+            lock_timeout_ms=int(os.environ.get('REFERENCE_API_LOCK_TIMEOUT_MS','10000')),
         )
-

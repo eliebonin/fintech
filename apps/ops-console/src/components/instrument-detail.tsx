@@ -49,7 +49,7 @@ function KeyValue({ label, value, mono = false }: { label: string; value: string
   );
 }
 
-export function InstrumentDetail({ instrument, standalone = false, futureTerms,swapLabels }: { instrument: InstrumentRecord; standalone?: boolean; futureTerms?: ProductTerms;swapLabels?:Record<string,string> }) {
+export function InstrumentDetail({ instrument, standalone = false, futureTerms,swapLabels,canManage=false }: { instrument: InstrumentRecord; standalone?: boolean; futureTerms?: ProductTerms;swapLabels?:Record<string,string>;canManage?:boolean }) {
   const option = instrument.optionTerms;
   const marketDataRows = [
     ...instrument.instrumentMarketData.map((point) => ({ subject: "INSTRUMENT", symbol: "Economic instrument", point })),
@@ -75,7 +75,7 @@ export function InstrumentDetail({ instrument, standalone = false, futureTerms,s
       </Stack>
       {instrument.instrumentType === 'FUTURE' && (futureTerms ? <ProductFacts terms={futureTerms} configuration/> : <Section title="Futures contract facts"><Typography>Approved contract facts unavailable. Inspect conventions to check the underlying, multiplier and dates; no contract multiplier is inferred from the listing conversion.</Typography></Section>)}
       {instrument.instrumentType==='SWAP'&&instrument.genericTerms?<SwapTermsFacts terms={instrument.genericTerms} labels={swapLabels}/>:null}
-      {['STRUCTURED_PRODUCT','FUTURE','BOND','SWAP'].includes(instrument.instrumentType)?<Section title="Booking conventions" action={<Button component={Link} href={`/instruments/${instrument.instrumentId}/booking-conventions`}>Inspect / configure conventions</Button>}><Typography>Authoritative quantity, quote and contract conventions are approved in Operations. Book trades from the dedicated Trade booking page, not from a listing.</Typography></Section>:null}
+      {['STRUCTURED_PRODUCT','FUTURE','BOND','SWAP'].includes(instrument.instrumentType)?<Section title="Booking conventions" action={canManage?<Button component={Link} href={`/instruments/${instrument.instrumentId}/booking-conventions`}>Inspect / configure conventions</Button>:undefined}><Typography>Authoritative quantity, quote and contract conventions are approved in Operations. Book trades from the dedicated Trade booking page, not from a listing.</Typography></Section>:null}
 
       {instrument.instrumentType === 'OPTION' && <Section title="Option terms" eyebrow="CURRENT GOVERNED REFERENCE FACTS">
         {option ? <Box sx={{ display:'grid', gridTemplateColumns:{xs:'1fr',sm:'repeat(3, 1fr)'}, gap:2 }}>
@@ -108,7 +108,7 @@ export function InstrumentDetail({ instrument, standalone = false, futureTerms,s
         </Box>
       </Section>
 
-      <Section title="Listings" eyebrow={`${instrument.listings.length} VENUE REPRESENTATION${instrument.listings.length === 1 ? "" : "S"}`} action={<Button component={Link} href={`/instruments/${instrument.instrumentId}/listings/new`} size="small" variant="outlined">Add listing</Button>}>
+      <Section title="Listings" eyebrow={`${instrument.listings.length} VENUE REPRESENTATION${instrument.listings.length === 1 ? "" : "S"}`} action={canManage?<Button component={Link} href={`/instruments/${instrument.instrumentId}/listings/new`} size="small" variant="outlined">Add listing</Button>:undefined}>
         {instrument.listings.length === 0 ? (
           <Box sx={{ p: 2, bgcolor: "#f7f9fc", borderRadius: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 650 }}>No listing attached</Typography>

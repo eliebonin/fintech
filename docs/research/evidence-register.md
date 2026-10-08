@@ -1,13 +1,23 @@
 # Evidence register
 
+Yahoo personal-project ingestion and layered-rights sources checked on 6 October 2026, including licensing limitations and project-specific decisions, are recorded in the [delivery report](../delivery/yahoo-market-data-alpha.md#best-practice-review-and-decisions).
+
 **Status:** Draft  
 **Content type:** Research  
 **Owner:** Product and architecture team  
-**Last reviewed:** 2026-10-01
+**Last reviewed:** 2026-10-07
 
 Primary research records: [external evidence register](../../security-master-notes/24-external-evidence-and-research.md), [range accrual and supertracker research](../../security-master-notes/28-range-accrual-and-supertracker-research.md), [Phoenix research/UI scope](../superpowers/specs/2026-09-10-phoenix-research-and-ui-scope.md), [market evidence and go-to-market](../../fintech-moduls/06-market-evidence-and-go-to-market.md), and [competitor technical operating models](../../fintech-moduls/07-competitor-technical-operating-models.md).
 
 External sources cited by these records must be rechecked when a decision depends on time-sensitive law, licensing, vendor policy, or market practice.
+
+## Market data module boundary
+
+Architecture sources reviewed on 7 October 2026 (Microsoft dependency direction/composition, Fowler's modular-monolith trade-offs and Import Linter contracts) are recorded with dates, applicability and implementation choices in [Market data ingestion boundary](../delivery/market-data-ingestion-boundary.md#best-practice-evidence-and-decisions). No distributed-service or new licensing requirement is inferred from this refactor.
+
+## Tenant fund and strategy calendars (2026-10-07)
+
+Primary-source findings from BlackRock's 2026 fund-specific non-business/non-dealing schedule and QuantLib's joint-calendar implementation are recorded, with links and applicability, in [Tenant fund and strategy calendars](../delivery/tenant-fund-and-strategy-calendars-alpha.md#source-backed-design). They informed separate fund schedules, explicit dated exceptions and ALL_OPEN / ANY_OPEN composition. A dealing holiday does not establish a NAV holiday. Immutable publication, recorded-time assignment selection and UNKNOWN coverage are platform design decisions, not asserted universal regulatory obligations. Reference-calendar feeds remain unpopulated or incomplete until separately sourced and reviewed.
 
 Futures onboarding sources reviewed on 2026-10-02 (CME month codes and platform
 symbol conventions, ICE Bitcoin size/quote/delivery distinctions and GOV.UK form

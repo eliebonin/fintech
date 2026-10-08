@@ -1,0 +1,2 @@
+# Keep the retained seed payload byte-identical across Windows/Linux checkouts.
+security_master_schema/data/index_universe_2026_10_06.json text eol=lf

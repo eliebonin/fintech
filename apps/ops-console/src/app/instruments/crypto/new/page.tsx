@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { listOrganisations, OrganisationOption } from "@/lib/reference-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { requireReferenceTenantContext } from "@/lib/reference-tenant-context";
 import NewCryptoAssetForm from "./form";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ type CatalogueState = {
 
 async function loadCatalogues(): Promise<CatalogueState> {
   try {
-    const response = await listOrganisations(resolveLocalTenantContext());
+    const response = await listOrganisations(await requireReferenceTenantContext());
     return { organisations: response.data, error: null };
   } catch (error) {
     return {

@@ -29,4 +29,8 @@ describe('booking write guard',()=>{
     expect(result.context).toMatchObject({tenantId:'tenant-1',userAccountId:'actor-1'});
     expect(result.key).toBe('key');
   });
+  it('requires explicit tenant context for a legacy-shaped cash correction',async()=>{
+    const result=await readBookingWrite(request('{"correction":{"tradeId":"original"}}',{'X-Expected-Tenant-Id':''}),true);
+    expect(result.response?.status).toBe(400);
+  });
 });

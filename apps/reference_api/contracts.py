@@ -2,7 +2,7 @@
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Any, Literal, Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
@@ -53,19 +53,33 @@ class TenantWorkspaceResponse(BaseModel):
 class StrategyCreateRequest(BaseModel):
     strategy_code: str = Field(alias="strategyCode", min_length=1, max_length=100)
     display_name: str = Field(alias="displayName", min_length=1, max_length=250)
-    strategy_type: str = Field(alias="strategyType")
-    base_currency_code: str | None = Field(default=None, alias="baseCurrencyCode")
-    operating_model_label: str | None = Field(default=None, alias="operatingModelLabel")
-    model_config = ConfigDict(populate_by_name=True)
+    strategy_type: Literal['AMC_MANDATE', 'FUND', 'MANAGED_ACCOUNT', 'PROP_SLEEVE', 'MODEL_PORTFOLIO', 'OTHER'] = Field(alias="strategyType")
+    base_currency_code: str | None = Field(default=None, alias="baseCurrencyCode", max_length=30)
+    operating_model_label: str | None = Field(default=None, alias="operatingModelLabel", max_length=250)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+
+    @field_validator('strategy_code', 'display_name', mode='before')
+    @classmethod
+    def _trim_required_text(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
     @field_validator("operating_model_label")
     @classmethod
     def _label_not_blank(cls, value: str | None) -> str | None:
-        return value.strip() if value else None
+        return value.strip() or None if value else None
+
+    @model_validator(mode='after')
+    def _operating_model(self):
+        if self.strategy_type == 'OTHER' and not self.operating_model_label:
+            raise ValueError('An explanatory label is required for OTHER.')
+        if self.strategy_type != 'OTHER' and self.operating_model_label:
+            raise ValueError('An explanatory label is only permitted for OTHER.')
+        return self
 
 
 class StrategyStatusRequest(BaseModel):
-    status: str
+    status: Literal['ARCHIVED']
+    model_config = ConfigDict(extra='forbid')
 
 
 class StrategyView(BaseModel):
@@ -101,6 +115,7 @@ class MarketDataResolutionSnapshotCreate(BaseModel):
     valuation_cut_id: UUID = Field(alias="valuationCutId")
     market_data_as_of_utc: datetime = Field(alias="marketDataAsOfUtc")
     use_purpose: str = Field(alias="usePurpose", min_length=1, max_length=50)
+    strategy_id: UUID | None = Field(default=None, alias="strategyId")
 
     @field_validator("subject_reference_node_ids")
     @classmethod
@@ -139,6 +154,7 @@ class MarketDataResolutionSnapshotItemView(BaseModel):
     selection_reason: str = Field(alias="selectionReason")
     entitlement_decision: str = Field(alias="entitlementDecision")
     exception_code: str | None = Field(alias="exceptionCode")
+    pricing_evidence: dict | None = Field(default=None, alias="pricingEvidence")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -286,6 +302,9 @@ class MarketDataSeriesView(BaseModel):
     coverage_start_date: str | None = Field(alias="coverageStartDate")
     coverage_end_date: str | None = Field(alias="coverageEndDate")
     observations: list[MarketDataObservationView] = Field(default_factory=list)
+    observation_total: int = Field(default=0, alias="observationTotal")
+    observation_limit: int = Field(default=1000, alias="observationLimit")
+    observation_offset: int = Field(default=0, alias="observationOffset")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -295,43 +314,6 @@ class MarketDataSeriesResponse(BaseModel):
     meta: ApiMeta
 
 
-class PortfolioPnlLine(BaseModel):
-    instrument_id: UUID = Field(alias="instrumentId")
-    listing_id: UUID | None = Field(alias="listingId")
-    instrument_name: str = Field(alias="instrumentName")
-    instrument_type: str = Field(alias="instrumentType")
-    quantity: str
-    local_currency: str | None = Field(alias="localCurrency")
-    base_currency: str | None = Field(alias="baseCurrency")
-    opening_price: str | None = Field(alias="openingPrice")
-    closing_price: str | None = Field(alias="closingPrice")
-    opening_fx: str = Field(alias="openingFx")
-    closing_fx: str = Field(alias="closingFx")
-    local_price_pnl: str = Field(alias="localPricePnl")
-    fx_pnl: str = Field(alias="fxPnl")
-    total_pnl: str = Field(alias="totalPnl")
-    price_series_id: UUID | None = Field(alias="priceSeriesId")
-    closing_observation_id: UUID | None = Field(alias="closingObservationId")
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class PortfolioPnlView(BaseModel):
-    portfolio_code: str = Field(alias="portfolioCode")
-    portfolio_name: str = Field(alias="portfolioName")
-    as_of_date: str = Field(alias="asOfDate")
-    base_currency: str = Field(alias="baseCurrency")
-    valuation_cut: dict[str, str | None] = Field(alias="valuationCut")
-    lines: list[PortfolioPnlLine]
-    total_pnl: str = Field(alias="totalPnl")
-    methodology: str
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class PortfolioPnlResponse(BaseModel):
-    data: PortfolioPnlView
-    meta: ApiMeta
 
 
 class FxForwardTradeEconomicsView(BaseModel):
@@ -468,7 +450,7 @@ class TradeResponse(BaseModel):
 
 class TradePropertyInput(BaseModel):
     definition_id: UUID = Field(alias="definitionId")
-    value: StrictStr | StrictBool
+    value: Annotated[StrictStr, Field(max_length=2000)] | StrictBool
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
 class TradeReferenceInput(BaseModel):
@@ -524,7 +506,25 @@ class TradePropertyValueView(TradePropertyDefinitionView):
     display_value: str | None = Field(default=None, alias="displayValue")
     record_version: int | None = Field(default=None, alias="recordVersion")
 
+class CancelBookingRequest(BaseModel):
+    expected_sequence_no: int = Field(alias='expectedSequenceNo', ge=1)
+    reason: str = Field(min_length=1, max_length=1000)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+
+    @field_validator('reason')
+    @classmethod
+    def trim_reason(cls, value):
+        value=value.strip()
+        if not value: raise ValueError('A correction reason is required.')
+        return value
+
+
+class BookingCorrectionRequest(CancelBookingRequest):
+    trade_id: UUID = Field(alias='tradeId')
+
+
 class TradeBookingRequest(BaseModel):
+    correction: BookingCorrectionRequest | None = None
     listing_id: UUID = Field(alias="listingId")
     strategy_id: UUID = Field(alias="strategyId")
     side: Literal["BUY", "SELL"]
@@ -562,7 +562,7 @@ class TradeBookingRequest(BaseModel):
         self._validate_annotations()
         if self.trade_datetime.tzinfo is None or self.trade_datetime.utcoffset() is None:
             raise ValueError("tradeDatetime must include a timezone offset")
-        if self.settlement_date < self.trade_datetime.date():
+        if self.settlement_date < self.trade_datetime.astimezone(timezone.utc).date():
             raise ValueError("settlementDate must not be before tradeDatetime")
         return self
 
@@ -575,6 +575,7 @@ class OptionBookingRequest(TradeBookingRequest):
 
 
 class OptionProposalRequest(BaseModel):
+    idempotency_key: str | None = Field(default=None,alias='idempotencyKey',min_length=1,max_length=255)
     deliverable_units: Decimal = Field(alias="deliverableUnits",gt=0,max_digits=30,decimal_places=12)
     canonical_name: str = Field(alias="canonicalName",min_length=1,max_length=250)
     effective_from: date = Field(alias="effectiveFrom")
@@ -600,6 +601,7 @@ class OptionProposalRequest(BaseModel):
 
 
 class FxForwardBookingRequest(BaseModel):
+    correction: BookingCorrectionRequest | None = None
     instrument_id: UUID = Field(alias="instrumentId")
     strategy_id: UUID = Field(alias="strategyId")
     side: Literal["BUY", "SELL"]
@@ -791,8 +793,30 @@ class ReferenceNodeOptionView(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class InstrumentResponse(BaseModel):
+    data: InstrumentView
+    meta: ApiMeta
+
+
 class ReferenceNodeSearchResponse(BaseModel):
     data: list[ReferenceNodeOptionView]
+    meta: ApiMeta
+
+
+class CashBookingListingView(ReferenceNodeOptionView):
+    booking_eligible: bool = Field(alias='bookingEligible')
+    readiness_status: Literal['READY', 'NOT_READY', 'MISSING_CONFIGURATION', 'INACTIVE'] = Field(alias='readinessStatus')
+    ineligibility_message: str | None = Field(default=None, alias='ineligibilityMessage')
+    as_of_date: date = Field(alias='asOfDate')
+
+
+class CashBookingListingResponse(BaseModel):
+    data: CashBookingListingView
+    meta: ApiMeta
+
+
+class CashBookingListingSearchResponse(BaseModel):
+    data: list[CashBookingListingView]
     meta: ApiMeta
 
 
@@ -806,7 +830,7 @@ class MappingProposalRequest(BaseModel):
     valid_from: date = Field(alias="validFrom")
     reason: str = Field(min_length=1, max_length=2000)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class MappingProposalView(BaseModel):
@@ -825,6 +849,7 @@ class MappingProposalView(BaseModel):
 class MappingDecisionRequest(BaseModel):
     decision: str = Field(pattern="^(APPROVED|REJECTED)$")
     reason: str = Field(min_length=1, max_length=2000)
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
 
 
 class ReferenceDataProposalView(BaseModel):
@@ -881,7 +906,7 @@ class EquityListingProposal(BaseModel):
     is_primary_listing: bool = Field(default=False, alias="isPrimaryListing")
     effective_from: date = Field(alias="effectiveFrom")
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class BondProposalRequest(BaseModel):
@@ -914,10 +939,10 @@ class BondProposalRequest(BaseModel):
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
     source_namespace: str | None = Field(default=None, alias="sourceNamespace", max_length=150)
     source_external_id: str | None = Field(default=None, alias="sourceExternalId", max_length=500)
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class BondProposalView(BaseModel):
@@ -963,10 +988,10 @@ class FxForwardProposalRequest(BaseModel):
     submission_mode: str = Field(default="MANUAL", alias="submissionMode", pattern="^(MANUAL|AUTOMATED)$")
     source_system_id: UUID | None = Field(default=None, alias="sourceSystemId")
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class FxForwardProposalView(BaseModel):
@@ -1010,10 +1035,10 @@ class EtpProposalRequest(BaseModel):
     submission_mode: str = Field(default="MANUAL", alias="submissionMode", pattern="^(MANUAL|AUTOMATED)$")
     source_system_id: UUID | None = Field(default=None, alias="sourceSystemId")
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class EtpProposalView(BaseModel):
@@ -1140,10 +1165,10 @@ class IndexFamilyProposalRequest(BaseModel):
     submission_mode: str = Field(default="MANUAL", alias="submissionMode", pattern="^(MANUAL|AUTOMATED)$")
     source_system_id: UUID | None = Field(default=None, alias="sourceSystemId")
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class IndexFamilyProposalView(BaseModel):
@@ -1192,10 +1217,10 @@ class IndexProposalRequest(BaseModel):
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
     source_namespace: str | None = Field(default=None, alias="sourceNamespace", max_length=150)
     source_external_id: str | None = Field(default=None, alias="sourceExternalId", max_length=500)
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class IndexProposalView(BaseModel):
@@ -1238,10 +1263,10 @@ class EquityProposalRequest(BaseModel):
     source_external_id: str | None = Field(default=None, alias="sourceExternalId", max_length=500)
     source_object_type: str = Field(default="INSTRUMENT", alias="sourceObjectType", pattern="^(INSTRUMENT|LISTING)$")
     automation_policy_code: str | None = Field(default=None, alias="automationPolicyCode", max_length=100)
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class EquityListingCreateProposalRequest(BaseModel):
@@ -1254,10 +1279,10 @@ class EquityListingCreateProposalRequest(BaseModel):
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
     source_namespace: str | None = Field(default=None, alias="sourceNamespace", max_length=150)
     source_external_id: str | None = Field(default=None, alias="sourceExternalId", max_length=500)
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class CryptoAssetProposalRequest(BaseModel):
@@ -1280,10 +1305,10 @@ class CryptoAssetProposalRequest(BaseModel):
     submission_mode: str = Field(default="MANUAL", alias="submissionMode", pattern="^(MANUAL|AUTOMATED)$")
     source_system_id: UUID | None = Field(default=None, alias="sourceSystemId")
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
-    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", max_length=500)
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
 
 class CryptoAssetProposalView(BaseModel):

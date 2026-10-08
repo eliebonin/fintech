@@ -1,5 +1,6 @@
 'use client';
 import {useRef,useState,type FormEvent} from 'react';
+import {withProposalRetry,type ProposalRetry} from '@/lib/proposal-retry';
 import Link from 'next/link';
 import type {components} from 'api-contracts';
 import {bffPost} from '@/lib/browser-api-client';
@@ -7,6 +8,7 @@ import {FutureFamilySelector,type FutureFamily} from './future-family-selector';
 import {FUTURE_MONTHS,futureSymbol,allowedFutureMonth} from './future-form-model';
 type FutureRequest=components['schemas']['FutureProposalRequest'];
 export function FutureExpiryForm({tenantId,initialFamily}:{tenantId:string;initialFamily?:FutureFamily}) {
+  const proposalRetry=useRef<ProposalRetry|null>(null);
   const [family,setFamily]=useState<FutureFamily|undefined>(initialFamily),[month,setMonth]=useState(''),[draft,setDraft]=useState<Record<string,string>>({}),[review,setReview]=useState<FutureRequest>();
   const [saving,setSaving]=useState(false),[error,setError]=useState(''),[proposal,setProposal]=useState<string>();
   const flight=useRef(false),spec=family?.specification,physical=spec?.settlementMethod==='PHYSICAL';
@@ -24,7 +26,7 @@ export function FutureExpiryForm({tenantId,initialFamily}:{tenantId:string;initi
     if(physical&&(!convention.deliveryStartDate||!convention.deliveryEndDate||cutoff>convention.deliveryStartDate||convention.deliveryStartDate>convention.deliveryEndDate||convention.deliveryEndDate!==convention.finalSettlementDate)){setError('Delivery must start on or after the trading cutoff and end on the final settlement date.');return;}
     setReview({canonicalName:value('canonicalName'),familyId:family.familyId,familyCode:family.familyCode,underlyingId:family.underlyingId,contractMonth:`${month}-01`,convention});
   }
-  async function submit(){if(flight.current||!review)return;flight.current=true;setSaving(true);setError('');try{const result=await bffPost<components['schemas']['ReferenceDataProposalResponse']>('/api/instruments/futures',review,undefined,fetch,{'X-Expected-Tenant-Id':tenantId});setProposal(result.data.proposalId);}catch(e){setError(e instanceof Error?e.message:'Expiry request failed.');}finally{flight.current=false;setSaving(false);}}
+  async function submit(){if(flight.current||!review)return;flight.current=true;setSaving(true);setError('');try{const result=await bffPost<components['schemas']['ReferenceDataProposalResponse']>('/api/instruments/futures',withProposalRetry(review,proposalRetry),undefined,fetch,{'X-Expected-Tenant-Id':tenantId});setProposal(result.data.proposalId);}catch(e){setError(e instanceof Error?e.message:'Expiry request failed.');}finally{flight.current=false;setSaving(false);}}
   const input=(name:string,label:string,type='text',hint='')=><label>{label}<input name={name} aria-label={label} aria-describedby={hint?`${name}-hint`:undefined} type={type} required defaultValue={draft[name]??''}/>{hint?<small id={`${name}-hint`}>{hint}</small>:null}</label>;
   const facts=<dl className="futures-facts"><dt>Underlying / quote currency</dt><dd>{family?.underlyingName} / {family?.currency}</dd><dt>Settlement method</dt><dd>{spec?.settlementMethod??'CASH'}</dd>{spec?<><dt>{spec.underlyingKind==='INDEX'?'Currency per point per contract':'Underlying units per contract'}</dt><dd>{String(spec.monetaryMultiplier)} {spec.underlyingKind==='CRYPTOASSET'?family?.underlyingName:`${family?.currency} per point`}</dd><dt>Quote divisor / price tick</dt><dd>{String(spec.quoteFactor)} / {String(spec.tickSize)}</dd><dt>Allowed delivery months</dt><dd>{spec.deliveryMonths.map(n=>FUTURE_MONTHS[n-1][0]).join(' · ')}</dd></>:null}</dl>;
   if(proposal)return <section className="configuration-page detail-card"><h2>Expiry submitted for approval</h2><p>Request {proposal}. After approval, open the canonical instrument and add its venue listing.</p><Link href="/operations">Review in Operations</Link></section>;

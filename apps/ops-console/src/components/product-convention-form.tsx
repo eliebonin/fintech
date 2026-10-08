@@ -1,6 +1,7 @@
 'use client';
 
 import {FutureFamilySelector,type FutureFamily} from './future-family-selector';
+import {withProposalRetry,type ProposalRetry} from '@/lib/proposal-retry';
 import {useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import type {components} from 'api-contracts';
@@ -10,6 +11,7 @@ type Convention=NonNullable<components['schemas']['ProductBookingContextView']['
 
 /** Configuration is an approval request, never a trade-ticket override. */
 export function ProductConventionForm({kind,currencies,tenantId,instrumentId,currencyCode,current}:{kind:'FUTURE'|'STRUCTURED_PRODUCT'|'BOND'|'SWAP';currencies:CurrencyGroup[];tenantId:string;instrumentId?:string;currencyCode?:string|null;current?:Convention|null}) {
+  const proposalRetry=useRef<ProposalRetry|null>(null);
   const future=kind==='FUTURE',creation=!instrumentId,options=flattenCurrencyGroups(currencies);
   const [saving,setSaving]=useState(false),[error,setError]=useState(''),[proposal,setProposal]=useState<string>();
   const [family,setFamily]=useState<FutureFamily>();
@@ -19,7 +21,7 @@ export function ProductConventionForm({kind,currencies,tenantId,instrumentId,cur
     const common={kind,effectiveFrom:value('effectiveFrom'),priceCurrencyId:creation?family!.contractCurrencyId:value('priceCurrencyId'),quoteFactor:value('quoteFactor'),sourceReference:value('sourceReference')};
     const convention=future?{...common,quantityUnit:'CONTRACTS',priceBasis:'INDEX_POINTS',monetaryMultiplier:value('monetaryMultiplier'),tickSize:value('tickSize'),allowNegativePrice:data.has('allowNegativePrice'),lastTradingAtUtc:value('lastTradingAtUtc'),finalSettlementDate:value('finalSettlementDate')}:kind==='SWAP'?{...common,quantityUnit:'NOMINAL',priceBasis:'SWAP_VALUE_PER_NOTIONAL',quantityMinimum:value('quantityMinimum'),quantityIncrement:value('quantityIncrement'),otcAllowed:data.has('otcAllowed')}:kind==='BOND'?{...common,quoteFactor:'100',quantityUnit:'NOMINAL',priceBasis:'PCT_OF_PAR',principalBasis:'UNADJUSTED_NOMINAL',quantityMinimum:value('quantityMinimum'),quantityIncrement:value('quantityIncrement'),accrual:'MANUAL_CONFIRMATION',otcAllowed:data.has('otcAllowed')}:{...common,funding:'FULLY_FUNDED',quantityUnit,priceBasis,denomination:value('denomination')||null,quantityMinimum:value('quantityMinimum'),quantityIncrement:value('quantityIncrement'),accrual:value('accrual'),otcAllowed:data.has('otcAllowed')};
     const payload=creation?{canonicalName:value('canonicalName'),familyId:family!.familyId,familyCode:family!.familyCode,underlyingId:family!.underlyingId,contractMonth:`${value('contractMonth')}-01`,convention}:{instrumentId,convention};
-    flight.current=true;setSaving(true);setError('');try{const response=await bffPost<components['schemas']['ReferenceDataProposalResponse']>(`/api/instruments/${creation?'futures':'booking-conventions'}`,payload,undefined,fetch,{'X-Expected-Tenant-Id':tenantId});setProposal(response.data.proposalId);}catch(e){setError(e instanceof Error?e.message:'Configuration request failed.');}finally{flight.current=false;setSaving(false);}
+    flight.current=true;setSaving(true);setError('');try{const response=await bffPost<components['schemas']['ReferenceDataProposalResponse']>(`/api/instruments/${creation?'futures':'booking-conventions'}`,withProposalRetry(payload,proposalRetry),undefined,fetch,{'X-Expected-Tenant-Id':tenantId});setProposal(response.data.proposalId);}catch(e){setError(e instanceof Error?e.message:'Configuration request failed.');}finally{flight.current=false;setSaving(false);}
   }
   if(proposal)return <section className="detail-card"><h2>Submitted for approval</h2><p>Request {proposal}. Nothing becomes bookable until approval{creation?' and venue-listing approval':''}.</p><Link href="/operations">Open operations queue</Link></section>;
   const numeric=(name:string,label:string,initial?:string|number|null)=><label>{label}<input name={name} inputMode="decimal" required defaultValue={initial===null||initial===undefined?'':String(initial)} pattern="[0-9]+(\.[0-9]+)?"/></label>;

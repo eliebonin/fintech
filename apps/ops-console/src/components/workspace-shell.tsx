@@ -8,12 +8,15 @@ import { Box, Chip, Divider, Drawer, IconButton, Stack, Typography } from "@mui/
 
 import { getActiveWorkspaceSection, WORKSPACE_NAV_ITEMS, type WorkspaceSection } from "@/lib/navigation";
 import type { ActiveTenantWorkspace } from '@/lib/tenant-session';
+import {canBookTrades,writePageRequirement} from '@/lib/instrument-authority';
 
 function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, onNavigate }: { activeSection: WorkspaceSection; moduleCodes?: string[]; tenantName?: string; membershipRole?: string; onNavigate?: () => void }) {
   const enabledItems = moduleCodes ? WORKSPACE_NAV_ITEMS.filter((item) => {
     if (item.key === "strategies") return moduleCodes.includes("TRADING") || moduleCodes.includes("FUND_MANAGEMENT");
-    if (item.key === "trades" || item.key === "book-trade") return moduleCodes.includes("TRADING");
-    if (item.key === "market-data" || item.key === "pnl") return moduleCodes.includes("MARKET_DATA");
+    if (item.key === "book-trade") return canBookTrades({membershipRole:membershipRole??'',moduleCodes});
+    if (item.key === "trades") return moduleCodes.includes("TRADING");
+    if (item.key === "market-data") return moduleCodes.includes("MARKET_DATA");
+    if (item.key === "pnl") return moduleCodes.includes("MARKET_DATA") && moduleCodes.includes("VALUATION");
     return true;
   }) : WORKSPACE_NAV_ITEMS;
   return (
@@ -68,6 +71,9 @@ export function WorkspaceShell({ children, sourceLabel = "LIVE API", moduleCodes
   }, []);
   const activeSection = getActiveWorkspaceSection(pathname, hash);
   const activeItem = WORKSPACE_NAV_ITEMS.find((item) => item.key === activeSection);
+  const requiredModule=writePageRequirement(pathname);
+  const accessKnown=Boolean(sidebarContext.tenantName&&sidebarContext.membershipRole);
+  const writeAllowed=accessKnown&&sidebarContext.membershipRole==='TENANT_ADMIN'&&Boolean(requiredModule&&sidebarContext.moduleCodes.includes(requiredModule));
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f3f6fb" }}>
       <Box sx={{ display: { xs: "none", md: "block" } }}><Sidebar activeSection={activeSection} {...sidebarContext} /></Box>
@@ -77,7 +83,7 @@ export function WorkspaceShell({ children, sourceLabel = "LIVE API", moduleCodes
           <Stack direction="row" spacing={1.2} sx={{ alignItems: "center" }}><IconButton onClick={() => setMobileOpen(true)} sx={{ display: { xs: "inline-flex", md: "none" }, color: "#1f5eff" }} aria-label="Open navigation">☰</IconButton><Box><Typography variant="caption" color="text.secondary">WORKSPACE / {activeItem?.label.toUpperCase()}</Typography><Typography variant="body2" sx={{ fontWeight: 750, mt: 0.25 }}>{activeItem?.label}</Typography></Box></Stack>
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}><Chip label={sourceLabel} size="small" sx={{ bgcolor: sourceLabel === "LIVE API" ? "#e5f7ed" : "#fff4dc", color: sourceLabel === "LIVE API" ? "#14753c" : "#9a6200", fontWeight: 800, fontSize: 10 }} /><Box sx={{ width: 30, height: 30, bgcolor: "#dce7ff", color: "#1f5eff", borderRadius: "50%", display: "grid", placeItems: "center", fontWeight: 800 }}>OA</Box></Stack>
         </Box>
-        {children}
+        {requiredModule&&!writeAllowed?<main className="mvp-page"><h1>{requiredModule==='TRADING'?'Trade booking access':'Instrument management access'}</h1><div className="error-panel" role="alert">{accessKnown?<>Your current tenant access does not allow this action. It requires TENANT_ADMIN and the {requiredModule} module. Ask your tenant administrator to review your role and module access.</>:<>Tenant permissions are being checked or could not be verified. No write form is available. Select your tenant or reload this page to retry.</>}</div><div className="ticket-actions"><Link href={requiredModule==='TRADING'?'/trades':'/instruments'}>{requiredModule==='TRADING'?'View trade history':'Explore instruments'}</Link><Link href="/select-tenant">Change tenant</Link></div></main>:children}
       </Box>
     </Box>
   );

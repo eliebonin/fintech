@@ -1,0 +1,5426 @@
+{
+  "asOf": "2026-10-06",
+  "description": "Dated reference-data universe; no prices, ETF weights, or index calculation entitlements.",
+  "sources": [
+    {
+      "file": "spy-holdings.xlsx",
+      "sha256": "e08281930bf4065ba7a2ebd3f3219b8269f67ad7034f4d716a4c44cd1a30da35",
+      "url": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-05"
+    },
+    {
+      "file": "spy5-holdings.xlsx",
+      "sha256": "39e91871c935080090efb19871e51fc3260ad3842975ff6bcf60acc5cd428862",
+      "url": "https://www.ssga.com/library-content/products/fund-data/etfs/emea/holdings-daily-emea-en-spy5-gy.xlsx",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-05"
+    },
+    {
+      "file": "ivv-holdings.csv",
+      "sha256": "7acd731a45be477d4233ea0645a9615358ecbf7a1eb71919bcf8bd5350948815",
+      "url": "https://www.ishares.com/us/products/239726/ishares-core-s-p-500-etf/latest-holdings.csv",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-05"
+    },
+    {
+      "file": "nasdaqlisted.txt",
+      "sha256": "f436a7b69310bf0280a90887c9c827bd2caaa33e48117df1555c1c3b9d96bebf",
+      "url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-06"
+    },
+    {
+      "file": "otherlisted.txt",
+      "sha256": "85f307f7d600c9db7f175a525600ff5ae75a67edd7ed1b21c72f647affe5d64d",
+      "url": "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-06"
+    },
+    {
+      "file": "mic.xlsx",
+      "sha256": "9d0d3320cb2aa71a13837624a6eb10884435574b5d215f4b51a852294ae032b1",
+      "url": "https://www.iso20022.org/sites/default/files/ISO10383_MIC/ISO10383_MIC.xlsx",
+      "observedOn": "2026-10-06"
+    },
+    {
+      "url": "https://live.euronext.com/en/popout-page/getIndexComposition/FR0003500008-XPAR",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-06"
+    },
+    {
+      "url": "https://live.euronext.com/en/markets/paris/equities-by-index/cac40",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-06"
+    },
+    {
+      "url": "https://press.spglobal.com/2026-10-01-Vylor-Added-to-the-S-P-500-Twilio-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+      "observedOn": "2026-10-06",
+      "dataDate": "2026-10-01"
+    },
+    {
+      "url": "https://www.cboe.com/about/hours",
+      "observedOn": "2026-10-06"
+    }
+  ],
+  "notes": [
+    "SPY stocks exclude USD cash and TPG merger CVR; ISINs joined by exact SEDOL to SPY5, whose additional CTVA/WBD holdings are official October 6 deletions.",
+    "Independent IVV comparison excludes HOLX residual and WBD deletion; BRK B/BF B/PSKY aliases reconciled to today's directory BRK.B/BF.B/SKYD.",
+    "Primary US venues and tickers verified against October 6 Nasdaq directories; canonical names/ISINs from SPY5.",
+    "CAC40 membership, ISINs, symbols and constituent MICs read from public Euronext tables dated October 6.",
+    "Membership reconstructed from public primary sources, not a licensed official weighted index feed. No continuing refresh or redistribution entitlement implied.",
+    "Snapshot effective_from is seed availability, not historical issue/listing inception; earlier historical bookings require separately sourced approved definitions."
+  ],
+  "securities": [
+    {
+      "name": "Agilent Technologies Inc.",
+      "isin": "US00846U1016",
+      "sedol": "2520153",
+      "cusip": "00846U101",
+      "symbol": "A",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Apple Inc.",
+      "isin": "US0378331005",
+      "sedol": "2046251",
+      "cusip": "037833100",
+      "symbol": "AAPL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "AbbVie Inc.",
+      "isin": "US00287Y1091",
+      "sedol": "B92SR70",
+      "cusip": "00287Y109",
+      "symbol": "ABBV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Airbnb Inc. Class A",
+      "isin": "US0090661010",
+      "sedol": "BMGYYH4",
+      "cusip": "009066101",
+      "symbol": "ABNB",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Abbott Laboratories",
+      "isin": "US0028241000",
+      "sedol": "2002305",
+      "cusip": "002824100",
+      "symbol": "ABT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Arch Capital Group Ltd.",
+      "isin": "BMG0450A1053",
+      "sedol": "2740542",
+      "cusip": "G0450A105",
+      "symbol": "ACGL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Accenture Plc Class A",
+      "isin": "IE00B4BNMY34",
+      "sedol": "B4BNMY3",
+      "cusip": "G1151C101",
+      "symbol": "ACN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Adobe Inc.",
+      "isin": "US00724F1012",
+      "sedol": "2008154",
+      "cusip": "00724F101",
+      "symbol": "ADBE",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Analog Devices Inc.",
+      "isin": "US0326541051",
+      "sedol": "2032067",
+      "cusip": "032654105",
+      "symbol": "ADI",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Archer-Daniels-Midland Company",
+      "isin": "US0394831020",
+      "sedol": "2047317",
+      "cusip": "039483102",
+      "symbol": "ADM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Automatic Data Processing Inc.",
+      "isin": "US0530151036",
+      "sedol": "2065308",
+      "cusip": "053015103",
+      "symbol": "ADP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Autodesk Inc.",
+      "isin": "US0527691069",
+      "sedol": "2065159",
+      "cusip": "052769106",
+      "symbol": "ADSK",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ameren Corporation",
+      "isin": "US0236081024",
+      "sedol": "2050832",
+      "cusip": "023608102",
+      "symbol": "AEE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "American Electric Power Company Inc.",
+      "isin": "US0255371017",
+      "sedol": "2026242",
+      "cusip": "025537101",
+      "symbol": "AEP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "AES Corporation",
+      "isin": "US00130H1059",
+      "sedol": "2002479",
+      "cusip": "00130H105",
+      "symbol": "AES",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Aflac Incorporated",
+      "isin": "US0010551028",
+      "sedol": "2026361",
+      "cusip": "001055102",
+      "symbol": "AFL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "American International Group Inc.",
+      "isin": "US0268747849",
+      "sedol": "2027342",
+      "cusip": "026874784",
+      "symbol": "AIG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Assurant Inc.",
+      "isin": "US04621X1081",
+      "sedol": "2331430",
+      "cusip": "04621X108",
+      "symbol": "AIZ",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Arthur J. Gallagher & Co.",
+      "isin": "US3635761097",
+      "sedol": "2359506",
+      "cusip": "363576109",
+      "symbol": "AJG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Akamai Technologies Inc.",
+      "isin": "US00971T1016",
+      "sedol": "2507457",
+      "cusip": "00971T101",
+      "symbol": "AKAM",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Albemarle Corporation",
+      "isin": "US0126531013",
+      "sedol": "2046853",
+      "cusip": "012653101",
+      "symbol": "ALB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Align Technology Inc.",
+      "isin": "US0162551016",
+      "sedol": "2679204",
+      "cusip": "016255101",
+      "symbol": "ALGN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Allstate Corporation",
+      "isin": "US0200021014",
+      "sedol": "2019952",
+      "cusip": "020002101",
+      "symbol": "ALL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Allegion Public Limited Company",
+      "isin": "IE00BFRT3W74",
+      "sedol": "BFRT3W7",
+      "cusip": "G0176J109",
+      "symbol": "ALLE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Applied Materials Inc.",
+      "isin": "US0382221051",
+      "sedol": "2046552",
+      "cusip": "038222105",
+      "symbol": "AMAT",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Amcor PLC",
+      "isin": "JE00BV7DQ550",
+      "sedol": "BV7DQ55",
+      "cusip": "G0250X149",
+      "symbol": "AMCR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Advanced Micro Devices Inc.",
+      "isin": "US0079031078",
+      "sedol": "2007849",
+      "cusip": "007903107",
+      "symbol": "AMD",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "AMETEK Inc.",
+      "isin": "US0311001004",
+      "sedol": "2089212",
+      "cusip": "031100100",
+      "symbol": "AME",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Amgen Inc.",
+      "isin": "US0311621009",
+      "sedol": "2023607",
+      "cusip": "031162100",
+      "symbol": "AMGN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ameriprise Financial Inc.",
+      "isin": "US03076C1062",
+      "sedol": "B0J7D57",
+      "cusip": "03076C106",
+      "symbol": "AMP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "American Tower Corporation",
+      "isin": "US03027X1000",
+      "sedol": "B7FBFL2",
+      "cusip": "03027X100",
+      "symbol": "AMT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Amazon.com Inc.",
+      "isin": "US0231351067",
+      "sedol": "2000019",
+      "cusip": "023135106",
+      "symbol": "AMZN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Arista Networks Inc",
+      "isin": "US0404132054",
+      "sedol": "BL9XPM3",
+      "cusip": "040413205",
+      "symbol": "ANET",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Aon Plc Class A",
+      "isin": "IE00BLP1HW54",
+      "sedol": "BLP1HW5",
+      "cusip": "G0403H108",
+      "symbol": "AON",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "A. O. Smith Corporation",
+      "isin": "US8318652091",
+      "sedol": "2816023",
+      "cusip": "831865209",
+      "symbol": "AOS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "APA Corporation",
+      "isin": "US03743Q1085",
+      "sedol": "BNNF1C1",
+      "cusip": "03743Q108",
+      "symbol": "APA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Air Products and Chemicals Inc.",
+      "isin": "US0091581068",
+      "sedol": "2011602",
+      "cusip": "009158106",
+      "symbol": "APD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Amphenol Corporation Class A",
+      "isin": "US0320951017",
+      "sedol": "2145084",
+      "cusip": "032095101",
+      "symbol": "APH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Apollo Global Management Inc",
+      "isin": "US03769M1062",
+      "sedol": "BN44JF6",
+      "cusip": "03769M106",
+      "symbol": "APO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "AppLovin Corp. Class A",
+      "isin": "US03831W1080",
+      "sedol": "BMV3LG4",
+      "cusip": "03831W108",
+      "symbol": "APP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Aptiv PLC",
+      "isin": "JE00BTDN8H13",
+      "sedol": "BTDN8H1",
+      "cusip": "G3265R107",
+      "symbol": "APTV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Alexandria Real Estate Equities Inc.",
+      "isin": "US0152711091",
+      "sedol": "2009210",
+      "cusip": "015271109",
+      "symbol": "ARE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ares Management Corporation Class A",
+      "isin": "US03990B1017",
+      "sedol": "BF14BT1",
+      "cusip": "03990B101",
+      "symbol": "ARES",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Atmos Energy Corporation",
+      "isin": "US0495601058",
+      "sedol": "2315359",
+      "cusip": "049560105",
+      "symbol": "ATO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Broadcom Inc.",
+      "isin": "US11135F1012",
+      "sedol": "BDZ78H9",
+      "cusip": "11135F101",
+      "symbol": "AVGO",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Avery Dennison Corporation",
+      "isin": "US0536111091",
+      "sedol": "2066408",
+      "cusip": "053611109",
+      "symbol": "AVY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "American Water Works Company Inc.",
+      "isin": "US0304201033",
+      "sedol": "B2R3PV1",
+      "cusip": "030420103",
+      "symbol": "AWK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Axon Enterprise Inc",
+      "isin": "US05464C1018",
+      "sedol": "BDT5S35",
+      "cusip": "05464C101",
+      "symbol": "AXON",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "American Express Company",
+      "isin": "US0258161092",
+      "sedol": "2026082",
+      "cusip": "025816109",
+      "symbol": "AXP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "AutoZone Inc.",
+      "isin": "US0533321024",
+      "sedol": "2065955",
+      "cusip": "053332102",
+      "symbol": "AZO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Boeing Company",
+      "isin": "US0970231058",
+      "sedol": "2108601",
+      "cusip": "097023105",
+      "symbol": "BA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Bank of America Corp",
+      "isin": "US0605051046",
+      "sedol": "2295677",
+      "cusip": "060505104",
+      "symbol": "BAC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ball Corporation",
+      "isin": "US0584981064",
+      "sedol": "2073022",
+      "cusip": "058498106",
+      "symbol": "BALL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Baxter International Inc.",
+      "isin": "US0718131099",
+      "sedol": "2085102",
+      "cusip": "071813109",
+      "symbol": "BAX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Best Buy Co. Inc.",
+      "isin": "US0865161014",
+      "sedol": "2094670",
+      "cusip": "086516101",
+      "symbol": "BBY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Becton Dickinson and Company",
+      "isin": "US0758871091",
+      "sedol": "2087807",
+      "cusip": "075887109",
+      "symbol": "BDX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Bloom Energy Corporation Class A",
+      "isin": "US0937121079",
+      "sedol": "BDD1BB8",
+      "cusip": "093712107",
+      "symbol": "BE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Franklin Templeton Inc.",
+      "isin": "US3546131018",
+      "sedol": "2350684",
+      "cusip": "354613101",
+      "symbol": "BEN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Brown-Forman Corporation Class B",
+      "isin": "US1156372096",
+      "sedol": "2146838",
+      "cusip": "115637209",
+      "symbol": "BF.B",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Bunge Global SA",
+      "isin": "CH1300646267",
+      "sedol": "BQ6BPG9",
+      "cusip": "H11356104",
+      "symbol": "BG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Biogen Inc.",
+      "isin": "US09062X1037",
+      "sedol": "2455965",
+      "cusip": "09062X103",
+      "symbol": "BIIB",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Booking Holdings Inc.",
+      "isin": "US09857L1089",
+      "sedol": "BDRXDB4",
+      "cusip": "09857L108",
+      "symbol": "BKNG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Baker Hughes Company Class A",
+      "isin": "US05722G1004",
+      "sedol": "BDHLTQ5",
+      "cusip": "05722G100",
+      "symbol": "BKR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "BlackRock Inc.",
+      "isin": "US09290D1019",
+      "sedol": "BMZBBT7",
+      "cusip": "09290D101",
+      "symbol": "BLK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Bristol-Myers Squibb Company",
+      "isin": "US1101221083",
+      "sedol": "2126335",
+      "cusip": "110122108",
+      "symbol": "BMY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Bank of New York Mellon Corp",
+      "isin": "US0640581007",
+      "sedol": "B1Z77F6",
+      "cusip": "064058100",
+      "symbol": "BNY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Broadridge Financial Solutions Inc.",
+      "isin": "US11133T1034",
+      "sedol": "B1VP7R6",
+      "cusip": "11133T103",
+      "symbol": "BR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Berkshire Hathaway Inc. Class B",
+      "isin": "US0846707026",
+      "sedol": "2073390",
+      "cusip": "084670702",
+      "symbol": "BRK.B",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Brown & Brown Inc.",
+      "isin": "US1152361010",
+      "sedol": "2692687",
+      "cusip": "115236101",
+      "symbol": "BRO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Boston Scientific Corporation",
+      "isin": "US1011371077",
+      "sedol": "2113434",
+      "cusip": "101137107",
+      "symbol": "BSX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Blackstone Inc.",
+      "isin": "US09260D1072",
+      "sedol": "BKF2SL7",
+      "cusip": "09260D107",
+      "symbol": "BX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "BXP Inc",
+      "isin": "US1011211018",
+      "sedol": "2019479",
+      "cusip": "101121101",
+      "symbol": "BXP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Citigroup Inc.",
+      "isin": "US1729674242",
+      "sedol": "2297907",
+      "cusip": "172967424",
+      "symbol": "C",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cardinal Health Inc.",
+      "isin": "US14149Y1082",
+      "sedol": "2175672",
+      "cusip": "14149Y108",
+      "symbol": "CAH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Carrier Global Corp.",
+      "isin": "US14448C1045",
+      "sedol": "BK4N0D7",
+      "cusip": "14448C104",
+      "symbol": "CARR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Casey's General Stores Inc.",
+      "isin": "US1475281036",
+      "sedol": "2179414",
+      "cusip": "147528103",
+      "symbol": "CASY",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Caterpillar Inc.",
+      "isin": "US1491231015",
+      "sedol": "2180201",
+      "cusip": "149123101",
+      "symbol": "CAT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Chubb Limited",
+      "isin": "CH0044328745",
+      "sedol": "B3BQMF6",
+      "cusip": "H1467J104",
+      "symbol": "CB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cboe Global Markets Inc",
+      "isin": "US12503M1080",
+      "sedol": "B5834C5",
+      "cusip": "12503M108",
+      "symbol": "CBOE",
+      "mic": "BATS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CBRE Group Inc. Class A",
+      "isin": "US12504L1098",
+      "sedol": "B6WVMH3",
+      "cusip": "12504L109",
+      "symbol": "CBRE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Crown Castle Inc.",
+      "isin": "US22822V1017",
+      "sedol": "BTGQCX1",
+      "cusip": "22822V101",
+      "symbol": "CCI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Carnival Corporation Ltd.",
+      "isin": "BMG2004J1036",
+      "sedol": "BVV7RC7",
+      "cusip": "G2004J103",
+      "symbol": "CCL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cadence Design Systems Inc.",
+      "isin": "US1273871087",
+      "sedol": "2302232",
+      "cusip": "127387108",
+      "symbol": "CDNS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CDW Corporation",
+      "isin": "US12514G1085",
+      "sedol": "BBM5MD6",
+      "cusip": "12514G108",
+      "symbol": "CDW",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Constellation Energy Corporation",
+      "isin": "US21037T1097",
+      "sedol": "BMH4FS1",
+      "cusip": "21037T109",
+      "symbol": "CEG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CF Industries Holdings Inc.",
+      "isin": "US1252691001",
+      "sedol": "B0G4K50",
+      "cusip": "125269100",
+      "symbol": "CF",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Citizens Financial Group Inc.",
+      "isin": "US1746101054",
+      "sedol": "BQRX1X3",
+      "cusip": "174610105",
+      "symbol": "CFG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Church & Dwight Co. Inc.",
+      "isin": "US1713401024",
+      "sedol": "2195841",
+      "cusip": "171340102",
+      "symbol": "CHD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "C.H. Robinson Worldwide Inc.",
+      "isin": "US12541W2098",
+      "sedol": "2116228",
+      "cusip": "12541W209",
+      "symbol": "CHRW",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Charter Communications Inc. Class A",
+      "isin": "US16119P1084",
+      "sedol": "BZ6VT82",
+      "cusip": "16119P108",
+      "symbol": "CHTR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cigna Group",
+      "isin": "US1255231003",
+      "sedol": "BHJ0775",
+      "cusip": "125523100",
+      "symbol": "CI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ciena Corporation",
+      "isin": "US1717793095",
+      "sedol": "B1FLZ21",
+      "cusip": "171779309",
+      "symbol": "CIEN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cincinnati Financial Corporation",
+      "isin": "US1720621010",
+      "sedol": "2196888",
+      "cusip": "172062101",
+      "symbol": "CINF",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Colgate-Palmolive Company",
+      "isin": "US1941621039",
+      "sedol": "2209106",
+      "cusip": "194162103",
+      "symbol": "CL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Clorox Company",
+      "isin": "US1890541097",
+      "sedol": "2204026",
+      "cusip": "189054109",
+      "symbol": "CLX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Comcast Corporation Class A",
+      "isin": "US20030N1019",
+      "sedol": "2044545",
+      "cusip": "20030N101",
+      "symbol": "CMCSA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CME Group Inc. Class A",
+      "isin": "US12572Q1058",
+      "sedol": "2965839",
+      "cusip": "12572Q105",
+      "symbol": "CME",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Chipotle Mexican Grill Inc.",
+      "isin": "US1696561059",
+      "sedol": "B0X7DZ3",
+      "cusip": "169656105",
+      "symbol": "CMG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cummins Inc.",
+      "isin": "US2310211063",
+      "sedol": "2240202",
+      "cusip": "231021106",
+      "symbol": "CMI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CMS Energy Corporation",
+      "isin": "US1258961002",
+      "sedol": "2219224",
+      "cusip": "125896100",
+      "symbol": "CMS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Centene Corporation",
+      "isin": "US15135B1017",
+      "sedol": "2807061",
+      "cusip": "15135B101",
+      "symbol": "CNC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CenterPoint Energy Inc.",
+      "isin": "US15189T1079",
+      "sedol": "2440637",
+      "cusip": "15189T107",
+      "symbol": "CNP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Capital One Financial Corp",
+      "isin": "US14040H1059",
+      "sedol": "2654461",
+      "cusip": "14040H105",
+      "symbol": "COF",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Coherent Corp.",
+      "isin": "US19247G1076",
+      "sedol": "BNG8Z81",
+      "cusip": "19247G107",
+      "symbol": "COHR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Coinbase Global Inc. Class A",
+      "isin": "US19260Q1076",
+      "sedol": "BMC9P69",
+      "cusip": "19260Q107",
+      "symbol": "COIN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cooper Companies Inc.",
+      "isin": "US2166485019",
+      "sedol": "BQPDXR3",
+      "cusip": "216648501",
+      "symbol": "COO",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "ConocoPhillips",
+      "isin": "US20825C1045",
+      "sedol": "2685717",
+      "cusip": "20825C104",
+      "symbol": "COP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cencora Inc.",
+      "isin": "US03073E1055",
+      "sedol": "2795393",
+      "cusip": "03073E105",
+      "symbol": "COR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Costco Wholesale Corporation",
+      "isin": "US22160K1051",
+      "sedol": "2701271",
+      "cusip": "22160K105",
+      "symbol": "COST",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Corpay Inc.",
+      "isin": "US2199481068",
+      "sedol": "BMX5GK7",
+      "cusip": "219948106",
+      "symbol": "CPAY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Copart Inc.",
+      "isin": "US2172041061",
+      "sedol": "2208073",
+      "cusip": "217204106",
+      "symbol": "CPRT",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Camden Property Trust",
+      "isin": "US1331311027",
+      "sedol": "2166320",
+      "cusip": "133131102",
+      "symbol": "CPT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CRH public limited company",
+      "isin": "IE0001827041",
+      "sedol": "B01ZKD6",
+      "cusip": "G25508105",
+      "symbol": "CRH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Charles River Laboratories International Inc.",
+      "isin": "US1598641074",
+      "sedol": "2604336",
+      "cusip": "159864107",
+      "symbol": "CRL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Salesforce Inc.",
+      "isin": "US79466L3024",
+      "sedol": "2310525",
+      "cusip": "79466L302",
+      "symbol": "CRM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CrowdStrike Holdings Inc. Class A",
+      "isin": "US22788C1053",
+      "sedol": "BJJP138",
+      "cusip": "22788C105",
+      "symbol": "CRWD",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cisco Systems Inc.",
+      "isin": "US17275R1023",
+      "sedol": "2198163",
+      "cusip": "17275R102",
+      "symbol": "CSCO",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CoStar Group Inc.",
+      "isin": "US22160N1090",
+      "sedol": "2262864",
+      "cusip": "22160N109",
+      "symbol": "CSGP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CSX Corporation",
+      "isin": "US1264081035",
+      "sedol": "2160753",
+      "cusip": "126408103",
+      "symbol": "CSX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cintas Corporation",
+      "isin": "US1729081059",
+      "sedol": "2197137",
+      "cusip": "172908105",
+      "symbol": "CTAS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Cognizant Technology Solutions Corporation Class A",
+      "isin": "US1924461023",
+      "sedol": "2257019",
+      "cusip": "192446102",
+      "symbol": "CTSH",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Carvana Co. Class A",
+      "isin": "US1468691027",
+      "sedol": "BYQHPG3",
+      "cusip": "146869102",
+      "symbol": "CVNA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "CVS Health Corporation",
+      "isin": "US1266501006",
+      "sedol": "2577609",
+      "cusip": "126650100",
+      "symbol": "CVS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Chevron Corporation",
+      "isin": "US1667641005",
+      "sedol": "2838555",
+      "cusip": "166764100",
+      "symbol": "CVX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Dominion Energy Inc",
+      "isin": "US25746U1097",
+      "sedol": "2542049",
+      "cusip": "25746U109",
+      "symbol": "D",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Delta Air Lines Inc.",
+      "isin": "US2473617023",
+      "sedol": "B1W9D46",
+      "cusip": "247361702",
+      "symbol": "DAL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "DoorDash Inc. Class A",
+      "isin": "US25809K1051",
+      "sedol": "BN13P03",
+      "cusip": "25809K105",
+      "symbol": "DASH",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "DuPont de Nemours Inc.",
+      "isin": "US26614N2018",
+      "sedol": "BW60F13",
+      "cusip": "26614N201",
+      "symbol": "DD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Datadog Inc. Class A",
+      "isin": "US23804L1035",
+      "sedol": "BKT9Y49",
+      "cusip": "23804L103",
+      "symbol": "DDOG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Deere & Company",
+      "isin": "US2441991054",
+      "sedol": "2261203",
+      "cusip": "244199105",
+      "symbol": "DE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Deckers Outdoor Corporation",
+      "isin": "US2435371073",
+      "sedol": "2267278",
+      "cusip": "243537107",
+      "symbol": "DECK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Dell Technologies Inc. Class C",
+      "isin": "US24703L2025",
+      "sedol": "BHKD3S6",
+      "cusip": "24703L202",
+      "symbol": "DELL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Dollar General Corporation",
+      "isin": "US2566771059",
+      "sedol": "B5B1S13",
+      "cusip": "256677105",
+      "symbol": "DG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Quest Diagnostics Incorporated",
+      "isin": "US74834L1008",
+      "sedol": "2702791",
+      "cusip": "74834L100",
+      "symbol": "DGX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "D.R. Horton Inc.",
+      "isin": "US23331A1097",
+      "sedol": "2250687",
+      "cusip": "23331A109",
+      "symbol": "DHI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Danaher Corporation",
+      "isin": "US2358511028",
+      "sedol": "2250870",
+      "cusip": "235851102",
+      "symbol": "DHR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Walt Disney Company",
+      "isin": "US2546871060",
+      "sedol": "2270726",
+      "cusip": "254687106",
+      "symbol": "DIS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Digital Realty Trust Inc.",
+      "isin": "US2538681030",
+      "sedol": "B03GQS4",
+      "cusip": "253868103",
+      "symbol": "DLR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Dollar Tree Inc.",
+      "isin": "US2567461080",
+      "sedol": "2272476",
+      "cusip": "256746108",
+      "symbol": "DLTR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Healthpeak Properties Inc.",
+      "isin": "US42250P1030",
+      "sedol": "BJBLRK3",
+      "cusip": "42250P103",
+      "symbol": "DOC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Dover Corporation",
+      "isin": "US2600031080",
+      "sedol": "2278407",
+      "cusip": "260003108",
+      "symbol": "DOV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Dow Inc.",
+      "isin": "US2605571031",
+      "sedol": "BHXCF84",
+      "cusip": "260557103",
+      "symbol": "DOW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Domino's Pizza Inc.",
+      "isin": "US25754A2015",
+      "sedol": "B01SD70",
+      "cusip": "25754A201",
+      "symbol": "DPZ",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Darden Restaurants Inc.",
+      "isin": "US2371941053",
+      "sedol": "2289874",
+      "cusip": "237194105",
+      "symbol": "DRI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "DTE Energy Company",
+      "isin": "US2333311072",
+      "sedol": "2280220",
+      "cusip": "233331107",
+      "symbol": "DTE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Duke Energy Corporation",
+      "isin": "US26441C2044",
+      "sedol": "B7VD3F2",
+      "cusip": "26441C204",
+      "symbol": "DUK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "DaVita Inc.",
+      "isin": "US23918K1088",
+      "sedol": "2898087",
+      "cusip": "23918K108",
+      "symbol": "DVA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Devon Energy Corporation",
+      "isin": "US25179M1036",
+      "sedol": "2480677",
+      "cusip": "25179M103",
+      "symbol": "DVN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "DexCom Inc.",
+      "isin": "US2521311074",
+      "sedol": "B0796X4",
+      "cusip": "252131107",
+      "symbol": "DXCM",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "eBay Inc.",
+      "isin": "US2786421030",
+      "sedol": "2293819",
+      "cusip": "278642103",
+      "symbol": "EBAY",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "EchoStar Corporation Class A",
+      "isin": "US2787681061",
+      "sedol": "B2NC471",
+      "cusip": "278768106",
+      "symbol": "ECHO",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ecolab Inc.",
+      "isin": "US2788651006",
+      "sedol": "2304227",
+      "cusip": "278865100",
+      "symbol": "ECL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Consolidated Edison Inc.",
+      "isin": "US2091151041",
+      "sedol": "2216850",
+      "cusip": "209115104",
+      "symbol": "ED",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Equifax Inc.",
+      "isin": "US2944291051",
+      "sedol": "2319146",
+      "cusip": "294429105",
+      "symbol": "EFX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Everest Group Ltd.",
+      "isin": "BMG3223R1088",
+      "sedol": "2556868",
+      "cusip": "G3223R108",
+      "symbol": "EG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Edison International",
+      "isin": "US2810201077",
+      "sedol": "2829515",
+      "cusip": "281020107",
+      "symbol": "EIX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Estee Lauder Companies Inc. Class A",
+      "isin": "US5184391044",
+      "sedol": "2320524",
+      "cusip": "518439104",
+      "symbol": "EL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Elevance Health Inc.",
+      "isin": "US0367521038",
+      "sedol": "BSPHGL4",
+      "cusip": "036752103",
+      "symbol": "ELV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "EMCOR Group Inc.",
+      "isin": "US29084Q1004",
+      "sedol": "2474164",
+      "cusip": "29084Q100",
+      "symbol": "EME",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Emerson Electric Co.",
+      "isin": "US2910111044",
+      "sedol": "2313405",
+      "cusip": "291011104",
+      "symbol": "EMR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "EOG Resources Inc.",
+      "isin": "US26875P1012",
+      "sedol": "2318024",
+      "cusip": "26875P101",
+      "symbol": "EOG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Equinix Inc.",
+      "isin": "US29444U7000",
+      "sedol": "BVLZX12",
+      "cusip": "29444U700",
+      "symbol": "EQIX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "EQT Corporation",
+      "isin": "US26884L1098",
+      "sedol": "2319414",
+      "cusip": "26884L109",
+      "symbol": "EQT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Erie Indemnity Company Class A",
+      "isin": "US29530P1021",
+      "sedol": "2311711",
+      "cusip": "29530P102",
+      "symbol": "ERIE",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Eversource Energy",
+      "isin": "US30040W1080",
+      "sedol": "BVVN4Q8",
+      "cusip": "30040W108",
+      "symbol": "ES",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Essex Property Trust Inc.",
+      "isin": "US2971781057",
+      "sedol": "2316619",
+      "cusip": "297178105",
+      "symbol": "ESS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Eaton Corp. Plc",
+      "isin": "IE00B8KQN827",
+      "sedol": "B8KQN82",
+      "cusip": "G29183103",
+      "symbol": "ETN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Entergy Corporation",
+      "isin": "US29364G1031",
+      "sedol": "2317087",
+      "cusip": "29364G103",
+      "symbol": "ETR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Evergy Inc.",
+      "isin": "US30034W1062",
+      "sedol": "BFMXGR0",
+      "cusip": "30034W106",
+      "symbol": "EVRG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Edwards Lifesciences Corporation",
+      "isin": "US28176E1082",
+      "sedol": "2567116",
+      "cusip": "28176E108",
+      "symbol": "EW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Exelon Corporation",
+      "isin": "US30161N1019",
+      "sedol": "2670519",
+      "cusip": "30161N101",
+      "symbol": "EXC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Expand Energy Corporation",
+      "isin": "US1651677353",
+      "sedol": "BMZ5LZ5",
+      "cusip": "165167735",
+      "symbol": "EXE",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Expeditors International of Washington Inc.",
+      "isin": "US3021301094",
+      "sedol": "2325507",
+      "cusip": "302130109",
+      "symbol": "EXPD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Expedia Group Inc.",
+      "isin": "US30212P3038",
+      "sedol": "B748CK2",
+      "cusip": "30212P303",
+      "symbol": "EXPE",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Extra Space Storage Inc.",
+      "isin": "US30225T1025",
+      "sedol": "B02HWR9",
+      "cusip": "30225T102",
+      "symbol": "EXR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ford Motor Company",
+      "isin": "US3453708600",
+      "sedol": "2615468",
+      "cusip": "345370860",
+      "symbol": "F",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Diamondback Energy Inc.",
+      "isin": "US25278X1090",
+      "sedol": "B7Y8YR3",
+      "cusip": "25278X109",
+      "symbol": "FANG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fastenal Company",
+      "isin": "US3119001044",
+      "sedol": "2332262",
+      "cusip": "311900104",
+      "symbol": "FAST",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Freeport-McMoRan Inc.",
+      "isin": "US35671D8570",
+      "sedol": "2352118",
+      "cusip": "35671D857",
+      "symbol": "FCX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "FactSet Research Systems Inc.",
+      "isin": "US3030751057",
+      "sedol": "2329770",
+      "cusip": "303075105",
+      "symbol": "FDS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "FedEx Corporation",
+      "isin": "US31428X1063",
+      "sedol": "2142784",
+      "cusip": "31428X106",
+      "symbol": "FDX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "FedEx Freight Holding Company Inc.",
+      "isin": "US3143521058",
+      "sedol": "BVSVT37",
+      "cusip": "314352105",
+      "symbol": "FDXF",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "FirstEnergy Corp.",
+      "isin": "US3379321074",
+      "sedol": "2100920",
+      "cusip": "337932107",
+      "symbol": "FE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ferguson Enterprises Inc.",
+      "isin": "US31488V1070",
+      "sedol": "BS6VHW3",
+      "cusip": "31488V107",
+      "symbol": "FERG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "F5 Inc.",
+      "isin": "US3156161024",
+      "sedol": "2427599",
+      "cusip": "315616102",
+      "symbol": "FFIV",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fair Isaac Corporation",
+      "isin": "US3032501047",
+      "sedol": "2330299",
+      "cusip": "303250104",
+      "symbol": "FICO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fidelity National Information Services Inc.",
+      "isin": "US31620M1062",
+      "sedol": "2769796",
+      "cusip": "31620M106",
+      "symbol": "FIS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fiserv Inc.",
+      "isin": "US3377381088",
+      "sedol": "2342034",
+      "cusip": "337738108",
+      "symbol": "FISV",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fifth Third Bancorp",
+      "isin": "US3167731005",
+      "sedol": "2336747",
+      "cusip": "316773100",
+      "symbol": "FITB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Comfort Systems USA Inc.",
+      "isin": "US1999081045",
+      "sedol": "2036047",
+      "cusip": "199908104",
+      "symbol": "FIX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Flex Ltd",
+      "isin": "SG9999000020",
+      "sedol": "2353058",
+      "cusip": "Y2573F102",
+      "symbol": "FLEX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fox Corporation Class B",
+      "isin": "US35137L2043",
+      "sedol": "BJJMGY5",
+      "cusip": "35137L204",
+      "symbol": "FOX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fox Corporation Class A",
+      "isin": "US35137L1052",
+      "sedol": "BJJMGL2",
+      "cusip": "35137L105",
+      "symbol": "FOXA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Federal Realty Investment Trust",
+      "isin": "US3137451015",
+      "sedol": "BN7P9B2",
+      "cusip": "313745101",
+      "symbol": "FRT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "First Solar Inc.",
+      "isin": "US3364331070",
+      "sedol": "B1HMF22",
+      "cusip": "336433107",
+      "symbol": "FSLR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fortinet Inc.",
+      "isin": "US34959E1091",
+      "sedol": "B5B2106",
+      "cusip": "34959E109",
+      "symbol": "FTNT",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Fortive Corp.",
+      "isin": "US34959J1088",
+      "sedol": "BYT3MK1",
+      "cusip": "34959J108",
+      "symbol": "FTV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "General Dynamics Corporation",
+      "isin": "US3695501086",
+      "sedol": "2365161",
+      "cusip": "369550108",
+      "symbol": "GD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "GoDaddy Inc. Class A",
+      "isin": "US3802371076",
+      "sedol": "BWFRFC6",
+      "cusip": "380237107",
+      "symbol": "GDDY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "GE Aerospace",
+      "isin": "US3696043013",
+      "sedol": "BL59CR9",
+      "cusip": "369604301",
+      "symbol": "GE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "GE Healthcare Technologies Inc.",
+      "isin": "US36266G1076",
+      "sedol": "BL6JPG8",
+      "cusip": "36266G107",
+      "symbol": "GEHC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Gen Digital Inc.",
+      "isin": "US6687711084",
+      "sedol": "BJN4XN5",
+      "cusip": "668771108",
+      "symbol": "GEN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "GE Vernova Inc.",
+      "isin": "US36828A1016",
+      "sedol": "BP6H4Y1",
+      "cusip": "36828A101",
+      "symbol": "GEV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Gilead Sciences Inc.",
+      "isin": "US3755581036",
+      "sedol": "2369174",
+      "cusip": "375558103",
+      "symbol": "GILD",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "General Mills Inc.",
+      "isin": "US3703341046",
+      "sedol": "2367026",
+      "cusip": "370334104",
+      "symbol": "GIS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Globe Life Inc.",
+      "isin": "US37959E1029",
+      "sedol": "BK6YKG1",
+      "cusip": "37959E102",
+      "symbol": "GL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Corning Inc",
+      "isin": "US2193501051",
+      "sedol": "2224701",
+      "cusip": "219350105",
+      "symbol": "GLW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "General Motors Company",
+      "isin": "US37045V1008",
+      "sedol": "B665KZ5",
+      "cusip": "37045V100",
+      "symbol": "GM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Generac Holdings Inc.",
+      "isin": "US3687361044",
+      "sedol": "B6197Q2",
+      "cusip": "368736104",
+      "symbol": "GNRC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Alphabet Inc. Class C",
+      "isin": "US02079K1079",
+      "sedol": "BYY88Y7",
+      "cusip": "02079K107",
+      "symbol": "GOOG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Alphabet Inc. Class A",
+      "isin": "US02079K3059",
+      "sedol": "BYVY8G0",
+      "cusip": "02079K305",
+      "symbol": "GOOGL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Genuine Parts Company",
+      "isin": "US3724601055",
+      "sedol": "2367480",
+      "cusip": "372460105",
+      "symbol": "GPC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Global Payments Inc.",
+      "isin": "US37940X1028",
+      "sedol": "2712013",
+      "cusip": "37940X102",
+      "symbol": "GPN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Garmin Ltd.",
+      "isin": "CH0114405324",
+      "sedol": "B3Z5T14",
+      "cusip": "H2906T109",
+      "symbol": "GRMN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Goldman Sachs Group Inc.",
+      "isin": "US38141G1040",
+      "sedol": "2407966",
+      "cusip": "38141G104",
+      "symbol": "GS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "W.W. Grainger Inc.",
+      "isin": "US3848021040",
+      "sedol": "2380863",
+      "cusip": "384802104",
+      "symbol": "GWW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Halliburton Company",
+      "isin": "US4062161017",
+      "sedol": "2405302",
+      "cusip": "406216101",
+      "symbol": "HAL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Hasbro Inc.",
+      "isin": "US4180561072",
+      "sedol": "2414580",
+      "cusip": "418056107",
+      "symbol": "HAS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Huntington Bancshares Incorporated",
+      "isin": "US4461501045",
+      "sedol": "2445966",
+      "cusip": "446150104",
+      "symbol": "HBAN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "HCA Healthcare Inc",
+      "isin": "US40412C1018",
+      "sedol": "B4MGBG6",
+      "cusip": "40412C101",
+      "symbol": "HCA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Home Depot Inc.",
+      "isin": "US4370761029",
+      "sedol": "2434209",
+      "cusip": "437076102",
+      "symbol": "HD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Hartford Insurance Group Inc.",
+      "isin": "US4165151048",
+      "sedol": "2476193",
+      "cusip": "416515104",
+      "symbol": "HIG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Huntington Ingalls Industries Inc.",
+      "isin": "US4464131063",
+      "sedol": "B40SSC9",
+      "cusip": "446413106",
+      "symbol": "HII",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Hilton Worldwide Holdings Inc.",
+      "isin": "US43300A2033",
+      "sedol": "BYVMW06",
+      "cusip": "43300A203",
+      "symbol": "HLT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Honeywell International Inc.",
+      "isin": "US4385162056",
+      "sedol": "BN7RHC5",
+      "cusip": "438516205",
+      "symbol": "HON",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Honeywell Aerospace Inc",
+      "isin": "US43849R1059",
+      "sedol": "BN7RHB4",
+      "cusip": "43849R105",
+      "symbol": "HONA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Robinhood Markets Inc. Class A",
+      "isin": "US7707001027",
+      "sedol": "BP0TQN6",
+      "cusip": "770700102",
+      "symbol": "HOOD",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Hewlett Packard Enterprise Co.",
+      "isin": "US42824C1099",
+      "sedol": "BYVYWS0",
+      "cusip": "42824C109",
+      "symbol": "HPE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "HP Inc.",
+      "isin": "US40434L1052",
+      "sedol": "BYX4D52",
+      "cusip": "40434L105",
+      "symbol": "HPQ",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Hormel Foods Corporation",
+      "isin": "US4404521001",
+      "sedol": "2437264",
+      "cusip": "440452100",
+      "symbol": "HRL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Henry Schein Inc.",
+      "isin": "US8064071025",
+      "sedol": "2416962",
+      "cusip": "806407102",
+      "symbol": "HSIC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Host Hotels & Resorts Inc.",
+      "isin": "US44107P1049",
+      "sedol": "2567503",
+      "cusip": "44107P104",
+      "symbol": "HST",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Hershey Company",
+      "isin": "US4278661081",
+      "sedol": "2422806",
+      "cusip": "427866108",
+      "symbol": "HSY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Hubbell Incorporated",
+      "isin": "US4435106079",
+      "sedol": "BDFG6S3",
+      "cusip": "443510607",
+      "symbol": "HUBB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Humana Inc.",
+      "isin": "US4448591028",
+      "sedol": "2445063",
+      "cusip": "444859102",
+      "symbol": "HUM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Howmet Aerospace Inc.",
+      "isin": "US4432011082",
+      "sedol": "BKLJ8V2",
+      "cusip": "443201108",
+      "symbol": "HWM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Interactive Brokers Group Inc. Class A",
+      "isin": "US45841N1072",
+      "sedol": "B1WT4X2",
+      "cusip": "45841N107",
+      "symbol": "IBKR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "International Business Machines Corporation",
+      "isin": "US4592001014",
+      "sedol": "2005973",
+      "cusip": "459200101",
+      "symbol": "IBM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Intercontinental Exchange Inc.",
+      "isin": "US45866F1049",
+      "sedol": "BFSSDS9",
+      "cusip": "45866F104",
+      "symbol": "ICE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "IDEXX Laboratories Inc.",
+      "isin": "US45168D1046",
+      "sedol": "2459202",
+      "cusip": "45168D104",
+      "symbol": "IDXX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "IDEX Corporation",
+      "isin": "US45167R1041",
+      "sedol": "2456612",
+      "cusip": "45167R104",
+      "symbol": "IEX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "International Flavors & Fragrances Inc.",
+      "isin": "US4595061015",
+      "sedol": "2464165",
+      "cusip": "459506101",
+      "symbol": "IFF",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Illumina Inc.",
+      "isin": "US4523271090",
+      "sedol": "2613990",
+      "cusip": "452327109",
+      "symbol": "ILMN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Incyte Corporation",
+      "isin": "US45337C1027",
+      "sedol": "2471950",
+      "cusip": "45337C102",
+      "symbol": "INCY",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Intel Corporation",
+      "isin": "US4581401001",
+      "sedol": "2463247",
+      "cusip": "458140100",
+      "symbol": "INTC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Intuit Inc.",
+      "isin": "US4612021034",
+      "sedol": "2459020",
+      "cusip": "461202103",
+      "symbol": "INTU",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Invitation Homes Inc.",
+      "isin": "US46187W1071",
+      "sedol": "BD81GW9",
+      "cusip": "46187W107",
+      "symbol": "INVH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "International Paper Company",
+      "isin": "US4601461035",
+      "sedol": "2465254",
+      "cusip": "460146103",
+      "symbol": "IP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "IQVIA Holdings Inc",
+      "isin": "US46266C1053",
+      "sedol": "BDR73G1",
+      "cusip": "46266C105",
+      "symbol": "IQV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ingersoll Rand Inc.",
+      "isin": "US45687V1061",
+      "sedol": "BL5GZ82",
+      "cusip": "45687V106",
+      "symbol": "IR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Iron Mountain Inc.",
+      "isin": "US46284V1017",
+      "sedol": "BVFTF03",
+      "cusip": "46284V101",
+      "symbol": "IRM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Intuitive Surgical Inc.",
+      "isin": "US46120E6023",
+      "sedol": "2871301",
+      "cusip": "46120E602",
+      "symbol": "ISRG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Gartner Inc.",
+      "isin": "US3666511072",
+      "sedol": "2372763",
+      "cusip": "366651107",
+      "symbol": "IT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Illinois Tool Works Inc.",
+      "isin": "US4523081093",
+      "sedol": "2457552",
+      "cusip": "452308109",
+      "symbol": "ITW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Invesco Ltd.",
+      "isin": "BMG491BT1088",
+      "sedol": "B28XP76",
+      "cusip": "G491BT108",
+      "symbol": "IVZ",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Jacobs Solutions Inc.",
+      "isin": "US46982L1089",
+      "sedol": "BNGC0D3",
+      "cusip": "46982L108",
+      "symbol": "J",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "J.B. Hunt Transport Services Inc.",
+      "isin": "US4456581077",
+      "sedol": "2445416",
+      "cusip": "445658107",
+      "symbol": "JBHT",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Jabil Inc.",
+      "isin": "US4663131039",
+      "sedol": "2471789",
+      "cusip": "466313103",
+      "symbol": "JBL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Johnson Controls International plc",
+      "isin": "IE00BY7QL619",
+      "sedol": "BY7QL61",
+      "cusip": "G51502105",
+      "symbol": "JCI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Jack Henry & Associates Inc.",
+      "isin": "US4262811015",
+      "sedol": "2469193",
+      "cusip": "426281101",
+      "symbol": "JKHY",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Johnson & Johnson",
+      "isin": "US4781601046",
+      "sedol": "2475833",
+      "cusip": "478160104",
+      "symbol": "JNJ",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "JPMorgan Chase & Co.",
+      "isin": "US46625H1005",
+      "sedol": "2190385",
+      "cusip": "46625H100",
+      "symbol": "JPM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Keurig Dr Pepper Inc.",
+      "isin": "US49271V1008",
+      "sedol": "BD3W133",
+      "cusip": "49271V100",
+      "symbol": "KDP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "KeyCorp",
+      "isin": "US4932671088",
+      "sedol": "2490911",
+      "cusip": "493267108",
+      "symbol": "KEY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Keysight Technologies Inc",
+      "isin": "US49338L1035",
+      "sedol": "BQZJ0Q9",
+      "cusip": "49338L103",
+      "symbol": "KEYS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Kraft Heinz Company",
+      "isin": "US5007541064",
+      "sedol": "BYRY499",
+      "cusip": "500754106",
+      "symbol": "KHC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Kimco Realty Corporation",
+      "isin": "US49446R1095",
+      "sedol": "2491594",
+      "cusip": "49446R109",
+      "symbol": "KIM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "KKR & Co Inc",
+      "isin": "US48251W1045",
+      "sedol": "BG1FRR1",
+      "cusip": "48251W104",
+      "symbol": "KKR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "KLA Corporation",
+      "isin": "US4824801009",
+      "sedol": "2480138",
+      "cusip": "482480100",
+      "symbol": "KLAC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Kimberly-Clark Corporation",
+      "isin": "US4943681035",
+      "sedol": "2491839",
+      "cusip": "494368103",
+      "symbol": "KMB",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Kinder Morgan Inc Class P",
+      "isin": "US49456B1017",
+      "sedol": "B3NQ4P8",
+      "cusip": "49456B101",
+      "symbol": "KMI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Coca-Cola Company",
+      "isin": "US1912161007",
+      "sedol": "2206657",
+      "cusip": "191216100",
+      "symbol": "KO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Kroger Co.",
+      "isin": "US5010441013",
+      "sedol": "2497406",
+      "cusip": "501044101",
+      "symbol": "KR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Kenvue Inc.",
+      "isin": "US49177J1025",
+      "sedol": "BQ84ZQ6",
+      "cusip": "49177J102",
+      "symbol": "KVUE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Loews Corporation",
+      "isin": "US5404241086",
+      "sedol": "2523022",
+      "cusip": "540424108",
+      "symbol": "L",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Leidos Holdings Inc.",
+      "isin": "US5253271028",
+      "sedol": "BDV82B8",
+      "cusip": "525327102",
+      "symbol": "LDOS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Lennar Corporation Class A",
+      "isin": "US5260571048",
+      "sedol": "2511920",
+      "cusip": "526057104",
+      "symbol": "LEN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Labcorp Holdings Inc.",
+      "isin": "US5049221055",
+      "sedol": "BSBK800",
+      "cusip": "504922105",
+      "symbol": "LH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "L3Harris Technologies Inc",
+      "isin": "US5024311095",
+      "sedol": "BK9DTN5",
+      "cusip": "502431109",
+      "symbol": "LHX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Lennox International Inc.",
+      "isin": "US5261071071",
+      "sedol": "2442053",
+      "cusip": "526107107",
+      "symbol": "LII",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Linde plc",
+      "isin": "IE000S9YS762",
+      "sedol": "BNZHB81",
+      "cusip": "G54950103",
+      "symbol": "LIN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Lumentum Holdings Inc.",
+      "isin": "US55024U1097",
+      "sedol": "BYM9ZP2",
+      "cusip": "55024U109",
+      "symbol": "LITE",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Eli Lilly and Company",
+      "isin": "US5324571083",
+      "sedol": "2516152",
+      "cusip": "532457108",
+      "symbol": "LLY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Lockheed Martin Corporation",
+      "isin": "US5398301094",
+      "sedol": "2522096",
+      "cusip": "539830109",
+      "symbol": "LMT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Alliant Energy Corporation",
+      "isin": "US0188021085",
+      "sedol": "2973821",
+      "cusip": "018802108",
+      "symbol": "LNT",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Lowe's Companies Inc.",
+      "isin": "US5486611073",
+      "sedol": "2536763",
+      "cusip": "548661107",
+      "symbol": "LOW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Lam Research Corporation",
+      "isin": "US5128073062",
+      "sedol": "BSML4N7",
+      "cusip": "512807306",
+      "symbol": "LRCX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "lululemon athletica inc.",
+      "isin": "US5500211090",
+      "sedol": "B23FN39",
+      "cusip": "550021109",
+      "symbol": "LULU",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Southwest Airlines Co.",
+      "isin": "US8447411088",
+      "sedol": "2831543",
+      "cusip": "844741108",
+      "symbol": "LUV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Las Vegas Sands Corp.",
+      "isin": "US5178341070",
+      "sedol": "B02T2J7",
+      "cusip": "517834107",
+      "symbol": "LVS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "LyondellBasell Industries NV",
+      "isin": "NL0009434992",
+      "sedol": "B3SPXZ3",
+      "cusip": "N53745100",
+      "symbol": "LYB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Live Nation Entertainment Inc.",
+      "isin": "US5380341090",
+      "sedol": "B0T7YX2",
+      "cusip": "538034109",
+      "symbol": "LYV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Mastercard Incorporated Class A",
+      "isin": "US57636Q1040",
+      "sedol": "B121557",
+      "cusip": "57636Q104",
+      "symbol": "MA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Mid-America Apartment Communities Inc.",
+      "isin": "US59522J1034",
+      "sedol": "2589132",
+      "cusip": "59522J103",
+      "symbol": "MAA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Marriott International Inc. Class A",
+      "isin": "US5719032022",
+      "sedol": "2210614",
+      "cusip": "571903202",
+      "symbol": "MAR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Masco Corporation",
+      "isin": "US5745991068",
+      "sedol": "2570200",
+      "cusip": "574599106",
+      "symbol": "MAS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "McDonald's Corporation",
+      "isin": "US5801351017",
+      "sedol": "2550707",
+      "cusip": "580135101",
+      "symbol": "MCD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Microchip Technology Incorporated",
+      "isin": "US5950171042",
+      "sedol": "2592174",
+      "cusip": "595017104",
+      "symbol": "MCHP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "McKesson Corporation",
+      "isin": "US58155Q1031",
+      "sedol": "2378534",
+      "cusip": "58155Q103",
+      "symbol": "MCK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Moody's Corporation",
+      "isin": "US6153691059",
+      "sedol": "2252058",
+      "cusip": "615369105",
+      "symbol": "MCO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Mondelez International Inc. Class A",
+      "isin": "US6092071058",
+      "sedol": "B8CKK03",
+      "cusip": "609207105",
+      "symbol": "MDLZ",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Medtronic Plc",
+      "isin": "IE00BTN1Y115",
+      "sedol": "BTN1Y11",
+      "cusip": "G5960L103",
+      "symbol": "MDT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "MetLife Inc.",
+      "isin": "US59156R1086",
+      "sedol": "2573209",
+      "cusip": "59156R108",
+      "symbol": "MET",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Meta Platforms Inc Class A",
+      "isin": "US30303M1027",
+      "sedol": "B7TL820",
+      "cusip": "30303M102",
+      "symbol": "META",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "MGM Resorts International",
+      "isin": "US5529531015",
+      "sedol": "2547419",
+      "cusip": "552953101",
+      "symbol": "MGM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "McCormick & Company Incorporated",
+      "isin": "US5797802064",
+      "sedol": "2550161",
+      "cusip": "579780206",
+      "symbol": "MKC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Martin Marietta Materials Inc.",
+      "isin": "US5732841060",
+      "sedol": "2572079",
+      "cusip": "573284106",
+      "symbol": "MLM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "3M Company",
+      "isin": "US88579Y1010",
+      "sedol": "2595708",
+      "cusip": "88579Y101",
+      "symbol": "MMM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Monster Beverage Corporation",
+      "isin": "US61174X1090",
+      "sedol": "BZ07BW4",
+      "cusip": "61174X109",
+      "symbol": "MNST",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Altria Group Inc.",
+      "isin": "US02209S1033",
+      "sedol": "2692632",
+      "cusip": "02209S103",
+      "symbol": "MO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Mosaic Company",
+      "isin": "US61945C1036",
+      "sedol": "B3NPHP6",
+      "cusip": "61945C103",
+      "symbol": "MOS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Marathon Petroleum Corporation",
+      "isin": "US56585A1025",
+      "sedol": "B3K3L40",
+      "cusip": "56585A102",
+      "symbol": "MPC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Monolithic Power Systems Inc.",
+      "isin": "US6098391054",
+      "sedol": "B01Z7J1",
+      "cusip": "609839105",
+      "symbol": "MPWR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Merck & Co. Inc.",
+      "isin": "US58933Y1055",
+      "sedol": "2778844",
+      "cusip": "58933Y105",
+      "symbol": "MRK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Moderna Inc.",
+      "isin": "US60770K1079",
+      "sedol": "BGSXTS3",
+      "cusip": "60770K107",
+      "symbol": "MRNA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Marsh & McLennan Companies Inc.",
+      "isin": "US5717481023",
+      "sedol": "2567741",
+      "cusip": "571748102",
+      "symbol": "MRSH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Marvell Technology Inc.",
+      "isin": "US5738741041",
+      "sedol": "BNKJSM5",
+      "cusip": "573874104",
+      "symbol": "MRVL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Morgan Stanley",
+      "isin": "US6174464486",
+      "sedol": "2262314",
+      "cusip": "617446448",
+      "symbol": "MS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "MSCI Inc. Class A",
+      "isin": "US55354G1004",
+      "sedol": "B2972D2",
+      "cusip": "55354G100",
+      "symbol": "MSCI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Microsoft Corporation",
+      "isin": "US5949181045",
+      "sedol": "2588173",
+      "cusip": "594918104",
+      "symbol": "MSFT",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Motorola Solutions Inc.",
+      "isin": "US6200763075",
+      "sedol": "B5BKPQ4",
+      "cusip": "620076307",
+      "symbol": "MSI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "M&T Bank Corporation",
+      "isin": "US55261F1049",
+      "sedol": "2340168",
+      "cusip": "55261F104",
+      "symbol": "MTB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Mettler-Toledo International Inc.",
+      "isin": "US5926881054",
+      "sedol": "2126249",
+      "cusip": "592688105",
+      "symbol": "MTD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Micron Technology Inc.",
+      "isin": "US5951121038",
+      "sedol": "2588184",
+      "cusip": "595112103",
+      "symbol": "MU",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Norwegian Cruise Line Holdings Ltd.",
+      "isin": "BMG667211046",
+      "sedol": "B9CGTC3",
+      "cusip": "G66721104",
+      "symbol": "NCLH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Nasdaq Inc.",
+      "isin": "US6311031081",
+      "sedol": "2965107",
+      "cusip": "631103108",
+      "symbol": "NDAQ",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Nordson Corporation",
+      "isin": "US6556631025",
+      "sedol": "2641838",
+      "cusip": "655663102",
+      "symbol": "NDSN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NextEra Energy Inc.",
+      "isin": "US65339F1012",
+      "sedol": "2328915",
+      "cusip": "65339F101",
+      "symbol": "NEE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Newmont Corporation",
+      "isin": "US6516391066",
+      "sedol": "2636607",
+      "cusip": "651639106",
+      "symbol": "NEM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Netflix Inc.",
+      "isin": "US64110L1061",
+      "sedol": "2857817",
+      "cusip": "64110L106",
+      "symbol": "NFLX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NiSource Inc",
+      "isin": "US65473P1057",
+      "sedol": "2645409",
+      "cusip": "65473P105",
+      "symbol": "NI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NIKE Inc. Class B",
+      "isin": "US6541061031",
+      "sedol": "2640147",
+      "cusip": "654106103",
+      "symbol": "NKE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Northrop Grumman Corp.",
+      "isin": "US6668071029",
+      "sedol": "2648806",
+      "cusip": "666807102",
+      "symbol": "NOC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "ServiceNow Inc.",
+      "isin": "US81762P1021",
+      "sedol": "B80NXX8",
+      "cusip": "81762P102",
+      "symbol": "NOW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NRG Energy Inc.",
+      "isin": "US6293775085",
+      "sedol": "2212922",
+      "cusip": "629377508",
+      "symbol": "NRG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Norfolk Southern Corporation",
+      "isin": "US6558441084",
+      "sedol": "2641894",
+      "cusip": "655844108",
+      "symbol": "NSC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NetApp Inc.",
+      "isin": "US64110D1046",
+      "sedol": "2630643",
+      "cusip": "64110D104",
+      "symbol": "NTAP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Northern Trust Corporation",
+      "isin": "US6658591044",
+      "sedol": "2648668",
+      "cusip": "665859104",
+      "symbol": "NTRS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Nucor Corporation",
+      "isin": "US6703461052",
+      "sedol": "2651086",
+      "cusip": "670346105",
+      "symbol": "NUE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NVIDIA Corporation",
+      "isin": "US67066G1040",
+      "sedol": "2379504",
+      "cusip": "67066G104",
+      "symbol": "NVDA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NVR Inc.",
+      "isin": "US62944T1051",
+      "sedol": "2637785",
+      "cusip": "62944T105",
+      "symbol": "NVR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "News Corporation Class B",
+      "isin": "US65249B2088",
+      "sedol": "BBGVT51",
+      "cusip": "65249B208",
+      "symbol": "NWS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "News Corporation Class A",
+      "isin": "US65249B1098",
+      "sedol": "BBGVT40",
+      "cusip": "65249B109",
+      "symbol": "NWSA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "NXP Semiconductors NV",
+      "isin": "NL0009538784",
+      "sedol": "B505PN7",
+      "cusip": "N6596X109",
+      "symbol": "NXPI",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Realty Income Corporation",
+      "isin": "US7561091049",
+      "sedol": "2724193",
+      "cusip": "756109104",
+      "symbol": "O",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Old Dominion Freight Line Inc.",
+      "isin": "US6795801009",
+      "sedol": "2656423",
+      "cusip": "679580100",
+      "symbol": "ODFL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "ONEOK Inc.",
+      "isin": "US30609A1097",
+      "sedol": "BWJJFW8",
+      "cusip": "30609A109",
+      "symbol": "OKE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Omnicom Group Inc",
+      "isin": "US6819191064",
+      "sedol": "2279303",
+      "cusip": "681919106",
+      "symbol": "OMC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "ON Semiconductor Corporation",
+      "isin": "US6821891057",
+      "sedol": "2583576",
+      "cusip": "682189105",
+      "symbol": "ON",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Oracle Corporation",
+      "isin": "US68389X1054",
+      "sedol": "2661568",
+      "cusip": "68389X105",
+      "symbol": "ORCL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "O'Reilly Automotive Inc.",
+      "isin": "US67103H1077",
+      "sedol": "B65LWX6",
+      "cusip": "67103H107",
+      "symbol": "ORLY",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Otis Worldwide Corporation",
+      "isin": "US68902V1070",
+      "sedol": "BK531S8",
+      "cusip": "68902V107",
+      "symbol": "OTIS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Occidental Petroleum Corporation",
+      "isin": "US6745991058",
+      "sedol": "2655408",
+      "cusip": "674599105",
+      "symbol": "OXY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Everpure Inc. Class A",
+      "isin": "US74624M1027",
+      "sedol": "BYZ62T3",
+      "cusip": "74624M102",
+      "symbol": "P",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Palo Alto Networks Inc.",
+      "isin": "US6974351057",
+      "sedol": "B87ZMX0",
+      "cusip": "697435105",
+      "symbol": "PANW",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Paychex Inc.",
+      "isin": "US7043261079",
+      "sedol": "2674458",
+      "cusip": "704326107",
+      "symbol": "PAYX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PACCAR Inc",
+      "isin": "US6937181088",
+      "sedol": "2665861",
+      "cusip": "693718108",
+      "symbol": "PCAR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PG&E Corporation",
+      "isin": "US69331C1080",
+      "sedol": "2689560",
+      "cusip": "69331C108",
+      "symbol": "PCG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Public Service Enterprise Group Inc",
+      "isin": "US7445731067",
+      "sedol": "2707677",
+      "cusip": "744573106",
+      "symbol": "PEG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PepsiCo Inc.",
+      "isin": "US7134481081",
+      "sedol": "2681511",
+      "cusip": "713448108",
+      "symbol": "PEP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Pfizer Inc.",
+      "isin": "US7170811035",
+      "sedol": "2684703",
+      "cusip": "717081103",
+      "symbol": "PFE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Principal Financial Group Inc.",
+      "isin": "US74251V1026",
+      "sedol": "2803014",
+      "cusip": "74251V102",
+      "symbol": "PFG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Procter & Gamble Company",
+      "isin": "US7427181091",
+      "sedol": "2704407",
+      "cusip": "742718109",
+      "symbol": "PG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Progressive Corporation",
+      "isin": "US7433151039",
+      "sedol": "2705024",
+      "cusip": "743315103",
+      "symbol": "PGR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Parker-Hannifin Corporation",
+      "isin": "US7010941042",
+      "sedol": "2671501",
+      "cusip": "701094104",
+      "symbol": "PH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PulteGroup Inc.",
+      "isin": "US7458671010",
+      "sedol": "2708841",
+      "cusip": "745867101",
+      "symbol": "PHM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Packaging Corporation of America",
+      "isin": "US6951561090",
+      "sedol": "2504566",
+      "cusip": "695156109",
+      "symbol": "PKG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Prologis Inc.",
+      "isin": "US74340W1036",
+      "sedol": "B44WZD7",
+      "cusip": "74340W103",
+      "symbol": "PLD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Palantir Technologies Inc. Class A",
+      "isin": "US69608A1088",
+      "sedol": "BN78DQ4",
+      "cusip": "69608A108",
+      "symbol": "PLTR",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Philip Morris International Inc.",
+      "isin": "US7181721090",
+      "sedol": "B2PKRQ3",
+      "cusip": "718172109",
+      "symbol": "PM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PNC Financial Services Group Inc.",
+      "isin": "US6934751057",
+      "sedol": "2692665",
+      "cusip": "693475105",
+      "symbol": "PNC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Pentair plc",
+      "isin": "IE00BLS09M33",
+      "sedol": "BLS09M3",
+      "cusip": "G7S00T104",
+      "symbol": "PNR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Pinnacle West Capital Corp",
+      "isin": "US7234841010",
+      "sedol": "2048804",
+      "cusip": "723484101",
+      "symbol": "PNW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Insulet Corporation",
+      "isin": "US45784P1012",
+      "sedol": "B1XGNW4",
+      "cusip": "45784P101",
+      "symbol": "PODD",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PPG Industries Inc.",
+      "isin": "US6935061076",
+      "sedol": "2698470",
+      "cusip": "693506107",
+      "symbol": "PPG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PPL Corporation",
+      "isin": "US69351T1060",
+      "sedol": "2680905",
+      "cusip": "69351T106",
+      "symbol": "PPL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Prudential Financial Inc.",
+      "isin": "US7443201022",
+      "sedol": "2819118",
+      "cusip": "744320102",
+      "symbol": "PRU",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Public Storage",
+      "isin": "US74460D1090",
+      "sedol": "2852533",
+      "cusip": "74460D109",
+      "symbol": "PSA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Phillips 66",
+      "isin": "US7185461040",
+      "sedol": "B78C4Y8",
+      "cusip": "718546104",
+      "symbol": "PSX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PTC Inc.",
+      "isin": "US69370C1009",
+      "sedol": "B95N910",
+      "cusip": "69370C100",
+      "symbol": "PTC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Quanta Services Inc.",
+      "isin": "US74762E1029",
+      "sedol": "2150204",
+      "cusip": "74762E102",
+      "symbol": "PWR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "PayPal Holdings Inc.",
+      "isin": "US70450Y1038",
+      "sedol": "BYW36M8",
+      "cusip": "70450Y103",
+      "symbol": "PYPL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Qnity Electronics Inc.",
+      "isin": "US74743L1008",
+      "sedol": "BW1P234",
+      "cusip": "74743L100",
+      "symbol": "Q",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "QUALCOMM Incorporated",
+      "isin": "US7475251036",
+      "sedol": "2714923",
+      "cusip": "747525103",
+      "symbol": "QCOM",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Royal Caribbean Group",
+      "isin": "LR0008862868",
+      "sedol": "2754907",
+      "cusip": "V7780T103",
+      "symbol": "RCL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Reddit Inc. Class A",
+      "isin": "US75734B1008",
+      "sedol": "BMVNLY2",
+      "cusip": "75734B100",
+      "symbol": "RDDT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Regency Centers Corporation",
+      "isin": "US7588491032",
+      "sedol": "2726177",
+      "cusip": "758849103",
+      "symbol": "REG",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Regeneron Pharmaceuticals Inc.",
+      "isin": "US75886F1075",
+      "sedol": "2730190",
+      "cusip": "75886F107",
+      "symbol": "REGN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Regions Financial Corporation",
+      "isin": "US7591EP1005",
+      "sedol": "B01R311",
+      "cusip": "7591EP100",
+      "symbol": "RF",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Raymond James Financial Inc.",
+      "isin": "US7547301090",
+      "sedol": "2718992",
+      "cusip": "754730109",
+      "symbol": "RJF",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ralph Lauren Corporation Class A",
+      "isin": "US7512121010",
+      "sedol": "B4V9661",
+      "cusip": "751212101",
+      "symbol": "RL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "ResMed Inc.",
+      "isin": "US7611521078",
+      "sedol": "2732903",
+      "cusip": "761152107",
+      "symbol": "RMD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Rockwell Automation Inc.",
+      "isin": "US7739031091",
+      "sedol": "2754060",
+      "cusip": "773903109",
+      "symbol": "ROK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Rollins Inc.",
+      "isin": "US7757111049",
+      "sedol": "2747305",
+      "cusip": "775711104",
+      "symbol": "ROL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Roper Technologies Inc.",
+      "isin": "US7766961061",
+      "sedol": "2749602",
+      "cusip": "776696106",
+      "symbol": "ROP",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ross Stores Inc.",
+      "isin": "US7782961038",
+      "sedol": "2746711",
+      "cusip": "778296103",
+      "symbol": "ROST",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Republic Services Inc.",
+      "isin": "US7607591002",
+      "sedol": "2262530",
+      "cusip": "760759100",
+      "symbol": "RSG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "RTX Corporation",
+      "isin": "US75513E1010",
+      "sedol": "BM5M5Y3",
+      "cusip": "75513E101",
+      "symbol": "RTX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Revvity Inc.",
+      "isin": "US7140461093",
+      "sedol": "2305844",
+      "cusip": "714046109",
+      "symbol": "RVTY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "SBA Communications Corp. Class A",
+      "isin": "US78410G1040",
+      "sedol": "BZ6TS23",
+      "cusip": "78410G104",
+      "symbol": "SBAC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Starbucks Corporation",
+      "isin": "US8552441094",
+      "sedol": "2842255",
+      "cusip": "855244109",
+      "symbol": "SBUX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Charles Schwab Corp",
+      "isin": "US8085131055",
+      "sedol": "2779397",
+      "cusip": "808513105",
+      "symbol": "SCHW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Sherwin-Williams Company",
+      "isin": "US8243481061",
+      "sedol": "2804211",
+      "cusip": "824348106",
+      "symbol": "SHW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "J.M. Smucker Company",
+      "isin": "US8326964058",
+      "sedol": "2951452",
+      "cusip": "832696405",
+      "symbol": "SJM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Paramount Skydance Corporation Class B",
+      "isin": "US69932A2042",
+      "sedol": "BSNMNQ5",
+      "cusip": "69932A204",
+      "symbol": "SKYD",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "SLB Limited",
+      "isin": "AN8068571086",
+      "sedol": "2779201",
+      "cusip": "806857108",
+      "symbol": "SLB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Super Micro Computer Inc.",
+      "isin": "US86800U3023",
+      "sedol": "BRC3N73",
+      "cusip": "86800U302",
+      "symbol": "SMCI",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Snap-on Incorporated",
+      "isin": "US8330341012",
+      "sedol": "2818740",
+      "cusip": "833034101",
+      "symbol": "SNA",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Sandisk Corporation",
+      "isin": "US80004C2008",
+      "sedol": "BSNPZV3",
+      "cusip": "80004C200",
+      "symbol": "SNDK",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Synopsys Inc.",
+      "isin": "US8716071076",
+      "sedol": "2867719",
+      "cusip": "871607107",
+      "symbol": "SNPS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Southern Company",
+      "isin": "US8425871071",
+      "sedol": "2829601",
+      "cusip": "842587107",
+      "symbol": "SO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Solventum Corporation",
+      "isin": "US83444M1018",
+      "sedol": "BMTQB43",
+      "cusip": "83444M101",
+      "symbol": "SOLV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Simon Property Group Inc.",
+      "isin": "US8288061091",
+      "sedol": "2812452",
+      "cusip": "828806109",
+      "symbol": "SPG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "S&P Global Inc.",
+      "isin": "US78409V1044",
+      "sedol": "BYV2325",
+      "cusip": "78409V104",
+      "symbol": "SPGI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Sempra",
+      "isin": "US8168511090",
+      "sedol": "2138158",
+      "cusip": "816851109",
+      "symbol": "SRE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "STERIS plc",
+      "isin": "IE00BFY8C754",
+      "sedol": "BFY8C75",
+      "cusip": "G8473T100",
+      "symbol": "STE",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Steel Dynamics Inc.",
+      "isin": "US8581191009",
+      "sedol": "2849472",
+      "cusip": "858119100",
+      "symbol": "STLD",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "State Street Corporation",
+      "isin": "US8574771031",
+      "sedol": "2842040",
+      "cusip": "857477103",
+      "symbol": "STT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Seagate Technology Holdings PLC",
+      "isin": "IE00BKVD2N49",
+      "sedol": "BKVD2N4",
+      "cusip": "G7997R103",
+      "symbol": "STX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Constellation Brands Inc. Class A",
+      "isin": "US21036P1084",
+      "sedol": "2170473",
+      "cusip": "21036P108",
+      "symbol": "STZ",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Smurfit Westrock PLC",
+      "isin": "IE00028FXN24",
+      "sedol": "BRK49M5",
+      "cusip": "G8267P108",
+      "symbol": "SW",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Stanley Black & Decker Inc.",
+      "isin": "US8545021011",
+      "sedol": "B3Q2FJ4",
+      "cusip": "854502101",
+      "symbol": "SWK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Skyworks Solutions Inc.",
+      "isin": "US83088M1027",
+      "sedol": "2961053",
+      "cusip": "83088M102",
+      "symbol": "SWKS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Synchrony Financial",
+      "isin": "US87165B1035",
+      "sedol": "BP96PS6",
+      "cusip": "87165B103",
+      "symbol": "SYF",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Stryker Corporation",
+      "isin": "US8636671013",
+      "sedol": "2853688",
+      "cusip": "863667101",
+      "symbol": "SYK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Sysco Corporation",
+      "isin": "US8718291078",
+      "sedol": "2868165",
+      "cusip": "871829107",
+      "symbol": "SYY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "AT&T Inc",
+      "isin": "US00206R1023",
+      "sedol": "2831811",
+      "cusip": "00206R102",
+      "symbol": "T",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "TransDigm Group Incorporated",
+      "isin": "US8936411003",
+      "sedol": "B11FJK3",
+      "cusip": "893641100",
+      "symbol": "TDG",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Teledyne Technologies Incorporated",
+      "isin": "US8793601050",
+      "sedol": "2503477",
+      "cusip": "879360105",
+      "symbol": "TDY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Bio-Techne Corporation",
+      "isin": "US09073M1045",
+      "sedol": "BSHZ3Q0",
+      "cusip": "09073M104",
+      "symbol": "TECH",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "TE Connectivity plc",
+      "isin": "IE000IVNQZ81",
+      "sedol": "BRC3N84",
+      "cusip": "G87052109",
+      "symbol": "TEL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Teradyne Inc.",
+      "isin": "US8807701029",
+      "sedol": "2884183",
+      "cusip": "880770102",
+      "symbol": "TER",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Truist Financial Corporation",
+      "isin": "US89832Q1094",
+      "sedol": "BKP7287",
+      "cusip": "89832Q109",
+      "symbol": "TFC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Target Corporation",
+      "isin": "US87612E1064",
+      "sedol": "2259101",
+      "cusip": "87612E106",
+      "symbol": "TGT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "TJX Companies Inc",
+      "isin": "US8725401090",
+      "sedol": "2989301",
+      "cusip": "872540109",
+      "symbol": "TJX",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "TKO Group Holdings Inc. Class A",
+      "isin": "US87256C1018",
+      "sedol": "BQBBFD1",
+      "cusip": "87256C101",
+      "symbol": "TKO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Thermo Fisher Scientific Inc.",
+      "isin": "US8835561023",
+      "sedol": "2886907",
+      "cusip": "883556102",
+      "symbol": "TMO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "T-Mobile US Inc.",
+      "isin": "US8725901040",
+      "sedol": "B94Q9V0",
+      "cusip": "872590104",
+      "symbol": "TMUS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Texas Pacific Land Corporation",
+      "isin": "US88262P1021",
+      "sedol": "BM99VY2",
+      "cusip": "88262P102",
+      "symbol": "TPL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Tapestry Inc.",
+      "isin": "US8760301072",
+      "sedol": "BF09HX3",
+      "cusip": "876030107",
+      "symbol": "TPR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Targa Resources Corp.",
+      "isin": "US87612G1013",
+      "sedol": "B55PZY3",
+      "cusip": "87612G101",
+      "symbol": "TRGP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Trimble Inc.",
+      "isin": "US8962391004",
+      "sedol": "2903958",
+      "cusip": "896239100",
+      "symbol": "TRMB",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "T. Rowe Price Group Inc.",
+      "isin": "US74144T1088",
+      "sedol": "2702337",
+      "cusip": "74144T108",
+      "symbol": "TROW",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Travelers Companies Inc.",
+      "isin": "US89417E1091",
+      "sedol": "2769503",
+      "cusip": "89417E109",
+      "symbol": "TRV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Tractor Supply Company",
+      "isin": "US8923561067",
+      "sedol": "2900335",
+      "cusip": "892356106",
+      "symbol": "TSCO",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Tesla Inc.",
+      "isin": "US88160R1014",
+      "sedol": "B616C79",
+      "cusip": "88160R101",
+      "symbol": "TSLA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Tyson Foods Inc. Class A",
+      "isin": "US9024941034",
+      "sedol": "2909730",
+      "cusip": "902494103",
+      "symbol": "TSN",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Trane Technologies plc",
+      "isin": "IE00BK9ZQ967",
+      "sedol": "BK9ZQ96",
+      "cusip": "G8994E103",
+      "symbol": "TT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Take-Two Interactive Software Inc.",
+      "isin": "US8740541094",
+      "sedol": "2122117",
+      "cusip": "874054109",
+      "symbol": "TTWO",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Twilio Inc. Class A",
+      "isin": "US90138F1021",
+      "sedol": "BD6P5Q0",
+      "cusip": "90138F102",
+      "symbol": "TWLO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Texas Instruments Incorporated",
+      "isin": "US8825081040",
+      "sedol": "2885409",
+      "cusip": "882508104",
+      "symbol": "TXN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Textron Inc.",
+      "isin": "US8832031012",
+      "sedol": "2885937",
+      "cusip": "883203101",
+      "symbol": "TXT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Tyler Technologies Inc.",
+      "isin": "US9022521051",
+      "sedol": "2909644",
+      "cusip": "902252105",
+      "symbol": "TYL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "United Airlines Holdings Inc.",
+      "isin": "US9100471096",
+      "sedol": "B4QG225",
+      "cusip": "910047109",
+      "symbol": "UAL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Uber Technologies Inc.",
+      "isin": "US90353T1007",
+      "sedol": "BK6N347",
+      "cusip": "90353T100",
+      "symbol": "UBER",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "UDR Inc.",
+      "isin": "US9026531049",
+      "sedol": "2727910",
+      "cusip": "902653104",
+      "symbol": "UDR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Universal Health Services Inc. Class B",
+      "isin": "US9139031002",
+      "sedol": "2923785",
+      "cusip": "913903100",
+      "symbol": "UHS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ulta Beauty Inc.",
+      "isin": "US90384S3031",
+      "sedol": "B28TS42",
+      "cusip": "90384S303",
+      "symbol": "ULTA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "UnitedHealth Group Incorporated",
+      "isin": "US91324P1021",
+      "sedol": "2917766",
+      "cusip": "91324P102",
+      "symbol": "UNH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Union Pacific Corporation",
+      "isin": "US9078181081",
+      "sedol": "2914734",
+      "cusip": "907818108",
+      "symbol": "UNP",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "United Parcel Service Inc. Class B",
+      "isin": "US9113121068",
+      "sedol": "2517382",
+      "cusip": "911312106",
+      "symbol": "UPS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "United Rentals Inc.",
+      "isin": "US9113631090",
+      "sedol": "2134781",
+      "cusip": "911363109",
+      "symbol": "URI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "U.S. Bancorp",
+      "isin": "US9029733048",
+      "sedol": "2736035",
+      "cusip": "902973304",
+      "symbol": "USB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Visa Inc. Class A",
+      "isin": "US92826C8394",
+      "sedol": "B2PZN04",
+      "cusip": "92826C839",
+      "symbol": "V",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Veeva Systems Inc. Class A",
+      "isin": "US9224751084",
+      "sedol": "BFH3N85",
+      "cusip": "922475108",
+      "symbol": "VEEV",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "VICI Properties Inc",
+      "isin": "US9256521090",
+      "sedol": "BYWH073",
+      "cusip": "925652109",
+      "symbol": "VICI",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Valero Energy Corporation",
+      "isin": "US91913Y1001",
+      "sedol": "2041364",
+      "cusip": "91913Y100",
+      "symbol": "VLO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Veralto Corporation",
+      "isin": "US92338C1036",
+      "sedol": "BPGMZQ5",
+      "cusip": "92338C103",
+      "symbol": "VLTO",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Vulcan Materials Company",
+      "isin": "US9291601097",
+      "sedol": "2931205",
+      "cusip": "929160109",
+      "symbol": "VMC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Vivmark Residential",
+      "isin": "US29476L1070",
+      "sedol": "2319157",
+      "cusip": "29476L107",
+      "symbol": "VMRK",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Verisk Analytics Inc.",
+      "isin": "US92345Y1064",
+      "sedol": "B4P9W92",
+      "cusip": "92345Y106",
+      "symbol": "VRSK",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "VeriSign Inc.",
+      "isin": "US92343E1029",
+      "sedol": "2142922",
+      "cusip": "92343E102",
+      "symbol": "VRSN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Vertiv Holdings Co. Class A",
+      "isin": "US92537N1081",
+      "sedol": "BL3LWS8",
+      "cusip": "92537N108",
+      "symbol": "VRT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Vertex Pharmaceuticals Incorporated",
+      "isin": "US92532F1003",
+      "sedol": "2931034",
+      "cusip": "92532F100",
+      "symbol": "VRTX",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Vistra Corp.",
+      "isin": "US92840M1027",
+      "sedol": "BZ8VJQ8",
+      "cusip": "92840M102",
+      "symbol": "VST",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Ventas Inc.",
+      "isin": "US92276F1003",
+      "sedol": "2927925",
+      "cusip": "92276F100",
+      "symbol": "VTR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Viatris Inc.",
+      "isin": "US92556V1061",
+      "sedol": "BMWS3X9",
+      "cusip": "92556V106",
+      "symbol": "VTRS",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Vylor Inc",
+      "isin": "US92892R1086",
+      "sedol": "C0C06F3",
+      "cusip": "92892R108",
+      "symbol": "VYLR",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Verizon Communications Inc.",
+      "isin": "US92343V1044",
+      "sedol": "2090571",
+      "cusip": "92343V104",
+      "symbol": "VZ",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Westinghouse Air Brake Technologies Corporation",
+      "isin": "US9297401088",
+      "sedol": "2955733",
+      "cusip": "929740108",
+      "symbol": "WAB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Waters Corporation",
+      "isin": "US9418481035",
+      "sedol": "2937689",
+      "cusip": "941848103",
+      "symbol": "WAT",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Workday Inc. Class A",
+      "isin": "US98138H1014",
+      "sedol": "B8K6ZD1",
+      "cusip": "98138H101",
+      "symbol": "WDAY",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Western Digital Corporation",
+      "isin": "US9581021055",
+      "sedol": "2954699",
+      "cusip": "958102105",
+      "symbol": "WDC",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "WEC Energy Group Inc",
+      "isin": "US92939U1060",
+      "sedol": "BYY8XK8",
+      "cusip": "92939U106",
+      "symbol": "WEC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Welltower Inc.",
+      "isin": "US95040Q1040",
+      "sedol": "BYVYHH4",
+      "cusip": "95040Q104",
+      "symbol": "WELL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Wells Fargo & Company",
+      "isin": "US9497461015",
+      "sedol": "2649100",
+      "cusip": "949746101",
+      "symbol": "WFC",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Waste Management Inc.",
+      "isin": "US94106L1098",
+      "sedol": "2937667",
+      "cusip": "94106L109",
+      "symbol": "WM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Williams Companies Inc.",
+      "isin": "US9694571004",
+      "sedol": "2967181",
+      "cusip": "969457100",
+      "symbol": "WMB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Walmart Inc.",
+      "isin": "US9311421039",
+      "sedol": "2936921",
+      "cusip": "931142103",
+      "symbol": "WMT",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "W. R. Berkley Corporation",
+      "isin": "US0844231029",
+      "sedol": "2093644",
+      "cusip": "084423102",
+      "symbol": "WRB",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Williams-Sonoma Inc.",
+      "isin": "US9699041011",
+      "sedol": "2967589",
+      "cusip": "969904101",
+      "symbol": "WSM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "West Pharmaceutical Services Inc.",
+      "isin": "US9553061055",
+      "sedol": "2950482",
+      "cusip": "955306105",
+      "symbol": "WST",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Willis Towers Watson Public Limited Company",
+      "isin": "IE00BDB6Q211",
+      "sedol": "BDB6Q21",
+      "cusip": "G96629103",
+      "symbol": "WTW",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Weyerhaeuser Company",
+      "isin": "US9621661043",
+      "sedol": "2958936",
+      "cusip": "962166104",
+      "symbol": "WY",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Wynn Resorts Limited",
+      "isin": "US9831341071",
+      "sedol": "2963811",
+      "cusip": "983134107",
+      "symbol": "WYNN",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Xcel Energy Inc.",
+      "isin": "US98389B1008",
+      "sedol": "2614807",
+      "cusip": "98389B100",
+      "symbol": "XEL",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Exxonmobil Holdings Corporation",
+      "isin": "US30233Q1085",
+      "sedol": "BVSRPD7",
+      "cusip": "30233Q108",
+      "symbol": "XOM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Xylem Inc.",
+      "isin": "US98419M1009",
+      "sedol": "B3P2CN8",
+      "cusip": "98419M100",
+      "symbol": "XYL",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Block Inc. Class A",
+      "isin": "US8522341036",
+      "sedol": "BYNZGK1",
+      "cusip": "852234103",
+      "symbol": "XYZ",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Yum! Brands Inc.",
+      "isin": "US9884981013",
+      "sedol": "2098876",
+      "cusip": "988498101",
+      "symbol": "YUM",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Zimmer Biomet Holdings Inc.",
+      "isin": "US98956P1021",
+      "sedol": "2783815",
+      "cusip": "98956P102",
+      "symbol": "ZBH",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Zebra Technologies Corporation Class A",
+      "isin": "US9892071054",
+      "sedol": "2989356",
+      "cusip": "989207105",
+      "symbol": "ZBRA",
+      "mic": "XNAS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "Zoetis Inc. Class A",
+      "isin": "US98978V1035",
+      "sedol": "B95WG16",
+      "cusip": "98978V103",
+      "symbol": "ZTS",
+      "mic": "XNYS",
+      "currency": "USD",
+      "universe": "SP500"
+    },
+    {
+      "name": "ACCOR",
+      "isin": "FR0000120404",
+      "symbol": "AC",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "AIR LIQUIDE",
+      "isin": "FR0000120073",
+      "symbol": "AI",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "AIRBUS",
+      "isin": "NL0000235190",
+      "symbol": "AIR",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "ARCELORMITTAL SA",
+      "isin": "LU1598757687",
+      "symbol": "MT",
+      "mic": "XAMS",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "AXA",
+      "isin": "FR0000120628",
+      "symbol": "CS",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "BNP PARIBAS ACT.A",
+      "isin": "FR0000131104",
+      "symbol": "BNP",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "BOUYGUES",
+      "isin": "FR0000120503",
+      "symbol": "EN",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "BUREAU VERITAS",
+      "isin": "FR0006174348",
+      "symbol": "BVI",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "CAPGEMINI",
+      "isin": "FR0000125338",
+      "symbol": "CAP",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "CARREFOUR",
+      "isin": "FR0000120172",
+      "symbol": "CA",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "CREDIT AGRICOLE",
+      "isin": "FR0000045072",
+      "symbol": "ACA",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "DANONE",
+      "isin": "FR0000120644",
+      "symbol": "BN",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "DASSAULT SYSTEMES",
+      "isin": "FR0014003TT8",
+      "symbol": "DSY",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "EIFFAGE",
+      "isin": "FR0000130452",
+      "symbol": "FGR",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "ENGIE",
+      "isin": "FR0010208488",
+      "symbol": "ENGI",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "ESSILORLUXOTTICA",
+      "isin": "FR0000121667",
+      "symbol": "EL",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "EUROFINS SCIENT.",
+      "isin": "FR0014000MR3",
+      "symbol": "ERF",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "EURONEXT",
+      "isin": "NL0006294274",
+      "symbol": "ENX",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "HERMES INTL",
+      "isin": "FR0000052292",
+      "symbol": "RMS",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "KERING",
+      "isin": "FR0000121485",
+      "symbol": "KER",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "L'OREAL",
+      "isin": "FR0000120321",
+      "symbol": "OR",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "LEGRAND",
+      "isin": "FR0010307819",
+      "symbol": "LR",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "LVMH",
+      "isin": "FR0000121014",
+      "symbol": "MC",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "MICHELIN",
+      "isin": "FR001400AJ45",
+      "symbol": "ML",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "ORANGE",
+      "isin": "FR0000133308",
+      "symbol": "ORA",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "PERNOD RICARD",
+      "isin": "FR0000120693",
+      "symbol": "RI",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "PUBLICIS GROUPE SA",
+      "isin": "FR0000130577",
+      "symbol": "PUB",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "RENAULT",
+      "isin": "FR0000131906",
+      "symbol": "RNO",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "SAFRAN",
+      "isin": "FR0000073272",
+      "symbol": "SAF",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "SAINT GOBAIN",
+      "isin": "FR0000125007",
+      "symbol": "SGO",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "SANOFI",
+      "isin": "FR0000120578",
+      "symbol": "SAN",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "SCHNEIDER ELECTRIC",
+      "isin": "FR0000121972",
+      "symbol": "SU",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "SOCIETE GENERALE",
+      "isin": "FR0000130809",
+      "symbol": "GLE",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "STELLANTIS NV",
+      "isin": "NL00150001Q9",
+      "symbol": "STLAP",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "STMICROELECTRONICS",
+      "isin": "NL0000226223",
+      "symbol": "STMPA",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "THALES",
+      "isin": "FR0000121329",
+      "symbol": "HO",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "TOTALENERGIES",
+      "isin": "FR0000120271",
+      "symbol": "TTE",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "UNIBAIL-RODAMCO-WE",
+      "isin": "FR0013326246",
+      "symbol": "URW",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "VEOLIA ENVIRON.",
+      "isin": "FR0000124141",
+      "symbol": "VIE",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    },
+    {
+      "name": "VINCI",
+      "isin": "FR0000125486",
+      "symbol": "DG",
+      "mic": "XPAR",
+      "currency": "EUR",
+      "universe": "CAC40"
+    }
+  ]
+}

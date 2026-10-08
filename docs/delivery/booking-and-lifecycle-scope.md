@@ -82,6 +82,8 @@ OTC vanilla options follow separately; the design must not require artificial li
 
 ## Later lifecycle module
 
+Update 2026-10-06: [historical booking and record corrections](historical-booking-and-record-corrections-alpha.md) now implements bounded cancel/replace of erroneous alpha booking records. This is not contractual termination, settlement, exercise or position replay. The later module described below remains unimplemented.
+
 Reuse the event history. Add typed obligations, position changes and confirmed cash/security movements when that module is approved. Preserve partial/failing settlement, effective versus recorded dates, correction lineage, tenant isolation and idempotency. A later allocation model must accommodate one event affecting multiple holdings/trades and one netted payment fulfilling multiple obligations; the simple forward's one-trade event is not a universal model.
 
 Choose one authoritative posting path. Do not count a movement and an independently created generic CASH_FLOW/REDEMPTION trade twice. These are design requirements for future work, not an approval to create a parallel ledger now.

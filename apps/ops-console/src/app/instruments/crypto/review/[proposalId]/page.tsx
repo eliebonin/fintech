@@ -3,7 +3,7 @@ import { Alert, Box, Typography } from "@mui/material";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getCryptoAssetProposal, ReferenceApiError } from "@/lib/reference-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { requireReferenceTenantContext } from "@/lib/reference-tenant-context";
 import CryptoAssetProposalReviewForm from "./form";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export default async function CryptoAssetProposalReviewPage({ params }: { params
   const { proposalId } = await params;
 
   try {
-    const response = await getCryptoAssetProposal(proposalId, resolveLocalTenantContext());
+    const response = await getCryptoAssetProposal(proposalId, await requireReferenceTenantContext());
     return (
       <WorkspaceShell>
         <Box sx={{ minHeight: "100vh", bgcolor: "#f3f6fb", p: { xs: 2, md: 5 } }}>

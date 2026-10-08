@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getPortfolioPnl } from "@/lib/mvp-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
-import { bffErrorResponse } from "@/lib/bff-error";
-
 export const dynamic = "force-dynamic";
 
-const PORTFOLIO_ALIASES: Record<string, string> = {
-  uk: "MVP_UK_PORTFOLIO",
-  us: "MVP_US_PORTFOLIO",
-};
-
-export async function GET(request: NextRequest, { params }: { params: Promise<{ portfolio: string }> }) {
-  const context = resolveLocalTenantContext();
-  const { portfolio } = await params;
-  const asOfDate = request.nextUrl.searchParams.get("asOfDate") ?? "2026-08-28";
-  try {
-    const portfolioCode = PORTFOLIO_ALIASES[portfolio.toLowerCase()] ?? portfolio;
-    return NextResponse.json(await getPortfolioPnl(context, portfolioCode, asOfDate));
-  } catch (error) {
-    return bffErrorResponse(error, "Portfolio P&L service is unavailable.", request, "PORTFOLIO_PNL_API_UNAVAILABLE");
-  }
+/** A non-financial tombstone only: do not forward aliases to the retired API. */
+export async function GET(request: NextRequest, _context: { params: Promise<{ portfolio: string }> }) {
+  return NextResponse.json({
+    type: "https://api.fortem.local/problems/valuation-demo-retired",
+    title: "Legacy P&L demonstration retired",
+    status: 410,
+    code: "valuation.demo_retired",
+    detail: "The legacy calculator has been removed. The new valuation/P&L engine is not implemented yet.",
+    instance: request.nextUrl.pathname,
+  }, { status: 410, headers: { "Cache-Control": "no-store" } });
 }

@@ -1348,6 +1348,119 @@ tenant_dataset_entitlement = Table(
     schema="ten",
 )
 
+dataset_access_profile = Table(
+    "dataset_access_profile", metadata,
+    Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), primary_key=True, comment="Dataset governed by this strict access profile."),
+    Column("licensee_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Actual contractual licensee or explicitly identified personal operator; not inferred from tenant ownership."),
+    Column("external_id_namespace_id", UUID_V7, ForeignKey("ing.external_id_namespace.external_id_namespace_id"), nullable=True, comment="Exact source namespace allowed to publish this dataset when identifier-based ingestion is used."),
+    Column("permitted_tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Only permitted simulated tenant in personal scope; null may permit reviewed commercial entitlements."),
+    Column("usage_scope", String(20), nullable=False, comment="PERSONAL or COMMERCIAL operational scope; changing scope does not create activity grants."),
+    Column("provider_enabled", Boolean, nullable=False, server_default=text("false"), comment="Technical delivery activation; does not substitute for any required licence."),
+    Column("activation_reference", Text, nullable=False, comment="Evidence for the delivery activation and declared operating scope."),
+    Column("status", String(30), nullable=False, server_default=text("'DRAFT'"), comment="Profile state; only ACTIVE profiles permit use."),
+    CheckConstraint("usage_scope IN ('PERSONAL', 'COMMERCIAL')", name="ck_dataset_access_scope"),
+    CheckConstraint("usage_scope <> 'PERSONAL' OR permitted_tenant_id IS NOT NULL", name="ck_dataset_personal_tenant"),
+    CheckConstraint("length(trim(activation_reference)) > 0", name="ck_dataset_activation_evidence"),
+    schema="md",
+)
+
+licence_activity_grant = Table(
+    "licence_activity_grant", metadata,
+    Column("grant_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable identifier of one effective activity grant."),
+    Column("dataset_licence_assignment_id", UUID_V7, ForeignKey("md.dataset_licence_assignment.dataset_licence_assignment_id"), nullable=False, comment="Dataset-specific agreement assignment supplying this activity right."),
+    Column("activity", String(30), nullable=False, comment="Controlled activity such as acquisition, storage, display or redistribution."),
+    Column("usage_scope", String(20), nullable=False, comment="PERSONAL or COMMERCIAL use covered by this grant."),
+    Column("evidence_basis", String(30), nullable=False, comment="CONTRACT, PERSONAL_DECLARATION or PERSONAL_RESEARCH_EXCEPTION; personal evidence is never provider permission or commercial clearance."),
+    Column("evidence_reference", Text, nullable=False, comment="Contract reference or attributable personal declaration supporting this grant."),
+    Column("valid_from", Date, nullable=False, comment="Inclusive first permitted use date."),
+    Column("valid_to", Date, nullable=True, comment="Inclusive last permitted use date, or null for open ended."),
+    Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Grant state; only ACTIVE grants satisfy a prerequisite."),
+    UniqueConstraint("dataset_licence_assignment_id", "activity", "usage_scope", "valid_from", name="uq_licence_activity_grant"),
+    CheckConstraint("activity IN ('ACQUIRE', 'STORE', 'DISPLAY', 'NON_DISPLAY', 'CLIENT_REPORTING', 'REDISTRIBUTE', 'DERIVED_DATA')", name="ck_licence_grant_activity"),
+    CheckConstraint("usage_scope IN ('PERSONAL', 'COMMERCIAL') AND evidence_basis IN ('CONTRACT', 'PERSONAL_DECLARATION', 'PERSONAL_RESEARCH_EXCEPTION')", name="ck_licence_grant_basis"),
+    CheckConstraint("evidence_basis <> 'PERSONAL_RESEARCH_EXCEPTION' OR (usage_scope = 'PERSONAL' AND activity = 'ACQUIRE')", name="ck_personal_research_acquire_only"),
+    CheckConstraint("usage_scope <> 'COMMERCIAL' OR evidence_basis = 'CONTRACT'", name="ck_licence_commercial_contract"),
+    CheckConstraint("valid_to IS NULL OR valid_to >= valid_from", name="ck_licence_grant_period"),
+    CheckConstraint("length(trim(evidence_reference)) > 0", name="ck_licence_grant_evidence"),
+    schema="md",
+)
+
+dataset_right_requirement = Table(
+    "dataset_right_requirement", metadata,
+    Column("requirement_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable identifier for one mandatory agreement prerequisite."),
+    Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=False, comment="Dataset whose activity requires this agreement."),
+    Column("activity", String(30), nullable=False, comment="Controlled activity for which all listed prerequisites must be satisfied."),
+    Column("requirement_code", String(100), nullable=False, comment="Human-readable stable layer code such as DISTRIBUTOR or UPSTREAM_OWNER."),
+    Column("dataset_licence_assignment_id", UUID_V7, ForeignKey("md.dataset_licence_assignment.dataset_licence_assignment_id"), nullable=True,
+           comment="Null is an unresolved prerequisite and denies use; all requirements are conjunctive."),
+    UniqueConstraint("dataset_id", "activity", "requirement_code", name="uq_dataset_right_requirement"),
+    CheckConstraint("activity IN ('ACQUIRE', 'STORE', 'DISPLAY', 'NON_DISPLAY', 'CLIENT_REPORTING', 'REDISTRIBUTE', 'DERIVED_DATA')", name="ck_dataset_requirement_activity"),
+    schema="md",
+)
+
+market_data_ingestion_run = Table(
+    "market_data_ingestion_run", metadata,
+    Column("run_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a finalized retained source delivery."),
+    Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=False, comment="Actual provider dataset receiving this delivery."),
+    Column("source_payload_id", UUID_V7, ForeignKey("ing.source_payload.source_payload_id"), nullable=False, unique=True, comment="Existing lineage payload whose locator resolves to this retained delivery."),
+    Column("delivery_key", String(250), nullable=False, comment="Client delivery identity; same key with different bytes or parameters is a conflict."),
+    Column("content_sha256", String(64), nullable=False, comment="SHA-256 of exact inbound UTF-8 payload bytes."),
+    Column("raw_payload", Text, nullable=False, comment="Exact retained inbound JSON text, not a normalized reconstruction."),
+    Column("received_at_utc", DateTime(timezone=True), nullable=False, comment="Real delivery receipt time, never backdated to the market date."),
+    Column("rights_evidence", JSONB, nullable=False, comment="Frozen conjunctive acquisition and storage grant evidence evaluated for this delivery."),
+    Column("report", JSONB, nullable=False, comment="Immutable accepted, duplicate and rejected counts, reasons and request parameters."),
+    UniqueConstraint("dataset_id", "delivery_key", name="uq_market_data_ingestion_delivery"),
+    CheckConstraint("jsonb_typeof(rights_evidence) = 'array' AND jsonb_typeof(report) = 'object'", name="ck_market_data_ingestion_json"),
+    schema="md",
+)
+
+market_data_ingestion_job = Table(
+    'market_data_ingestion_job', metadata,
+    Column('job_id', UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for an ingestion execution."),
+    Column('dataset_id', UUID_V7, ForeignKey('md.dataset.dataset_id'), nullable=False, comment="Dataset whose acquisition and publication this job operates."),
+    Column('namespace_id', UUID_V7, ForeignKey('ing.external_id_namespace.external_id_namespace_id'), nullable=False, comment="Source identifier namespace used by the exact job selection."),
+    Column('tenant_id', UUID_V7, ForeignKey('ten.tenant.tenant_id'), nullable=False, comment="Tenant permitted to operate this dataset ingestion."),
+    Column('actor_id', UUID_V7, ForeignKey('secm.user_account.user_account_id'), nullable=False, comment="Active tenant administrator who started the job."),
+    Column('selection', JSONB, nullable=False, comment="Ordered source symbols selected for this execution."), Column('request', JSONB, nullable=False, comment="Exact inclusive start and end market dates requested."),
+    Column('status', String(20), nullable=False, server_default=text("'RUNNING'"), comment="Operational lifecycle outcome, separate from calendar quality certification."),
+    Column('started_at_utc', DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp when the job was recorded before acquisition."),
+    Column('finished_at_utc', DateTime(timezone=True), comment="UTC terminal timestamp; null only while the job is RUNNING."),
+    Column('summary', JSONB, nullable=False, server_default=text("'{}'::jsonb"), comment="Immutable terminal execution counters and recovery evidence."),
+    CheckConstraint("status IN ('RUNNING','COMPLETE','PARTIAL','FAILED','BLOCKED','ABORTED')", name='ck_md_job_status'),
+    CheckConstraint("(status='RUNNING') = (finished_at_utc IS NULL)", name='ck_md_job_finished'),
+    schema='md',
+)
+
+market_data_ingestion_attempt = Table(
+    'market_data_ingestion_attempt', metadata,
+    Column('attempt_id', UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one recorded request attempt or assessment."),
+    Column('job_id', UUID_V7, ForeignKey('md.market_data_ingestion_job.job_id'), nullable=False, comment="Parent execution owning this attempt."),
+    Column('symbol', String(100), nullable=False, comment="Exact source symbol within the parent job selection."), Column('request', JSONB, nullable=False, comment="Inclusive attempt window within the parent job window."),
+    Column('status', String(20), nullable=False, server_default=text("'RUNNING'"), comment="Attempt lifecycle outcome, including failed or blocked acquisition."),
+    Column('started_at_utc', DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp recorded before download or resume assessment."),
+    Column('finished_at_utc', DateTime(timezone=True), comment="UTC terminal timestamp; null only while the attempt is RUNNING."),
+    Column('delivery_run_id', UUID_V7, ForeignKey('md.market_data_ingestion_run.run_id'), comment="Matching immutable delivery, null when publication did not succeed."),
+    Column('report', JSONB, nullable=False, server_default=text("'{}'::jsonb"), comment="Backoff, outcome and failure evidence; immutable after finalization."),
+    CheckConstraint("status IN ('RUNNING','COMPLETE','PARTIAL','FAILED','BLOCKED','ABORTED')", name='ck_md_attempt_status'),
+    CheckConstraint("(status='RUNNING') = (finished_at_utc IS NULL)", name='ck_md_attempt_finished'),
+    schema='md',
+)
+Index('ix_md_attempt_job',market_data_ingestion_attempt.c.job_id)
+
+market_data_mapping_history_review = Table(
+    'market_data_mapping_history_review', metadata,
+    Column('review_id', UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for attributed historical-continuity evidence."),
+    Column('mapping_id', UUID_V7, ForeignKey('ing.external_object_mapping.external_object_mapping_id'), nullable=False, comment="Source-to-listing mapping whose historical continuity was reviewed."),
+    Column('tenant_id', UUID_V7, ForeignKey('ten.tenant.tenant_id'), nullable=False, comment="Tenant within the reviewed mapping dataset scope."),
+    Column('actor_id', UUID_V7, ForeignKey('secm.user_account.user_account_id'), nullable=False, comment="Active MARKET_DATA tenant administrator who recorded the review."),
+    Column('market_from', Date, nullable=False, comment="Inclusive first market date covered by the review."), Column('market_to', Date, nullable=False, comment="Inclusive last market date covered by the review."),
+    Column('decision', String(20), nullable=False, comment="APPROVED or REJECTED historical mapping continuity decision."), Column('evidence_reference', Text, nullable=False, comment="Nonblank reference or explanation supporting the review."),
+    Column('reviewed_at_utc', DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp when the attributed review was recorded."),
+    Column('supersedes_review_id', UUID_V7, ForeignKey('md.market_data_mapping_history_review.review_id'), unique=True, comment="Current predecessor replaced for the exact same mapping and period."),
+    CheckConstraint("decision IN ('APPROVED','REJECTED') AND market_to>=market_from AND length(trim(evidence_reference))>0",name='ck_md_history_review'),
+    schema='md',
+)
+
 valuation_cut = Table(
     "valuation_cut",
     metadata,
@@ -1542,7 +1655,20 @@ market_calendar = Table(
     Column("display_name", String(250), nullable=False, comment="Human-readable name of the calendar."),
     Column("timezone_name", String(100), nullable=False, comment="IANA timezone used by the calendar."),
     Column("calendar_kind", String(40), nullable=False, comment="Calendar use such as TRADING, SETTLEMENT, FIXING, HOLIDAY, or CONTINUOUS_24X7."),
-    Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the calendar definition."), schema="cal",
+    Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the calendar definition."),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), comment="Owner of a managed fund calendar; null identifies platform reference calendars."),
+    Column("logical_code", String(100), comment="Tenant-local calendar identity shared by immutable versions."),
+    Column("version_no", Integer, comment="Monotonically increasing tenant-local calendar version."),
+    Column("coverage_from", Date, comment="First date explicitly assessed by this calendar version."),
+    Column("coverage_to", Date, comment="Last date explicitly assessed by this calendar version."),
+    Column("definition_json", JSONB, comment="Frozen configuration and component/day decision evidence."),
+    Column("sealed", Boolean, nullable=False, server_default=text("false"), comment="Published tenant versions and their dated records are immutable when sealed."),
+    Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), comment="Administrator publishing this tenant version; null for legacy reference definitions."),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="Recording time; legacy values do not establish historical calendar publication."),
+    Column("submission_key", String(255), comment="Tenant-scoped calendar publication idempotency key."),
+    Column("submission_fingerprint", String(64), comment="SHA256 of the publication payload for exact replay validation."),
+    UniqueConstraint("tenant_id", "logical_code", "version_no", name="uq_calendar_tenant_version"),
+    UniqueConstraint("tenant_id", "submission_key", name="uq_calendar_tenant_submission"), schema="cal",
 )
 
 market_calendar_session = Table(
@@ -1576,6 +1702,28 @@ market_calendar_holiday = Table(
     Column("source_reference", String(250), nullable=True, comment="Source or publication reference supporting this holiday entry."),
     Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which this holiday definition was created."),
     UniqueConstraint("market_calendar_id", "holiday_date", name="uq_market_calendar_holiday_date"),
+    schema="cal",
+)
+
+calendar_assignment = Table(
+    "calendar_assignment", metadata,
+    Column("calendar_assignment_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable identifier of a version-pinned calendar assignment decision."),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False, comment="Tenant owning this calendar assignment."),
+    Column("market_calendar_id", UUID_V7, ForeignKey("cal.market_calendar.market_calendar_id"), nullable=False, comment="Exact published calendar version assigned to this target."),
+    Column("target_kind", String(20), nullable=False, comment="Target class STRATEGY or FUND_REFERENCE."),
+    Column("target_id", UUID_V7, nullable=False, comment="Validated tenant strategy or visible fund reference UUID."),
+    Column("purpose", String(20), nullable=False, comment="Calendar purpose VALUATION, DEALING or SETTLEMENT."),
+    Column("valid_from", Date, nullable=False, comment="First effective date of this assignment."),
+    Column("valid_to", Date, nullable=False, comment="Last effective date of this assignment."),
+    Column("reason", String(500), nullable=False, comment="Administrator rationale for this assignment or reassignment."),
+    Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Administrator recording this assignment decision."),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC recording time used for historical information-cutoff selection."),
+    Column("submission_key", String(255), nullable=False, comment="Tenant-scoped assignment idempotency key."),
+    Column("submission_fingerprint", String(64), nullable=False, comment="SHA256 of the canonical assignment payload."),
+    UniqueConstraint("tenant_id", "submission_key", name="uq_calendar_assignment_submission"),
+    CheckConstraint("valid_to >= valid_from", name="ck_calendar_assignment_dates"),
+    CheckConstraint("target_kind IN ('STRATEGY','FUND_REFERENCE')", name="ck_calendar_assignment_target"),
+    CheckConstraint("purpose IN ('VALUATION','DEALING','SETTLEMENT')", name="ck_calendar_assignment_purpose"),
     schema="cal",
 )
 
@@ -2305,6 +2453,12 @@ valuation_policy = Table(
     Column("status", String(30), nullable=False, server_default=text("'DRAFT'"), comment="Policy lifecycle status such as DRAFT, ACTIVE, RETIRED, or SUPERSEDED."),
     Column("valid_from", Date, nullable=False, comment="First business date on which the policy version may be used."),
     Column("valid_to", Date, nullable=True, comment="Last business date on which the policy version may be used."),
+    Column("strategy_id", UUID_V7, ForeignKey("trd.strategy.strategy_id"), comment="Optional tenant-owned strategy scope; null means tenant-shared policy."),
+    Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), comment="Actor creating a managed immutable version; null denotes legacy configuration."),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="Time this policy version was recorded; legacy creation time is not historical evidence."),
+    Column("submission_key", String(255), comment="Tenant-scoped idempotency key for managed policy creation."),
+    Column("submission_fingerprint", String(64), comment="Canonical creation-payload SHA256 used for idempotent policy replay."),
+    UniqueConstraint("tenant_id", "submission_key", name="uq_valuation_policy_submission"),
     UniqueConstraint("tenant_id", "policy_code", "version_no", name="uq_valuation_policy_version"), schema="ten",
 )
 
@@ -2318,6 +2472,11 @@ valuation_policy_rule = Table(
     Column("subject_reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=True, comment="Optional exact instrument, listing, index, FX pair, or other canonical node to which this rule applies ahead of broader type rules."),
     Column("market_data_series_id", UUID_V7, ForeignKey("md.market_data_series.market_data_series_id"), nullable=True, comment="Optional exact market-data series to which this rule applies ahead of broader subject or type rules."),
     Column("series_type", String(50), nullable=False, comment="Required market-data series type such as OFFICIAL_CLOSE, EVALUATED_PRICE, BID, ASK, or FX_SPOT."),
+    Column("market_venue_id", UUID_V7, ForeignKey("secm.market_venue.market_venue_id"), comment="Optional selected-listing venue filter; never inferred from instrument currency."),
+    Column("pricing_convention", String(30), nullable=False, server_default=text("'LEGACY'"), comment="LEGACY, SESSION_CLOSE, NAMED_FIXING or EXPLICIT_TIME selection semantics."),
+    Column("pricing_cut_id", UUID_V7, ForeignKey("md.valuation_cut.valuation_cut_id"), comment="Rule-specific local pricing time definition, separate from the information cutoff."),
+    Column("fixing_code", String(100), comment="Exact declared FIXING_CODE series dimension required for named fixing selection."),
+    Column("value_basis", String(50), comment="Optional required observation value basis; no implicit adjustment conversion."),
     Column("selection_method", String(40), nullable=False, comment="Selection method such as LAST_BEFORE_CUT, OFFICIAL, MID, APPROVED, or FALLBACK."),
     Column("pricing_date_rule", String(40), nullable=False, server_default=text("'SAME_DAY'"), comment="Controlled pricing-date selection such as SAME_DAY, PRIOR_AVAILABLE, or FIXED_LAG."),
     Column("lag_business_days", Integer, nullable=False, server_default=text("0"), comment="Non-negative business-day lag subtracted from the valuation date when pricing_date_rule is FIXED_LAG."),
@@ -2366,7 +2525,8 @@ market_data_resolution_snapshot_item = Table(
     Column("selection_reason", String(50), nullable=False, comment="Reason such as TENANT_OVERRIDE, ENTITLED_PROVIDER, PLATFORM_DATA, PUBLIC_FALLBACK, or MISSING_DATA."),
     Column("entitlement_decision", String(30), nullable=False, comment="Entitlement outcome such as ALLOWED, DENIED, NOT_REQUIRED, or NOT_AVAILABLE."),
     Column("policy_rule_id", UUID_V7, ForeignKey("ten.valuation_policy_rule.valuation_policy_rule_id"), nullable=True, comment="Policy rule that selected or rejected the candidate value."),
-    Column("exception_code", String(100), nullable=True, comment="Structured exception code when a value could not be resolved."), schema="md",
+    Column("exception_code", String(100), nullable=True, comment="Structured exception code when a value could not be resolved."),
+    Column("pricing_evidence", JSONB, comment="Frozen composite pricing target, calendar provenance and convention; null for legacy snapshots."), schema="md",
 )
 
 market_data_resolution_idempotency = Table(
@@ -2572,3 +2732,8 @@ Index(
     reference_data_proposal.c.idempotency_key,
     reference_data_proposal.c.tenant_id,
 )
+
+# Valuation owns its result/review schema; shared metadata keeps FK resolution
+# and synthetic bootstrap consistent without a runtime dependency on Fortem-core.
+from valuation.tables import register_valuation_tables
+register_valuation_tables(metadata)

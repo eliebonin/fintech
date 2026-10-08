@@ -46,7 +46,8 @@ def normalize_property_value(value, kind, choices):
     raise ValueError("Unsupported property type.")
 
 def assert_trade_writer(connection, tenant_id, actor_id):
-    require_tenant_action(resolve_tenant_workspace(connection, tenant_id, actor_id, date.today()), "TRADE_WRITE")
+    from .booking_controls import authorize_booking
+    authorize_booking(connection, tenant_id, actor_id)
 
 def provision_trade_catalogue(connection, tenant_id, actor_id, definitions, tags):
     """Idempotently provision immutable definitions; never silently overwrite."""

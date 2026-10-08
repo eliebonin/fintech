@@ -113,10 +113,10 @@ def test_missing_funding_facts_and_hidden_swap(swap):
     assert request('GET',f'/v1/trades/product-instruments/{swap}',tenant='second_tenant').status_code in {403,404}
 
 
-def test_swap_pnl_deferred(swap):
+def test_swap_cannot_reenter_retired_pnl(swap):
     assert request('POST','/v1/trades/swaps',ticket(swap)).status_code==201
     with get_engine().connect() as connection:code=connection.scalar(select(m.strategy.c.strategy_code).where(m.strategy.c.strategy_id==DEMO_IDS['strategy']))
-    assert request('GET',f'/v1/portfolios/{code}/pnl?asOfDate=2026-10-01').status_code==422
+    assert request('GET',f'/v1/portfolios/{code}/pnl?asOfDate=2026-10-01').status_code==410
 
 
 def test_retired_underlying_projection_is_ineligible(swap):
@@ -220,8 +220,11 @@ def test_swap_persistence_failure_rolls_back(swap,monkeypatch):
     monkeypatch.setattr(repository,'persist_trade_annotations',fail)
     data=ticket(swap)
     with get_engine().connect() as connection:before=connection.scalar(select(func.count()).select_from(m.trade))
-    with pytest.raises(RuntimeError,match='Synthetic persistence failure'):
-        request('POST','/v1/trades/swaps',data)
+    response=request('POST','/v1/trades/swaps',data)
+    assert response.status_code==500
+    assert response.json()['code']=='internal.error'
+    assert response.json()['requestId']==response.headers['X-Request-ID']
+    assert 'Synthetic persistence failure' not in response.text
     with get_engine().connect() as connection:assert connection.scalar(select(func.count()).select_from(m.trade))==before
 
 

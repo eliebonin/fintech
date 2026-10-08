@@ -10,7 +10,7 @@ import { INSTRUMENT_CATALOGUE_COLUMNS } from "@/lib/instrument-catalogue-view";
 
 const PAGE_SIZES = [25, 50, 100];
 
-export function InstrumentCatalogue({ initialResults, initialTotal = initialResults.length }: { initialResults: InstrumentRecord[]; initialTotal?: number }) {
+export function InstrumentCatalogue({ initialResults, initialTotal = initialResults.length,canManage=false }: { initialResults: InstrumentRecord[]; initialTotal?: number;canManage?:boolean }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState(initialResults);
   const [instrumentType, setInstrumentType] = useState("ALL");
@@ -74,7 +74,7 @@ export function InstrumentCatalogue({ initialResults, initialTotal = initialResu
   return <Box sx={{ px: { xs: 2, md: 3.5 }, py: 3 }}>
     <Stack direction={{ xs: "column", lg: "row" }} spacing={2} sx={{ mb: 2.5, justifyContent: "space-between", alignItems: { lg: "flex-end" } }}>
       <Box><Typography variant="overline" color="text.secondary">INSTRUMENTS / CATALOGUE</Typography><Typography variant="h5">Instrument catalogue</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Explore canonical instruments available to this tenant.</Typography></Box>
-      <Stack direction="row" spacing={1}><Button component={Link} href="/instruments/requests" variant="outlined">Requests</Button><Button component={Link} href="/instruments/create" variant="contained">Create instrument</Button></Stack>
+      <Stack direction="row" spacing={1}><Button component={Link} href="/instruments/requests" variant="outlined">Requests</Button>{canManage?<Button component={Link} href="/instruments/create" variant="contained">Create instrument</Button>:null}</Stack>
     </Stack>
     <Card sx={{ overflow: "hidden" }}>
       <Box sx={{ p: 2, borderBottom: "1px solid #edf0f5" }}>

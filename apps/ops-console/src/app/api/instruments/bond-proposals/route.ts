@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { submitBondProposal } from "@/lib/reference-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { requireReferenceTenantContext } from "@/lib/reference-tenant-context";
 import { bffErrorResponse } from "@/lib/bff-error";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const context = resolveLocalTenantContext();
   try {
+    const context = await requireReferenceTenantContext();
     const payload = (await request.json()) as Record<string, unknown>;
     return NextResponse.json(await submitBondProposal(payload, context), { status: 201 });
   } catch (error: unknown) {

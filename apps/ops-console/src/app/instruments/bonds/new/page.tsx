@@ -36,6 +36,8 @@ export default function NewBondPage() {
   const [effectiveFrom, setEffectiveFrom] = useState(today());
   const [issueDate, setIssueDate] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
+  const [parAmount, setParAmount] = useState("");
+  const [redemptionAmountPerPar, setRedemptionAmountPerPar] = useState("");
   const [isin, setIsin] = useState("");
   const [figi, setFigi] = useState("");
   const [couponRate, setCouponRate] = useState("");
@@ -119,6 +121,8 @@ export default function NewBondPage() {
         effectiveFrom,
         issueDate: issueDate || undefined,
         maturityDate: maturityDate || undefined,
+        parAmount: parAmount || undefined,
+        redemptionAmountPerPar: redemptionAmountPerPar || undefined,
         isin: isin || undefined,
         figi: figi || undefined,
         couponType,
@@ -249,6 +253,10 @@ export default function NewBondPage() {
                 {dayCountConventions.map((item) => <option key={item.code} value={item.code}>{item.displayName} ({item.code})</option>)}
               </TextField>
               {couponType === "FLOATING" ? <TextField label="Floating reference index (optional)" value={floatingReferenceIndex} onChange={(event) => setFloatingReferenceIndex(event.target.value)} fullWidth placeholder="SONIA, SOFR, EURIBOR…" /> : <Box sx={{ flex: 1 }} />}
+            </Stack>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+              <TextField label="Par amount (optional)" value={parAmount} onChange={(event) => setParAmount(event.target.value)} type="number" fullWidth slotProps={{ htmlInput: { min: "0.00000001", step: "any" } }} helperText="Sourced face amount of one bond. Required for plain-bond booking; leave blank for provider enrichment." />
+              <TextField label="Redemption per 100 par (optional)" value={redemptionAmountPerPar} onChange={(event) => setRedemptionAmountPerPar(event.target.value)} type="number" fullWidth slotProps={{ htmlInput: { min: "0.00000001", step: "any" } }} helperText="Enter the contractual redemption quote: 100 means repayment at par. Plain-bond booking supports unadjusted redemption at par only; do not infer this value." />
             </Stack>
             <Stack direction="row" spacing={1.5} sx={{ justifyContent: "space-between", alignItems: "center" }}>
               <Button component={Link} href="/" variant="text">Cancel</Button>

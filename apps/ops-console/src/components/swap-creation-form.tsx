@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {withProposalRetry,type ProposalRetry} from '@/lib/proposal-retry';
 import Link from 'next/link';
 import type {components,ReferenceNodeOption,Currency,ReturnProfile,DayCountConvention} from 'api-contracts';
 import {bffGet,bffPost,searchReferenceNodesFromBff} from '@/lib/browser-api-client';
@@ -27,6 +28,7 @@ function validDecimal(value:string,maxDigits:number,maxPlaces:number,positive=tr
 }
 
 export function SwapCreationForm({tenantId}:{tenantId:string}) {
+  const proposalRetry=useRef<ProposalRetry|null>(null);
   const [draft,setDraft]=useState<Record<string,string>>({leverage:'1'}),[catalogues,setCatalogues]=useState<Catalogues>({currencies:[],profiles:[],dayCounts:[]});
   const [loaded,setLoaded]=useState(false),[includeFunding,setIncludeFunding]=useState(false),[performance,setPerformance]=useState<ReferenceNodeOption>(),[funding,setFunding]=useState<ReferenceNodeOption>();
   const [results,setResults]=useState<{performance:ReferenceNodeOption[];funding:ReferenceNodeOption[]}>({performance:[],funding:[]}),[searching,setSearching]=useState({performance:false,funding:false});
@@ -81,7 +83,7 @@ export function SwapCreationForm({tenantId}:{tenantId:string}) {
       fundingResetFrequency:includeFunding?draft.fundingResetFrequency as Frequency:null,fundingPaymentFrequency:includeFunding?draft.fundingPaymentFrequency as Frequency:null,fundingResetScheduleDescription:includeFunding&&draft.fundingResetFrequency==='CUSTOM'?draft.fundingResetScheduleDescription.trim():null,fundingPaymentScheduleDescription:includeFunding&&draft.fundingPaymentFrequency==='CUSTOM'?draft.fundingPaymentScheduleDescription.trim():null,
       additionalFundingAcknowledged:extraFunding&&draft.additionalFundingAcknowledged==='on',additionalFundingEvidence:extraFunding?draft.additionalFundingEvidence.trim():null,performanceResetFrequency:draft.performanceResetFrequency as Frequency,performanceScheduleDescription:draft.performanceResetFrequency==='CUSTOM'?draft.performanceScheduleDescription.trim():null,redemptionRule:draft.redemptionRule as 'TERMINATE'|'CONTINUE',continuationDescription:draft.redemptionRule==='CONTINUE'?draft.continuationDescription.trim():null}});
   }
-  async function submit(){if(!review||flight.current||stale)return;flight.current=true;setSaving(true);setError('');setFieldErrors({});try{const response=await bffPost<components['schemas']['ReferenceDataProposalResponse']>('/api/instruments/swaps',review,undefined,fetch,{'X-Expected-Tenant-Id':originalTenant.current});setProposal(response.data.proposalId);}catch(e){setError(e instanceof Error?e.message:'Swap request failed.');if(e instanceof BffApiError)setFieldErrors(e.fieldErrors??{});}finally{flight.current=false;setSaving(false);}}
+  async function submit(){if(!review||flight.current||stale)return;flight.current=true;setSaving(true);setError('');setFieldErrors({});try{const response=await bffPost<components['schemas']['ReferenceDataProposalResponse']>('/api/instruments/swaps',withProposalRetry(review,proposalRetry),undefined,fetch,{'X-Expected-Tenant-Id':originalTenant.current});setProposal(response.data.proposalId);}catch(e){setError(e instanceof Error?e.message:'Swap request failed.');if(e instanceof BffApiError)setFieldErrors(e.fieldErrors??{});}finally{flight.current=false;setSaving(false);}}
   const messages=(name:string)=>fieldErrors[name]??fieldErrors[`terms.${name==='fundingSpreadBp'?'fundingSpread':name}`]??[];
   const issue=(name:string)=>messages(name).length?<small id={`${name}-error`}>{messages(name).join(' ')}</small>:null;
   const input=(name:string,label:string,type='text',required=true,hint='')=><label>{label}<input name={name} aria-label={label} type={type} required={required} value={draft[name]??''} maxLength={name==='canonicalName'?250:100} onChange={e=>set(name,e.target.value)} aria-invalid={messages(name).length>0} aria-describedby={`${name}-hint ${name}-error`}/>{hint?<small id={`${name}-hint`}>{hint}</small>:null}{issue(name)}</label>;

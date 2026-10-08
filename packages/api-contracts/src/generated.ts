@@ -514,6 +514,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/market-data/calendars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish */
+        post: operations["publish_v1_market_data_calendars_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/calendars/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign */
+        post: operations["assign_v1_market_data_calendars_assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/calendars/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Options */
+        get: operations["options_v1_market_data_calendars_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/calendars/{calendar_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_v1_market_data_calendars__calendar_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/calendars/{calendar_id}/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Days */
+        get: operations["days_v1_market_data_calendars__calendar_id__days_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/resolution-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_v1_market_data_resolution_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/market-data/series": {
         parameters: {
             query?: never;
@@ -540,6 +642,41 @@ export interface paths {
         };
         /** Active Valuation Policies */
         get: operations["active_valuation_policies_v1_market_data_valuation_policies_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_v1_market_data_valuation_policies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/valuation-policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_v1_market_data_valuation_policies__policy_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-data/valuation-policy-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Options */
+        get: operations["options_v1_market_data_valuation_policy_options_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -606,7 +743,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Portfolio Pnl View */
+        /**
+         * Portfolio Pnl View
+         * @deprecated
+         * @description Retirement tombstone; never select trades/prices or return demo totals.
+         *
+         *     Keep the old URL and tenant gate so bookmarked/API consumers get an
+         *     explicit retirement response rather than mistaking an empty result for
+         *     zero P&L. The replacement engine will have its own versioned contract.
+         */
         get: operations["portfolio_pnl_view_v1_portfolios__portfolio_code__pnl_get"];
         put?: never;
         post?: never;
@@ -1124,6 +1269,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/trades/cash-listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_v1_trades_cash_listings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/cash-listings/{listing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_v1_trades_cash_listings__listing_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/trades/futures": {
         parameters: {
             query?: never;
@@ -1337,6 +1516,127 @@ export interface paths {
         };
         /** Booked Trade Detail */
         get: operations["booked_trade_detail_v1_trades__trade_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/{trade_id}/cancel-booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_v1_trades__trade_id__cancel_booking_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trades/{trade_id}/fx-delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read */
+        get: operations["read_v1_trades__trade_id__fx_delivery_get"];
+        put?: never;
+        /** Write */
+        post: operations["write_v1_trades__trade_id__fx_delivery_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/valuation/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attempts */
+        get: operations["attempts_v1_valuation_attempts_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_v1_valuation_attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/valuation/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attempt */
+        get: operations["attempt_v1_valuation_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/valuation/batches/{batch_id}/explanations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explain */
+        post: operations["explain_v1_valuation_batches__batch_id__explanations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/valuation/batches/{batch_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish */
+        post: operations["publish_v1_valuation_batches__batch_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/valuation/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Options */
+        get: operations["options_v1_valuation_options_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1913,6 +2213,235 @@ export interface components {
             /** Submissionmode */
             submissionMode: string;
         };
+        /** BookingCorrectionRequest */
+        BookingCorrectionRequest: {
+            /** Expectedsequenceno */
+            expectedSequenceNo: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Tradeid
+             * Format: uuid
+             */
+            tradeId: string;
+        };
+        /** CalendarAssignmentCreate */
+        CalendarAssignmentCreate: {
+            /**
+             * Calendarid
+             * Format: uuid
+             */
+            calendarId: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Targetid
+             * Format: uuid
+             */
+            targetId: string;
+            /**
+             * Targetkind
+             * @enum {string}
+             */
+            targetKind: "STRATEGY" | "FUND_REFERENCE";
+            /**
+             * Validfrom
+             * Format: date
+             */
+            validFrom: string;
+            /**
+             * Validto
+             * Format: date
+             */
+            validTo: string;
+        };
+        /** CalendarAssignmentView */
+        CalendarAssignmentView: {
+            /**
+             * Assignmentid
+             * Format: uuid
+             */
+            assignmentId: string;
+            /**
+             * Calendarid
+             * Format: uuid
+             */
+            calendarId: string;
+            /**
+             * Createdatutc
+             * Format: date-time
+             */
+            createdAtUtc: string;
+            /**
+             * Createdbyuseraccountid
+             * Format: uuid
+             */
+            createdByUserAccountId: string;
+            /** Purpose */
+            purpose: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Targetid
+             * Format: uuid
+             */
+            targetId: string;
+            /** Targetkind */
+            targetKind: string;
+            /**
+             * Validfrom
+             * Format: date
+             */
+            validFrom: string;
+            /**
+             * Validto
+             * Format: date
+             */
+            validTo: string;
+        };
+        /** CalendarDayView */
+        CalendarDayView: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPEN" | "CLOSED" | "UNKNOWN";
+        };
+        /** CalendarDaysView */
+        CalendarDaysView: {
+            /**
+             * Calendarid
+             * Format: uuid
+             */
+            calendarId: string;
+            /** Days */
+            days: components["schemas"]["CalendarDayView"][];
+        };
+        /** CalendarException */
+        CalendarException: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Reason */
+            reason: string;
+            /** Sourcereference */
+            sourceReference: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPEN" | "CLOSED";
+        };
+        /** CalendarOption */
+        CalendarOption: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** CalendarOptions */
+        CalendarOptions: {
+            /** Assignments */
+            assignments: components["schemas"]["CalendarAssignmentView"][];
+            /** Calendars */
+            calendars: components["schemas"]["CalendarView"][];
+            /** Canmanage */
+            canManage: boolean;
+            /** Strategies */
+            strategies: components["schemas"]["CalendarOption"][];
+        };
+        /** CalendarPublish */
+        CalendarPublish: {
+            /** Basecalendarids */
+            baseCalendarIds?: string[];
+            /** Calendarcode */
+            calendarCode: string;
+            /**
+             * Coveragefrom
+             * Format: date
+             */
+            coverageFrom: string;
+            /**
+             * Coverageto
+             * Format: date
+             */
+            coverageTo: string;
+            /**
+             * Decisiontime
+             * Format: time
+             */
+            decisionTime: string;
+            /** Displayname */
+            displayName: string;
+            /** Exceptions */
+            exceptions?: components["schemas"]["CalendarException"][];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "WEEKDAYS" | "ALL_OPEN" | "ANY_OPEN" | "EXPLICIT";
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "VALUATION" | "DEALING" | "SETTLEMENT";
+            /** Sourcereference */
+            sourceReference: string;
+            /** Timezonename */
+            timezoneName: string;
+            /** Weekdays */
+            weekdays?: number[];
+        };
+        /** CalendarView */
+        CalendarView: {
+            /** Calendarcode */
+            calendarCode: string;
+            /**
+             * Calendarid
+             * Format: uuid
+             */
+            calendarId: string;
+            configuration: components["schemas"]["CalendarPublish"] | null;
+            /** Coveragefrom */
+            coverageFrom: string | null;
+            /** Coverageto */
+            coverageTo: string | null;
+            /** Createdatutc */
+            createdAtUtc: string | null;
+            /** Createdbyuseraccountid */
+            createdByUserAccountId: string | null;
+            /** Displayname */
+            displayName: string;
+            /** Purpose */
+            purpose: string;
+            /** Tenantowned */
+            tenantOwned: boolean;
+            /** Timezonename */
+            timezoneName: string;
+            /** Versionno */
+            versionNo: number | null;
+        };
+        /** CancelBookingRequest */
+        CancelBookingRequest: {
+            /** Expectedsequenceno */
+            expectedSequenceNo: number;
+            /** Reason */
+            reason: string;
+        };
         /** CandidateView */
         CandidateView: {
             /**
@@ -1927,6 +2456,65 @@ export interface components {
         CandidatesResponse: {
             /** Data */
             data: components["schemas"]["CandidateView"][];
+        };
+        /** CashBookingListingResponse */
+        CashBookingListingResponse: {
+            data: components["schemas"]["CashBookingListingView"];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** CashBookingListingSearchResponse */
+        CashBookingListingSearchResponse: {
+            /** Data */
+            data: components["schemas"]["CashBookingListingView"][];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** CashBookingListingView */
+        CashBookingListingView: {
+            /**
+             * Asofdate
+             * Format: date
+             */
+            asOfDate: string;
+            /** Assetclass */
+            assetClass?: string | null;
+            /** Basecurrency */
+            baseCurrency?: string | null;
+            /** Bookingeligible */
+            bookingEligible: boolean;
+            /** Canonicalname */
+            canonicalName: string;
+            /** Ineligibilitymessage */
+            ineligibilityMessage?: string | null;
+            /** Instrumenttype */
+            instrumentType?: string | null;
+            /** Internalcode */
+            internalCode?: string | null;
+            /** Istradable */
+            isTradable: boolean;
+            /** Marketvenuemic */
+            marketVenueMic?: string | null;
+            /** Nodetype */
+            nodeType: string;
+            /** Parentreferencenodeid */
+            parentReferenceNodeId?: string | null;
+            /**
+             * Readinessstatus
+             * @enum {string}
+             */
+            readinessStatus: "READY" | "NOT_READY" | "MISSING_CONFIGURATION" | "INACTIVE";
+            /**
+             * Referencenodeid
+             * Format: uuid
+             */
+            referenceNodeId: string;
+            /** Status */
+            status: string;
+            /** Tradingcurrency */
+            tradingCurrency?: string | null;
+            /** Tradingsymbol */
+            tradingSymbol?: string | null;
+            /** Venuename */
+            venueName?: string | null;
         };
         /** CatalogueCreate */
         CatalogueCreate: {
@@ -1967,10 +2555,21 @@ export interface components {
             /** Data */
             data: components["schemas"]["CatalogueView"][];
         };
+        /** ConfigurationPagination */
+        ConfigurationPagination: {
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** ConventionProposalRequest */
         ConventionProposalRequest: {
             /** Convention */
             convention: components["schemas"]["StructuredConvention-Input"] | components["schemas"]["FutureConvention-Input"] | components["schemas"]["BondConvention-Input"] | components["schemas"]["SwapConvention-Input"];
+            /** Idempotencykey */
+            idempotencyKey?: string | null;
             /**
              * Instrumentid
              * Format: uuid
@@ -2128,6 +2727,68 @@ export interface components {
             displayName: string;
             /** Standardsource */
             standardSource?: string | null;
+        };
+        /** DeliveryRequest */
+        DeliveryRequest: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "CONFIRM" | "REVERSE";
+            /** Amount */
+            amount?: number | string | null;
+            /**
+             * Effectiveat
+             * Format: date-time
+             */
+            effectiveAt: string;
+            /** Evidence */
+            evidence: string;
+            /** Expectedsequenceno */
+            expectedSequenceNo: number;
+            /** Leg */
+            leg?: ("RECEIVE" | "PAY") | null;
+            /** Targetsequenceno */
+            targetSequenceNo?: number | null;
+        };
+        /** DeliveryResponse */
+        DeliveryResponse: {
+            data: components["schemas"]["DeliveryView"];
+            meta: components["schemas"]["ApiMeta"];
+        };
+        /** DeliveryView */
+        DeliveryView: {
+            /** Expectedsequenceno */
+            expectedSequenceNo: number;
+            /** Payconfirmed */
+            payConfirmed: string;
+            /** Paycurrency */
+            payCurrency: string;
+            /** Payoutstanding */
+            payOutstanding: string;
+            /** Receiveconfirmed */
+            receiveConfirmed: string;
+            /** Receivecurrency */
+            receiveCurrency: string;
+            /** Receiveoutstanding */
+            receiveOutstanding: string;
+            /** Reversiblesequences */
+            reversibleSequences: number[];
+            /**
+             * Settlementdate
+             * Format: date
+             */
+            settlementDate: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "PENDING" | "DUE" | "PARTIAL" | "DELIVERED";
+            /**
+             * Tradeid
+             * Format: uuid
+             */
+            tradeId: string;
         };
         /**
          * EquityListingCreateProposalRequest
@@ -2558,6 +3219,8 @@ export interface components {
             contractCurrencyId: string;
             /** Familycode */
             familyCode: string;
+            /** Idempotencykey */
+            idempotencyKey?: string | null;
             /** Sourcereference */
             sourceReference: string;
             specification?: components["schemas"]["FutureFamilySpecification-Input"] | null;
@@ -2697,6 +3360,8 @@ export interface components {
             familyCode: string;
             /** Familyid */
             familyId?: string | null;
+            /** Idempotencykey */
+            idempotencyKey?: string | null;
             /**
              * Underlyingid
              * Format: uuid
@@ -2750,6 +3415,7 @@ export interface components {
         FxForwardBookingRequest: {
             /** Comment */
             comment?: string | null;
+            correction?: components["schemas"]["BookingCorrectionRequest"] | null;
             /**
              * Counterpartyorganisationid
              * Format: uuid
@@ -3389,6 +4055,11 @@ export interface components {
             /** Venuename */
             venueName: string;
         };
+        /** InstrumentResponse */
+        InstrumentResponse: {
+            data: components["schemas"]["InstrumentView"];
+            meta: components["schemas"]["ApiMeta"];
+        };
         /** InstrumentSearchResponse */
         InstrumentSearchResponse: {
             /** Data */
@@ -3433,6 +4104,7 @@ export interface components {
             /** Taxonomy */
             taxonomy: string[];
         };
+        JsonValue: unknown;
         /** MappingDecisionRequest */
         MappingDecisionRequest: {
             /** Decision */
@@ -3568,6 +4240,8 @@ export interface components {
              * Format: date-time
              */
             marketDataAsOfUtc: string;
+            /** Strategyid */
+            strategyId?: string | null;
             /** Subjectreferencenodeids */
             subjectReferenceNodeIds: string[];
             /** Usepurpose */
@@ -3612,6 +4286,10 @@ export interface components {
             pricingDateRequested: string | null;
             /** Pricingdateused */
             pricingDateUsed: string | null;
+            /** Pricingevidence */
+            pricingEvidence?: {
+                [key: string]: unknown;
+            } | null;
             /** Receivedatutc */
             receivedAtUtc: string | null;
             /** Selectedvalue */
@@ -3710,6 +4388,21 @@ export interface components {
             licenceId: string | null;
             /** Licencename */
             licenceName: string | null;
+            /**
+             * Observationlimit
+             * @default 1000
+             */
+            observationLimit: number;
+            /**
+             * Observationoffset
+             * @default 0
+             */
+            observationOffset: number;
+            /**
+             * Observationtotal
+             * @default 0
+             */
+            observationTotal: number;
             /** Observations */
             observations?: components["schemas"]["MarketDataObservationView"][];
             /** Providercode */
@@ -3830,6 +4523,7 @@ export interface components {
         OptionBookingRequest: {
             /** Comment */
             comment?: string | null;
+            correction?: components["schemas"]["BookingCorrectionRequest"] | null;
             /** Counterpartyorganisationid */
             counterpartyOrganisationId?: string | null;
             /** Executingbrokerorganisationid */
@@ -3943,6 +4637,8 @@ export interface components {
              * Format: date
              */
             expiryDate: string;
+            /** Idempotencykey */
+            idempotencyKey?: string | null;
             /**
              * Lasttradingatutc
              * Format: date-time
@@ -4018,69 +4714,151 @@ export interface components {
             /** Status */
             status: string;
         };
-        /** PortfolioPnlLine */
-        PortfolioPnlLine: {
-            /** Basecurrency */
-            baseCurrency: string | null;
-            /** Closingfx */
-            closingFx: string;
-            /** Closingobservationid */
-            closingObservationId: string | null;
-            /** Closingprice */
-            closingPrice: string | null;
-            /** Fxpnl */
-            fxPnl: string;
+        /** PolicyCreate */
+        PolicyCreate: {
+            /** Displayname */
+            displayName: string;
+            /** Policycode */
+            policyCode: string;
+            /** Rules */
+            rules: components["schemas"]["PolicyRuleInput"][];
+            /** Strategyid */
+            strategyId?: string | null;
             /**
-             * Instrumentid
+             * Validfrom
+             * Format: date
+             */
+            validFrom: string;
+            /** Validto */
+            validTo?: string | null;
+            /**
+             * Valuationcutid
              * Format: uuid
              */
-            instrumentId: string;
-            /** Instrumentname */
-            instrumentName: string;
-            /** Instrumenttype */
-            instrumentType: string;
-            /** Listingid */
-            listingId: string | null;
-            /** Localcurrency */
-            localCurrency: string | null;
-            /** Localpricepnl */
-            localPricePnl: string;
-            /** Openingfx */
-            openingFx: string;
-            /** Openingprice */
-            openingPrice: string | null;
-            /** Priceseriesid */
-            priceSeriesId: string | null;
-            /** Quantity */
-            quantity: string;
-            /** Totalpnl */
-            totalPnl: string;
+            valuationCutId: string;
         };
-        /** PortfolioPnlResponse */
-        PortfolioPnlResponse: {
-            data: components["schemas"]["PortfolioPnlView"];
-            meta: components["schemas"]["ApiMeta"];
+        /** PolicyOption */
+        PolicyOption: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
         };
-        /** PortfolioPnlView */
-        PortfolioPnlView: {
-            /** Asofdate */
-            asOfDate: string;
-            /** Basecurrency */
-            baseCurrency: string;
-            /** Lines */
-            lines: components["schemas"]["PortfolioPnlLine"][];
-            /** Methodology */
-            methodology: string;
-            /** Portfoliocode */
-            portfolioCode: string;
-            /** Portfolioname */
-            portfolioName: string;
-            /** Totalpnl */
-            totalPnl: string;
-            /** Valuationcut */
-            valuationCut: {
-                [key: string]: string | null;
-            };
+        /** PolicyOptions */
+        PolicyOptions: {
+            /** Calendars */
+            calendars: components["schemas"]["PolicyOption"][];
+            /** Canmanage */
+            canManage: boolean;
+            /** Cuts */
+            cuts: components["schemas"]["PolicyOption"][];
+            /** Datasets */
+            datasets: components["schemas"]["PolicyOption"][];
+            /** Instrumenttypes */
+            instrumentTypes: components["schemas"]["PolicyOption"][];
+            /** Strategies */
+            strategies: components["schemas"]["PolicyOption"][];
+            /** Venues */
+            venues: components["schemas"]["PolicyOption"][];
+        };
+        /** PolicyRuleInput */
+        PolicyRuleInput: {
+            /** Datasetid */
+            datasetId?: string | null;
+            /** Fixingcode */
+            fixingCode?: string | null;
+            /** Instrumenttypeid */
+            instrumentTypeId?: string | null;
+            /**
+             * Lagbusinessdays
+             * @default 0
+             */
+            lagBusinessDays: number;
+            /** Marketcalendarid */
+            marketCalendarId?: string | null;
+            /** Marketdataseriesid */
+            marketDataSeriesId?: string | null;
+            /** Marketvenueid */
+            marketVenueId?: string | null;
+            /**
+             * Maxstalenessbusinessdays
+             * @default 0
+             */
+            maxStalenessBusinessDays: number | null;
+            /**
+             * Missingdataaction
+             * @default FAIL
+             * @enum {string}
+             */
+            missingDataAction: "FAIL" | "WARN" | "MANUAL_OVERRIDE";
+            /**
+             * Pricingconvention
+             * @enum {string}
+             */
+            pricingConvention: "LEGACY" | "SESSION_CLOSE" | "NAMED_FIXING" | "EXPLICIT_TIME" | "NAV_DATE";
+            /** Pricingcutid */
+            pricingCutId?: string | null;
+            /**
+             * Pricingdaterule
+             * @default SAME_DAY
+             * @enum {string}
+             */
+            pricingDateRule: "SAME_DAY" | "PRIOR_AVAILABLE" | "FIXED_LAG";
+            /** Rulesequence */
+            ruleSequence: number;
+            /**
+             * Selectionmethod
+             * @default OFFICIAL
+             * @enum {string}
+             */
+            selectionMethod: "OFFICIAL" | "LAST_BEFORE_CUT" | "MID" | "APPROVED" | "FALLBACK";
+            /** Seriestype */
+            seriesType: string;
+            /** Subjectreferencenodeid */
+            subjectReferenceNodeId?: string | null;
+            /** Subjecttype */
+            subjectType?: string | null;
+            /** Valuebasis */
+            valueBasis?: string | null;
+        };
+        /** PolicyView */
+        PolicyView: {
+            /** Createdatutc */
+            createdAtUtc: string | null;
+            /** Createdbyuseraccountid */
+            createdByUserAccountId: string | null;
+            /** Displayname */
+            displayName: string;
+            /** Policycode */
+            policyCode: string;
+            /** Rules */
+            rules: components["schemas"]["PolicyRuleInput"][];
+            /** Status */
+            status: string;
+            /** Strategyid */
+            strategyId: string | null;
+            /**
+             * Validfrom
+             * Format: date
+             */
+            validFrom: string;
+            /** Validto */
+            validTo: string | null;
+            /**
+             * Valuationcutid
+             * Format: uuid
+             */
+            valuationCutId: string;
+            /**
+             * Valuationpolicyid
+             * Format: uuid
+             */
+            valuationPolicyId: string;
+            /** Versionno */
+            versionNo: number;
         };
         ProblemDetails: {
             code: string;
@@ -4147,6 +4925,8 @@ export interface components {
             maturityDate?: string | null;
             /** Name */
             name: string;
+            /** Readinessstatus */
+            readinessStatus?: ("READY" | "NOT_READY" | "MISSING_CONFIGURATION" | "INACTIVE" | "CREATION_ONLY") | null;
             swapDetails?: components["schemas"]["SwapDetailsView"] | null;
             /** Termsfingerprint */
             termsFingerprint?: string | null;
@@ -4161,6 +4941,7 @@ export interface components {
             accruedInterestAmount?: number | string | null;
             /** Comment */
             comment?: string | null;
+            correction?: components["schemas"]["BookingCorrectionRequest"] | null;
             /** Counterpartyorganisationid */
             counterpartyOrganisationId?: string | null;
             /** Executingbrokerorganisationid */
@@ -4235,6 +5016,7 @@ export interface components {
         PropertiesResponse: {
             /** Data */
             data: components["schemas"]["PropertyView"][];
+            pagination: components["schemas"]["ConfigurationPagination"];
         };
         /** PropertyCreate */
         PropertyCreate: {
@@ -4457,6 +5239,13 @@ export interface components {
             data: components["schemas"]["ReferenceNodeOptionView"][];
             meta: components["schemas"]["ApiMeta"];
         };
+        /** ResolutionPreview */
+        ResolutionPreview: {
+            /** Items */
+            items: components["schemas"]["MarketDataResolutionSnapshotItemView"][];
+            /** Status */
+            status: string;
+        };
         /** ReturnProfileResponse */
         ReturnProfileResponse: {
             /** Data */
@@ -4487,6 +5276,11 @@ export interface components {
              * Format: uuid
              */
             returnProfileId: string;
+        };
+        /** ReviewComment */
+        ReviewComment: {
+            /** Comment */
+            comment: string;
         };
         /** SelectionPublish */
         SelectionPublish: {
@@ -4528,8 +5322,11 @@ export interface components {
             operatingModelLabel?: string | null;
             /** Strategycode */
             strategyCode: string;
-            /** Strategytype */
-            strategyType: string;
+            /**
+             * Strategytype
+             * @enum {string}
+             */
+            strategyType: "AMC_MANDATE" | "FUND" | "MANAGED_ACCOUNT" | "PROP_SLEEVE" | "MODEL_PORTFOLIO" | "OTHER";
         };
         /** StrategyListResponse */
         StrategyListResponse: {
@@ -4542,8 +5339,11 @@ export interface components {
         };
         /** StrategyStatusRequest */
         StrategyStatusRequest: {
-            /** Status */
-            status: string;
+            /**
+             * Status
+             * @constant
+             */
+            status: "ARCHIVED";
         };
         /** StrategyView */
         StrategyView: {
@@ -4827,6 +5627,8 @@ export interface components {
         SwapProposalRequest: {
             /** Canonicalname */
             canonicalName: string;
+            /** Idempotencykey */
+            idempotencyKey?: string | null;
             /** Tenantidentifier */
             tenantIdentifier?: string | null;
             terms: components["schemas"]["GenericSwapTerms-Input"];
@@ -4900,6 +5702,7 @@ export interface components {
         TradeBookingRequest: {
             /** Comment */
             comment?: string | null;
+            correction?: components["schemas"]["BookingCorrectionRequest"] | null;
             /** Counterpartyorganisationid */
             counterpartyOrganisationId?: string | null;
             /** Executingbrokerorganisationid */
@@ -5299,6 +6102,95 @@ export interface components {
             location: string[];
             message: string;
         };
+        /** ValuationAttemptDetail */
+        ValuationAttemptDetail: {
+            /** Attempt */
+            attempt: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Batch */
+            batch: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
+            /** Events */
+            events: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+        };
+        /** ValuationAttemptList */
+        ValuationAttemptList: {
+            /**
+             * Actorid
+             * Format: uuid
+             */
+            actorId: string;
+            /** Canmanage */
+            canManage: boolean;
+            /** Items */
+            items: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+            /**
+             * Scope
+             * @default MARKET_ONLY
+             */
+            scope: string;
+            /** Total */
+            total: number;
+        };
+        /** ValuationCreate */
+        ValuationCreate: {
+            /**
+             * Closingcutoff
+             * Format: date-time
+             */
+            closingCutoff: string;
+            /**
+             * Cutid
+             * Format: uuid
+             */
+            cutId: string;
+            /**
+             * Informationcutoff
+             * Format: date-time
+             */
+            informationCutoff: string;
+            /**
+             * Openingcutoff
+             * Format: date-time
+             */
+            openingCutoff: string;
+            /**
+             * Policyid
+             * Format: uuid
+             */
+            policyId: string;
+            /**
+             * Reportingcurrencyid
+             * Format: uuid
+             */
+            reportingCurrencyId: string;
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
+        };
+        /** ValuationOptions */
+        ValuationOptions: {
+            /** Currencies */
+            currencies: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+            /** Policies */
+            policies: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+            /** Strategies */
+            strategies: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+        };
         /** WorkQueueItemView */
         WorkQueueItemView: {
             /** Category */
@@ -5406,6 +6298,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Request validation failed */
             422: {
                 headers: {
@@ -5490,6 +6391,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5591,6 +6501,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -5683,6 +6602,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -5766,6 +6694,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5867,6 +6804,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -5950,6 +6896,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6045,6 +7000,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6130,6 +7094,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6231,6 +7204,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6316,6 +7298,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6417,6 +7408,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6501,6 +7501,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6599,6 +7608,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6683,6 +7701,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6775,6 +7802,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6876,6 +7912,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6957,6 +8002,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7049,6 +8103,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7150,6 +8213,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7231,6 +8303,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7323,6 +8404,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7424,6 +8514,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7508,6 +8607,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7610,6 +8718,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7701,6 +8818,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7743,9 +8869,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstrumentResponse"];
                 };
             };
             /** @description Invalid request */
@@ -7786,6 +8910,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7885,6 +9018,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7970,6 +9112,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8066,6 +9217,612 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_v1_market_data_calendars_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarPublish"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    assign_v1_market_data_calendars_assignments_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarAssignmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarAssignmentView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    options_v1_market_data_calendars_options_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarOptions"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    detail_v1_market_data_calendars__calendar_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                calendar_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    days_v1_market_data_calendars__calendar_id__days_get: {
+        parameters: {
+            query: {
+                fromDate: string;
+                toDate: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                calendar_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarDaysView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    preview_v1_market_data_resolution_preview_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketDataResolutionSnapshotCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolutionPreview"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -8096,6 +9853,8 @@ export interface operations {
                 seriesType?: string | null;
                 limit?: number;
                 offset?: number;
+                observationLimit?: number;
+                observationOffset?: number;
             };
             header?: {
                 "x-correlation-id"?: string | null;
@@ -8154,6 +9913,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8243,6 +10011,310 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_v1_market_data_valuation_policies_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    detail_v1_market_data_valuation_policies__policy_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    options_v1_market_data_valuation_policy_options_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOptions"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8341,6 +10413,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -8425,6 +10506,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8523,6 +10613,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -8561,15 +10660,6 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortfolioPnlResponse"];
-                };
-            };
             /** @description Invalid request */
             400: {
                 headers: {
@@ -8608,6 +10698,24 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Legacy P&L demonstration retired */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8698,6 +10806,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8799,6 +10916,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -8883,6 +11009,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8976,6 +11111,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9079,6 +11223,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -9160,6 +11313,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9253,6 +11415,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -9333,6 +11504,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9431,6 +11611,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -9513,6 +11702,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9613,6 +11811,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -9698,6 +11905,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9799,6 +12015,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -9879,6 +12104,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9968,6 +12202,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10067,6 +12310,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10151,6 +12403,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10249,6 +12510,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10331,6 +12601,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10424,6 +12703,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10525,6 +12813,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10611,6 +12908,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10712,6 +13018,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10799,6 +13114,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10899,6 +13223,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10922,7 +13255,10 @@ export interface operations {
     };
     get_properties_v1_trade_configuration_properties_get: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
             header?: {
                 "x-tenant-id"?: string | null;
                 "x-user-account-id"?: string | null;
@@ -10979,6 +13315,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11070,6 +13415,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11170,6 +13524,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11252,6 +13615,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11348,6 +13720,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11434,6 +13815,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11538,6 +13928,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11623,6 +14022,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11722,6 +14130,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11802,6 +14219,216 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    search_v1_trades_cash_listings_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                asOfDate?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashBookingListingSearchResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    detail_v1_trades_cash_listings__listing_id__get: {
+        parameters: {
+            query?: {
+                asOfDate?: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashBookingListingResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11901,6 +14528,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11928,6 +14564,7 @@ export interface operations {
                 q?: string;
                 limit?: number;
                 offset?: number;
+                asOfDate?: string | null;
             };
             header?: {
                 "x-tenant-id"?: string | null;
@@ -11992,6 +14629,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12015,7 +14661,9 @@ export interface operations {
     };
     instrument_v1_trades_fx_forward_instruments__instrument_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                asOfDate?: string | null;
+            };
             header?: {
                 "x-tenant-id"?: string | null;
                 "x-user-account-id"?: string | null;
@@ -12074,6 +14722,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12173,6 +14830,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12200,6 +14866,7 @@ export interface operations {
                 q?: string;
                 limit?: number;
                 offset?: number;
+                asOfDate?: string | null;
             };
             header?: {
                 "x-tenant-id"?: string | null;
@@ -12264,6 +14931,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12287,7 +14963,9 @@ export interface operations {
     };
     listing_detail_v1_trades_option_listings__listing_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                asOfDate?: string | null;
+            };
             header?: {
                 "x-tenant-id"?: string | null;
                 "x-user-account-id"?: string | null;
@@ -12346,6 +15024,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12438,6 +15125,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12539,6 +15235,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12624,6 +15329,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12723,6 +15437,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12808,6 +15531,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12905,6 +15637,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12995,6 +15736,921 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    cancel_v1_trades__trade_id__cancel_booking_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                trade_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeDetailResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    read_v1_trades__trade_id__fx_delivery_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                trade_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    write_v1_trades__trade_id__fx_delivery_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                trade_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    attempts_v1_valuation_attempts_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValuationAttemptList"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_v1_valuation_attempts_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValuationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValuationAttemptDetail"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    attempt_v1_valuation_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValuationAttemptDetail"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    explain_v1_valuation_batches__batch_id__explanations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewComment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    publish_v1_valuation_batches__batch_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewComment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    options_v1_valuation_options_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValuationOptions"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13018,7 +16674,10 @@ export interface operations {
     };
     queue_v1_work_queue_get: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
             header?: {
                 "x-correlation-id"?: string | null;
                 "x-tenant-id"?: string | null;
@@ -13076,6 +16735,15 @@ export interface operations {
             };
             /** @description Request conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };

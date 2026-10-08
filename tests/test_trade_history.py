@@ -89,7 +89,13 @@ def test_pagination_has_stable_order_no_overlap_and_total_on_empty_page(connecti
     assert empty.meta.total == first.meta.total
 
 
-def test_booked_listing_can_be_found_by_symbol_strategy_date_and_side(connection):
+def test_booked_listing_can_be_found_by_symbol_strategy_date_and_side(connection,monkeypatch):
+    # Keep the unique history/filter date, but make it historical relative to
+    # an explicit test clock. Production refuses future economic dates.
+    from apps.reference_api import booking_controls
+    validate_date=booking_controls.validate_execution_date
+    monkeypatch.setattr(booking_controls,'validate_execution_date',
+        lambda execution: validate_date(execution,today=date(2030,1,10)))
     request = TradeBookingRequest(
         listingId=DEMO_IDS["hsbc_xlon_listing_node"], strategyId=DEMO_IDS["strategy"],
         side="SELL", quantity=Decimal("17"), executionPrice=Decimal("10.23"),

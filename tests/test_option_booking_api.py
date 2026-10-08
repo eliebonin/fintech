@@ -147,6 +147,29 @@ def clone_listing(connection,listing,overrides):
     return str(listing_id)
 
 
+def test_historical_option_uses_execution_day_for_all_effective_terms(connection,listing):
+    from datetime import date
+    clone=clone_listing(connection,listing,{
+        'instrument':{'effective_to':date(2026,10,2)},
+        'instrument_definition_version':{'effective_to':date(2026,10,2)},
+        'listing':{'effective_to':date(2026,10,2)},
+        'listing_definition_version':{'effective_to':date(2026,10,2)},
+        'option_terms':{'effective_to':date(2026,10,2)},
+        'instrument_contract_unit_terms':{'valid_to':date(2026,10,2)}})
+    _,terms=load(connection,DEMO_IDS['tenant'],UUID(clone),as_of=date(2026,10,1))
+    assert terms.booking_eligible
+    request=OptionBookingRequest.model_validate(dict(listingId=clone,strategyId=str(DEMO_IDS['strategy']),side='BUY',positionEffect='OPEN',quantity='10',executionPrice='2.5',tradeDatetime='2026-10-01T10:00:00Z',settlementDate='2026-10-05',expectedTermsFingerprint=terms.terms_fingerprint))
+    assert direct_book(connection,request).data.trade.option_economics.gross_premium=='2500'
+
+
+def test_historical_option_definition_cannot_start_after_execution(connection,listing):
+    from datetime import date
+    from security_master_schema.option_booking import OptionBookingError
+    clone=clone_listing(connection,listing,{'instrument_definition_version':{'effective_from':date(2026,10,2)}})
+    data=direct_payload(connection,clone)
+    with pytest.raises(OptionBookingError): direct_book(connection,data)
+
+
 @pytest.mark.parametrize('table,column,value',[
     (m.option_terms,'premium_multiplier',None),(m.option_terms,'premium_style','FUTURES_STYLE'),
     (m.option_terms,'exercise_style','BERMUDAN'),(m.option_terms,'status','RETIRED'),
@@ -203,18 +226,11 @@ def test_other_tenant_cannot_see_private_option(listing):
     assert response.status_code in {403,404},response.text
 
 
-def test_option_cash_booking_and_valuation_are_rejected(connection,listing):
-    from apps.reference_api.repository import book_listed_cash_trade,portfolio_pnl
+def test_option_cannot_be_booked_as_plain_cash(connection,listing):
+    from apps.reference_api.repository import book_listed_cash_trade
     from apps.reference_api.contracts import TradeBookingRequest
-    from apps.reference_api.option_booking import OptionValuationUnsupported
     data=payload(listing);data.pop('positionEffect');data.pop('expectedTermsFingerprint')
     with pytest.raises(ValueError):book_listed_cash_trade(connection,DEMO_IDS['tenant'],DEMO_IDS['demo_user_account'],TradeBookingRequest.model_validate(data),str(uuid4()),'test')
-    strategy=dict(connection.execute(select(m.strategy).where(m.strategy.c.strategy_id==DEMO_IDS['strategy'])).mappings().one())
-    strategy.update(strategy_id=uuid4(),strategy_code=f'OPTION_ONLY_{uuid4().hex}')
-    connection.execute(m.strategy.insert().values(**strategy))
-    result=direct_book(connection,direct_payload(connection,listing,strategyId=str(strategy['strategy_id'])))
-    from datetime import date
-    with pytest.raises(OptionValuationUnsupported):portfolio_pnl(connection,DEMO_IDS['tenant'],result.data.trade.strategy_code,date(2026,10,1),'v1','test')
 
 
 def test_concurrent_retry_creates_one_option_trade(listing):

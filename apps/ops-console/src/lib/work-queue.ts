@@ -24,14 +24,20 @@ export type WorkQueueOptions = Pick<TenantContext, "tenantId" | "userAccountId">
   baseUrl?: string;
   correlationId?: string;
   fetchImpl?: typeof fetch;
+  limit?: number;
+  offset?: number;
 };
 
 export async function getWorkQueue(options: WorkQueueOptions): Promise<WorkQueuePayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const fetchImpl = options.fetchImpl ?? fetch;
-  const response = await fetchImpl(new URL("/v1/work-queue", baseUrl), {
+  const url = new URL('/v1/work-queue',baseUrl);
+  if(options.limit!==undefined)url.searchParams.set('limit',String(options.limit));
+  if(options.offset!==undefined)url.searchParams.set('offset',String(options.offset));
+  const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",
+    signal: AbortSignal.timeout(35000),
     headers: {
       Accept: "application/json",
       "X-Tenant-Id": options.tenantId,

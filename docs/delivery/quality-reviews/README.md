@@ -11,3 +11,8 @@ Key dated reviews: [project state](../../architecture/project-state-and-quality-
 - [Replay-safe Market Data resolution — 2026-09-28](2026-09-28-replay-safe-market-data-resolution.md)
 - [Listed option booking alpha — 2026-10-01](2026-10-01-option-booking-alpha.md)
 - [Project state, weaknesses and high-level roadmap — 2026-10-05](2026-10-05-project-state-and-roadmap.md)
+- [Instrument integrity and confirmed hardening priorities — 2026-10-05](2026-10-05-instrument-integrity.md)
+- [FX booking scope hardening — 2026-10-05](2026-10-05-fx-scope-hardening.md)
+- [Cash booking and approval integrity — 2026-10-05](2026-10-05-cash-and-approval-integrity.md)
+- [API endpoint implementation, priorities and best-practice review — 2026-10-06](2026-10-06-api-endpoint-review.md)
+- [API boundary remediation, approved authority and verification follow-up](../api-boundary-hardening.md)

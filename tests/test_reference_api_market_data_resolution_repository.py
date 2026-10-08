@@ -85,9 +85,11 @@ def test_create_replay_conflict_and_frozen_read(seeded_engine) -> None:
                 .where(m.tenant_dataset_entitlement.c.tenant_id == DEMO_IDS["tenant"])
                 .values(status="SUSPENDED")
             )
-            frozen = get_market_data_resolution_snapshot(
-                connection, DEMO_IDS["tenant"], created.market_data_resolution_snapshot_id
-            )
+            with pytest.raises(PermissionError):
+                get_market_data_resolution_snapshot(connection, DEMO_IDS['tenant'],created.market_data_resolution_snapshot_id)
+            connection.execute(update(m.tenant_dataset_entitlement).where(
+                m.tenant_dataset_entitlement.c.tenant_id==DEMO_IDS['tenant']).values(status='ACTIVE'))
+            frozen = get_market_data_resolution_snapshot(connection,DEMO_IDS['tenant'],created.market_data_resolution_snapshot_id)
             assert frozen == created
         finally:
             transaction.rollback()

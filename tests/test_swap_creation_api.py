@@ -193,7 +193,9 @@ def test_rejection_and_tenant_permissions(reference):
     data = proposal(reference)
     assert request('POST', '/v1/instruments/swap-proposals', data, tenant='second_tenant').status_code == 403
     proposal_id = submit(data)
-    assert decide(proposal_id, tenant='second_tenant').status_code == 404
+    # This tenant's OPERATIONS membership has no approval authority: refuse
+    # before looking up a proposal, regardless of whether that ID exists.
+    assert decide(proposal_id, tenant='second_tenant').status_code == 403
     rejected = decide(proposal_id, 'REJECTED')
     assert rejected.status_code == 200, rejected.text
     assert rejected.json()['data']['status'] == 'REJECTED'
@@ -208,7 +210,7 @@ def test_non_admin_cannot_submit_or_approve(reference):
         connection.execute(m.tenant_user_account.update().where(m.tenant_user_account.c.tenant_user_account_id == DEMO_IDS['demo_tenant_membership']).values(membership_role='OPERATIONS'))
     try:
         assert request('POST', '/v1/instruments/swap-proposals', data).status_code == 403
-        assert decide(proposal_id).status_code == 409
+        assert decide(proposal_id).status_code == 403
     finally:
         with get_engine().begin() as connection:
             connection.execute(m.tenant_user_account.update().where(m.tenant_user_account.c.tenant_user_account_id == DEMO_IDS['demo_tenant_membership']).values(membership_role='TENANT_ADMIN'))

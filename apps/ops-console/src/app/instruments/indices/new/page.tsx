@@ -14,7 +14,7 @@ import {
   OrganisationOption,
   ReturnProfile,
 } from "@/lib/reference-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { requireReferenceTenantContext } from "@/lib/reference-tenant-context";
 import NewIndexForm from "./form";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,9 @@ type CatalogueState = {
 };
 
 async function loadCatalogues(): Promise<CatalogueState> {
-  const options = resolveLocalTenantContext();
+  let options;
+  try { options = await requireReferenceTenantContext(); }
+  catch { return {currencies:[],returnProfiles:[],organisations:[],indexFamilies:[],indexKinds:[],error:"Select an active tenant before loading reference catalogues."}; }
   const results = await Promise.allSettled([
     listCurrencies(options),
     listReturnProfiles(options),

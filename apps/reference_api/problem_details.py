@@ -14,10 +14,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from security_master_schema.tenant_workspace import TenantActionForbidden
 
 
 LOGGER = logging.getLogger("apps.reference_api")
 _request_id: ContextVar[str | None] = ContextVar("reference_api_request_id", default=None)
+_api_version: ContextVar[str | None] = ContextVar('reference_api_version',default=None)
 _PROBLEM_BASE_URI = "https://api.fortem.local/problems"
 
 
@@ -66,6 +68,11 @@ def current_request_id() -> str:
     return _request_id.get() or str(uuid4())
 
 
+def current_api_version() -> str:
+    from .config import Settings
+    return _api_version.get() or Settings.from_environment().api_version
+
+
 def request_id_from_request(request: Request) -> str:
     """Accept only UUID request IDs; retain the legacy correlation header as input."""
 
@@ -85,16 +92,21 @@ def configure_problem_details(app: FastAPI) -> None:
     async def request_context(request: Request, call_next):
         request_id = request_id_from_request(request)
         token = _request_id.set(request_id)
+        version_token = _api_version.set(app.version)
         request.state.request_id = request_id
         started = perf_counter()
         try:
-            response = await call_next(request)
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                response = await unexpected_error_handler(request, exc)
         finally:
             _request_id.reset(token)
+            _api_version.reset(version_token)
 
         response.headers["X-Request-ID"] = request_id
         route = request.scope.get("route")
-        route_path = getattr(route, "path", request.url.path)
+        route_path = getattr(route, "path", '<unmatched>')
         LOGGER.info(
             "api_response request_id=%s method=%s route=%s status=%s duration_ms=%.2f",
             request_id,
@@ -116,6 +128,11 @@ def configure_problem_details(app: FastAPI) -> None:
             type_slug=exc.type_slug,
             errors=exc.errors,
         )
+
+    @app.exception_handler(TenantActionForbidden)
+    async def authority_error_handler(request: Request, exc: TenantActionForbidden) -> JSONResponse:
+        return _problem_response(request, status_code=403, code='authorization.forbidden',
+            title='Access denied', detail='The request is not permitted.', type_slug='access-denied')
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -139,7 +156,7 @@ def configure_problem_details(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def http_error_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         status_code, code, title, detail, type_slug = _safe_http_problem(exc.status_code)
-        return _problem_response(
+        response = _problem_response(
             request,
             status_code=status_code,
             code=code,
@@ -147,6 +164,10 @@ def configure_problem_details(app: FastAPI) -> None:
             detail=detail,
             type_slug=type_slug,
         )
+        for name, value in (exc.headers or {}).items():
+            if name.lower() in {'allow', 'www-authenticate', 'retry-after'}:
+                response.headers[name] = value
+        return response
 
     @app.exception_handler(Exception)
     async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -156,7 +177,7 @@ def configure_problem_details(app: FastAPI) -> None:
         ]
         LOGGER.error(
             "unhandled_api_exception request_id=%s exception_type=%s stack_frames=%s",
-            current_request_id(),
+            request.state.request_id,
             type(exc).__name__,
             frames,
         )
@@ -237,13 +258,14 @@ def _problem_response(
         detail=detail,
         instance=request.url.path,
         code=code,
-        request_id=current_request_id(),
+        request_id=request.state.request_id,
         errors=errors,
     )
     return JSONResponse(
         status_code=status_code,
         content=problem.model_dump(by_alias=True, exclude_none=True),
         media_type="application/problem+json",
+        headers={'X-Request-ID': request.state.request_id},
     )
 
 
@@ -269,6 +291,7 @@ _OPENAPI_PROBLEM_RESPONSES = {
     403: "Access denied",
     404: "Resource not found",
     409: "Request conflict",
+    413: "Request too large",
     422: "Request validation failed",
     500: "Internal server error",
 }

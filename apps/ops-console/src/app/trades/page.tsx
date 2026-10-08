@@ -6,6 +6,7 @@ import { formatTradeDateTime, formatTradeNumber, formatTradeExactDecimal, tradeD
 import { bookedSwapFacts, historyHref, parseHistoryQuery, type HistorySearchParams } from "@/lib/trade-history";
 import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { WorkspaceShell } from "@/components/workspace-shell";
+import {canBookTrades} from '@/lib/instrument-authority';
 
 export const dynamic = "force-dynamic";
 
@@ -56,8 +57,10 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
   };
   const statuses = [...new Set(["BOOKED", "CANCELLED", "SUPERSEDED", "VOID", ...trades.map((trade) => trade.lifecycleStatus), ...(query.lifecycleStatus ? [query.lifecycleStatus] : [])])];
   const sourceLabel = error ? "API UNAVAILABLE" : "LIVE API";
+  const canBook=canBookTrades(workspace);
   return <WorkspaceShell sourceLabel={sourceLabel} moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><main className="mvp-page">
-    <header className="mvp-header"><div><p className="eyebrow">TENANT TRADE LEDGER</p><h1>Trade history</h1><p className="muted">Recorded trades, newest first. Open a trade to inspect its booking details and lifecycle events.</p></div><Link className="clear-link" href="/trades/new">Book trade</Link></header>
+    <header className="mvp-header"><div><p className="eyebrow">TENANT TRADE LEDGER</p><h1>Trade history</h1><p className="muted">Recorded trades, newest first. Open a trade to inspect its booking details and lifecycle events.</p></div>{canBook?<Link className="clear-link" href="/trades/new">Book trade</Link>:null}</header>
+    {!canBook?<p className="muted">Trade booking requires TENANT_ADMIN and the TRADING module. Ask your tenant administrator to review your access; available history remains inspectable.</p>:null}
     <nav className="trade-range-links" aria-label="Trade history date range">
       {(["14d", "30d", "all"] as const).map((range) => <Link key={range} href={rangeHref(range)} aria-current={query.range === range ? "page" : undefined}>{range === "14d" ? "Last 14 days" : range === "30d" ? "Last 30 days" : "All history"}</Link>)}
       <a href="#history-filters" aria-current={query.range === "custom" ? "page" : undefined}>Custom</a>
@@ -80,7 +83,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
     {strategyError ? <p className="error-panel" role="alert">{strategyError} <Link href={returnTo}>Retry</Link></p> : null}
     {error ? <div className="error-panel" role="alert">{error} <Link href={returnTo}>Retry</Link></div> : <>
       <section className="table-wrap trades-table-wrap" aria-label="Trade history results"><table className="trades-table"><caption className="trade-caption">{total} {filtered ? "matching" : "recorded"} trades · trade times in UTC</caption><thead><tr>{["Trade time (UTC)", "Instrument / listing", "Strategy", "Side", "Quantity", "Price / currency", "Settlement date", "Status"].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
-        <tbody>{trades.length ? trades.map((trade) => <TradeRow key={trade.tradeId} trade={trade} returnTo={returnTo} />) : <tr><td colSpan={8} className="empty-table">{!otherFilters && query.range === "14d" ? <>No trades in the last 14 days. <Link href={rangeHref("all")}>View all history</Link></> : !otherFilters && query.range === "30d" ? <>No trades in the last 30 days. <Link href={rangeHref("all")}>View all history</Link></> : filtered ? <>No trades match these filters. <Link href="/trades">Clear filters</Link> · <Link href={rangeHref("all")}>View all history</Link></> : <>No trades have been recorded for this tenant. <Link href="/trades/new">Book your first trade</Link></>}</td></tr>}</tbody>
+        <tbody>{trades.length ? trades.map((trade) => <TradeRow key={trade.tradeId} trade={trade} returnTo={returnTo} />) : <tr><td colSpan={8} className="empty-table">{!otherFilters && query.range === "14d" ? <>No trades in the last 14 days. <Link href={rangeHref("all")}>View all history</Link></> : !otherFilters && query.range === "30d" ? <>No trades in the last 30 days. <Link href={rangeHref("all")}>View all history</Link></> : filtered ? <>No trades match these filters. <Link href="/trades">Clear filters</Link> · <Link href={rangeHref("all")}>View all history</Link></> : <>No trades have been recorded for this tenant. {canBook?<Link href="/trades/new">Book your first trade</Link>:null}</>}</td></tr>}</tbody>
       </table></section>
       <nav className="trade-pagination" aria-label="Trade history pagination"><span>{total ? (query.page - 1) * query.pageSize + 1 : 0}–{Math.min(query.page * query.pageSize, total)} of {total}</span>
         {query.page > 1 ? <Link href={historyHref(query, query.page - 1)}>Previous</Link> : <span aria-disabled="true">Previous</span>}

@@ -8,6 +8,12 @@ import { buildTicketPayload, createTicketDraft, defaultSettlementDate, TradeTick
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {} }) }));
 
 describe("T+2 weekday settlement default", () => {
+  it('uses the UTC execution day for settlement across offset boundaries',()=>{
+    expect(defaultSettlementDate('2026-10-02T00:30:00+14:00')).toBe('2026-10-05');
+    const draft={strategyId:'s',quantity:'10',executionPrice:'1',tradeDatetime:'2026-10-06T00:30:00+02:00',settlementDate:'2026-10-05'};
+    expect(validateTicketDraft(draft)).toBeNull();
+    expect(validateTicketDraft({...draft,tradeDatetime:'2026-10-05T23:30:00-02:00'})).toContain('Settlement');
+  });
   it.each([
     ["2026-09-30T10:00:00Z", "2026-10-02"],
     ["2026-10-01T10:00:00Z", "2026-10-05"],
@@ -15,7 +21,7 @@ describe("T+2 weekday settlement default", () => {
     ["2026-10-03T10:00:00Z", "2026-10-06"],
     ["2026-12-31T10:00:00Z", "2027-01-04"],
     ["2028-02-28T10:00:00Z", "2028-03-01"],
-    ["2026-10-02T00:30:00+14:00", "2026-10-06"],
+    ["2026-10-02T00:30:00+14:00", "2026-10-05"],
   ])("defaults %s to %s, excluding the trade date and weekends", (tradeTime, expected) => {
     expect(defaultSettlementDate(tradeTime)).toBe(expected);
   });
@@ -42,6 +48,12 @@ describe("T+2 weekday settlement default", () => {
 });
 
 describe("listing-first trade ticket", () => {
+  it("exposes readiness filtering and its limitations before a cash search", () => {
+    const html = renderToStaticMarkup(<TradeTicket strategies={[]} />);
+    expect(html).toContain('Show unavailable');
+    expect(html).toContain('Readiness');
+    expect(html).toContain('type="date"');
+  });
   const listing = { referenceNodeId: "listing-1", canonicalName: "Example ETP", marketVenueMic: "XNAS", venueName: "Nasdaq", tradingSymbol: "ETP-TEST", tradingCurrency: "USD", status: "ACTIVE", isTradable: true };
 
   it("renders the editable settlement field with the default and calendar limitation", () => {
@@ -83,15 +95,14 @@ describe("listing-first trade ticket", () => {
 
 describe("trade booking entry point", () => {
   const newTradePage = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
-  const ticket = readFileSync(new URL("./trade-ticket.tsx", import.meta.url), "utf8");
 
   it("allows the dedicated booking route to start without a preselected listing", () => {
     expect(newTradePage).not.toContain('if (!listingId) redirect("/instruments")');
   });
 
   it("searches active listings before rendering their locked booking facts", () => {
-    expect(ticket).toContain("Search active listings");
-    expect(ticket).toContain("searchReferenceNodesFromBff");
-    expect(ticket).toContain('referenceLevel: "LISTING"');
+    const html=renderToStaticMarkup(<TradeTicket strategies={[]} />);
+    expect(html).toContain('Search listings');
+    expect(html).not.toContain('LOCKED EXECUTION SUBJECT');
   });
 });

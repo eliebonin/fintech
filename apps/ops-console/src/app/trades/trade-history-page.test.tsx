@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookedTrade } from "@/lib/trades";
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/navigation", () => ({ usePathname: () => "/trades", redirect: (href: string) => { throw new Error(`redirect:${href}`); } }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/trades",useRouter:()=>({refresh:vi.fn()}), redirect: (href: string) => { throw new Error(`redirect:${href}`); } }));
 vi.mock("@/lib/tenant-session", () => ({
   getActiveTenantContext: async () => ({ tenantId: "tenant", userAccountId: "user", source: "local-session" }),
   getActiveTenantWorkspace: async () => ({ tenantName: "Test tenant", membershipRole: "TENANT_ADMIN", moduleCodes: ["TRADING"] }),
@@ -24,6 +24,13 @@ const trade: BookedTrade = {
   sourceSystemId: null, sourceReceivedAtUtc: null, executionVenueId: null, dealingCapacity: null,
   lifecycleStatus: "BOOKED", referenceInstrumentId: null, comment: null,
 };
+
+it('displays correction lineage, reason and separate effective/recorded dates',async()=>{
+ const {DetailContent}=await import('./[tradeId]/page');
+ const original='00000000-0000-7000-8000-000000000001',replacement='00000000-0000-7000-8000-000000000002';
+ const html=renderToStaticMarkup(<DetailContent detail={{trade,parties:[],fees:[],externalReferences:[],lifecycleEvents:[{tradeLifecycleEventId:'event',sequenceNo:2,eventType:'SUPERSEDED',eventDatetimeUtc:'2026-09-30T11:17:48Z',sourceSystemId:null,sourceEventId:null,recordedByUserAccountId:'actor',recordedAtUtc:'2026-10-05T12:00:00Z',eventPayload:JSON.stringify({schemaVersion:1,kind:'BOOKING_CORRECTION',action:'REPLACED_BOOKING',originalTradeId:original,replacementTradeId:replacement,reason:'Correct executed shares'})}]}}/>);
+ expect(html).toContain(`/trades/${replacement}`);expect(html).toContain('Correct executed shares');expect(html).toContain('Recorded');expect(html).toContain('Effective');
+});
 
 function fakeApi(data: BookedTrade[] = [trade], total = 143, detailTrade:BookedTrade=trade) {
   vi.stubGlobal("fetch", async (input: URL) => {

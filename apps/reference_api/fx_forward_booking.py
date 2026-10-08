@@ -1,5 +1,7 @@
 """Instrument-backed FX booking and immutable historical economics."""
-from datetime import date, timezone
+from datetime import date, datetime, timezone
+from .resource_limits import governance_date
+from .problem_details import current_api_version
 from decimal import Decimal
 from hashlib import sha256
 import json
@@ -37,22 +39,22 @@ def _contract_query(tenant_id):
         .where(_visible_node_clause(tenant_id), m.instrument_type.c.type_code == "FX_FORWARD")
 
 
-def _terms(row):
-    today = date.today()
+def _terms(row, as_of=None):
+    today = as_of or datetime.now(timezone.utc).date()
     if row.definition_status!="APPROVED" or not row.definition_from or row.definition_from>today or (row.definition_to and row.definition_to<today) or row.definition_base_id!=row.base_currency_id or row.definition_type_id!=row.instrument_type_id:
-        raise FxForwardBookingError("fx_forward.unapproved_definition","instrumentId","The contract needs a current, effective approved instrument definition consistent with its FX terms.")
+        raise FxForwardBookingError("fx_forward.unapproved_definition","instrumentId","The current approved definition must cover the execution date and agree with FX terms.")
     if not row.base_currency_id or not row.quote_currency_id or row.agreed_forward_rate is None or not row.maturity_date or row.instrument_base_id != row.base_currency_id:
         raise FxForwardBookingError("fx_forward.invalid_terms", "instrumentId", "The approved contract needs complete, consistent currencies, rate and maturity.")
     if row.status != "ACTIVE" or not row.is_tradable or row.type_status!="ACTIVE" or not row.is_current or row.base_status != "ACTIVE" or row.quote_status != "ACTIVE":
         raise FxForwardBookingError("fx_forward.inactive_contract", "instrumentId", "The contract and its currencies must be active.")
     if (row.effective_from and row.effective_from > today) or (row.effective_to and row.effective_to < today):
-        raise FxForwardBookingError("fx_forward.inactive_contract", "instrumentId", "The contract is not currently effective.")
+        raise FxForwardBookingError("fx_forward.inactive_contract", "instrumentId", "The contract does not cover the execution date.")
     terms = FxForwardBookingTerms(row.instrument_node_id, row.base_currency_id, row.quote_currency_id, row.base_currency, row.quote_currency, row.quote_convention, row.settlement_type, row.agreed_forward_rate, row.maturity_date, row.settlement_date, row.cash_settlement_date, row.final_settlement_date)
     resolve_fx_forward_settlement(terms)
     return terms
 
 
-def load_fx_forward_booking_terms(connection: Connection, tenant_id: UUID, instrument_id: UUID, *, for_update: bool = False) -> FxForwardBookingTerms:
+def load_fx_forward_booking_terms(connection: Connection, tenant_id: UUID, instrument_id: UUID, *, for_update: bool = False, as_of=None) -> FxForwardBookingTerms:
     from .repository import RepositoryNotFound
     statement = _contract_query(tenant_id).where(m.instrument.c.instrument_node_id == instrument_id)
     if for_update:
@@ -60,41 +62,47 @@ def load_fx_forward_booking_terms(connection: Connection, tenant_id: UUID, instr
     row = connection.execute(statement).mappings().first()
     if row is None: raise RepositoryNotFound("Visible FX-forward instrument does not exist")
     if for_update:
+        # Scope is an optional outer join, so lock it separately and recheck below.
+        # The reference-node FOR UPDATE lock also blocks a new scope's FK check
+        # for legacy unscoped nodes until this booking transaction ends.
+        connection.execute(select(m.reference_node_scope).where(
+            m.reference_node_scope.c.reference_node_id == instrument_id).with_for_update()).all()
         # Lock optional terms/dates independently: PostgreSQL cannot lock nullable outer joins.
         for table in (m.fx_forward_terms, m.instrument_dates, m.instrument_definition_version):
             connection.execute(select(table).where(table.c.instrument_node_id == instrument_id).with_for_update()).all()
         connection.execute(select(m.currency).where(m.currency.c.currency_id.in_([row.base_currency_id, row.quote_currency_id])).order_by(m.currency.c.currency_id).with_for_update()).all()
-        row = connection.execute(statement).mappings().one()
-    return _terms(row)
+        row = connection.execute(statement).mappings().first()
+        if row is None: raise RepositoryNotFound("Visible FX-forward instrument does not exist")
+    return _terms(row, as_of)
 
 
-def _view(row):
+def _view(row, as_of=None):
     values = dict(instrumentId=row.instrument_node_id, name=row.canonical_name, baseCurrency=row.base_currency, quoteCurrency=row.quote_currency,
         quoteConvention=row.quote_convention, agreedRate=decimal_text(row.agreed_forward_rate) if row.agreed_forward_rate is not None else None,
         maturityDate=str(row.maturity_date) if row.maturity_date else None, settlementDate=None, settlementType=row.settlement_type, termsFingerprint=None, bookingEligible=False)
     try:
-        terms = _terms(row)
+        terms = _terms(row, as_of)
         values.update(settlementDate=str(resolve_fx_forward_settlement(terms)), termsFingerprint=fx_forward_terms_fingerprint(terms), bookingEligible=True)
     except FxForwardBookingError as error:
         values.update(ineligibilityCode=error.code, ineligibilityMessage=str(error))
     return FxForwardBookingInstrumentView(**values)
 
 
-def search_fx_forward_booking_instruments(connection, tenant_id, query, limit, offset):
+def search_fx_forward_booking_instruments(connection, tenant_id, query, limit, offset, as_of=None):
     statement = _contract_query(tenant_id)
     if query.strip():
         term = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         statement = statement.where(or_(m.financial_reference_node.c.canonical_name.ilike(f"%{term}%", escape="\\"), m.financial_reference_node.c.internal_code.ilike(f"%{term}%", escape="\\")))
     total = connection.scalar(select(func.count()).select_from(statement.subquery()))
     rows = connection.execute(statement.order_by(m.financial_reference_node.c.canonical_name, m.instrument.c.instrument_node_id).limit(limit).offset(offset)).mappings()
-    return [_view(row) for row in rows], total
+    return [_view(row, as_of) for row in rows], total
 
 
-def get_fx_forward_booking_instrument(connection, tenant_id, instrument_id):
+def get_fx_forward_booking_instrument(connection, tenant_id, instrument_id, as_of=None):
     from .repository import RepositoryNotFound
     row = connection.execute(_contract_query(tenant_id).where(m.instrument.c.instrument_node_id == instrument_id)).mappings().first()
     if row is None: raise RepositoryNotFound("Visible FX-forward instrument does not exist")
-    return _view(row)
+    return _view(row, as_of)
 
 
 def load_fx_forward_trade_economics(connection: Connection, trade_ids) -> dict[UUID, FxForwardTradeEconomicsView]:
@@ -131,10 +139,14 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
         fingerprint = _fingerprint(connection, tenant_id, request)
         existing = find_booking_replay(connection, tenant_id, ENDPOINT, idempotency_key, fingerprint)
         if existing:
-            detail = get_booked_trade_detail(connection, tenant_id, existing, "v1", request_id)
+            detail = get_booked_trade_detail(connection, tenant_id, existing, current_api_version(), request_id)
             if detail is None: raise RepositoryNotFound("Booked trade does not exist")
             return detail
-        terms = load_fx_forward_booking_terms(connection, tenant_id, request.instrument_id, for_update=True)
+        from .booking_controls import validate_execution_date
+        execution_date = validate_execution_date(request.trade_datetime)
+        from .trade_corrections import prepare_correction, complete_correction
+        prepare_correction(connection, tenant_id, request, 'FX_FORWARD')
+        terms = load_fx_forward_booking_terms(connection, tenant_id, request.instrument_id, for_update=True, as_of=execution_date)
         if fx_forward_terms_fingerprint(terms) != request.expected_terms_fingerprint:
             raise FxForwardBookingError("fx_forward.terms_changed", "instrumentId", "The contract terms changed. Reselect the contract before booking.")
         obligations = derive_fx_forward_obligations(terms, request.side, request.quantity)
@@ -157,13 +169,8 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
         snapshot = dict(schemaVersion=1, kind="FX_FORWARD_BOOKING", baseCurrencyId=str(terms.base_currency_id), quoteCurrencyId=str(terms.quote_currency_id), economics=economics.model_dump(by_alias=True))
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=execution, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(snapshot, sort_keys=True), recorded_by_user_account_id=actor_id))
         record_booking_replay(connection, tenant_id, ENDPOINT, idempotency_key, fingerprint, trade_id)
-        return get_booked_trade_detail(connection, tenant_id, trade_id, "v1", request_id)
-
-
-class FxForwardValuationUnsupported(Exception):
-    def __init__(self, trade_ids: tuple[UUID, ...]):
-        self.trade_ids = trade_ids
-        super().__init__("This strategy contains FX forwards. FX-forward valuation is not supported yet.")
+        complete_correction(connection, tenant_id, actor_id, request, trade_id)
+        return get_booked_trade_detail(connection, tenant_id, trade_id, current_api_version(), request_id)
 
 
 def fx_forward_booking_router(connection_dependency, assert_membership):
@@ -178,35 +185,35 @@ def fx_forward_booking_router(connection_dependency, assert_membership):
 
     def authorized(context, connection):
         actor = assert_membership(connection, context)
-        try: require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor, date.today()), "TRADE_WRITE")
+        try: require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor, governance_date()), "TRADE_WRITE")
         except TenantActionForbidden as error: raise HTTPException(403, "Trade booking is not permitted") from error
         return actor
 
     def meta(context, **kwargs):
-        return ApiMeta(tenantContext=str(context.tenant_id), source="live-reference-api", apiVersion="v1", correlationId=current_request_id(), **kwargs)
+        return ApiMeta(tenantContext=str(context.tenant_id), source="live-reference-api", apiVersion=current_api_version(), correlationId=current_request_id(), **kwargs)
 
     @router.get("/v1/trades/fx-forward-instruments", response_model=FxForwardBookingInstrumentSearchResponse)
-    def search(q: str = Query(default="", max_length=250), limit: int = Query(default=25, ge=1, le=100), offset: int = Query(default=0, ge=0), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+    def search(q: str = Query(default="", max_length=250), limit: int = Query(default=25, ge=1, le=100), offset: int = Query(default=0, ge=0), as_of: date | None = Query(default=None, alias="asOfDate"), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(context, connection)
-        data, total = search_fx_forward_booking_instruments(connection, context.tenant_id, q, limit, offset)
+        data, total = search_fx_forward_booking_instruments(connection, context.tenant_id, q, limit, offset, as_of)
         return FxForwardBookingInstrumentSearchResponse(data=data, meta=meta(context, total=total, limit=limit, offset=offset))
 
     @router.get("/v1/trades/fx-forward-instruments/{instrument_id}", response_model=FxForwardBookingInstrumentResponse)
-    def instrument(instrument_id: UUID, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+    def instrument(instrument_id: UUID, as_of: date | None = Query(default=None, alias="asOfDate"), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(context, connection)
-        try: data = get_fx_forward_booking_instrument(connection, context.tenant_id, instrument_id)
+        try: data = get_fx_forward_booking_instrument(connection, context.tenant_id, instrument_id, as_of)
         except RepositoryNotFound as error: raise HTTPException(404, str(error)) from error
         return FxForwardBookingInstrumentResponse(data=data, meta=meta(context))
 
     @router.post(ENDPOINT, response_model=TradeDetailResponse, status_code=201)
-    def book(request: FxForwardBookingRequest, response: Response, idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=255), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+    def book(request: FxForwardBookingRequest, response: Response, idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=255), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         actor = authorized(context, connection)
         try: result = book_fx_forward_trade(connection, context.tenant_id, actor, request, idempotency_key, current_request_id())
         except RepositoryNotFound as error: raise HTTPException(404, str(error)) from error
         except IdempotencyKeyConflict as error: raise ApiProblem(409, "idempotency.key_reused", "Idempotency key conflict", str(error)) from error
         except (FxForwardBookingError, TradeFieldError) as error:
             code = getattr(error, "code", "request.validation_failed")
-            raise ApiProblem(409 if code == "fx_forward.terms_changed" else 422, code, "FX-forward booking could not be completed", str(error), errors=[ValidationIssue(location=["body", error.field], message=str(error), kind="value_error")]) from error
+            raise ApiProblem(409 if code in {"fx_forward.terms_changed", "trade.correction_conflict"} else 422, code, "FX-forward booking could not be completed", str(error), errors=[ValidationIssue(location=["body", error.field], message=str(error), kind="value_error")]) from error
         response.headers["Location"] = f"/v1/trades/{result.data.trade.trade_id}"
         return result
     return router

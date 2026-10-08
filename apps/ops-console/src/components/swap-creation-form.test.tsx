@@ -66,6 +66,17 @@ it('shows upstream field errors while retaining an editable review',async()=>{
   await setup();review();h.send.mockRejectedValue(new BffApiError(422,'Terms invalid','VALIDATION_ERROR',undefined,{'terms.quoteFactor':['Source divisor required']}));await button('Submit swap for approval').props.onClick();
   expect(JSON.stringify(find(render(),n=>n.props?.role==='alert'))).toContain('Source divisor required');button('Back to edit').props.onClick();expect(find(render(),n=>n.props?.name==='quoteFactor').props.value).toBe('100');
 });
+it('retains an uncertain-response key across retries and replaces it after editing',async()=>{
+  await setup();review();h.send.mockRejectedValue(new Error('Unknown write outcome'));
+  await button('Submit swap for approval').props.onClick();
+  const original=h.send.mock.calls[0][1].idempotencyKey;
+  expect(original).toEqual(expect.any(String));
+  await button('Submit swap for approval').props.onClick();
+  expect(h.send.mock.calls[1][1].idempotencyKey).toBe(original);
+  button('Back to edit').props.onClick();change('canonicalName','Edited intent');review();
+  await button('Submit swap for approval').props.onClick();
+  expect(h.send.mock.calls[2][1].idempotencyKey).not.toBe(original);
+});
 it('blocks stale forms when tenant props change',async()=>{
   await setup();review();render('other');const tree=render('other');expect(JSON.stringify(tree)).toContain('tenant changed');expect(find(tree,n=>n.type==='button'&&n.props.children==='Submit swap for approval')).toBeUndefined();expect(h.send).not.toHaveBeenCalled();
 });

@@ -6,9 +6,11 @@ const { mockGet, mockPost } = vi.hoisted(() => ({ mockGet: vi.fn(), mockPost: vi
 vi.mock("server-only", () => ({}));
 vi.mock("api-contracts", () => ({ createReferenceApiClient: vi.fn(() => ({ GET: mockGet, POST: mockPost })) }));
 vi.mock("@/lib/tenant-context", () => ({ resolveLocalTenantContext: () => ({ tenantId: "tenant-server", userAccountId: "user-server", source: "local-session" }) }));
+vi.mock("@/lib/tenant-session", () => ({ getActiveTenantContext: async () => ({ tenantId: "tenant-selected", userAccountId: "user-server", source: "local-session" }) }));
 
 import { POST } from "./resolution-snapshots/route";
 import { GET } from "./valuation-policies/route";
+import {POST as createPolicy} from './valuation-policies/route';
 
 describe("market-data BFF routes", () => {
   beforeEach(() => {
@@ -21,6 +23,14 @@ describe("market-data BFF routes", () => {
 
     expect(response.status).toBe(400);
     expect(mockGet).not.toHaveBeenCalled();
+  });
+  it('requires and forwards the caller stable policy submission key',async()=>{
+    const missing=await createPolicy(new NextRequest('http://ops.test/api/market-data/valuation-policies',{method:'POST',body:'{}'}));
+    expect(missing.status).toBe(400);expect(mockPost).not.toHaveBeenCalled();
+    mockPost.mockResolvedValue({data:{valuationPolicyId:'new-policy'},response:new Response(null,{status:201})});
+    const result=await createPolicy(new NextRequest('http://ops.test/api/market-data/valuation-policies',{method:'POST',headers:{'Idempotency-Key':'stable-policy-key'},body:'{}'}));
+    expect(result.status).toBe(201);
+    expect(mockPost).toHaveBeenCalledWith('/v1/market-data/valuation-policies',{body:{},params:{header:{'Idempotency-Key':'stable-policy-key'}}});
   });
 
   it("passes the selected valuation date to the typed upstream policy route", async () => {

@@ -8,6 +8,7 @@ import { getInstrument, MvpApiError } from "@/lib/mvp-api-client";
 import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { getInstrument as getFixtureInstrument } from "@/lib/instrument-data";
 import {getProductInstrument,getSwapTermsLabels} from '@/lib/reference-api-client';
+import {canManageInstruments} from '@/lib/instrument-authority';
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +22,14 @@ export default async function InstrumentPage({ params }: { params: Promise<{ ins
     const response = await getInstrument(context, instrumentId);
     const futureTerms=response.data.instrumentType==='FUTURE' ? await getProductInstrument(context,instrumentId,new URLSearchParams()).then(r=>r.data).catch(()=>undefined) : undefined;
     const swapLabels=response.data.instrumentType==='SWAP'&&response.data.genericTerms?await getSwapTermsLabels(context,response.data.genericTerms):undefined;
-    return <WorkspaceShell {...shell} sourceLabel="LIVE API"><InstrumentDetail instrument={response.data} futureTerms={futureTerms} swapLabels={swapLabels} standalone /></WorkspaceShell>;
+    return <WorkspaceShell {...shell} sourceLabel="LIVE API"><InstrumentDetail instrument={response.data} futureTerms={futureTerms} swapLabels={swapLabels} canManage={canManageInstruments(workspace)} standalone /></WorkspaceShell>;
   } catch (error) {
     if (error instanceof MvpApiError && error.status === 404) notFound();
 
     const allowFixtureFallback = process.env.NODE_ENV !== "production" && process.env.ALLOW_FIXTURE_FALLBACK === "true";
     const fixture = allowFixtureFallback ? getFixtureInstrument(instrumentId) : undefined;
     if (fixture) {
-      return <WorkspaceShell {...shell} sourceLabel="LOCAL FIXTURE"><InstrumentDetail instrument={fixture} standalone /></WorkspaceShell>;
+      return <WorkspaceShell {...shell} sourceLabel="LOCAL FIXTURE"><InstrumentDetail instrument={fixture} canManage={canManageInstruments(workspace)} standalone /></WorkspaceShell>;
     }
 
     const message = error instanceof MvpApiError && error.status === 403

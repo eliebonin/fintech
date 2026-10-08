@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { WORKSPACE_NAV_ITEMS, getActiveWorkspaceSection } from "./navigation";
 
 describe("workspace navigation", () => {
+  it("routes valuation to a fresh workspace rather than a hardcoded demo strategy", () => {
+    expect(WORKSPACE_NAV_ITEMS.find((item) => item.key === "pnl")?.href).toBe("/valuation");
+    expect(getActiveWorkspaceSection("/valuation")).toBe("pnl");
+  });
   it("exposes the booked trades destination", () => {
     expect(WORKSPACE_NAV_ITEMS.find((item) => item.label === "Trades")?.href).toBe("/trades");
   });

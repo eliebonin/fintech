@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Content type:** Architecture index  
 **Owner:** Market-data and valuation team  
-**Last reviewed:** 2026-09-10
+**Last reviewed:** 2026-10-07
 
 `market_data_series` identifies one economically precise observable stream; observations are immutable and selected under an explicit valuation context. Local cut-offs, calendars, source vintage, corporate-action basis, and entitlement must be reproducible in a valuation snapshot.
 
@@ -11,4 +11,18 @@ Primary detail: [marks and trades](../../../security-master-notes/03-market-data
 
 Current decision: [series measurement semantics](series-measurement-semantics.md).
 
+[P&L demo retirement](../../delivery/pnl-demo-retirement-and-fresh-start.md) removes the old repository/browser calculator and synthetic portfolio pages; old API calls still return410. The replacement [market-only attribution alpha](../../delivery/valuation-market-pnl-alpha.md) adds a dedicated `valuation` package and `/v1/valuation` endpoints. `/valuation` now provides calculation attempts, frozen input inspection, staging and independent review/publication. It requires both VALUATION and MARKET_DATA modules. The first scope is single-currency listed equities/ETFs; it is not full NAV, total-return P&L, accounting or a substitute for missing market-data rights.
+
+[Tenant fund/strategy calendars](../../delivery/tenant-fund-and-strategy-calendars-alpha.md) reuse the calendar domain with immutable tenant schedules and recorded-time version-pinned assignments. Valuation, dealing and settlement purposes stay separate. NAV_DATE pricing uses explicit fund valuation days; exchange calendars continue to govern underlying market prices. UNKNOWN coverage is not silently treated as an open day.
+
+[Composite pricing policies](../../delivery/composite-pricing-policy-alpha.md) extend input selection with per-listing session closes, separate named fixings and immutable policy versions under one information cutoff. Configuration and preview are implemented; this does not activate data rights or calculate valuation/P&L. Legacy rules/snapshots retain their original semantics.
+
+Daily equity ingestion/inspection is implemented in the [Yahoo personal-project alpha](../../delivery/yahoo-market-data-alpha.md). Close and Adj Close have separate adjustment bases; bars are not official prices or certified session-close timestamps. Valuation/P&L and authoritative completeness calendars remain outside this delivery.
+
+The owner-approved [five-year backfill](../../delivery/yahoo-five-year-backfill.md) uses a separately labelled PERSONAL_RESEARCH_EXCEPTION, never CONTRACT evidence, on the local personal Yahoo dataset. Full-universe coverage and known short/missing histories are recorded with execution results.
+
+The [ingestion module boundary](../../delivery/market-data-ingestion-boundary.md) separates provider adapters, daily publication/storage and shared rights from the reference API. Operator entry points live in `apps/market_data_ingestor`; acquisition is not part of API request handling. The existing repository/database remain shared, with import-boundary regression tests.
+
 Future attribution direction: [P&L attribution subjects and cost ownership](pnl-attribution-subjects.md).
+
+[Ingestion hardening](../../delivery/md-ingestion-hardening.md) adds durable operational evidence, explicit partial outcomes and historical-continuity reviews. Read-only coverage reconciliation uses versioned exchange schedules, without claiming authoritative calendar certification or rewriting prices.

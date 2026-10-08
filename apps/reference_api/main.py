@@ -1,6 +1,7 @@
 """FastAPI application factory for canonical reference-data services."""
 
 from datetime import date
+from .resource_limits import governance_date
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -8,8 +9,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, st
 from sqlalchemy import Engine, select
 
 from security_master_schema import models as m
+from market_data.display_access import EvidenceDisplayDenied
 
 from .config import Settings
+from .booking_errors import StrategyCodeConflict
 from .problem_details import ApiProblem, configure_problem_details, current_request_id
 from .contracts import (
     BondProposalRequest,
@@ -24,6 +27,7 @@ from .contracts import (
     FxForwardProposalRequest,
     FxForwardProposalResponse,
     InstrumentSearchResponse,
+    InstrumentResponse,
     InstrumentView,
     ReferenceNodeSearchResponse,
     IndexFamilyOptionResponse,
@@ -42,7 +46,6 @@ from .contracts import (
     ActiveValuationPolicyView,
     MarketDataSeriesResponse,
     MarketVenueResponse,
-    PortfolioPnlResponse,
     OrganisationOptionResponse,
     ReferenceDataProposalResponse,
     ReturnProfileResponse,
@@ -65,8 +68,8 @@ from .db import get_engine
 from .trade_properties import get_trade_booking_context, list_trade_traders, TradeFieldError
 from .contracts import TradeBookingContextResponse, TradeTraderResponse
 from .problem_details import ValidationIssue
-from .product_booking import ProductBookingError, ProductValuationUnsupported
-from .repository import IdempotencyKeyConflict, InvalidCatalogueValue, InvalidWorkflowState, RepositoryNotFound, book_listed_cash_trade, create_market_data_resolution_snapshot, create_mapping_proposal, decide_crypto_asset_proposal, decide_etp_proposal, decide_fx_forward_proposal, decide_index_family_proposal, decide_index_proposal, decide_mapping_proposal, decide_bond_proposal, decide_equity_proposal, decide_reference_data_proposal, decide_structured_product_proposal, get_market_data_resolution_snapshot, get_booked_trade_detail, get_crypto_asset_proposal, get_instrument, get_reference_data_proposal, list_active_valuation_policies, list_booked_trades, list_currencies, list_day_count_conventions, list_index_families, list_index_kinds, list_market_data_series, list_market_venues, list_organisations, list_return_profiles, parse_currency_groups, portfolio_pnl, search_instruments, search_reference_nodes, submit_bond_proposal, submit_crypto_asset_proposal, submit_etp_proposal, submit_fx_forward_proposal, submit_equity_listing_proposal, submit_equity_proposal, submit_index_family_proposal, submit_index_proposal, submit_structured_product_proposal, work_queue
+from .product_booking import ProductBookingError
+from .repository import IdempotencyKeyConflict, InvalidCatalogueValue, InvalidWorkflowState, RepositoryNotFound, book_listed_cash_trade, create_market_data_resolution_snapshot, create_mapping_proposal, decide_crypto_asset_proposal, decide_etp_proposal, decide_fx_forward_proposal, decide_index_family_proposal, decide_index_proposal, decide_mapping_proposal, decide_bond_proposal, decide_equity_proposal, decide_reference_data_proposal, decide_structured_product_proposal, get_market_data_resolution_snapshot, get_booked_trade_detail, get_crypto_asset_proposal, get_instrument, get_reference_data_proposal, list_active_valuation_policies, list_booked_trades, list_currencies, list_day_count_conventions, list_index_families, list_index_kinds, list_market_data_series, list_market_venues, list_organisations, list_return_profiles, parse_currency_groups, search_instruments, search_reference_nodes, submit_bond_proposal, submit_crypto_asset_proposal, submit_etp_proposal, submit_fx_forward_proposal, submit_equity_listing_proposal, submit_equity_proposal, submit_index_family_proposal, submit_index_proposal, submit_structured_product_proposal, work_queue
 from .tenant_context import TenantContext, get_tenant_context, require_actor
 from .tenant_context import ActorContext, get_actor_context
 from .repository import create_strategy
@@ -85,11 +88,22 @@ def _correlation_id(value: str | None) -> str:
 def create_app(*, settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
     resolved_settings = settings or Settings.from_environment()
     app = FastAPI(title="Reference Data API", version=resolved_settings.api_version)
+    from .resource_limits import RequestBodyBudget
+    app.add_middleware(RequestBodyBudget, max_bytes=resolved_settings.max_request_body_bytes)
     configure_problem_details(app)
 
     def connection_dependency():
         with (engine or get_engine(resolved_settings)).begin() as connection:
+            from .resource_limits import configure_transaction_budget
+            configure_transaction_budget(connection,resolved_settings)
             yield connection
+
+    def market_data_actor(connection, context):
+        actor_id = _assert_tenant_membership(connection, context)
+        workspace = resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date())
+        if 'MARKET_DATA' not in workspace.module_codes:
+            raise HTTPException(status_code=403, detail='Market-data module is not enabled for this tenant')
+        return actor_id
 
     from .trade_configuration_routes import configuration_router
     app.include_router(configuration_router(connection_dependency))
@@ -99,22 +113,36 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     app.include_router(option_router(connection_dependency, _assert_tenant_membership))
     from .product_booking_routes import product_booking_router
     app.include_router(product_booking_router(connection_dependency, _assert_tenant_membership))
+    from .cash_booking_readiness import cash_booking_readiness_router
+    app.include_router(cash_booking_readiness_router(connection_dependency, _assert_tenant_membership))
+    from .trade_corrections import correction_router
+    app.include_router(correction_router(connection_dependency, _assert_tenant_membership))
+    from .fx_delivery import delivery_router
+    app.include_router(delivery_router(connection_dependency, _assert_tenant_membership))
+    from .valuation_policy_routes import valuation_policy_router
+    app.include_router(valuation_policy_router(connection_dependency, _assert_tenant_membership))
+    from .valuation_routes import valuation_router
+    from .resource_limits import configure_transaction_budget
+    app.include_router(valuation_router(connection_dependency, _assert_tenant_membership, lambda: engine or get_engine(resolved_settings),
+        lambda connection: configure_transaction_budget(connection, resolved_settings)))
+    from .calendar_routes import calendar_router
+    app.include_router(calendar_router(connection_dependency, _assert_tenant_membership))
 
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "service": "reference-api"}
 
     @app.get("/v1/session/memberships", response_model=TenantMembershipResponse)
-    def memberships(context: ActorContext = Depends(get_actor_context), connection=Depends(connection_dependency)) -> TenantMembershipResponse:
+    def memberships(context: ActorContext = Depends(get_actor_context), connection=Depends(connection_dependency, scope='function')) -> TenantMembershipResponse:
         _assert_active_actor(connection, context.user_account_id)
-        rows = list_active_tenant_memberships(connection, context.user_account_id, date.today())
-        return TenantMembershipResponse(data=[TenantMembershipView(tenantId=row.tenant_id, tenantCode=row.tenant_code, tenantName=row.tenant_name, membershipRole=row.membership_role) for row in rows], platformRole=resolve_platform_role(connection, context.user_account_id, date.today()))
+        rows = list_active_tenant_memberships(connection, context.user_account_id, governance_date())
+        return TenantMembershipResponse(data=[TenantMembershipView(tenantId=row.tenant_id, tenantCode=row.tenant_code, tenantName=row.tenant_name, membershipRole=row.membership_role) for row in rows], platformRole=resolve_platform_role(connection, context.user_account_id, governance_date()))
 
     @app.get("/v1/tenant-workspace", response_model=TenantWorkspaceResponse)
-    def tenant_workspace(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> TenantWorkspaceResponse:
+    def tenant_workspace(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> TenantWorkspaceResponse:
         actor_id = _assert_tenant_membership(connection, context)
         try:
-            workspace = resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today())
+            workspace = resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date())
         except TenantActionForbidden as exc:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant is outside the actor's active memberships") from exc
         return TenantWorkspaceResponse(data=TenantWorkspaceView(
@@ -127,24 +155,26 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         ))
 
     @app.post("/v1/strategies", response_model=StrategyResponse, status_code=status.HTTP_201_CREATED)
-    def create_tenant_strategy(request: StrategyCreateRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyResponse:
+    def create_tenant_strategy(request: StrategyCreateRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyResponse:
         actor_id = _assert_tenant_membership(connection, context)
         try:
-            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "STRATEGY_WRITE")
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date()), "STRATEGY_WRITE")
             with connection.begin_nested():
                 return StrategyResponse(data=create_strategy(connection, context.tenant_id, actor_id, request))
+        except StrategyCodeConflict as exc:
+            raise ApiProblem(409,'strategy.code_exists','Strategy conflict','Strategy code is already registered in this tenant.') from exc
         except TenantActionForbidden as exc:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant membership is not permitted to manage strategies") from exc
         except ValueError as exc:
             raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "request.validation_failed", "Request validation failed", "One or more request fields are invalid.") from exc
 
     @app.get("/v1/strategies", response_model=StrategyListResponse)
-    def tenant_strategies(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyListResponse:
+    def tenant_strategies(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyListResponse:
         _assert_tenant_membership(connection, context)
         return list_strategies(connection, context.tenant_id)
 
     @app.get("/v1/strategies/{strategy_id}", response_model=StrategyResponse)
-    def tenant_strategy_detail(strategy_id: UUID, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyResponse:
+    def tenant_strategy_detail(strategy_id: UUID, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyResponse:
         _assert_tenant_membership(connection, context)
         result = get_strategy(connection, context.tenant_id, strategy_id)
         if result is None:
@@ -152,10 +182,10 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         return StrategyResponse(data=result)
 
     @app.post("/v1/strategies/{strategy_id}/status", response_model=StrategyResponse)
-    def tenant_strategy_status(strategy_id: UUID, request: StrategyStatusRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)) -> StrategyResponse:
+    def tenant_strategy_status(strategy_id: UUID, request: StrategyStatusRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyResponse:
         actor_id = _assert_tenant_membership(connection, context)
         try:
-            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "STRATEGY_WRITE")
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date()), "STRATEGY_WRITE")
             with connection.begin_nested():
                 result = archive_strategy(connection, context.tenant_id, strategy_id, request)
         except TenantActionForbidden as exc:
@@ -173,7 +203,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> InstrumentSearchResponse:
         _assert_tenant_membership(connection, context)
@@ -190,11 +220,11 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             status,
         )
 
-    @app.get("/v1/instruments/{instrument_id}")
+    @app.get("/v1/instruments/{instrument_id}", response_model=InstrumentResponse)
     def detail(
         instrument_id: UUID,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> dict[str, object]:
         _assert_tenant_membership(connection, context)
@@ -221,7 +251,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> ReferenceNodeSearchResponse:
         """Search visible instrument and non-instrument reference nodes."""
@@ -245,7 +275,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def get_reference_proposal(
         proposal_id: UUID,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> ReferenceDataProposalResponse:
         """Return a single tenant-scoped proposal for the generic review UI."""
@@ -270,7 +300,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> ReferenceDataProposalResponse:
         """Dispatch a steward decision while retaining type-specific validation."""
@@ -306,7 +336,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_mapping(
         request: MappingProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
     ) -> MappingProposalView:
         actor_id = _assert_tenant_membership(connection, context)
         try:
@@ -320,7 +350,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
     ) -> MappingProposalView:
         actor_id = _assert_tenant_membership(connection, context)
         try:
@@ -335,7 +365,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_equity(
         request: EquityProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> EquityProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -360,7 +390,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_bond(
         request: BondProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> BondProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -386,7 +416,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> BondProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -411,7 +441,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_etp(
         request: EtpProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> EtpProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -429,7 +459,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> EtpProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -446,7 +476,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_fx_forward(
         request: FxForwardProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> FxForwardProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -472,7 +502,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> FxForwardProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -498,7 +528,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_equity_listing(
         request: EquityListingCreateProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> EquityProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -524,7 +554,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> EquityProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -549,7 +579,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_crypto_asset(
         request: CryptoAssetProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> CryptoAssetProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -574,7 +604,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def get_crypto_asset(
         proposal_id: UUID,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> CryptoAssetProposalResponse:
         _assert_tenant_membership(connection, context)
@@ -597,7 +627,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> CryptoAssetProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -622,7 +652,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_index(
         request: IndexProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> IndexProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -650,7 +680,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> IndexProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -675,7 +705,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_index_family(
         request: IndexFamilyProposalRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> IndexFamilyProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -701,7 +731,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> IndexFamilyProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -726,7 +756,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def propose_structured_product(
         request: AutocallDraftRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> StructuredProductProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -754,7 +784,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         proposal_id: UUID,
         request: MappingDecisionRequest,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> StructuredProductProposalResponse:
         actor_id = _assert_tenant_membership(connection, context)
@@ -779,12 +809,14 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
 
     @app.get("/v1/work-queue", response_model=WorkQueueView)
     def queue(
+        limit: int = Query(default=100, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=10000),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> WorkQueueView:
         _assert_tenant_membership(connection, context)
-        return work_queue(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id))
+        return work_queue(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id), limit=limit, offset=offset)
 
     @app.post(
         "/v1/market-data-resolution-snapshots",
@@ -796,9 +828,9 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         response: Response,
         idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=255),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
     ) -> MarketDataResolutionSnapshotView:
-        _assert_tenant_membership(connection, context)
+        market_data_actor(connection, context)
         try:
             with connection.begin_nested():
                 snapshot = create_market_data_resolution_snapshot(
@@ -806,6 +838,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
                 )
         except IdempotencyKeyConflict as exc:
             raise ApiProblem(status.HTTP_409_CONFLICT, "idempotency.key_reused", "Idempotency key conflict", "The idempotency key has already been used for a different request.") from exc
+        except EvidenceDisplayDenied as exc:
+            raise ApiProblem(403,'market_data.evidence_forbidden','Evidence access denied',str(exc)) from exc
         except (ValueError, PermissionError) as exc:
             raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "market_data.invalid_context", "Invalid Market Data resolution context", "The policy, valuation cut, or information cut is invalid for this request.") from exc
         response.headers["Location"] = f"/v1/market-data-resolution-snapshots/{snapshot.market_data_resolution_snapshot_id}"
@@ -815,21 +849,23 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def get_market_data_snapshot(
         snapshot_id: UUID,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
     ) -> MarketDataResolutionSnapshotView:
-        _assert_tenant_membership(connection, context)
+        market_data_actor(connection, context)
         try:
             return get_market_data_resolution_snapshot(connection, context.tenant_id, snapshot_id)
         except RepositoryNotFound as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Market-data resolution snapshot not found") from exc
+        except PermissionError as exc:
+            raise ApiProblem(403,'market_data.evidence_forbidden','Evidence access denied',str(exc)) from exc
 
     @app.get("/v1/market-data/valuation-policies", response_model=list[ActiveValuationPolicyView])
     def active_valuation_policies(
         valuation_date: date = Query(alias="valuationDate"),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
     ) -> list[ActiveValuationPolicyView]:
-        _assert_tenant_membership(connection, context)
+        market_data_actor(connection, context)
         return list_active_valuation_policies(connection, context.tenant_id, valuation_date)
 
     @app.get("/v1/market-data/series", response_model=MarketDataSeriesResponse)
@@ -840,21 +876,26 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         series_type: str | None = Query(default=None, alias="seriesType", max_length=50),
         limit: int = Query(default=20, ge=1, le=100),
         offset: int = Query(default=0, ge=0),
+        observation_limit: int = Query(default=1000, ge=1, le=1000, alias="observationLimit"),
+        observation_offset: int = Query(default=0, ge=0, le=100000, alias="observationOffset"),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> MarketDataSeriesResponse:
-        _assert_tenant_membership(connection, context)
+        actor_id = _assert_tenant_membership(connection, context)
+        workspace = resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date())
+        if 'MARKET_DATA' not in workspace.module_codes:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Market-data module is not enabled for this tenant')
         if from_date and to_date and from_date > to_date:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="fromDate must be on or before toDate")
-        return list_market_data_series(connection, context.tenant_id, from_date, to_date, reference_node_id, series_type, limit, offset, resolved_settings.api_version, _correlation_id(x_correlation_id))
+        return list_market_data_series(connection, context.tenant_id, from_date, to_date, reference_node_id, series_type, limit, offset, resolved_settings.api_version, _correlation_id(x_correlation_id), observation_limit, observation_offset)
 
     @app.get("/v1/market-venues", response_model=MarketVenueResponse)
     def market_venues(
         limit: int = Query(default=100, ge=1, le=500),
         offset: int = Query(default=0, ge=0),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> MarketVenueResponse:
         _assert_tenant_membership(connection, context)
@@ -863,7 +904,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     @app.get("/v1/day-count-conventions", response_model=DayCountConventionResponse)
     def day_count_conventions(
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> DayCountConventionResponse:
         _assert_tenant_membership(connection, context)
@@ -873,7 +914,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def currencies(
         groups: str = Query(default="REGULAR", max_length=100),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> CurrencyResponse:
         _assert_tenant_membership(connection, context)
@@ -886,7 +927,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     @app.get("/v1/return-profiles", response_model=ReturnProfileResponse)
     def return_profiles(
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> ReturnProfileResponse:
         _assert_tenant_membership(connection, context)
@@ -895,7 +936,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     @app.get("/v1/index-kind-catalogue", response_model=IndexKindResponse)
     def index_kind_catalogue(
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> IndexKindResponse:
         _assert_tenant_membership(connection, context)
@@ -906,7 +947,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         q: str = Query(default="", max_length=200),
         limit: int = Query(default=100, ge=1, le=500),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> OrganisationOptionResponse:
         _assert_tenant_membership(connection, context)
@@ -915,14 +956,14 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     @app.get("/v1/index-families", response_model=IndexFamilyOptionResponse)
     def index_families(
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> IndexFamilyOptionResponse:
         _assert_tenant_membership(connection, context)
         return list_index_families(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id))
 
     @app.get("/v1/trades/booking-context", response_model=TradeBookingContextResponse)
-    def trade_booking_context(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+    def trade_booking_context(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         actor_id = _assert_tenant_membership(connection, context)
         try:
             data = get_trade_booking_context(connection, context.tenant_id, actor_id)
@@ -931,10 +972,10 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         return {"data": data, "meta": {"tenantContext":str(context.tenant_id), "source":"live-reference-api", "apiVersion":resolved_settings.api_version, "correlationId":current_request_id()}}
 
     @app.get("/v1/trades/traders", response_model=TradeTraderResponse)
-    def trade_traders(q: str = Query(default="", max_length=250), limit: int = Query(default=25, ge=1, le=100), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency)):
+    def trade_traders(q: str = Query(default="", max_length=250), limit: int = Query(default=25, ge=1, le=100), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         actor_id = _assert_tenant_membership(connection, context)
         try:
-            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "TRADE_WRITE")
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date()), "TRADE_WRITE")
         except TenantActionForbidden as exc:
             raise HTTPException(status_code=403, detail="Trade booking is not permitted") from exc
         return {"data": list_trade_traders(connection, context.tenant_id, q, limit), "meta": {"tenantContext":str(context.tenant_id), "source":"live-reference-api", "apiVersion":resolved_settings.api_version, "correlationId":current_request_id(), "limit":limit}}
@@ -945,11 +986,11 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         response: Response,
         idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=255),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
     ) -> TradeDetailResponse:
         actor_id = _assert_tenant_membership(connection, context)
         try:
-            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, date.today()), "TRADE_WRITE")
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date()), "TRADE_WRITE")
             with connection.begin_nested():
                 result = book_listed_cash_trade(connection, context.tenant_id, actor_id, request, idempotency_key, current_request_id())
         except TenantActionForbidden as exc:
@@ -959,7 +1000,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         except RepositoryNotFound as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing or strategy not found") from exc
         except TradeFieldError as exc:
-            raise ApiProblem(422, "request.validation_failed", "Request validation failed", str(exc), errors=[ValidationIssue(location=["body", exc.field], message=str(exc), kind="value_error")]) from exc
+            code=getattr(exc,'code','request.validation_failed')
+            raise ApiProblem(409 if code=='trade.correction_conflict' else 422, code, "Request validation failed", str(exc), errors=[ValidationIssue(location=["body", exc.field], message=str(exc), kind="value_error")]) from exc
         except (InvalidCatalogueValue, ValueError) as exc:
             raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "request.validation_failed", "Request validation failed", "One or more request fields are invalid.") from exc
         response.headers["Location"] = f"/v1/trades/{result.data.trade.trade_id}"
@@ -976,7 +1018,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         limit: int = Query(default=50, ge=1, le=200),
         offset: int = Query(default=0, ge=0),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> TradeResponse:
         _assert_tenant_membership(connection, context)
@@ -988,7 +1030,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def booked_trade_detail(
         trade_id: UUID,
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
     ) -> TradeDetailResponse:
         _assert_tenant_membership(connection, context)
@@ -997,28 +1039,27 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booked trade not found")
         return result
 
-    @app.get("/v1/portfolios/{portfolio_code}/pnl", response_model=PortfolioPnlResponse)
+    @app.get("/v1/portfolios/{portfolio_code}/pnl", deprecated=True, status_code=410,
+        response_model=None, response_class=Response, responses={410: {
+            "description": "Legacy P&L demonstration retired",
+            "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemDetails"}}},
+        }})
     def portfolio_pnl_view(
         portfolio_code: str,
         as_of_date: date = Query(alias="asOfDate"),
         context: TenantContext = Depends(get_tenant_context),
-        connection=Depends(connection_dependency),
+        connection=Depends(connection_dependency, scope='function'),
         x_correlation_id: str | None = Header(default=None),
-    ) -> PortfolioPnlResponse:
+    ) -> None:
+        """Retirement tombstone; never select trades/prices or return demo totals.
+
+        Keep the old URL and tenant gate so bookmarked/API consumers get an
+        explicit retirement response rather than mistaking an empty result for
+        zero P&L. The replacement engine will have its own versioned contract.
+        """
         _assert_tenant_membership(connection, context)
-        from .fx_forward_booking import FxForwardValuationUnsupported
-        from .option_booking import OptionValuationUnsupported
-        try:
-            result = portfolio_pnl(connection, context.tenant_id, portfolio_code, as_of_date, resolved_settings.api_version, _correlation_id(x_correlation_id))
-        except FxForwardValuationUnsupported as error:
-            raise ApiProblem(422, "valuation.fx_forward_unsupported", "Unsupported FX-forward valuation", str(error)) from error
-        except OptionValuationUnsupported as error:
-            raise ApiProblem(422,"valuation.option_unsupported","Unsupported option valuation",str(error)) from error
-        except ProductValuationUnsupported as error:
-            raise ApiProblem(422, 'valuation.product_unsupported', 'Unsupported product valuation', str(error)) from error
-        if result is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
-        return result
+        raise ApiProblem(410, "valuation.demo_retired", "Legacy P&L demonstration retired",
+            "The legacy calculator has been removed. The new valuation/P&L engine is not implemented yet.")
 
     return app
 
@@ -1040,13 +1081,15 @@ def _assert_tenant_membership(connection, context: TenantContext) -> UUID:
     _assert_active_actor(connection, actor_id)
     membership = connection.execute(
         select(m.tenant_user_account.c.tenant_user_account_id)
+        .join(m.tenant, m.tenant.c.tenant_id == m.tenant_user_account.c.tenant_id)
+        .where(m.tenant.c.status == "ACTIVE")
         .where(m.tenant_user_account.c.tenant_id == context.tenant_id)
         .where(m.tenant_user_account.c.user_account_id == actor_id)
         .where(m.tenant_user_account.c.status == "ACTIVE")
-        .where(m.tenant_user_account.c.valid_from <= date.today())
+        .where(m.tenant_user_account.c.valid_from <= governance_date())
         .where(
             (m.tenant_user_account.c.valid_to.is_(None))
-            | (m.tenant_user_account.c.valid_to >= date.today())
+            | (m.tenant_user_account.c.valid_to >= governance_date())
         )
     ).scalar_one_or_none()
     if membership is None:

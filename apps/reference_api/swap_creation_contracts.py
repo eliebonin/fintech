@@ -118,6 +118,7 @@ class GenericSwapTerms(BaseModel):
 
 
 class SwapProposalRequest(BaseModel):
+    idempotency_key: str | None = Field(default=None,alias='idempotencyKey',min_length=1,max_length=255)
     canonical_name: str = Field(alias='canonicalName', min_length=1, max_length=250)
     tenant_identifier: str | None = Field(default=None, alias='tenantIdentifier', min_length=1, max_length=100)
     terms: GenericSwapTerms

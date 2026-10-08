@@ -295,6 +295,7 @@ DEMO_IDS = {
     "trading_module_entitlement": UUID("00000000-0000-7000-8000-000000000276"),
     "valuation_module_entitlement": UUID("00000000-0000-7000-8000-000000000277"),
     "fund_management_module_entitlement": UUID("00000000-0000-7000-8000-000000000278"),
+    "market_data_module_entitlement": UUID("00000000-0000-7000-8000-000000000279"),
 }
 
 
@@ -338,7 +339,7 @@ def load_demo_data(engine: Engine) -> None:
         trading_book_manager_profile_id = _catalogue_id(connection, m.operating_profile, m.operating_profile.c.profile_code, "TRADING_BOOK_MANAGER")
         module_ids = {
             code: _catalogue_id(connection, m.platform_module, m.platform_module.c.module_code, code)
-            for code in ("SECURITY_MASTER", "TRADING", "VALUATION", "FUND_MANAGEMENT")
+            for code in ("SECURITY_MASTER", "TRADING", "VALUATION", "FUND_MANAGEMENT", "MARKET_DATA")
         }
 
         for entity_id, code, name in (
@@ -400,6 +401,7 @@ def load_demo_data(engine: Engine) -> None:
         for entitlement_id, module_code in (
             (DEMO_IDS["security_master_module_entitlement"], "SECURITY_MASTER"),
             (DEMO_IDS["trading_module_entitlement"], "TRADING"),
+            (DEMO_IDS["market_data_module_entitlement"], "MARKET_DATA"),
             (DEMO_IDS["valuation_module_entitlement"], "VALUATION"),
             (DEMO_IDS["fund_management_module_entitlement"], "FUND_MANAGEMENT"),
         ):

@@ -1,5 +1,6 @@
 """Governed booking of funded structured securities and cash-settled index futures."""
 from datetime import date, datetime, timezone
+from .problem_details import current_api_version
 from decimal import Decimal, localcontext
 from hashlib import sha256
 import json
@@ -25,8 +26,10 @@ class ProductBookingError(ValueError):
         self.field, self.code = field, code
 
 
-class ProductValuationUnsupported(ValueError):
-    pass
+class ProductReadinessRefusal(ValueError):
+    def __init__(self, message, readiness_status):
+        super().__init__(message)
+        self.readiness_status = readiness_status
 
 
 def visible_clause(reference_id, tenant):
@@ -109,7 +112,13 @@ def append_convention(connection, instrument_id, convention, actor):
 
 
 def submit_proposal(connection, tenant, actor, request):
+    from .reference_authority import require_reference_action
+    require_reference_action(connection, tenant, actor)
     from .repository import get_reference_data_proposal
+    from .proposal_retries import find_proposal_replay
+    replay = find_proposal_replay(connection, tenant, request, require_source=False)
+    if replay is not None:
+        return get_reference_data_proposal(connection, tenant, replay)
     if isinstance(request, SwapProposalRequest):
         from .swap_creation import validate_swap_references
         validate_swap_references(connection, tenant, request.terms)
@@ -127,7 +136,7 @@ def submit_proposal(connection, tenant, actor, request):
     proposal_id = connection.scalar(m.reference_data_proposal.insert().values(
         tenant_id=tenant, proposal_type=kind, proposed_payload=json.dumps(payload, sort_keys=True),
         submission_mode='MANUAL', match_status='NEW', payload_schema_version='product-booking.v1',
-        status='PENDING').returning(m.reference_data_proposal.c.reference_data_proposal_id))
+        status='PENDING', idempotency_key=request.idempotency_key).returning(m.reference_data_proposal.c.reference_data_proposal_id))
     return get_reference_data_proposal(connection, tenant, proposal_id)
 
 
@@ -232,10 +241,8 @@ def materialize_future(connection, tenant, actor, request):
 
 def decide_proposal(connection, tenant, actor, proposal_id, decision, reason):
     from .repository import get_reference_data_proposal, RepositoryNotFound, InvalidWorkflowState
-    from security_master_schema.tenant_workspace import resolve_tenant_workspace, require_tenant_action
-    workspace = resolve_tenant_workspace(connection, tenant, actor, date.today())
-    if workspace.membership_role != 'TENANT_ADMIN': raise InvalidWorkflowState('Tenant administrator approval is required.')
-    require_tenant_action(workspace, 'TRADE_WRITE')
+    from .reference_authority import require_reference_action
+    require_reference_action(connection, tenant, actor, 'REFERENCE_APPROVE')
     row = connection.execute(select(m.reference_data_proposal).where(
         m.reference_data_proposal.c.reference_data_proposal_id == proposal_id,
         m.reference_data_proposal.c.tenant_id == tenant).with_for_update()).mappings().first()
@@ -304,7 +311,7 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
         definitions = connection.execute(select(m.instrument_definition_version).where(
             m.instrument_definition_version.c.instrument_node_id == instrument_id,
             m.instrument_definition_version.c.is_current, m.instrument_definition_version.c.status == 'APPROVED')).mappings().all()
-        if len(definitions) != 1: raise ValueError('Exactly one current approved instrument definition is required.')
+        if len(definitions) != 1: raise ProductReadinessRefusal('Exactly one current approved instrument definition is required.', 'MISSING_CONFIGURATION')
         definition = definitions[0]
         for key in ('base_currency_id', 'instrument_type_id', 'issuer_organisation_id', 'effective_from', 'effective_to'):
             if definition[key] != instrument[key]: raise ValueError('Instrument differs from its approved definition.')
@@ -314,14 +321,14 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
             m.instrument_booking_convention.c.instrument_node_id == instrument_id,
             m.instrument_booking_convention.c.effective_from <= as_of).order_by(
             m.instrument_booking_convention.c.effective_from.desc(), m.instrument_booking_convention.c.version_no.desc()).limit(1)).mappings().first()
-        if not stored: raise ValueError('Approved booking conventions are required. Configure them from instrument detail.')
+        if not stored: raise ProductReadinessRefusal('Approved booking conventions are required. Configure them from instrument detail.', 'MISSING_CONFIGURATION')
         convention = CONVENTION.validate_json(stored.convention_payload)
         values['convention'] = convention
         if convention.kind != instrument.type_code or convention.price_currency_id != definition.base_currency_id:
             raise ValueError('Approved convention kind/currency does not agree with the instrument.')
         currency_stmt = select(m.currency).where(m.currency.c.currency_id == convention.price_currency_id)
         currency = connection.execute(currency_stmt.with_for_update() if lock else currency_stmt).mappings().one()
-        if currency.status != 'ACTIVE': raise ValueError('Price currency must be active.')
+        if currency.status != 'ACTIVE': raise ProductReadinessRefusal('Price currency must be active.', 'INACTIVE')
         values['currency'] = currency.currency_code
         facts = dict(conventionId=str(stored.instrument_booking_convention_id), definitionId=str(definition.instrument_definition_version_id))
         if listing_id:
@@ -421,6 +428,26 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
         values.update(bookingEligible=True, termsFingerprint=sha256(json.dumps(facts, sort_keys=True, default=str).encode()).hexdigest())
     except ValueError as error:
         values['ineligibilityMessage'] = str(error)
+        values['readinessStatus'] = getattr(error, 'readiness_status', 'NOT_READY')
+        if instrument.type_code == 'FUTURE':
+            future = connection.execute(select(m.future_terms).where(m.future_terms.c.instrument_node_id == instrument_id)).mappings().first()
+            family = connection.execute(select(m.future_family).where(m.future_family.c.future_family_id == future.future_family_id)).mappings().first() if future else None
+            if family:
+                require_visible(connection, tenant, family.family_node_id)
+                require_visible(connection, tenant, family.underlying_reference_node_id)
+            try:
+                specification = FutureFamilySpecification.model_validate_json(family.specification_payload) if family and family.specification_payload else None
+            except ValueError:
+                # Explaining a refusal must not re-raise malformed legacy facts
+                # or make them look eligible. Visibility was checked above.
+                values.update(readinessStatus='NOT_READY', ineligibilityMessage='Futures family configuration is invalid. Inspect its approved specification before booking.')
+            else:
+                if future and (future.settlement_method == 'PHYSICAL' or (specification and specification.underlying_kind == 'CRYPTOASSET')):
+                    values.update(readinessStatus='CREATION_ONLY', ineligibilityMessage='Physical/crypto futures can be created and inspected, but trade booking is not supported in this alpha.')
+    # Presentation-only metadata is added after the execution fingerprint was
+    # calculated. It does not change existing saved economics or retry facts.
+    if values.get('bookingEligible'):
+        values['readinessStatus'] = 'READY'
     return ProductBookingContextView(**values)
 
 
@@ -440,6 +467,9 @@ def search(connection, tenant, kind, route, query, limit, offset, as_of):
                 m.financial_reference_identifier.c.reference_node_id == node.c.reference_node_id,
                 m.financial_reference_identifier.c.identifier_value.ilike(f'%{escaped}%', escape='\\'))))
         if route == 'LISTED': match = or_(match, m.listing.c.trading_symbol.ilike(f'%{escaped}%', escape='\\'))
+        if kind == 'SWAP':
+            from .reference_search import swap_tenant_identifier_matches
+            match = or_(match, swap_tenant_identifier_matches(node.c.reference_node_id, query))
         statement = statement.where(match)
     total = connection.scalar(select(func.count()).select_from(statement.subquery()))
     ordering = [node.c.canonical_name, m.instrument.c.instrument_node_id]
@@ -466,10 +496,14 @@ def book(connection, tenant, actor, request, key, kind, request_id):
         fingerprint = _trade_booking_fingerprint(normalized, connection, tenant)
         existing = find_booking_replay(connection, tenant, endpoint, key, fingerprint)
         if existing:
-            detail = get_booked_trade_detail(connection, tenant, existing, 'v1', request_id)
+            detail = get_booked_trade_detail(connection, tenant, existing, current_api_version(), request_id)
             if detail is None: raise RepositoryNotFound('Booked trade does not exist')
             return detail
         execution = request.trade_datetime.astimezone(timezone.utc)
+        from .booking_controls import validate_execution_date
+        validate_execution_date(execution)
+        from .trade_corrections import prepare_correction, complete_correction
+        prepare_correction(connection, tenant, request, kind)
         terms = load_context(connection, tenant, request.instrument_id, request.listing_id, execution.date(), True)
         if terms.kind != kind or not terms.booking_eligible: raise ProductBookingError(terms.ineligibility_message or 'Wrong booking product.')
         if terms.terms_fingerprint != request.expected_terms_fingerprint:
@@ -538,7 +572,8 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             event_payload=json.dumps({'schemaVersion': 1, 'kind': 'PRODUCT_BOOKING', 'economics': economics.model_dump(mode='json', by_alias=True)}, sort_keys=True),
             recorded_by_user_account_id=actor))
         record_booking_replay(connection, tenant, endpoint, key, fingerprint, trade_id)
-        return get_booked_trade_detail(connection, tenant, trade_id, 'v1', request_id)
+        complete_correction(connection, tenant, actor, request, trade_id)
+        return get_booked_trade_detail(connection, tenant, trade_id, current_api_version(), request_id)
 
 
 def load_economics(connection, trade_ids):

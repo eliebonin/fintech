@@ -6,6 +6,7 @@ the date, information-cut and staleness decision explicit and independently test
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
 
@@ -42,7 +43,11 @@ class ObservationCandidate:
     observation_id: UUID
     market_date: date
     received_at_utc: datetime
-    value: float
+    value: Decimal
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, Decimal) or not self.value.is_finite():
+            raise ValueError('Observation value must be a finite Decimal')
 
 
 @dataclass(frozen=True)
@@ -54,7 +59,7 @@ class PriceResolution:
     pricing_date_used: date | None
     staleness_business_days: int | None
     selected_observation_id: UUID | None
-    selected_value: float | None
+    selected_value: Decimal | None
     exception_code: str | None
 
 

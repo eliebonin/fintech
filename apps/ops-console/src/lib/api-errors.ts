@@ -67,10 +67,12 @@ export async function parseApiErrorResponse(response: Response, fallbackMessage:
 
   return new BffApiError(
     response.status,
-    asString(envelope.message) ?? detailMessage ?? fallbackMessage,
+    response.status===403?'Your current tenant role or module access does not allow this action. Ask your tenant administrator to review your access.'
+      :response.status===401?'Select an active tenant or sign in again before continuing.'
+      :asString(envelope.message) ?? detailMessage ?? fallbackMessage,
     asString(envelope.code) ?? `HTTP_${response.status}`,
     asString(envelope.correlationId) ?? response.headers.get("X-Correlation-Id") ?? undefined,
     normaliseFieldErrors(envelope.fieldErrors),
-    envelope.retryable === true,
+    ![401,403].includes(response.status)&&envelope.retryable === true,
   );
 }

@@ -1,7 +1,9 @@
 """Tests for deterministic pricing-date selection used by Soft NAV."""
 
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from uuid import UUID
+import pytest
 
 from security_master_schema.valuation_resolver import (
     MissingDataAction,
@@ -10,6 +12,12 @@ from security_master_schema.valuation_resolver import (
     ResolutionStatus,
     resolve_price,
 )
+
+
+@pytest.mark.parametrize('value',[101.25,Decimal('NaN'),Decimal('Infinity')])
+def test_candidate_rejects_float_and_nonfinite_financial_values(value):
+    with pytest.raises(ValueError,match='finite Decimal'):
+        ObservationCandidate(UUID(int=1),date(2026,9,1),datetime(2026,9,1,tzinfo=timezone.utc),value)
 
 
 def test_fixed_one_business_day_lag_selects_t_minus_one_fund_nav() -> None:
@@ -25,7 +33,7 @@ def test_fixed_one_business_day_lag_selects_t_minus_one_fund_nav() -> None:
                 observation_id=UUID("00000000-0000-7000-8000-000000000101"),
                 market_date=date(2026, 8, 31),
                 received_at_utc=datetime(2026, 9, 1, 9, tzinfo=timezone.utc),
-                value=101.25,
+                value=Decimal('101.25'),
             ),
         ),
     )
@@ -34,7 +42,7 @@ def test_fixed_one_business_day_lag_selects_t_minus_one_fund_nav() -> None:
     assert result.pricing_date_requested == date(2026, 8, 31)
     assert result.pricing_date_used == date(2026, 8, 31)
     assert result.staleness_business_days == 0
-    assert result.selected_value == 101.25
+    assert result.selected_value == Decimal('101.25')
 
 
 def test_resolver_excludes_price_received_after_information_cutoff() -> None:
@@ -50,7 +58,7 @@ def test_resolver_excludes_price_received_after_information_cutoff() -> None:
                 observation_id=UUID("00000000-0000-7000-8000-000000000102"),
                 market_date=date(2026, 9, 1),
                 received_at_utc=datetime(2026, 9, 1, 18, tzinfo=timezone.utc),
-                value=99.0,
+                value=Decimal('99.0'),
             ),
         ),
     )

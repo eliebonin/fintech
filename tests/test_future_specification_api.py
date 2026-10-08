@@ -32,6 +32,7 @@ def test_physical_crypto_creation_keeps_existing_booking_closed():
         assert terms.settlement_method=='PHYSICAL' and terms.delivery_start_date.isoformat()=='2027-03-19'
     context=request('GET',f'/v1/trades/product-instruments/{node}?asOfDate=2026-10-02')
     assert context.status_code==200 and context.json()['data']['bookingEligible'] is False
+    assert context.json()['data']['readinessStatus']=='CREATION_ONLY'
     assert context.json()['data']['contractMonth']=='2027-03-01'
     assert request('POST','/v1/instrument-booking-convention-proposals',{'instrumentId':node,'convention':convention}).status_code==422
 

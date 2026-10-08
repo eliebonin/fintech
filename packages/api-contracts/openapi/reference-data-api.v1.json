@@ -377,6 +377,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1360,6 +1361,7 @@
         "type": "object"
       },
       "BondProposalRequest": {
+        "additionalProperties": false,
         "description": "Sparse bond identity proposal; detailed economics may be provider-enriched.",
         "properties": {
           "baseCurrencyId": {
@@ -1529,6 +1531,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1790,6 +1793,532 @@
         "title": "BondProposalView",
         "type": "object"
       },
+      "BookingCorrectionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedSequenceNo": {
+            "minimum": 1.0,
+            "title": "Expectedsequenceno",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "tradeId": {
+            "format": "uuid",
+            "title": "Tradeid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedSequenceNo",
+          "reason",
+          "tradeId"
+        ],
+        "title": "BookingCorrectionRequest",
+        "type": "object"
+      },
+      "CalendarAssignmentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "calendarId": {
+            "format": "uuid",
+            "title": "Calendarid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "targetId": {
+            "format": "uuid",
+            "title": "Targetid",
+            "type": "string"
+          },
+          "targetKind": {
+            "enum": [
+              "STRATEGY",
+              "FUND_REFERENCE"
+            ],
+            "title": "Targetkind",
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date",
+            "title": "Validfrom",
+            "type": "string"
+          },
+          "validTo": {
+            "format": "date",
+            "title": "Validto",
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendarId",
+          "targetKind",
+          "targetId",
+          "validFrom",
+          "validTo",
+          "reason"
+        ],
+        "title": "CalendarAssignmentCreate",
+        "type": "object"
+      },
+      "CalendarAssignmentView": {
+        "properties": {
+          "assignmentId": {
+            "format": "uuid",
+            "title": "Assignmentid",
+            "type": "string"
+          },
+          "calendarId": {
+            "format": "uuid",
+            "title": "Calendarid",
+            "type": "string"
+          },
+          "createdAtUtc": {
+            "format": "date-time",
+            "title": "Createdatutc",
+            "type": "string"
+          },
+          "createdByUserAccountId": {
+            "format": "uuid",
+            "title": "Createdbyuseraccountid",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "targetId": {
+            "format": "uuid",
+            "title": "Targetid",
+            "type": "string"
+          },
+          "targetKind": {
+            "title": "Targetkind",
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date",
+            "title": "Validfrom",
+            "type": "string"
+          },
+          "validTo": {
+            "format": "date",
+            "title": "Validto",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignmentId",
+          "calendarId",
+          "targetKind",
+          "targetId",
+          "purpose",
+          "validFrom",
+          "validTo",
+          "reason",
+          "createdByUserAccountId",
+          "createdAtUtc"
+        ],
+        "title": "CalendarAssignmentView",
+        "type": "object"
+      },
+      "CalendarDayView": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "CLOSED",
+              "UNKNOWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "status",
+          "evidence"
+        ],
+        "title": "CalendarDayView",
+        "type": "object"
+      },
+      "CalendarDaysView": {
+        "properties": {
+          "calendarId": {
+            "format": "uuid",
+            "title": "Calendarid",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarDayView"
+            },
+            "title": "Days",
+            "type": "array"
+          }
+        },
+        "required": [
+          "calendarId",
+          "days"
+        ],
+        "title": "CalendarDaysView",
+        "type": "object"
+      },
+      "CalendarException": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "sourceReference": {
+            "maxLength": 250,
+            "minLength": 1,
+            "title": "Sourcereference",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "CLOSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "status",
+          "reason",
+          "sourceReference"
+        ],
+        "title": "CalendarException",
+        "type": "object"
+      },
+      "CalendarOption": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "CalendarOption",
+        "type": "object"
+      },
+      "CalendarOptions": {
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarAssignmentView"
+            },
+            "title": "Assignments",
+            "type": "array"
+          },
+          "calendars": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarView"
+            },
+            "title": "Calendars",
+            "type": "array"
+          },
+          "canManage": {
+            "title": "Canmanage",
+            "type": "boolean"
+          },
+          "strategies": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarOption"
+            },
+            "title": "Strategies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "canManage",
+          "calendars",
+          "strategies",
+          "assignments"
+        ],
+        "title": "CalendarOptions",
+        "type": "object"
+      },
+      "CalendarPublish": {
+        "additionalProperties": false,
+        "properties": {
+          "baseCalendarIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Basecalendarids",
+            "type": "array"
+          },
+          "calendarCode": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*$",
+            "title": "Calendarcode",
+            "type": "string"
+          },
+          "coverageFrom": {
+            "format": "date",
+            "title": "Coveragefrom",
+            "type": "string"
+          },
+          "coverageTo": {
+            "format": "date",
+            "title": "Coverageto",
+            "type": "string"
+          },
+          "decisionTime": {
+            "format": "time",
+            "title": "Decisiontime",
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 250,
+            "minLength": 1,
+            "title": "Displayname",
+            "type": "string"
+          },
+          "exceptions": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarException"
+            },
+            "maxItems": 1100,
+            "title": "Exceptions",
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "WEEKDAYS",
+              "ALL_OPEN",
+              "ANY_OPEN",
+              "EXPLICIT"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "VALUATION",
+              "DEALING",
+              "SETTLEMENT"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "sourceReference": {
+            "maxLength": 250,
+            "minLength": 1,
+            "title": "Sourcereference",
+            "type": "string"
+          },
+          "timezoneName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Timezonename",
+            "type": "string"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "title": "Weekdays",
+            "type": "array"
+          }
+        },
+        "required": [
+          "calendarCode",
+          "displayName",
+          "purpose",
+          "timezoneName",
+          "decisionTime",
+          "coverageFrom",
+          "coverageTo",
+          "mode",
+          "sourceReference"
+        ],
+        "title": "CalendarPublish",
+        "type": "object"
+      },
+      "CalendarView": {
+        "properties": {
+          "calendarCode": {
+            "title": "Calendarcode",
+            "type": "string"
+          },
+          "calendarId": {
+            "format": "uuid",
+            "title": "Calendarid",
+            "type": "string"
+          },
+          "configuration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalendarPublish"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverageFrom": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coveragefrom"
+          },
+          "coverageTo": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverageto"
+          },
+          "createdAtUtc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdatutc"
+          },
+          "createdByUserAccountId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdbyuseraccountid"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "tenantOwned": {
+            "title": "Tenantowned",
+            "type": "boolean"
+          },
+          "timezoneName": {
+            "title": "Timezonename",
+            "type": "string"
+          },
+          "versionNo": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Versionno"
+          }
+        },
+        "required": [
+          "calendarId",
+          "calendarCode",
+          "displayName",
+          "purpose",
+          "timezoneName",
+          "versionNo",
+          "coverageFrom",
+          "coverageTo",
+          "tenantOwned",
+          "createdByUserAccountId",
+          "createdAtUtc",
+          "configuration"
+        ],
+        "title": "CalendarView",
+        "type": "object"
+      },
+      "CancelBookingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedSequenceNo": {
+            "minimum": 1.0,
+            "title": "Expectedsequenceno",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedSequenceNo",
+          "reason"
+        ],
+        "title": "CancelBookingRequest",
+        "type": "object"
+      },
       "CandidateView": {
         "properties": {
           "id": {
@@ -1823,6 +2352,209 @@
           "data"
         ],
         "title": "CandidatesResponse",
+        "type": "object"
+      },
+      "CashBookingListingResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CashBookingListingView"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "CashBookingListingResponse",
+        "type": "object"
+      },
+      "CashBookingListingSearchResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CashBookingListingView"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "CashBookingListingSearchResponse",
+        "type": "object"
+      },
+      "CashBookingListingView": {
+        "properties": {
+          "asOfDate": {
+            "format": "date",
+            "title": "Asofdate",
+            "type": "string"
+          },
+          "assetClass": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assetclass"
+          },
+          "baseCurrency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basecurrency"
+          },
+          "bookingEligible": {
+            "title": "Bookingeligible",
+            "type": "boolean"
+          },
+          "canonicalName": {
+            "title": "Canonicalname",
+            "type": "string"
+          },
+          "ineligibilityMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ineligibilitymessage"
+          },
+          "instrumentType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrumenttype"
+          },
+          "internalCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internalcode"
+          },
+          "isTradable": {
+            "title": "Istradable",
+            "type": "boolean"
+          },
+          "marketVenueMic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketvenuemic"
+          },
+          "nodeType": {
+            "title": "Nodetype",
+            "type": "string"
+          },
+          "parentReferenceNodeId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parentreferencenodeid"
+          },
+          "readinessStatus": {
+            "enum": [
+              "READY",
+              "NOT_READY",
+              "MISSING_CONFIGURATION",
+              "INACTIVE"
+            ],
+            "title": "Readinessstatus",
+            "type": "string"
+          },
+          "referenceNodeId": {
+            "format": "uuid",
+            "title": "Referencenodeid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tradingCurrency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tradingcurrency"
+          },
+          "tradingSymbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tradingsymbol"
+          },
+          "venueName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venuename"
+          }
+        },
+        "required": [
+          "referenceNodeId",
+          "canonicalName",
+          "nodeType",
+          "status",
+          "isTradable",
+          "bookingEligible",
+          "readinessStatus",
+          "asOfDate"
+        ],
+        "title": "CashBookingListingView",
         "type": "object"
       },
       "CatalogueCreate": {
@@ -1941,6 +2673,29 @@
         "title": "CataloguesResponse",
         "type": "object"
       },
+      "ConfigurationPagination": {
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "offset",
+          "total"
+        ],
+        "title": "ConfigurationPagination",
+        "type": "object"
+      },
       "ConventionProposalRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1970,6 +2725,19 @@
             ],
             "title": "Convention"
           },
+          "idempotencyKey": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotencykey"
+          },
           "instrumentId": {
             "format": "uuid",
             "title": "Instrumentid",
@@ -1984,6 +2752,7 @@
         "type": "object"
       },
       "CryptoAssetProposalRequest": {
+        "additionalProperties": false,
         "description": "Manual-first proposal for one canonical cryptoasset economic instrument.\n\nThe proposal creates the economic DIGITAL_ASSET identity and its optional\ncurrency role.  Chain deployments and venue listings are deliberately\nseparate follow-up workflows because one asset may exist on multiple\nnetworks and trade on many venues.",
         "properties": {
           "assetSubtype": {
@@ -2037,6 +2806,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -2416,7 +3186,179 @@
         "title": "DayCountConventionView",
         "type": "object"
       },
+      "DeliveryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "CONFIRM",
+              "REVERSE"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 1e+40,
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,40}|(?=[\\d.]{1,65}0*$)\\d{0,40}\\.\\d{0,24}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "effectiveAt": {
+            "format": "date-time",
+            "title": "Effectiveat",
+            "type": "string"
+          },
+          "evidence": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "expectedSequenceNo": {
+            "minimum": 1.0,
+            "title": "Expectedsequenceno",
+            "type": "integer"
+          },
+          "leg": {
+            "anyOf": [
+              {
+                "enum": [
+                  "RECEIVE",
+                  "PAY"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leg"
+          },
+          "targetSequenceNo": {
+            "anyOf": [
+              {
+                "minimum": 2.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetsequenceno"
+          }
+        },
+        "required": [
+          "expectedSequenceNo",
+          "action",
+          "effectiveAt",
+          "evidence"
+        ],
+        "title": "DeliveryRequest",
+        "type": "object"
+      },
+      "DeliveryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeliveryView"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "DeliveryResponse",
+        "type": "object"
+      },
+      "DeliveryView": {
+        "properties": {
+          "expectedSequenceNo": {
+            "title": "Expectedsequenceno",
+            "type": "integer"
+          },
+          "payConfirmed": {
+            "title": "Payconfirmed",
+            "type": "string"
+          },
+          "payCurrency": {
+            "title": "Paycurrency",
+            "type": "string"
+          },
+          "payOutstanding": {
+            "title": "Payoutstanding",
+            "type": "string"
+          },
+          "receiveConfirmed": {
+            "title": "Receiveconfirmed",
+            "type": "string"
+          },
+          "receiveCurrency": {
+            "title": "Receivecurrency",
+            "type": "string"
+          },
+          "receiveOutstanding": {
+            "title": "Receiveoutstanding",
+            "type": "string"
+          },
+          "reversibleSequences": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Reversiblesequences",
+            "type": "array"
+          },
+          "settlementDate": {
+            "format": "date",
+            "title": "Settlementdate",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "DUE",
+              "PARTIAL",
+              "DELIVERED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tradeId": {
+            "format": "uuid",
+            "title": "Tradeid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tradeId",
+          "expectedSequenceNo",
+          "status",
+          "settlementDate",
+          "receiveCurrency",
+          "payCurrency",
+          "receiveConfirmed",
+          "payConfirmed",
+          "receiveOutstanding",
+          "payOutstanding",
+          "reversibleSequences"
+        ],
+        "title": "DeliveryView",
+        "type": "object"
+      },
       "EquityListingCreateProposalRequest": {
+        "additionalProperties": false,
         "description": "Proposal to add one venue listing to an already-approved instrument.",
         "properties": {
           "confidenceScore": {
@@ -2440,6 +3382,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -2519,6 +3462,7 @@
         "type": "object"
       },
       "EquityListingProposal": {
+        "additionalProperties": false,
         "description": "Venue representation included in an onboarding proposal.\n\nThe endpoint name is retained for backwards compatibility, but the\nlisting contract is deliberately reusable for equities, cryptoassets, and\nother approved instruments. Venue/product identifiers are operational\nlisting identifiers, not provider aliases for the economic instrument.",
         "properties": {
           "effectiveFrom": {
@@ -2625,6 +3569,7 @@
         "type": "object"
       },
       "EquityProposalRequest": {
+        "additionalProperties": false,
         "description": "Canonical equity facts accepted from a steward or governed adapter.",
         "properties": {
           "automationPolicyCode": {
@@ -2715,6 +3660,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -2972,6 +3918,7 @@
         "type": "object"
       },
       "EtpProposalRequest": {
+        "additionalProperties": false,
         "description": "Manual-first proposal for an ETF, ETC, ETN, ETV, or ETI economic instrument.",
         "properties": {
           "baseCurrencyId": {
@@ -3041,6 +3988,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -3641,6 +4589,19 @@
             "title": "Familycode",
             "type": "string"
           },
+          "idempotencyKey": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotencykey"
+          },
           "sourceReference": {
             "maxLength": 1000,
             "minLength": 1,
@@ -4039,6 +5000,19 @@
             ],
             "title": "Familyid"
           },
+          "idempotencyKey": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotencykey"
+          },
           "underlyingId": {
             "format": "uuid",
             "title": "Underlyingid",
@@ -4248,6 +5222,16 @@
             ],
             "title": "Comment"
           },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingCorrectionRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "counterpartyOrganisationId": {
             "format": "uuid",
             "title": "Counterpartyorganisationid",
@@ -4380,6 +5364,7 @@
         "type": "object"
       },
       "FxForwardProposalRequest": {
+        "additionalProperties": false,
         "description": "Manual-first proposal for one OTC FX-forward economic contract.\n\nThe base/quote currencies and forward rate describe the contractual\nexchange-rate convention.  Maturity and settlement dates are written to\nthe common instrument-date record; a trade-specific monetary MTM remains\na valuation/market-data concern rather than a term on this contract.",
         "properties": {
           "agreedForwardRate": {
@@ -4468,6 +5453,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -5485,6 +6471,7 @@
         "type": "object"
       },
       "IndexFamilyProposalRequest": {
+        "additionalProperties": false,
         "description": "Manual-first proposal for one conceptual, non-tradable index family.",
         "properties": {
           "canonicalName": {
@@ -5514,6 +6501,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -5733,6 +6721,7 @@
         "type": "object"
       },
       "IndexProposalRequest": {
+        "additionalProperties": false,
         "description": "Manual-first proposal for one concrete index return/currency variant.",
         "properties": {
           "administratorOrganisationId": {
@@ -5854,6 +6843,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -6213,6 +7203,22 @@
         "title": "InstrumentListingView",
         "type": "object"
       },
+      "InstrumentResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InstrumentView"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "InstrumentResponse",
+        "type": "object"
+      },
       "InstrumentSearchResponse": {
         "properties": {
           "data": {
@@ -6373,7 +7379,9 @@
         "title": "InstrumentView",
         "type": "object"
       },
+      "JsonValue": {},
       "MappingDecisionRequest": {
+        "additionalProperties": false,
         "properties": {
           "decision": {
             "pattern": "^(APPROVED|REJECTED)$",
@@ -6395,6 +7403,7 @@
         "type": "object"
       },
       "MappingProposalRequest": {
+        "additionalProperties": false,
         "properties": {
           "contextMarketVenueId": {
             "anyOf": [
@@ -6771,6 +7780,18 @@
             "title": "Marketdataasofutc",
             "type": "string"
           },
+          "strategyId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategyid"
+          },
           "subjectReferenceNodeIds": {
             "items": {
               "format": "uuid",
@@ -6939,6 +7960,18 @@
               }
             ],
             "title": "Pricingdateused"
+          },
+          "pricingEvidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricingevidence"
           },
           "receivedAtUtc": {
             "anyOf": [
@@ -7251,6 +8284,21 @@
               }
             ],
             "title": "Licencename"
+          },
+          "observationLimit": {
+            "default": 1000,
+            "title": "Observationlimit",
+            "type": "integer"
+          },
+          "observationOffset": {
+            "default": 0,
+            "title": "Observationoffset",
+            "type": "integer"
+          },
+          "observationTotal": {
+            "default": 0,
+            "title": "Observationtotal",
+            "type": "integer"
           },
           "observations": {
             "items": {
@@ -7696,6 +8744,16 @@
             ],
             "title": "Comment"
           },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingCorrectionRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "counterpartyOrganisationId": {
             "anyOf": [
               {
@@ -8078,6 +9136,19 @@
             "title": "Expirydate",
             "type": "string"
           },
+          "idempotencyKey": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotencykey"
+          },
           "lastTradingAtUtc": {
             "format": "date-time",
             "title": "Lasttradingatutc",
@@ -8247,222 +9318,470 @@
         "title": "OrganisationOptionView",
         "type": "object"
       },
-      "PortfolioPnlLine": {
+      "PolicyCreate": {
+        "additionalProperties": false,
         "properties": {
-          "baseCurrency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basecurrency"
-          },
-          "closingFx": {
-            "title": "Closingfx",
+          "displayName": {
+            "maxLength": 250,
+            "minLength": 1,
+            "title": "Displayname",
             "type": "string"
           },
-          "closingObservationId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Closingobservationid"
-          },
-          "closingPrice": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Closingprice"
-          },
-          "fxPnl": {
-            "title": "Fxpnl",
+          "policyCode": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*$",
+            "title": "Policycode",
             "type": "string"
           },
-          "instrumentId": {
-            "format": "uuid",
-            "title": "Instrumentid",
-            "type": "string"
-          },
-          "instrumentName": {
-            "title": "Instrumentname",
-            "type": "string"
-          },
-          "instrumentType": {
-            "title": "Instrumenttype",
-            "type": "string"
-          },
-          "listingId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Listingid"
-          },
-          "localCurrency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Localcurrency"
-          },
-          "localPricePnl": {
-            "title": "Localpricepnl",
-            "type": "string"
-          },
-          "openingFx": {
-            "title": "Openingfx",
-            "type": "string"
-          },
-          "openingPrice": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Openingprice"
-          },
-          "priceSeriesId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Priceseriesid"
-          },
-          "quantity": {
-            "title": "Quantity",
-            "type": "string"
-          },
-          "totalPnl": {
-            "title": "Totalpnl",
-            "type": "string"
-          }
-        },
-        "required": [
-          "instrumentId",
-          "listingId",
-          "instrumentName",
-          "instrumentType",
-          "quantity",
-          "localCurrency",
-          "baseCurrency",
-          "openingPrice",
-          "closingPrice",
-          "openingFx",
-          "closingFx",
-          "localPricePnl",
-          "fxPnl",
-          "totalPnl",
-          "priceSeriesId",
-          "closingObservationId"
-        ],
-        "title": "PortfolioPnlLine",
-        "type": "object"
-      },
-      "PortfolioPnlResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/PortfolioPnlView"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        },
-        "required": [
-          "data",
-          "meta"
-        ],
-        "title": "PortfolioPnlResponse",
-        "type": "object"
-      },
-      "PortfolioPnlView": {
-        "properties": {
-          "asOfDate": {
-            "title": "Asofdate",
-            "type": "string"
-          },
-          "baseCurrency": {
-            "title": "Basecurrency",
-            "type": "string"
-          },
-          "lines": {
+          "rules": {
             "items": {
-              "$ref": "#/components/schemas/PortfolioPnlLine"
+              "$ref": "#/components/schemas/PolicyRuleInput"
             },
-            "title": "Lines",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Rules",
             "type": "array"
           },
-          "methodology": {
-            "title": "Methodology",
+          "strategyId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategyid"
+          },
+          "validFrom": {
+            "format": "date",
+            "title": "Validfrom",
             "type": "string"
           },
-          "portfolioCode": {
-            "title": "Portfoliocode",
-            "type": "string"
+          "validTo": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validto"
           },
-          "portfolioName": {
-            "title": "Portfolioname",
+          "valuationCutId": {
+            "format": "uuid",
+            "title": "Valuationcutid",
             "type": "string"
-          },
-          "totalPnl": {
-            "title": "Totalpnl",
-            "type": "string"
-          },
-          "valuationCut": {
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "title": "Valuationcut",
-            "type": "object"
           }
         },
         "required": [
-          "portfolioCode",
-          "portfolioName",
-          "asOfDate",
-          "baseCurrency",
-          "valuationCut",
-          "lines",
-          "totalPnl",
-          "methodology"
+          "policyCode",
+          "displayName",
+          "valuationCutId",
+          "validFrom",
+          "rules"
         ],
-        "title": "PortfolioPnlView",
+        "title": "PolicyCreate",
+        "type": "object"
+      },
+      "PolicyOption": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "PolicyOption",
+        "type": "object"
+      },
+      "PolicyOptions": {
+        "properties": {
+          "calendars": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyOption"
+            },
+            "title": "Calendars",
+            "type": "array"
+          },
+          "canManage": {
+            "title": "Canmanage",
+            "type": "boolean"
+          },
+          "cuts": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyOption"
+            },
+            "title": "Cuts",
+            "type": "array"
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyOption"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "instrumentTypes": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyOption"
+            },
+            "title": "Instrumenttypes",
+            "type": "array"
+          },
+          "strategies": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyOption"
+            },
+            "title": "Strategies",
+            "type": "array"
+          },
+          "venues": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyOption"
+            },
+            "title": "Venues",
+            "type": "array"
+          }
+        },
+        "required": [
+          "canManage",
+          "cuts",
+          "venues",
+          "instrumentTypes",
+          "calendars",
+          "strategies",
+          "datasets"
+        ],
+        "title": "PolicyOptions",
+        "type": "object"
+      },
+      "PolicyRuleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "datasetId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datasetid"
+          },
+          "fixingCode": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fixingcode"
+          },
+          "instrumentTypeId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrumenttypeid"
+          },
+          "lagBusinessDays": {
+            "default": 0,
+            "maximum": 366.0,
+            "minimum": 0.0,
+            "title": "Lagbusinessdays",
+            "type": "integer"
+          },
+          "marketCalendarId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketcalendarid"
+          },
+          "marketDataSeriesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketdataseriesid"
+          },
+          "marketVenueId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketvenueid"
+          },
+          "maxStalenessBusinessDays": {
+            "anyOf": [
+              {
+                "maximum": 366.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 0,
+            "title": "Maxstalenessbusinessdays"
+          },
+          "missingDataAction": {
+            "default": "FAIL",
+            "enum": [
+              "FAIL",
+              "WARN",
+              "MANUAL_OVERRIDE"
+            ],
+            "title": "Missingdataaction",
+            "type": "string"
+          },
+          "pricingConvention": {
+            "enum": [
+              "LEGACY",
+              "SESSION_CLOSE",
+              "NAMED_FIXING",
+              "EXPLICIT_TIME",
+              "NAV_DATE"
+            ],
+            "title": "Pricingconvention",
+            "type": "string"
+          },
+          "pricingCutId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricingcutid"
+          },
+          "pricingDateRule": {
+            "default": "SAME_DAY",
+            "enum": [
+              "SAME_DAY",
+              "PRIOR_AVAILABLE",
+              "FIXED_LAG"
+            ],
+            "title": "Pricingdaterule",
+            "type": "string"
+          },
+          "ruleSequence": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Rulesequence",
+            "type": "integer"
+          },
+          "selectionMethod": {
+            "default": "OFFICIAL",
+            "enum": [
+              "OFFICIAL",
+              "LAST_BEFORE_CUT",
+              "MID",
+              "APPROVED",
+              "FALLBACK"
+            ],
+            "title": "Selectionmethod",
+            "type": "string"
+          },
+          "seriesType": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Seriestype",
+            "type": "string"
+          },
+          "subjectReferenceNodeId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subjectreferencenodeid"
+          },
+          "subjectType": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subjecttype"
+          },
+          "valueBasis": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valuebasis"
+          }
+        },
+        "required": [
+          "ruleSequence",
+          "seriesType",
+          "pricingConvention"
+        ],
+        "title": "PolicyRuleInput",
+        "type": "object"
+      },
+      "PolicyView": {
+        "properties": {
+          "createdAtUtc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdatutc"
+          },
+          "createdByUserAccountId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdbyuseraccountid"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "policyCode": {
+            "title": "Policycode",
+            "type": "string"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyRuleInput"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "strategyId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategyid"
+          },
+          "validFrom": {
+            "format": "date",
+            "title": "Validfrom",
+            "type": "string"
+          },
+          "validTo": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validto"
+          },
+          "valuationCutId": {
+            "format": "uuid",
+            "title": "Valuationcutid",
+            "type": "string"
+          },
+          "valuationPolicyId": {
+            "format": "uuid",
+            "title": "Valuationpolicyid",
+            "type": "string"
+          },
+          "versionNo": {
+            "title": "Versionno",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "valuationPolicyId",
+          "policyCode",
+          "displayName",
+          "valuationCutId",
+          "strategyId",
+          "versionNo",
+          "status",
+          "validFrom",
+          "validTo",
+          "createdByUserAccountId",
+          "createdAtUtc",
+          "rules"
+        ],
+        "title": "PolicyView",
         "type": "object"
       },
       "ProblemDetails": {
@@ -8717,6 +10036,24 @@
             "title": "Name",
             "type": "string"
           },
+          "readinessStatus": {
+            "anyOf": [
+              {
+                "enum": [
+                  "READY",
+                  "NOT_READY",
+                  "MISSING_CONFIGURATION",
+                  "INACTIVE",
+                  "CREATION_ONLY"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readinessstatus"
+          },
           "swapDetails": {
             "anyOf": [
               {
@@ -8800,6 +10137,16 @@
               }
             ],
             "title": "Comment"
+          },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingCorrectionRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "counterpartyOrganisationId": {
             "anyOf": [
@@ -9070,10 +10417,14 @@
             },
             "title": "Data",
             "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/ConfigurationPagination"
           }
         },
         "required": [
-          "data"
+          "data",
+          "pagination"
         ],
         "title": "PropertiesResponse",
         "type": "object"
@@ -9729,6 +11080,27 @@
         "title": "ReferenceNodeSearchResponse",
         "type": "object"
       },
+      "ResolutionPreview": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MarketDataResolutionSnapshotItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "items"
+        ],
+        "title": "ResolutionPreview",
+        "type": "object"
+      },
       "ReturnProfileResponse": {
         "properties": {
           "data": {
@@ -9797,6 +11169,22 @@
           "requiresFinancingReference"
         ],
         "title": "ReturnProfileView",
+        "type": "object"
+      },
+      "ReviewComment": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Comment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment"
+        ],
+        "title": "ReviewComment",
         "type": "object"
       },
       "SelectionPublish": {
@@ -9884,10 +11272,12 @@
         "type": "object"
       },
       "StrategyCreateRequest": {
+        "additionalProperties": false,
         "properties": {
           "baseCurrencyCode": {
             "anyOf": [
               {
+                "maxLength": 30,
                 "type": "string"
               },
               {
@@ -9905,6 +11295,7 @@
           "operatingModelLabel": {
             "anyOf": [
               {
+                "maxLength": 250,
                 "type": "string"
               },
               {
@@ -9920,6 +11311,14 @@
             "type": "string"
           },
           "strategyType": {
+            "enum": [
+              "AMC_MANDATE",
+              "FUND",
+              "MANAGED_ACCOUNT",
+              "PROP_SLEEVE",
+              "MODEL_PORTFOLIO",
+              "OTHER"
+            ],
             "title": "Strategytype",
             "type": "string"
           }
@@ -9961,8 +11360,10 @@
         "type": "object"
       },
       "StrategyStatusRequest": {
+        "additionalProperties": false,
         "properties": {
           "status": {
+            "const": "ARCHIVED",
             "title": "Status",
             "type": "string"
           }
@@ -10665,6 +12066,19 @@
             "title": "Canonicalname",
             "type": "string"
           },
+          "idempotencyKey": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotencykey"
+          },
           "tenantIdentifier": {
             "anyOf": [
               {
@@ -10871,6 +12285,16 @@
               }
             ],
             "title": "Comment"
+          },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingCorrectionRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "counterpartyOrganisationId": {
             "anyOf": [
@@ -11571,6 +12995,7 @@
           "value": {
             "anyOf": [
               {
+                "maxLength": 2000,
                 "type": "string"
               },
               {
@@ -12270,6 +13695,180 @@
         ],
         "type": "object"
       },
+      "ValuationAttemptDetail": {
+        "properties": {
+          "attempt": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Attempt",
+            "type": "object"
+          },
+          "batch": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch"
+          },
+          "events": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Events",
+            "type": "array"
+          }
+        },
+        "required": [
+          "attempt",
+          "events",
+          "batch"
+        ],
+        "title": "ValuationAttemptDetail",
+        "type": "object"
+      },
+      "ValuationAttemptList": {
+        "properties": {
+          "actorId": {
+            "format": "uuid",
+            "title": "Actorid",
+            "type": "string"
+          },
+          "canManage": {
+            "title": "Canmanage",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "scope": {
+            "default": "MARKET_ONLY",
+            "title": "Scope",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "canManage",
+          "actorId"
+        ],
+        "title": "ValuationAttemptList",
+        "type": "object"
+      },
+      "ValuationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "closingCutoff": {
+            "format": "date-time",
+            "title": "Closingcutoff",
+            "type": "string"
+          },
+          "cutId": {
+            "format": "uuid",
+            "title": "Cutid",
+            "type": "string"
+          },
+          "informationCutoff": {
+            "format": "date-time",
+            "title": "Informationcutoff",
+            "type": "string"
+          },
+          "openingCutoff": {
+            "format": "date-time",
+            "title": "Openingcutoff",
+            "type": "string"
+          },
+          "policyId": {
+            "format": "uuid",
+            "title": "Policyid",
+            "type": "string"
+          },
+          "reportingCurrencyId": {
+            "format": "uuid",
+            "title": "Reportingcurrencyid",
+            "type": "string"
+          },
+          "strategyId": {
+            "format": "uuid",
+            "title": "Strategyid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategyId",
+          "policyId",
+          "cutId",
+          "reportingCurrencyId",
+          "openingCutoff",
+          "closingCutoff",
+          "informationCutoff"
+        ],
+        "title": "ValuationCreate",
+        "type": "object"
+      },
+      "ValuationOptions": {
+        "properties": {
+          "currencies": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Currencies",
+            "type": "array"
+          },
+          "policies": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Policies",
+            "type": "array"
+          },
+          "strategies": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Strategies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "strategies",
+          "policies",
+          "currencies"
+        ],
+        "title": "ValuationOptions",
+        "type": "object"
+      },
       "WorkQueueItemView": {
         "properties": {
           "category": {
@@ -12464,6 +14063,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/problem+json": {
@@ -12611,6 +14220,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -12775,6 +14394,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -12928,6 +14557,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -13080,6 +14719,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -13244,6 +14893,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -13398,6 +15057,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -13540,6 +15209,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -13693,6 +15372,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -13857,6 +15546,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -14009,6 +15708,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -14173,6 +15882,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -14334,6 +16053,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -14471,6 +16200,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -14607,6 +16346,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -14760,6 +16509,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -14924,6 +16683,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -15066,6 +16835,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -15219,6 +16998,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -15383,6 +17172,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -15525,6 +17324,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -15678,6 +17487,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -15842,6 +17661,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -15978,6 +17807,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -16207,6 +18046,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -16344,6 +18193,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -16441,9 +18300,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Detail V1 Instruments  Instrument Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/InstrumentResponse"
                 }
               }
             },
@@ -16498,6 +18355,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -16652,6 +18519,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -16800,6 +18677,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -16937,6 +18824,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -16964,6 +18861,938 @@
           }
         },
         "summary": "Get Market Data Snapshot"
+      }
+    },
+    "/v1/market-data/calendars": {
+      "post": {
+        "operationId": "publish_v1_market_data_calendars_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarPublish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Publish",
+        "tags": [
+          "calendars"
+        ]
+      }
+    },
+    "/v1/market-data/calendars/assignments": {
+      "post": {
+        "operationId": "assign_v1_market_data_calendars_assignments_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarAssignmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarAssignmentView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Assign",
+        "tags": [
+          "calendars"
+        ]
+      }
+    },
+    "/v1/market-data/calendars/options": {
+      "get": {
+        "operationId": "options_v1_market_data_calendars_options_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Options",
+        "tags": [
+          "calendars"
+        ]
+      }
+    },
+    "/v1/market-data/calendars/{calendar_id}": {
+      "get": {
+        "operationId": "detail_v1_market_data_calendars__calendar_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "calendar_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Calendar Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Detail",
+        "tags": [
+          "calendars"
+        ]
+      }
+    },
+    "/v1/market-data/calendars/{calendar_id}/days": {
+      "get": {
+        "operationId": "days_v1_market_data_calendars__calendar_id__days_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "calendar_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Calendar Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fromDate",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Fromdate",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "toDate",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Todate",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDaysView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Days",
+        "tags": [
+          "calendars"
+        ]
+      }
+    },
+    "/v1/market-data/resolution-preview": {
+      "post": {
+        "operationId": "preview_v1_market_data_resolution_preview_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketDataResolutionSnapshotCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "pricing policies"
+        ]
       }
     },
     "/v1/market-data/series": {
@@ -17058,6 +19887,30 @@
               "default": 0,
               "minimum": 0,
               "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "observationLimit",
+            "required": false,
+            "schema": {
+              "default": 1000,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Observationlimit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "observationOffset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Observationoffset",
               "type": "integer"
             }
           },
@@ -17170,6 +20023,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -17312,6 +20175,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -17339,6 +20212,455 @@
           }
         },
         "summary": "Active Valuation Policies"
+      },
+      "post": {
+        "operationId": "create_v1_market_data_valuation_policies_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "pricing policies"
+        ]
+      }
+    },
+    "/v1/market-data/valuation-policies/{policy_id}": {
+      "get": {
+        "operationId": "detail_v1_market_data_valuation_policies__policy_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Policy Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Detail",
+        "tags": [
+          "pricing policies"
+        ]
+      }
+    },
+    "/v1/market-data/valuation-policy-options": {
+      "get": {
+        "operationId": "options_v1_market_data_valuation_policy_options_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Options",
+        "tags": [
+          "pricing policies"
+        ]
       }
     },
     "/v1/market-venues": {
@@ -17478,6 +20800,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -17614,6 +20946,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -17781,6 +21123,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -17812,6 +21164,8 @@
     },
     "/v1/portfolios/{portfolio_code}/pnl": {
       "get": {
+        "deprecated": true,
+        "description": "Retirement tombstone; never select trades/prices or return demo totals.\n\nKeep the old URL and tenant gate so bookmarked/API consumers get an\nexplicit retirement response rather than mistaking an empty result for\nzero P&L. The replacement engine will have its own versioned contract.",
         "operationId": "portfolio_pnl_view_v1_portfolios__portfolio_code__pnl_get",
         "parameters": [
           {
@@ -17883,16 +21237,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PortfolioPnlResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
           "400": {
             "content": {
               "application/problem+json": {
@@ -17942,6 +21286,26 @@
               }
             },
             "description": "Request conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Legacy P&L demonstration retired"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -18096,6 +21460,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -18261,6 +21635,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -18397,6 +21781,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -18544,6 +21938,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -18785,6 +22189,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -18928,6 +22342,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -19038,6 +22462,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -19165,6 +22599,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -19300,6 +22744,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -19437,6 +22891,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -19584,6 +23048,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -19737,6 +23211,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -19901,6 +23385,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -20027,6 +23521,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -20165,6 +23669,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -20331,6 +23845,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -20495,6 +24019,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -20632,6 +24166,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -20772,6 +24316,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -20922,6 +24476,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -21107,6 +24671,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -21254,6 +24828,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -21415,6 +24999,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -21575,6 +25169,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -21725,6 +25329,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -21761,6 +25375,30 @@
       "get": {
         "operationId": "get_properties_v1_trade_configuration_properties_get",
         "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 1000,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
           {
             "in": "header",
             "name": "x-tenant-id",
@@ -21854,6 +25492,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -21992,6 +25640,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -22143,6 +25801,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -22282,6 +25950,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -22426,6 +26104,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -22578,6 +26266,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -22854,6 +26552,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -22999,6 +26707,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -23148,6 +26866,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -23275,6 +27003,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -23302,6 +27040,344 @@
           }
         },
         "summary": "Trade Booking Context"
+      }
+    },
+    "/v1/trades/cash-listings": {
+      "get": {
+        "operationId": "search_v1_trades_cash_listings_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 250,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfDate",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "title": "Asofdate",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashBookingListingSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Search"
+      }
+    },
+    "/v1/trades/cash-listings/{listing_id}": {
+      "get": {
+        "operationId": "detail_v1_trades_cash_listings__listing_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfDate",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "title": "Asofdate",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashBookingListingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Detail"
       }
     },
     "/v1/trades/futures": {
@@ -23423,6 +27499,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -23488,6 +27574,23 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfDate",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofdate"
             }
           },
           {
@@ -23584,6 +27687,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -23625,6 +27738,23 @@
               "format": "uuid",
               "title": "Instrument Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfDate",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofdate"
             }
           },
           {
@@ -23720,6 +27850,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -23869,6 +28009,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -23934,6 +28084,23 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfDate",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofdate"
             }
           },
           {
@@ -24030,6 +28197,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -24071,6 +28248,23 @@
               "format": "uuid",
               "title": "Listing Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOfDate",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asofdate"
             }
           },
           {
@@ -24166,6 +28360,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -24314,6 +28518,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -24514,6 +28728,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -24685,6 +28909,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -24833,6 +29067,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -24980,6 +29224,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -25130,6 +29384,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -25284,6 +29548,16 @@
             },
             "description": "Request conflict"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -25313,10 +29587,1452 @@
         "summary": "Booked Trade Detail"
       }
     },
+    "/v1/trades/{trade_id}/cancel-booking": {
+      "post": {
+        "operationId": "cancel_v1_trades__trade_id__cancel_booking_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trade_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Trade Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelBookingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Cancel"
+      }
+    },
+    "/v1/trades/{trade_id}/fx-delivery": {
+      "get": {
+        "operationId": "read_v1_trades__trade_id__fx_delivery_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trade_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Trade Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Read"
+      },
+      "post": {
+        "operationId": "write_v1_trades__trade_id__fx_delivery_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trade_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Trade Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Write"
+      }
+    },
+    "/v1/valuation/attempts": {
+      "get": {
+        "operationId": "attempts_v1_valuation_attempts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValuationAttemptList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Attempts",
+        "tags": [
+          "valuation and P&L"
+        ]
+      },
+      "post": {
+        "operationId": "create_v1_valuation_attempts_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValuationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValuationAttemptDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "valuation and P&L"
+        ]
+      }
+    },
+    "/v1/valuation/attempts/{attempt_id}": {
+      "get": {
+        "operationId": "attempt_v1_valuation_attempts__attempt_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValuationAttemptDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Attempt",
+        "tags": [
+          "valuation and P&L"
+        ]
+      }
+    },
+    "/v1/valuation/batches/{batch_id}/explanations": {
+      "post": {
+        "operationId": "explain_v1_valuation_batches__batch_id__explanations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewComment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Explain V1 Valuation Batches  Batch Id  Explanations Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Explain",
+        "tags": [
+          "valuation and P&L"
+        ]
+      }
+    },
+    "/v1/valuation/batches/{batch_id}/publish": {
+      "post": {
+        "operationId": "publish_v1_valuation_batches__batch_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewComment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Publish V1 Valuation Batches  Batch Id  Publish Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Publish",
+        "tags": [
+          "valuation and P&L"
+        ]
+      }
+    },
+    "/v1/valuation/options": {
+      "get": {
+        "operationId": "options_v1_valuation_options_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValuationOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Options",
+        "tags": [
+          "valuation and P&L"
+        ]
+      }
+    },
     "/v1/work-queue": {
       "get": {
         "operationId": "queue_v1_work_queue_get",
         "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
           {
             "in": "header",
             "name": "x-correlation-id",
@@ -25426,6 +31142,16 @@
               }
             },
             "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {

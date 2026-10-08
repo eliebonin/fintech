@@ -1,5 +1,6 @@
 """Shared booking safeguards, independent of product economics and HTTP routes."""
-from datetime import date
+from datetime import date, datetime, timezone
+from .resource_limits import governance_date
 from hashlib import sha256
 from uuid import UUID
 
@@ -12,12 +13,23 @@ from security_master_schema.tenant_workspace import (
 from .booking_errors import RepositoryNotFound, IdempotencyKeyConflict
 
 
+def validate_execution_date(execution: datetime, *, today: date | None = None) -> date:
+    """New recordings use UTC economic dates; authorized replay bypasses this rule."""
+    from .trade_properties import TradeFieldError
+    if execution.tzinfo is None or execution.utcoffset() is None:
+        raise TradeFieldError('tradeDatetime', 'Execution must include a timezone offset.')
+    execution_date = execution.astimezone(timezone.utc).date()
+    if execution_date > (today or datetime.now(timezone.utc).date()):
+        raise TradeFieldError('tradeDatetime', 'Future UTC execution dates cannot be recorded as executed trades.')
+    return execution_date
+
+
 def authorize_booking(connection: Connection, tenant_id: UUID, actor_id: UUID) -> None:
     active = connection.scalar(select(m.user_account.c.user_account_id).where(
         m.user_account.c.user_account_id == actor_id, m.user_account.c.status == 'ACTIVE'))
     if active is None:
         raise TenantActionForbidden('User account is not active')
-    require_tenant_action(resolve_tenant_workspace(connection, tenant_id, actor_id, date.today()), 'TRADE_WRITE')
+    require_tenant_action(resolve_tenant_workspace(connection, tenant_id, actor_id, governance_date()), 'TRADE_WRITE')
 
 
 def lock_booking_strategy(connection: Connection, tenant_id: UUID, strategy_id: UUID) -> UUID:

@@ -1,5 +1,7 @@
 """Authoritative listing-backed option booking, not position maintenance."""
-from datetime import date,timezone
+from datetime import date,datetime,timezone
+from .resource_limits import governance_date
+from .problem_details import current_api_version
 from decimal import Decimal
 from hashlib import sha256
 import json
@@ -14,7 +16,8 @@ from .booking_controls import authorize_booking, lock_booking_strategy, find_boo
 ENDPOINT='/v1/trades/options'
 
 
-def query(tenant_id):
+def query(tenant_id,as_of=None):
+    as_of=as_of or datetime.now(timezone.utc).date()
     from .repository import _visible_node_clause
     node=m.financial_reference_node.alias('option_node')
     listing_node=m.financial_reference_node
@@ -33,12 +36,13 @@ def query(tenant_id):
         .outerjoin(m.option_terms,and_(m.option_terms.c.instrument_node_id==m.instrument.c.instrument_node_id,m.option_terms.c.is_current))
         .outerjoin(m.instrument_dates,m.instrument_dates.c.instrument_node_id==m.instrument.c.instrument_node_id)
         .outerjoin(currency,currency.c.currency_id==m.option_terms.c.premium_currency_id).outerjoin(strike_currency,strike_currency.c.currency_id==m.option_terms.c.strike_currency_id)
-        .outerjoin(m.instrument_contract_unit_terms,and_(m.instrument_contract_unit_terms.c.instrument_node_id==m.instrument.c.instrument_node_id,m.instrument_contract_unit_terms.c.valid_from<=date.today(),or_(m.instrument_contract_unit_terms.c.valid_to.is_(None),m.instrument_contract_unit_terms.c.valid_to>=date.today()))))\
+        .outerjoin(m.instrument_contract_unit_terms,and_(m.instrument_contract_unit_terms.c.instrument_node_id==m.instrument.c.instrument_node_id,m.instrument_contract_unit_terms.c.valid_from<=as_of,or_(m.instrument_contract_unit_terms.c.valid_to.is_(None),m.instrument_contract_unit_terms.c.valid_to>=as_of))))\
         .where(m.instrument_type.c.type_code=='OPTION',visible(listing_node.c.reference_node_id),visible(node.c.reference_node_id),visible(m.option_terms.c.underlying_reference_node_id))\
         .add_columns(m.option_terms.c.effective_from.label('terms_from'),m.option_terms.c.effective_to.label('terms_to'))
 
 
-def view(connection,tenant_id,row):
+def view(connection,tenant_id,row,as_of=None):
+    today=as_of or datetime.now(timezone.utc).date()
     from .repository import _visible_reference_node
     def text(value): return decimal_text(value) if value is not None else None
     # SQL option_terms contributes instrument_node_id twice; projection uses the
@@ -52,10 +56,9 @@ def view(connection,tenant_id,row):
         _visible_reference_node(connection,tenant_id,row.underlying_reference_node_id)
         kind=underlying_kind(connection,tenant_id,row.underlying_reference_node_id)
         if kind=='INDEX' and row.settlement_method!='CASH': raise ValueError('Index options must cash settle.')
-        if row.terms_from>date.today() or (row.terms_to and row.terms_to<date.today()): raise ValueError('Option terms must be currently effective.')
-        today=date.today()
+        if row.terms_from>today or (row.terms_to and row.terms_to<today): raise ValueError('Option terms must cover the selected execution date.')
         if not row.instrument_definition_version_id or not row.listing_definition_version_id: raise ValueError('Current approved instrument and listing definitions are required.')
-        if any(start is None or start>today or (end and end<today) for start,end in [(row.definition_from,row.definition_to),(row.listing_from,row.listing_to),(row.effective_from,row.effective_to)]): raise ValueError('Definitions must be currently effective.')
+        if any(start is None or start>today or (end and end<today) for start,end in [(row.definition_from,row.definition_to),(row.listing_from,row.listing_to),(row.effective_from,row.effective_to)]): raise ValueError('Definitions must cover the selected execution date.')
         if not row.is_current or not row.is_tradable or not row.listing_tradable or any(state!='ACTIVE' for state in [row.node_status,row.listing_status,row.listing_node_status,row.type_status,row.currency_status,row.status]): raise ValueError('Option, listing and currencies must be active and tradable.')
         if row.strike_mode!='FIXED' or row.strike_basis!='ABSOLUTE' or row.exercise_style not in {'AMERICAN','EUROPEAN'} or row.settlement_method not in {'CASH','PHYSICAL'} or row.premium_style!='UPFRONT': raise ValueError('Only fixed-strike vanilla upfront-premium options are supported.')
         if not row.expiry_date or not row.last_trading_at_utc or row.last_trading_at_utc.astimezone(timezone.utc).date()>row.expiry_date or not row.deliverable_units or not row.strike_currency: raise ValueError('Complete explicit dates, deliverable and strike currency are required.')
@@ -84,9 +87,9 @@ def view(connection,tenant_id,row):
     return OptionBookingListingView(**values)
 
 
-def load(connection,tenant_id,listing_id,lock=False):
+def load(connection,tenant_id,listing_id,lock=False,*,as_of=None):
     from .repository import RepositoryNotFound
-    statement=query(tenant_id).where(m.listing.c.listing_node_id==listing_id)
+    statement=query(tenant_id,as_of).where(m.listing.c.listing_node_id==listing_id)
     row=connection.execute(statement).mappings().first()
     if row is None: raise RepositoryNotFound('Visible option listing was not found.')
     if lock:
@@ -108,17 +111,17 @@ def load(connection,tenant_id,listing_id,lock=False):
             connection.execute(select(table).where(table.c[key]==value).with_for_update()).all()
         row=connection.execute(statement).mappings().first()
         if row is None: raise RepositoryNotFound('Visible option listing was not found.')
-    return row,view(connection,tenant_id,row)
+    return row,view(connection,tenant_id,row,as_of)
 
 
-def search(connection,tenant_id,q,limit,offset):
-    statement=query(tenant_id)
+def search(connection,tenant_id,q,limit,offset,as_of=None):
+    statement=query(tenant_id,as_of)
     if q.strip():
         escaped=q.strip().replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
         statement=statement.where(or_(m.financial_reference_node.c.canonical_name.ilike(f'%{escaped}%',escape='\\'),m.financial_reference_node.c.internal_code.ilike(f'%{escaped}%',escape='\\')))
     total=connection.scalar(select(func.count()).select_from(statement.subquery()))
     rows=connection.execute(statement.order_by(m.financial_reference_node.c.canonical_name,m.listing.c.listing_node_id).limit(limit).offset(offset)).mappings()
-    return [view(connection,tenant_id,row) for row in rows],total
+    return [view(connection,tenant_id,row,as_of) for row in rows],total
 
 
 def book(connection,tenant_id,actor,request,key,request_id):
@@ -130,10 +133,14 @@ def book(connection,tenant_id,actor,request,key,request_id):
         fingerprint=_trade_booking_fingerprint(normalized,connection,tenant_id)
         existing=find_booking_replay(connection,tenant_id,ENDPOINT,key,fingerprint)
         if existing:
-            detail=get_booked_trade_detail(connection,tenant_id,existing,'v1',request_id)
+            detail=get_booked_trade_detail(connection,tenant_id,existing,current_api_version(),request_id)
             if detail is None: raise RepositoryNotFound('Booked trade does not exist')
             return detail
-        row,terms=load(connection,tenant_id,request.listing_id,True)
+        from .booking_controls import validate_execution_date
+        execution_date=validate_execution_date(request.trade_datetime)
+        from .trade_corrections import prepare_correction,complete_correction
+        prepare_correction(connection,tenant_id,request,'OPTION')
+        row,terms=load(connection,tenant_id,request.listing_id,True,as_of=execution_date)
         if not terms.booking_eligible: raise OptionBookingError('option.ineligible_listing','listingId',terms.ineligibility_message)
         if terms.terms_fingerprint!=request.expected_terms_fingerprint: raise OptionBookingError('option.terms_changed','listingId','Terms changed. Reselect the option listing.')
         execution=request.trade_datetime.astimezone(timezone.utc)
@@ -149,7 +156,8 @@ def book(connection,tenant_id,actor,request,key,request_id):
         economics=OptionTradeEconomicsView(terms=terms,grossPremium=decimal_text(gross),premiumDirection='PAY' if request.side=='BUY' else 'RECEIVE')
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id,sequence_no=1,event_type='BOOKED',event_datetime_utc=execution,source_event_id=key,payload_hash=fingerprint,event_payload=json.dumps({'schemaVersion':1,'kind':'OPTION_BOOKING','positionEffect':request.position_effect,'economics':economics.model_dump(mode='json',by_alias=True)},sort_keys=True),recorded_by_user_account_id=actor))
         record_booking_replay(connection,tenant_id,ENDPOINT,key,fingerprint,trade_id)
-        return get_booked_trade_detail(connection,tenant_id,trade_id,'v1',request_id)
+        complete_correction(connection,tenant_id,actor,request,trade_id)
+        return get_booked_trade_detail(connection,tenant_id,trade_id,current_api_version(),request_id)
 
 
 def load_economics(connection,trade_ids):
@@ -159,10 +167,6 @@ def load_economics(connection,trade_ids):
         payload=json.loads(raw) if raw else {}
         if payload.get('kind')=='OPTION_BOOKING' and payload.get('schemaVersion')==1: result[trade_id]=OptionTradeEconomicsView.model_validate(payload['economics'])
     return result
-
-
-class OptionValuationUnsupported(ValueError):
-    pass
 
 
 def option_router(connection_dependency,assert_membership):
@@ -177,36 +181,37 @@ def option_router(connection_dependency,assert_membership):
     router=APIRouter()
     def authorized(connection,context):
         actor=assert_membership(connection,context)
-        try: require_tenant_action(resolve_tenant_workspace(connection,context.tenant_id,actor,date.today()),'TRADE_WRITE')
+        try: require_tenant_action(resolve_tenant_workspace(connection,context.tenant_id,actor,governance_date()),'TRADE_WRITE')
         except TenantActionForbidden as error: raise HTTPException(403,'Option booking is not permitted.') from error
         return actor
-    def meta(context,**values): return ApiMeta(tenantContext=str(context.tenant_id),source='live-reference-api',apiVersion='v1',correlationId=current_request_id(),**values)
+    def meta(context,**values): return ApiMeta(tenantContext=str(context.tenant_id),source='live-reference-api',apiVersion=current_api_version(),correlationId=current_request_id(),**values)
     @router.get('/v1/trades/option-listings',response_model=OptionBookingListingSearchResponse)
-    def listing_search(q:str=Query(default='',max_length=250),limit:int=Query(default=25,ge=1,le=100),offset:int=Query(default=0,ge=0),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def listing_search(q:str=Query(default='',max_length=250),limit:int=Query(default=25,ge=1,le=100),offset:int=Query(default=0,ge=0),as_of:date|None=Query(default=None,alias='asOfDate'),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         authorized(connection,context)
-        items,total=search(connection,context.tenant_id,q,limit,offset)
+        items,total=search(connection,context.tenant_id,q,limit,offset,as_of)
         return OptionBookingListingSearchResponse(data=items,meta=meta(context,total=total,limit=limit,offset=offset))
     @router.get('/v1/trades/option-listings/{listing_id}',response_model=OptionBookingListingResponse)
-    def listing_detail(listing_id:UUID,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def listing_detail(listing_id:UUID,as_of:date|None=Query(default=None,alias='asOfDate'),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         authorized(connection,context)
-        try: _,item=load(connection,context.tenant_id,listing_id)
+        try: _,item=load(connection,context.tenant_id,listing_id,as_of=as_of)
         except RepositoryNotFound as error: raise HTTPException(404,str(error)) from error
         return OptionBookingListingResponse(data=item,meta=meta(context))
     @router.post(ENDPOINT,response_model=TradeDetailResponse,status_code=201)
-    def booking(request:OptionBookingRequest,response:Response,idempotency_key:str=Header(alias='Idempotency-Key',min_length=1,max_length=255),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def booking(request:OptionBookingRequest,response:Response,idempotency_key:str=Header(alias='Idempotency-Key',min_length=1,max_length=255),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         actor=authorized(connection,context)
         try: result=book(connection,context.tenant_id,actor,request,idempotency_key,current_request_id())
         except RepositoryNotFound as error: raise HTTPException(404,str(error)) from error
         except IdempotencyKeyConflict as error: raise ApiProblem(409,'idempotency.key_reused','Idempotency conflict',str(error)) from error
         except (OptionBookingError,TradeFieldError) as error:
             code=getattr(error,'code','request.validation_failed')
-            raise ApiProblem(409 if code=='option.terms_changed' else 422,code,'Option booking failed',str(error),errors=[ValidationIssue(location=['body',error.field],message=str(error),kind='value_error')]) from error
+            raise ApiProblem(409 if code in {'option.terms_changed','trade.correction_conflict'} else 422,code,'Option booking failed',str(error),errors=[ValidationIssue(location=['body',error.field],message=str(error),kind='value_error')]) from error
         response.headers['Location']=f'/v1/trades/{result.data.trade.trade_id}'
         return result
     @router.post('/v1/option-proposals',response_model=ReferenceDataProposalResponse,status_code=201)
-    def propose(request:OptionProposalRequest,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
-        actor=authorized(connection,context)
+    def propose(request:OptionProposalRequest,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
+        actor=assert_membership(connection,context)
         try: data=submit_option_proposal(connection,context.tenant_id,actor,request)
+        except IdempotencyKeyConflict as error: raise ApiProblem(409,'idempotency.key_reused','Idempotency conflict',str(error)) from error
         except RepositoryNotFound as error: raise HTTPException(404,str(error)) from error
         except InvalidWorkflowState as error: raise ApiProblem(422,'option.invalid_terms','Option proposal failed',str(error)) from error
         return ReferenceDataProposalResponse(data=data,meta=meta(context))

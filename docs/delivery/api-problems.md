@@ -16,6 +16,7 @@ callers, but clients should adopt `X-Request-ID`.
 | `access-denied` | 403 | `authorization.forbidden` | The request is not permitted. | Do not retry unchanged; request access if appropriate. |
 | `resource-not-found` | 404 | `resource.not_found` | The requested resource was not found. | Refresh client state before retrying. |
 | `request-conflict` | 409 | `request.conflict` | The request conflicts with the current resource state. | Refresh and resolve the conflict. |
+| `request-too-large` | 413 | `request.too_large` | The request body exceeds the configured size limit. | Reduce the payload; do not retry it unchanged. |
 | `request-validation` | 422 | `request.validation_failed` | One or more request fields are invalid. | Correct fields described by safe `errors` entries. |
 | `internal-error` | 500 | `internal.error` | The service could not complete the request. | Retry only if the calling workflow permits it; retain the request ID. |
 
@@ -25,3 +26,9 @@ Validation responses may contain `errors` entries with a field location,
 message, and error kind. They deliberately omit rejected values. Error bodies
 and normal request logs never contain submitted bodies, headers, cookies,
 tokens, connection strings, raw exception messages, or stack-trace text.
+
+Necessary safe HTTP exception headers (`Allow`, `WWW-Authenticate`, `Retry-After`)
+are retained. Unexpected 500s keep the same request ID in their body, header and
+sanitized error log. A timeout or lost response is not evidence that a write
+failed: retry supported mutations with the unchanged key or inspect the resulting
+resource before issuing a new command. See [API boundary hardening](api-boundary-hardening.md).

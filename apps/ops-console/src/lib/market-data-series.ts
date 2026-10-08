@@ -42,6 +42,9 @@ export type MarketDataSeries = {
   coverageStartDate: string | null;
   coverageEndDate: string | null;
   observations: MarketDataObservation[];
+  observationTotal?: number;
+  observationLimit?: number;
+  observationOffset?: number;
 };
 
 export type MarketDataSeriesPayload = {

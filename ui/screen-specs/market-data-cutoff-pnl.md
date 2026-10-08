@@ -1,5 +1,7 @@
 # Market-data cutoff and P&L lab
 
+> Retired on 2026-10-07. The illustrative lab and its browser fixtures have been removed; the text below is historical. See [P&L demo retirement and fresh start](../../docs/delivery/pnl-demo-retirement-and-fresh-start.md). Current market-data selection uses governed pricing policies and frozen resolver evidence, not this demonstration.
+
 The MVP includes a clearly labelled illustrative lab on the operations home
 screen. It uses the synthetic GBP/USD cutoff fixture to make the selection and
 P&L chain visible:

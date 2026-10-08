@@ -16,7 +16,7 @@ export const WORKSPACE_NAV_ITEMS: WorkspaceNavItem[] = [
   { key: "market-data", icon: "◷", label: "Market data", href: "/market-data" },
   { key: "trades", icon: "▣", label: "Trades", href: "/trades" },
   { key: "book-trade", icon: "+", label: "Book trade", href: "/trades/new" },
-  { key: "pnl", icon: "∑", label: "Portfolios & P&L", href: "/pnl/us" },
+  { key: "pnl", icon: "∑", label: "Valuation & P&L", href: "/valuation" },
 ];
 
 export function getActiveWorkspaceSection(pathname: string, hash = ""): WorkspaceSection {
@@ -26,7 +26,7 @@ export function getActiveWorkspaceSection(pathname: string, hash = ""): Workspac
   if (pathname.startsWith("/market-data")) return "market-data";
   if (pathname.startsWith("/trades/new")) return "book-trade";
   if (pathname.startsWith("/trades")) return "trades";
-  if (pathname.startsWith("/pnl")) return "pnl";
+  if (pathname.startsWith("/valuation") || pathname.startsWith("/pnl")) return "pnl";
   if (pathname.startsWith("/instruments")) return "instruments";
   return "instruments";
 }

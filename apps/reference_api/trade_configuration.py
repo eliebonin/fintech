@@ -11,10 +11,10 @@ class ConfigurationConflict(ValueError):
 def property_view(row):
     return dict(definitionId=row["definition_id"],code=row["code"],label=row["label"],description=row["description"],valueType=row["value_type"],catalogueId=row["catalogue_id"],required=row["required"],choices=row["choices"],versionNo=row["version_no"],status=row["status"],createdByUserAccountId=row["created_by_user_account_id"],createdAtUtc=row["created_at_utc"],retiredByUserAccountId=row["retired_by_user_account_id"],retiredAtUtc=row["retired_at_utc"])
 
-def list_properties(connection,tenant_id,actor_id):
+def list_properties(connection,tenant_id,actor_id,limit=1000,offset=0):
     assert_trade_writer(connection,tenant_id,actor_id)
     table=m.trade_property_definition
-    return [property_view(row) for row in connection.execute(select(table).where(table.c.tenant_id==tenant_id).order_by(table.c.code,table.c.version_no.desc())).mappings()]
+    return [property_view(row) for row in connection.execute(select(table).where(table.c.tenant_id==tenant_id).order_by(table.c.code,table.c.version_no.desc(),table.c.definition_id).limit(limit).offset(offset)).mappings()]
 
 def _find(connection,tenant_id,definition_id):
     table=m.trade_property_definition

@@ -116,13 +116,13 @@ def test_hidden_context(structured):
     assert request('GET',f'/v1/trades/product-instruments/{structured}',tenant='second_tenant').status_code in {403,404}
 
 
-def test_unsupported_pnl_is_closed(future):
+def test_future_cannot_reenter_retired_pnl(future):
     node, listing = future
     assert request('POST','/v1/trades/futures',payload(node,listing)).status_code == 201
     with get_engine().connect() as connection:
         code = connection.scalar(select(m.strategy.c.strategy_code).where(m.strategy.c.strategy_id == DEMO_IDS['strategy']))
     response = request('GET',f'/v1/portfolios/{code}/pnl?asOfDate=2026-10-01')
-    assert response.status_code == 422, response.text
+    assert response.status_code == 410, response.text
 
 
 def test_snapshot_survives_new_convention(structured):

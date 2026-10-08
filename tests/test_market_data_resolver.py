@@ -1,6 +1,7 @@
 """Database-backed valuation selection tests."""
 
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -19,6 +20,27 @@ from security_master_schema.market_data_resolver import (
 
 
 DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+
+
+def test_legacy_selection_and_snapshot_preserve_database_decimal(seeded_engine):
+    with seeded_engine.connect() as connection:
+        transaction=connection.begin()
+        try:
+            day=connection.scalar(select(m.valuation_policy.c.valid_from).where(
+                m.valuation_policy.c.valuation_policy_id==DEMO_IDS['valuation_policy']))
+            expected=Decimal('123456789.123456789123')
+            connection.execute(update(m.market_data_observation).where(
+                m.market_data_observation.c.market_data_observation_id==DEMO_IDS['market_data_observation']).values(value=expected))
+            request=_request(day)
+            result=resolve_market_data(connection,request)
+            assert result.status=='SELECTED'
+            assert result.selected_value==expected
+            snapshot=persist_resolution_snapshot(connection,request,(result,))
+            stored=connection.scalar(select(m.market_data_resolution_snapshot_item.c.selected_value).where(
+                m.market_data_resolution_snapshot_item.c.market_data_resolution_snapshot_id==snapshot))
+            assert stored==expected
+        finally:
+            transaction.rollback()
 
 
 def _request(valuation_date) -> ResolutionRequest:

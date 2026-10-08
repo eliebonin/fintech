@@ -1,5 +1,7 @@
 # Portfolio P&L MVP
 
+> Retired on 2026-10-07. This is a historical demo specification, not current behaviour or the replacement engine design. See [P&L demo retirement and fresh start](../../docs/delivery/pnl-demo-retirement-and-fresh-start.md). Old page bookmarks redirect to `/valuation`; the old calculation API returns410.
+
 ## User goal
 
 Operations can compare a US-base and GBP-base portfolio on a selected date and

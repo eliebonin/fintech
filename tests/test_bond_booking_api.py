@@ -63,13 +63,13 @@ def test_invalid_bond(bond,changes):
     assert response.status_code==422,response.text
 
 
-def test_sell_and_unsupported_pnl(bond):
+def test_sell_and_retired_pnl(bond):
     result=request('POST','/v1/trades/bonds',ticket(bond,side='SELL',accruedInterestAmount='0'))
     assert result.status_code==201,result.text
     assert result.json()['data']['trade']['productEconomics']['direction']=='RECEIVE'
     with get_engine().connect() as connection:
         code=connection.scalar(select(m.strategy.c.strategy_code).where(m.strategy.c.strategy_id==DEMO_IDS['strategy']))
-    assert request('GET',f'/v1/portfolios/{code}/pnl?asOfDate=2026-10-01').status_code==422
+    assert request('GET',f'/v1/portfolios/{code}/pnl?asOfDate=2026-10-01').status_code==410
 
 
 def test_hidden_bond(bond):

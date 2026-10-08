@@ -13,5 +13,9 @@ class InvalidCatalogueValue(InvalidWorkflowState):
     """A request names a missing or inactive governed catalogue value."""
 
 
+class StrategyCodeConflict(InvalidWorkflowState):
+    """A strategy code is already registered in this tenant."""
+
+
 class IdempotencyKeyConflict(InvalidWorkflowState):
     """A tenant reuses an endpoint's key with a different payload."""

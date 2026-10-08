@@ -22,7 +22,7 @@ from .valuation_resolver import (
 )
 
 
-RESOLVER_VERSION = "market-data-resolver-v1"
+RESOLVER_VERSION = "market-data-resolver-v3"
 
 
 class ValuationPolicyScopeError(PermissionError):
@@ -40,6 +40,7 @@ class ResolutionRequest:
     valuation_cut_id: UUID
     market_data_as_of_utc: datetime
     use_purpose: str
+    strategy_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,7 @@ class ResolvedMarketData:
     selection_reason: str
     entitlement_decision: str
     exception_code: str | None
+    pricing_evidence: dict | None = None
 
 
 def _subject_context(connection: Connection, subject_id: UUID) -> tuple[str, UUID | None]:
@@ -103,6 +105,13 @@ def _subject_context(connection: Connection, subject_id: UUID) -> tuple[str, UUI
     return subject_type, instrument_type_id
 
 
+def assert_strategy_scope(connection, tenant_id, strategy_id, day):
+    if not connection.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.strategy_id==strategy_id,
+        m.strategy.c.tenant_id==tenant_id, m.strategy.c.status=='ACTIVE',m.strategy.c.effective_from<=day,
+        or_(m.strategy.c.effective_to.is_(None),m.strategy.c.effective_to>=day))):
+        raise ValueError('Strategy is not active in this tenant on the requested date')
+
+
 def _assert_policy_scope(connection: Connection, request: ResolutionRequest) -> None:
     """Ensure the caller cannot select with a cross-tenant or inactive policy."""
 
@@ -121,6 +130,16 @@ def _assert_policy_scope(connection: Connection, request: ResolutionRequest) -> 
     )
     if active_policy is None:
         raise ValuationPolicyScopeError("Valuation policy is outside the requesting tenant scope")
+    strategy = connection.scalar(select(m.valuation_policy.c.strategy_id).where(m.valuation_policy.c.valuation_policy_id==active_policy))
+    if strategy and request.strategy_id != strategy:
+        raise ValueError('Strategy-owned policy requires matching strategy context')
+    if request.strategy_id:
+        assert_strategy_scope(connection,request.tenant_id,request.strategy_id,request.valuation_date)
+    from .market_data_visibility import visible_subject_clause
+    if not connection.scalar(select(m.financial_reference_node.c.reference_node_id).where(
+        m.financial_reference_node.c.reference_node_id==request.subject_reference_node_id,
+        visible_subject_clause(request.subject_reference_node_id,request.tenant_id))):
+        raise ValuationPolicyScopeError('Subject is not available to this tenant')
 
 
 def _matching_rules(
@@ -131,10 +150,14 @@ def _matching_rules(
 ) -> list[dict]:
     """Return matching policy rules in documented specificity then sequence order."""
 
+    venue_id = connection.scalar(select(m.listing.c.market_venue_id).where(
+        m.listing.c.listing_node_id == request.subject_reference_node_id))
     specificity = case(
-        (m.valuation_policy_rule.c.market_data_series_id.is_not(None), 3),
-        (m.valuation_policy_rule.c.subject_reference_node_id.is_not(None), 2),
-        (m.valuation_policy_rule.c.instrument_type_id.is_not(None), 1),
+        (m.valuation_policy_rule.c.market_data_series_id.is_not(None), 6),
+        (m.valuation_policy_rule.c.subject_reference_node_id.is_not(None), 5),
+        (and_(m.valuation_policy_rule.c.market_venue_id.is_not(None), m.valuation_policy_rule.c.instrument_type_id.is_not(None)), 4),
+        (m.valuation_policy_rule.c.market_venue_id.is_not(None), 3),
+        (m.valuation_policy_rule.c.instrument_type_id.is_not(None), 2),
         else_=0,
     )
     statement = (
@@ -142,6 +165,10 @@ def _matching_rules(
         .where(
             m.valuation_policy_rule.c.valuation_policy_id == request.valuation_policy_id,
             m.valuation_policy_rule.c.status == "ACTIVE",
+            or_(m.valuation_policy_rule.c.market_venue_id.is_(None), m.valuation_policy_rule.c.market_venue_id == venue_id),
+            or_(m.valuation_policy_rule.c.market_data_series_id.is_(None),
+                m.valuation_policy_rule.c.market_data_series_id.in_(select(m.market_data_series.c.market_data_series_id).where(
+                    m.market_data_series.c.reference_node_id == request.subject_reference_node_id))),
             or_(
                 m.valuation_policy_rule.c.subject_type.is_(None),
                 m.valuation_policy_rule.c.subject_type == subject_type,
@@ -167,6 +194,16 @@ def _entitled_observations(
     rule: dict,
 ) -> list[tuple[ObservationCandidate, dict]]:
     """Fetch accepted, uncorrected, entitled candidates before the information cut."""
+
+    # Data selection is non-display consumption even when the caller names a reporting purpose.
+    # This is access control only; no valuation or P&L calculation is added here.
+    from market_data.rights import denied_activity_datasets
+    activities = ['NON_DISPLAY']
+    if request.use_purpose == 'CLIENT_REPORTING':
+        activities.append('CLIENT_REPORTING')
+    if request.use_purpose == 'REDISTRIBUTION':
+        activities.append('REDISTRIBUTE')
+    denied_datasets = denied_activity_datasets(connection, request.tenant_id, date.today(), activities)
 
     vintage = m.market_data_vintage.alias("vintage")
     correction = m.market_data_observation.alias("correction")
@@ -205,6 +242,7 @@ def _entitled_observations(
         m.market_data_series.c.status == "ACTIVE",
         m.market_data_series.c.series_type == rule["series_type"],
         m.market_data_observation.c.quality_status == "ACCEPTED",
+        m.market_data_observation.c.dataset_id.not_in(denied_datasets),
         m.market_data_observation.c.market_date.is_not(None),
         m.market_data_observation.c.received_at_utc <= request.market_data_as_of_utc,
         or_(
@@ -236,12 +274,19 @@ def _entitled_observations(
     if rule["dataset_id"] is not None:
         conditions.append(m.market_data_observation.c.dataset_id == rule["dataset_id"])
 
+    if rule.get('pricing_convention', 'LEGACY') != 'LEGACY':
+        conditions.append(m.market_data_observation.c.market_date.between(request.valuation_date-timedelta(days=1100), request.valuation_date))
+
     statement = (
         select(
             m.market_data_observation.c.market_data_observation_id,
             m.market_data_observation.c.market_date,
             m.market_data_observation.c.received_at_utc,
             m.market_data_observation.c.value,
+            m.market_data_observation.c.observed_at_utc,
+            m.market_data_observation.c.value_basis,
+            m.market_data_series.c.valuation_cut_id.label('series_cut_id'),
+            m.market_data_observation.c.valuation_cut_id.label('observation_cut_id'),
             m.market_data_observation.c.dataset_id,
             m.market_data_observation.c.market_data_vintage_id,
             m.market_data_observation.c.acquisition_licence_id,
@@ -280,7 +325,7 @@ def _entitled_observations(
                 observation_id=row["market_data_observation_id"],
                 market_date=row["market_date"],
                 received_at_utc=row["received_at_utc"],
-                value=float(row["value"]),
+                value=row["value"],
             ),
             row,
         )
@@ -385,7 +430,20 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
     _assert_policy_scope(connection, request)
     subject_type, instrument_type_id = _subject_context(connection, request.subject_reference_node_id)
     rules = _matching_rules(connection, request, subject_type, instrument_type_id)
-    if not rules:
+    rule = rules[0] if rules else None
+    from market_data.calendar_decisions import request_calendar_decisions
+    decisions=request_calendar_decisions(connection,request,rule['series_type'] if rule else None)
+    blocker=next((d for d in decisions if d['status']!='OPEN'),None)
+    if blocker:
+        closed=blocker['status']=='CLOSED'
+        code=('STRATEGY_VALUATION_CLOSED' if blocker['targetKind']=='STRATEGY' else 'FUND_VALUATION_CLOSED') if closed else 'CALENDAR_NOT_ASSESSED'
+        return ResolvedMarketData(status='NOT_EXPECTED' if closed else 'MISSING',subject_reference_node_id=request.subject_reference_node_id,
+            policy_rule_id=rule['valuation_policy_rule_id'] if rule else None,market_data_series_id=None,market_data_observation_id=None,market_data_vintage_id=None,
+            dataset_id=None,acquisition_licence_id=None,source_published_at_utc=None,received_at_utc=None,currency_id=None,selected_value=None,
+            pricing_date_requested=request.valuation_date,pricing_date_used=None,staleness_business_days=None,staleness_status='NOT_EXPECTED' if closed else 'UNKNOWN',
+            selection_reason='CALENDAR_CLOSED' if closed else 'CALENDAR_UNKNOWN',entitlement_decision='NOT_EVALUATED',exception_code=code,
+            pricing_evidence={'calendarDecisions':decisions,'informationCutoffUtc':request.market_data_as_of_utc.isoformat()})
+    if not rule:
         return ResolvedMarketData(
             status="MISSING", subject_reference_node_id=request.subject_reference_node_id,
             policy_rule_id=None, market_data_series_id=None, market_data_observation_id=None,
@@ -394,11 +452,31 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
             pricing_date_requested=None, pricing_date_used=None, staleness_business_days=None,
             staleness_status="MISSING", selection_reason="MISSING_DATA",
             entitlement_decision="NOT_AVAILABLE", exception_code="NO_MATCHING_POLICY_RULE",
+            pricing_evidence={'calendarDecisions':decisions} if decisions else None,
         )
-
-    rule = rules[0]
     candidates_and_rows = _entitled_observations(connection, request, rule)
     matching_observation_exists = _matching_observation_exists(connection, request, rule)
+    if rule['pricing_convention'] != 'LEGACY':
+        from market_data.policy_selection import select_composite
+        selection = select_composite(connection, request, rule, [row for _, row in candidates_and_rows])
+        if decisions: selection['evidence']['calendarDecisions']=decisions
+        row = selection['row']
+        denied = matching_observation_exists and not candidates_and_rows and selection['exception'] == 'NO_ELIGIBLE_OBSERVATION'
+        return ResolvedMarketData(
+            status='DENIED' if denied else selection['status'], subject_reference_node_id=request.subject_reference_node_id,
+            policy_rule_id=rule['valuation_policy_rule_id'],
+            market_data_series_id=row['market_data_series_id'] if row else None,
+            market_data_observation_id=row['market_data_observation_id'] if row else None,
+            market_data_vintage_id=row['market_data_vintage_id'] if row else None,
+            dataset_id=row['dataset_id'] if row else None, acquisition_licence_id=row['acquisition_licence_id'] if row else None,
+            source_published_at_utc=row['source_published_at_utc'] if row else None,
+            received_at_utc=row['evidence_received_at_utc'] if row else None, currency_id=row['currency_id'] if row else None,
+            selected_value=row['value'] if row else None, pricing_date_requested=selection['requested'],
+            pricing_date_used=selection['used'], staleness_business_days=selection['staleness'],
+            staleness_status='CURRENT' if selection['status']=='SELECTED' and not selection['staleness'] else 'WITHIN_TOLERANCE' if selection['status']=='SELECTED' else selection['status'],
+            selection_reason='ENTITLEMENT_DENIED' if denied else 'ENTITLED_PROVIDER' if selection['status']=='SELECTED' else 'MISSING_DATA',
+            entitlement_decision='DENIED' if denied else 'ALLOWED' if candidates_and_rows else 'NOT_AVAILABLE',
+            exception_code='NO_VALID_ENTITLEMENT' if denied else selection['exception'], pricing_evidence=selection['evidence'])
     price_result = resolve_price(
         valuation_date=request.valuation_date,
         information_cutoff_utc=request.market_data_as_of_utc,
@@ -424,7 +502,7 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
         source_published_at_utc=selected_row["source_published_at_utc"] if selected_row else None,
         received_at_utc=selected_row["evidence_received_at_utc"] if selected_row else None,
         currency_id=selected_row["currency_id"] if selected_row else None,
-        selected_value=Decimal(str(price_result.selected_value)) if price_result.selected_value is not None else None,
+        selected_value=price_result.selected_value,
         pricing_date_requested=price_result.pricing_date_requested,
         pricing_date_used=price_result.pricing_date_used,
         staleness_business_days=price_result.staleness_business_days,
@@ -436,6 +514,7 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
         exception_code=(
             None if selected else "NO_VALID_ENTITLEMENT" if denied else price_result.exception_code
         ),
+        pricing_evidence={'calendarDecisions':decisions,'informationCutoffUtc':request.market_data_as_of_utc.isoformat()} if decisions else None,
     )
 
 
@@ -502,6 +581,7 @@ def persist_resolution_snapshot(
                 entitlement_decision=item.entitlement_decision,
                 policy_rule_id=item.policy_rule_id,
                 exception_code=item.exception_code,
+                pricing_evidence=item.pricing_evidence,
             )
         )
     return snapshot_id

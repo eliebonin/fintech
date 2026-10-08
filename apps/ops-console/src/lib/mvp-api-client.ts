@@ -2,7 +2,6 @@ import "server-only";
 
 import type { TenantContext } from "./tenant-types";
 import type { MarketDataSeriesPayload } from "./market-data-series";
-import type { PortfolioPnlPayload } from "./portfolio-pnl";
 import type { TradeDetailPayload, TradePayload } from "./trades";
 import type { InstrumentRecord } from "./instrument-data";
 
@@ -66,17 +65,16 @@ export function getInstrument(context: TenantContext, instrumentId: string, fetc
   return getJson<InstrumentDetailPayload>(`/v1/instruments/${encodeURIComponent(instrumentId)}`, context, fetchImpl);
 }
 
-export function getMarketDataSeries(context: TenantContext, params: { fromDate?: string; toDate?: string; limit?: number; referenceNodeId?: string } = {}) {
+export function getMarketDataSeries(context: TenantContext, params: { fromDate?: string; toDate?: string; limit?: number; offset?: number; observationLimit?: number; observationOffset?: number; referenceNodeId?: string } = {}) {
   const query = new URLSearchParams();
   if (params.fromDate) query.set("fromDate", params.fromDate);
   if (params.toDate) query.set("toDate", params.toDate);
   if (params.referenceNodeId) query.set("referenceNodeId", params.referenceNodeId);
   query.set("limit", String(params.limit ?? 12));
+  if (params.offset !== undefined) query.set("offset", String(params.offset));
+  if (params.observationLimit !== undefined) query.set("observationLimit", String(params.observationLimit));
+  if (params.observationOffset !== undefined) query.set("observationOffset", String(params.observationOffset));
   return getJson<MarketDataSeriesPayload>(`/v1/market-data/series?${query.toString()}`, context);
-}
-
-export function getPortfolioPnl(context: TenantContext, portfolioCode: string, asOfDate: string) {
-  return getJson<PortfolioPnlPayload>(`/v1/portfolios/${encodeURIComponent(portfolioCode)}/pnl?asOfDate=${encodeURIComponent(asOfDate)}`, context);
 }
 
 export function getBookedTrades(context: TenantContext, params: { portfolioCode?: string; fromDate?: string; toDate?: string; q?: string; side?: string; lifecycleStatus?: string; limit?: number; offset?: number } = {}) {

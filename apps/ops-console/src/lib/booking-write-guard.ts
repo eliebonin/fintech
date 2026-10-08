@@ -18,7 +18,7 @@ export async function readBookingWrite(request:NextRequest,legacyCash=false):Pro
   let context:TenantContext;
   try{context=await getActiveTenantContext();}catch{return fail(401,'ACTIVE_TENANT_REQUIRED');}
   if(expected&&expected!==context.tenantId)return fail(409,'TENANT_CONTEXT_CHANGED','The active tenant changed. Restart the ticket before booking.');
-  const enriched=['properties','tagIds','traderPersonId','executingBrokerOrganisationId','tradePurpose','marketActivity','externalReferences'].some(field=>field in payload);
+  const enriched=['correction','properties','tagIds','traderPersonId','executingBrokerOrganisationId','tradePurpose','marketActivity','externalReferences'].some(field=>field in payload);
   if(legacyCash&&enriched&&!expected)return fail(400,'EXPECTED_TENANT_REQUIRED','Reopen the ticket to confirm its tenant context.');
   return {context,payload:payload as Record<string,unknown>,key};
 }

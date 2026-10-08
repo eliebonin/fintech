@@ -4,6 +4,7 @@ vi.mock('react',async original=>({...await original<typeof import('react')>(),us
 vi.mock('next/navigation',()=>({useRouter:()=>({push:h.push,refresh:vi.fn()})}));
 vi.mock('@/lib/browser-api-client',async original=>({...await original<typeof import('@/lib/browser-api-client')>(),bffPost:h.send,bffGet:h.get}));
 import {ProductTicket} from './product-ticket';
+import {BookingSearchResults,ReadinessResults} from './booking-search-results';
 import {PropertyFields} from './property-fields';
 import {BffApiError} from '@/lib/api-errors';
 import {PartyFields} from './party-fields';
@@ -11,15 +12,28 @@ import {ProductReview} from './product-ticket';
 import type {ProductTerms} from './product-ticket-model';
 const terms={instrumentId:'future',listingId:'listing',name:'Future',kind:'FUTURE' as const,executionRoute:'LISTED' as const,bookingEligible:true,termsFingerprint:'a'.repeat(64),currency:'USD',convention:{kind:'FUTURE' as const,effectiveFrom:'2026-09-01',priceCurrencyId:'currency',sourceReference:'Exchange specification',quoteFactor:'1',quantityUnit:'CONTRACTS' as const,priceBasis:'INDEX_POINTS' as const,monetaryMultiplier:'5',tickSize:'.25',allowNegativePrice:false,lastTradingAtUtc:'2027-03-19T13:30:00Z',finalSettlementDate:'2027-03-19'}};
 const context={tenantId:'tenant',bookedByUserAccountId:'actor',properties:[{definitionId:'zero',code:'ZERO',label:'Numeric',description:null,valueType:'DECIMAL' as const,required:false,choices:[]}],tags:[]};
-function render(kind:'FUTURE'|'SWAP'='FUTURE',tenantId=context.tenantId){h.cursor=0;const tree=ProductTicket({kind,strategies:[{strategyId:'strategy',strategyCode:'TEST',displayName:'Test',status:'ACTIVE'}],context:{...context,tenantId}});h.effects.splice(0).forEach(effect=>effect());return tree;}
+let correction:import('@/lib/trade-correction-model').BookingCorrection|undefined;
+function render(kind:'FUTURE'|'SWAP'|'BOND'|'STRUCTURED_PRODUCT'='FUTURE',tenantId=context.tenantId){h.cursor=0;const tree=ProductTicket({kind,strategies:[{strategyId:'strategy',strategyCode:'TEST',displayName:'Test',status:'ACTIVE'}],context:{...context,tenantId},correction});h.effects.splice(0).forEach(effect=>effect());return tree;}
 function unmount(){h.slots.filter(slot=>slot?.effect).forEach(effect=>effect.cleanup?.());h.slots=[];h.cursor=0;h.effects=[];}
 function replayEffects(){const effects=h.slots.filter(slot=>slot?.effect);effects.forEach(effect=>effect.cleanup?.());effects.forEach(effect=>{effect.cleanup=effect.setup()||undefined;});}
-function find(node:any,predicate:(n:any)=>boolean):any{if(!node||typeof node!=='object')return;if(predicate(node))return node;for(const child of [node.props?.children].flat(Infinity)){const found=find(child,predicate);if(found)return found;}}
+function find(node:any,predicate:(n:any)=>boolean):any{if(!node||typeof node!=='object')return;if(predicate(node))return node;if(node.type===BookingSearchResults)return find(ReadinessResults({...node.props,showUnavailable:false,onShowUnavailable(){}}),predicate);for(const child of [node.props?.children].flat(Infinity)){const found=find(child,predicate);if(found)return found;}}
 const button=(tree:any,text:string)=>find(tree,n=>n.type==='button'&&n.props.children===text),byId=(tree:any,id:string)=>find(tree,n=>n.props?.id===id);
 async function selected(){h.get.mockResolvedValueOnce({data:[terms],meta:{total:1}}).mockResolvedValueOnce({data:terms});let tree=render();find(tree,n=>n.props?.['aria-label']==='Search products').props.onChange({target:{value:'Future'}});tree=render();await find(tree,n=>n.type==='form').props.onSubmit({preventDefault(){}});await button(render(),'Select product').props.onClick();return render();}
 async function reviewed(){let tree=await selected();for(const [id,value] of [['strategyId','strategy'],['quantity','2'],['executionPrice','6000'],['tradeDatetime','2026-10-01T10:00:00Z'],['positionEffect','CLOSE']])byId(tree,id).props.onChange({target:{value}});find(tree,n=>n.type===PropertyFields).props.onChange({properties:{zero:'0'}});tree=render();find(tree,n=>n.type==='form').props.onSubmit({preventDefault(){}});return render();}
 beforeEach(()=>{vi.stubGlobal('window',{location:{href:'http://test/trades/new'},history:{state:{}},addEventListener:vi.fn(),removeEventListener:vi.fn()});vi.stubGlobal('document',{addEventListener:vi.fn(),removeEventListener:vi.fn()});});
-afterEach(()=>{unmount();h.send.mockReset();h.get.mockReset();h.push.mockReset();vi.unstubAllGlobals();});
+afterEach(()=>{correction=undefined;unmount();h.send.mockReset();h.get.mockReset();h.push.mockReset();vi.unstubAllGlobals();});
+it.each(['FUTURE','SWAP','BOND','STRUCTURED_PRODUCT'] as const)('lets %s search and select references at an explicit historical date',async kind=>{
+ const tree=render(kind),date=find(tree,n=>n.props?.['aria-label']==='Search date (UTC)');
+ expect(date,'historical date must be editable before choosing the instrument').toBeDefined();
+ date.props.onChange({target:{value:'2026-09-30'}});
+ find(render(kind),n=>n.props?.['aria-label']==='Search products').props.onChange({target:{value:'Synthetic'}});
+ h.get.mockResolvedValueOnce({data:[terms],meta:{total:1,offset:0,limit:25}}).mockResolvedValueOnce({data:terms});
+ await find(render(kind),n=>n.type==='form').props.onSubmit({preventDefault(){}});
+ expect(new URL(h.get.mock.calls[0][0],'http://test').searchParams.get('asOfDate')).toBe('2026-09-30');
+ await button(render(kind),'Select product').props.onClick();
+ expect(new URL(h.get.mock.calls[1][0],'http://test').searchParams.get('asOfDate')).toBe('2026-09-30');
+});
+it('submits the confirmed correction context with the product ticket',async()=>{correction={tradeId:'original',expectedSequenceNo:1,reason:'Wrong count'};h.send.mockResolvedValueOnce({data:{trade:{tradeId:'replacement'}}});await button(await reviewed(),'Confirm booking').props.onClick();expect(h.send.mock.calls[0][1].correction).toEqual(correction);});
 it('does not expose a cash settlement input for futures',async()=>expect(byId(await selected(),'settlementDate')).toBeUndefined());
 it('preserves annotations and intent on review/edit',async()=>{button(await reviewed(),'Back to edit').props.onClick();const tree=render();expect(byId(tree,'positionEffect').props.value).toBe('CLOSE');expect(find(tree,n=>n.type===PropertyFields).props.draft.properties.zero).toBe('0');});
 it('freezes request, tenant and key for an uncertain retry',async()=>{h.send.mockRejectedValueOnce(new BffApiError(503,'Unavailable')).mockResolvedValueOnce({data:{trade:{tradeId:'saved'}}});await button(await reviewed(),'Confirm booking').props.onClick();const tree=render();expect(button(tree,'Back to edit').props.disabled).toBe(true);await button(tree,'Retry unchanged booking').props.onClick();expect(h.send.mock.calls[1]).toEqual(h.send.mock.calls[0]);expect(h.send.mock.calls[0][1].settlementDate).toBeNull();expect(h.send.mock.calls[0][1].properties).toEqual([{definitionId:'zero',value:'0'}]);expect(h.push).toHaveBeenCalledWith('/trades/saved');});

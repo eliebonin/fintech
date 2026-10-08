@@ -6,9 +6,10 @@ import {getActiveTenantContext,getActiveTenantWorkspace} from '@/lib/tenant-sess
 import {getInstrument,MvpApiError} from '@/lib/mvp-api-client';
 import {listCurrencies,getProductInstrument} from '@/lib/reference-api-client';
 export const dynamic='force-dynamic';
+import {canManageInstruments} from '@/lib/instrument-authority';
 export default async function ConventionPage({params}:{params:Promise<{instrumentId:string}>}){
   const {instrumentId}=await params;let context,workspace;try{[context,workspace]=await Promise.all([getActiveTenantContext(),getActiveTenantWorkspace()]);}catch{redirect('/select-tenant');}
-  if(workspace.membershipRole!=='TENANT_ADMIN'||!workspace.moduleCodes.includes('TRADING'))redirect('/instruments');
+  if(!canManageInstruments(workspace))return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes}>{null}</WorkspaceShell>;
   let instrument;try{instrument=(await getInstrument(context,instrumentId)).data;}catch(e){if(e instanceof MvpApiError&&e.status===404)notFound();throw e;}
   const kind=instrument.instrumentType;if(kind!=='STRUCTURED_PRODUCT'&&kind!=='FUTURE'&&kind!=='BOND'&&kind!=='SWAP')notFound();
   const shell={tenantName:workspace.tenantName,membershipRole:workspace.membershipRole,moduleCodes:workspace.moduleCodes};

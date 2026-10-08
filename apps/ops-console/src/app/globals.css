@@ -45,8 +45,8 @@ a {
 .detail-link, .clear-link { display: inline-block; margin-top: 18px; color: #1d4ed8; font-size: 12px; font-weight: 800; }
 .clear-link { margin: 0 0 0 4px; align-self: center; white-space: nowrap; }
 .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px 0; margin-top: 14px; border-top: 1px solid #eef2f7; border-bottom: 1px solid #eef2f7; }
-.metric-row span, .pnl-summary div { display: grid; gap: 4px; }
-.metric-row small, .pnl-summary small { color: #94a3b8; text-transform: uppercase; font-size: 10px; letter-spacing: .08em; }
+.metric-row span { display: grid; gap: 4px; }
+.metric-row small { color: #94a3b8; text-transform: uppercase; font-size: 10px; letter-spacing: .08em; }
 .metric-row strong { font-size: 13px; }
 .provenance { display: grid; grid-template-columns: 76px 1fr; gap: 9px 12px; margin: 15px 0 0; font-size: 12px; }
 .provenance dt { color: #64748b; }
@@ -118,10 +118,6 @@ code { color: #64748b; font-family: ui-monospace, SFMono-Regular, Menlo, monospa
 .fee-row > small { grid-column: 2; text-align: right; }
 @media (max-width: 900px) { .detail-columns { grid-template-columns: 1fr; } .detail-fields { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 800px) { .trade-summary { grid-template-columns: 1fr 1fr; } }
-.pnl-summary { display: grid; grid-template-columns: 2fr 1fr 1.7fr 1fr; gap: 14px; max-width: 1280px; margin: 0 auto 18px; }
-.pnl-summary > div { min-height: 85px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
-.pnl-summary strong { font-size: 20px; }
-.pnl-summary span { color: #64748b; font-size: 12px; }
 .positive { color: #15803d; }
 .negative { color: #b91c1c; }
 .neutral { color: #475569; }
@@ -132,9 +128,7 @@ th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: l
 th { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
 th small { font-size: 9px; font-weight: 500; text-transform: none; letter-spacing: 0; }
 td:first-child { display: grid; gap: 4px; }
-.used-value { white-space: nowrap; color: #334155; font-variant-numeric: tabular-nums; }
-.methodology { max-width: 1280px; margin: 14px auto; color: #64748b; font-size: 12px; }
-@media (max-width: 760px) { .mvp-page { padding: 22px 18px 48px; } .mvp-header { display: block; } .synthetic-badge { display: inline-block; margin-top: 18px; } .pnl-summary { grid-template-columns: 1fr 1fr; } .date-form { flex-wrap: wrap; } .history-heading { display: block; } .history-heading > strong { display: block; margin-top: 12px; } }
+@media (max-width: 760px) { .mvp-page { padding: 22px 18px 48px; } .mvp-header { display: block; } .synthetic-badge { display: inline-block; margin-top: 18px; } .date-form { flex-wrap: wrap; } .history-heading { display: block; } .history-heading > strong { display: block; margin-top: 12px; } }
 @media (max-width: 1000px) { .strategy-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }.strategy-form button { grid-column: 1 / -1; justify-self: start; } }
 @media (max-width: 900px) { .tenant-profile-grid { grid-template-columns: 1fr; } }
 
@@ -148,6 +142,19 @@ td:first-child { display: grid; gap: 4px; }
 .ticket-party > button { margin-top: 8px; }
 .ticket-options { list-style: none; padding: 0; max-height: 200px; overflow: auto; }
 .ticket-options button { width: 100%; text-align: left; margin-bottom: 6px; }
+.booking-readiness { max-width: 1280px; margin: 24px auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
+.booking-readiness-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.booking-readiness-toolbar label { display: flex; align-items: center; gap: 8px; }
+.booking-readiness-toolbar input { width: auto; }
+.booking-readiness .ticket-options { max-height: none; }
+.booking-readiness .ticket-options li { display: flex; align-items: start; justify-content: space-between; gap: 20px; padding: 16px 0; border-top: 1px solid #e2e8f0; flex-wrap: wrap; }
+.booking-readiness .ticket-options li > div:first-child { flex: 1 1 260px; }
+.booking-readiness .ticket-options .ticket-actions { flex: 0 1 auto; }
+.booking-readiness .ticket-options button { width: auto; }
+.booking-readiness .quality { font-size: 12px; letter-spacing: normal; }
+.booking-readiness button { padding: 10px 14px; border: 0; border-radius: 7px; background: #1d4ed8; color: white; font-weight: 700; cursor: pointer; }
+.booking-readiness button:disabled { opacity: .65; cursor: wait; }
+.booking-readiness button:focus-visible, .booking-readiness a:focus-visible { outline: 3px solid #14213d; outline-offset: 3px; }
 .ticket-tags { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; }
 .ticket-tags label { display: flex; flex-direction: row; align-items: center; gap: 7px; }
 .ticket-tags input { width: auto; }
@@ -241,5 +248,13 @@ td:first-child { display: grid; gap: 4px; }
 .futures-facts { display:grid; grid-template-columns:minmax(160px,1fr) 2fr; gap:12px 24px; margin:18px 0; }
 .futures-facts dt { color:#52627a; }.futures-facts dd { margin:0; overflow-wrap:anywhere; }
 .futures-months { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.pricing-policy-editor { display:grid; gap:24px; }
+.calendar-days { overflow:auto; max-height:500px; margin-top:20px; }
+.calendar-days table { width:100%; border-collapse:collapse; }
+.calendar-days td,.calendar-days th { padding:10px; text-align:left; border-bottom:1px solid #dbe3ee; vertical-align:top; }
+.pricing-policy-editor fieldset { min-width:0; border:1px solid #dbe3ee; border-radius:8px; padding:20px; }
+.pricing-policy-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin:16px 0; }
+.pricing-policy-fields label { display:grid; gap:6px; }
+.pricing-policy-editor pre,.history-panel pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:400px; overflow:auto; }
 .futures-workspace [aria-pressed="true"] { background:#1d4ed8; color:white; border-color:#1d4ed8; }
 @media(max-width:650px) { .futures-facts { grid-template-columns:1fr; gap:6px; }.futures-facts dd { margin-bottom:12px; }.futures-months { grid-template-columns:1fr 1fr; }.futures-form fieldset { padding:16px; } }

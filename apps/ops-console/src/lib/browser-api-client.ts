@@ -52,13 +52,19 @@ export type {
 } from "api-contracts";
 
 export type TradeBookingRequest = components["schemas"]["TradeBookingRequest"];
+export function cancelBookingRecordFromBff(id:string,payload:{expectedSequenceNo:number;reason:string},key:string,tenant:string,fetchImpl:typeof fetch=fetch) {
+  return bffPost<import('./trades').TradeDetailPayload>(`/api/trades/${encodeURIComponent(id)}/cancel-booking`,payload,key,fetchImpl,{'X-Expected-Tenant-Id':tenant});
+}
+export function recordFxDeliveryFromBff(id:string,payload:components['schemas']['DeliveryRequest'],key:string,tenant:string,fetchImpl:typeof fetch=fetch) {
+  return bffPost<components['schemas']['DeliveryResponse']>(`/api/trades/${encodeURIComponent(id)}/fx-delivery`,payload,key,fetchImpl,{'X-Expected-Tenant-Id':tenant});
+}
 export type FxForwardBookingRequest = components["schemas"]["FxForwardBookingRequest"];
 export type FxForwardBookingInstrumentView = components["schemas"]["FxForwardBookingInstrumentView"];
-export function searchFxForwardBookingInstrumentsFromBff(query:string, fetchImpl:typeof fetch=fetch, offset=0) {
-  return bffGet<components["schemas"]["FxForwardBookingInstrumentSearchResponse"]>(`/api/trades/fx-forward-instruments?q=${encodeURIComponent(query)}&limit=25&offset=${offset}`,fetchImpl);
+export function searchFxForwardBookingInstrumentsFromBff(query:string, fetchImpl:typeof fetch=fetch, offset=0,asOfDate?:string) {
+  return bffGet<components["schemas"]["FxForwardBookingInstrumentSearchResponse"]>(`/api/trades/fx-forward-instruments?q=${encodeURIComponent(query)}&limit=25&offset=${offset}${asOfDate?`&asOfDate=${encodeURIComponent(asOfDate)}`:''}`,fetchImpl);
 }
-export function getFxForwardBookingInstrumentFromBff(instrumentId:string, fetchImpl:typeof fetch=fetch) {
-  return bffGet<components["schemas"]["FxForwardBookingInstrumentResponse"]>(`/api/trades/fx-forward-instruments/${encodeURIComponent(instrumentId)}`,fetchImpl);
+export function getFxForwardBookingInstrumentFromBff(instrumentId:string, fetchImpl:typeof fetch=fetch,asOfDate?:string) {
+  return bffGet<components["schemas"]["FxForwardBookingInstrumentResponse"]>(`/api/trades/fx-forward-instruments/${encodeURIComponent(instrumentId)}${asOfDate?`?asOfDate=${encodeURIComponent(asOfDate)}`:''}`,fetchImpl);
 }
 export function submitFxForwardTradeFromBff(payload:FxForwardBookingRequest,key:string,expectedTenantId:string,fetchImpl:typeof fetch=fetch) {
   return bffPost<components["schemas"]["TradeDetailResponse"]>("/api/trades/fx-forwards",payload,key,fetchImpl,{"X-Expected-Tenant-Id":expectedTenantId});
@@ -206,13 +212,21 @@ export function submitBookedTradeFromBff(
 }
 
 export type TradeBookingContext = components["schemas"]["TradeBookingContextView"];
+export type CashBookingListingView = components['schemas']['CashBookingListingView'];
+export function searchCashBookingListingsFromBff(query:string,asOfDate:string,offset=0,fetchImpl:typeof fetch=fetch) {
+  const params=new URLSearchParams({q:query,asOfDate,offset:String(offset)});
+  return bffGet<components['schemas']['CashBookingListingSearchResponse']>(`/api/trades/cash-listings?${params}`,fetchImpl);
+}
+export function getCashBookingListingFromBff(id:string,asOfDate:string,fetchImpl:typeof fetch=fetch) {
+  return bffGet<components['schemas']['CashBookingListingResponse']>(`/api/trades/cash-listings/${encodeURIComponent(id)}?asOfDate=${encodeURIComponent(asOfDate)}`,fetchImpl);
+}
 export type OptionBookingRequest = components['schemas']['OptionBookingRequest'];
 export type OptionBookingListingView = components['schemas']['OptionBookingListingView'];
-export function searchOptionBookingListingsFromBff(query:string,fetchImpl:typeof fetch=fetch,offset=0) {
-  return bffGet<components['schemas']['OptionBookingListingSearchResponse']>(`/api/trades/option-listings?q=${encodeURIComponent(query)}&offset=${offset}`,fetchImpl);
+export function searchOptionBookingListingsFromBff(query:string,fetchImpl:typeof fetch=fetch,offset=0,asOfDate?:string) {
+  return bffGet<components['schemas']['OptionBookingListingSearchResponse']>(`/api/trades/option-listings?q=${encodeURIComponent(query)}&offset=${offset}${asOfDate?`&asOfDate=${encodeURIComponent(asOfDate)}`:''}`,fetchImpl);
 }
-export function getOptionBookingListingFromBff(id:string,fetchImpl:typeof fetch=fetch) {
-  return bffGet<components['schemas']['OptionBookingListingResponse']>(`/api/trades/option-listings/${encodeURIComponent(id)}`,fetchImpl);
+export function getOptionBookingListingFromBff(id:string,fetchImpl:typeof fetch=fetch,asOfDate?:string) {
+  return bffGet<components['schemas']['OptionBookingListingResponse']>(`/api/trades/option-listings/${encodeURIComponent(id)}${asOfDate?`?asOfDate=${encodeURIComponent(asOfDate)}`:''}`,fetchImpl);
 }
 export function submitOptionTradeFromBff(payload:OptionBookingRequest,key:string,tenant:string,fetchImpl:typeof fetch=fetch) {
   return bffPost<import('./trades').TradeDetailPayload>('/api/trades/options',payload,key,fetchImpl,{'X-Expected-Tenant-Id':tenant});

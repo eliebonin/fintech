@@ -1,4 +1,5 @@
 import "server-only";
+import {referenceFetch} from './reference-fetch';
 
 import type { TenantContext } from "./tenant-types";
 import { isReferenceApiProblem } from "api-contracts";
@@ -101,7 +102,7 @@ export async function searchReferenceInstruments(query: string, options: Referen
   if (options.instrumentType) url.searchParams.set("instrument_type", options.instrumentType);
   if (options.assetClass) url.searchParams.set("asset_class", options.assetClass);
   if (options.status) url.searchParams.set("status", options.status);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",
@@ -152,7 +153,7 @@ export async function searchReferenceNodes(query: string, options: ReferenceNode
   if (instrumentType) url.searchParams.set("instrument_type", instrumentType);
   if (options.assetClass) url.searchParams.set("asset_class", options.assetClass);
   if (options.referenceLevel) url.searchParams.set("reference_level", options.referenceLevel);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",
@@ -233,29 +234,29 @@ export async function getSwapTermsLabels(context:EquityProposalOptions,terms:com
     ...(profiles?.data??[]).map(p=>[p.returnProfileId,p.displayName]),...(dayCounts?.data??[]).map(c=>[c.dayCountConventionId,c.displayName]),
   ]);
 }
-export function searchOptionBookingListings(options: EquityProposalOptions, query: string, offset=0) {
-  return listReferenceCatalogue<components["schemas"]["OptionBookingListingSearchResponse"]>(`/v1/trades/option-listings?q=${encodeURIComponent(query)}&limit=25&offset=${offset}`,options);
+export function searchOptionBookingListings(options: EquityProposalOptions, query: string, offset=0,asOfDate?:string) {
+  return listReferenceCatalogue<components["schemas"]["OptionBookingListingSearchResponse"]>(`/v1/trades/option-listings?q=${encodeURIComponent(query)}&limit=25&offset=${offset}${asOfDate?`&asOfDate=${encodeURIComponent(asOfDate)}`:''}`,options);
 }
-export function getOptionBookingListing(options: EquityProposalOptions, id: string) {
-  return listReferenceCatalogue<components["schemas"]["OptionBookingListingResponse"]>(`/v1/trades/option-listings/${encodeURIComponent(id)}`,options);
+export function getOptionBookingListing(options: EquityProposalOptions, id: string,asOfDate?:string) {
+  return listReferenceCatalogue<components["schemas"]["OptionBookingListingResponse"]>(`/v1/trades/option-listings/${encodeURIComponent(id)}${asOfDate?`?asOfDate=${encodeURIComponent(asOfDate)}`:''}`,options);
 }
 export async function submitOptionProposal(payload: components["schemas"]["OptionProposalRequest"],options: EquityProposalOptions) {
-  const response=await (options.fetchImpl??fetch)(new URL('/v1/option-proposals',options.baseUrl??process.env.REFERENCE_API_URL??'http://localhost:8000'),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-Tenant-Id':options.tenantId,'X-User-Account-Id':options.userAccountId},body:JSON.stringify(payload)});
+  const response=await referenceFetch(options.fetchImpl??fetch)(new URL('/v1/option-proposals',options.baseUrl??process.env.REFERENCE_API_URL??'http://localhost:8000'),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-Tenant-Id':options.tenantId,'X-User-Account-Id':options.userAccountId},body:JSON.stringify(payload)});
   if(!response.ok)throw new ReferenceApiError(response.status,(await response.json()).detail??'Option proposal failed.');
   return await response.json() as components['schemas']['ReferenceDataProposalResponse'];
 }
 
-export function searchFxForwardBookingInstruments(options: EquityProposalOptions, query: string, offset=0) {
-  return listReferenceCatalogue<components["schemas"]["FxForwardBookingInstrumentSearchResponse"]>(`/v1/trades/fx-forward-instruments?q=${encodeURIComponent(query)}&limit=25&offset=${offset}`, options);
+export function searchFxForwardBookingInstruments(options: EquityProposalOptions, query: string, offset=0,asOfDate?:string) {
+  return listReferenceCatalogue<components["schemas"]["FxForwardBookingInstrumentSearchResponse"]>(`/v1/trades/fx-forward-instruments?q=${encodeURIComponent(query)}&limit=25&offset=${offset}${asOfDate?`&asOfDate=${encodeURIComponent(asOfDate)}`:''}`, options);
 }
 
-export function getFxForwardBookingInstrument(options: EquityProposalOptions, instrumentId: string) {
-  return listReferenceCatalogue<components["schemas"]["FxForwardBookingInstrumentResponse"]>(`/v1/trades/fx-forward-instruments/${encodeURIComponent(instrumentId)}`, options);
+export function getFxForwardBookingInstrument(options: EquityProposalOptions, instrumentId: string,asOfDate?:string) {
+  return listReferenceCatalogue<components["schemas"]["FxForwardBookingInstrumentResponse"]>(`/v1/trades/fx-forward-instruments/${encodeURIComponent(instrumentId)}${asOfDate?`?asOfDate=${encodeURIComponent(asOfDate)}`:''}`, options);
 }
 
 async function postBookedTrade<T=TradeDetailResponse>(path: string, payload: unknown, options: EquityProposalOptions, idempotencyKey: string): Promise<T> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
-  const response = await (options.fetchImpl ?? fetch)(new URL(path, baseUrl), {
+  const response = await referenceFetch(options.fetchImpl ?? fetch)(new URL(path, baseUrl), {
     method: "POST",
     cache: "no-store",
     headers: {
@@ -288,8 +289,25 @@ async function postBookedTrade<T=TradeDetailResponse>(path: string, payload: unk
   return (await response.json()) as T;
 }
 
+export function cancelBookingRecord(id:string,payload:{expectedSequenceNo:number;reason:string},options:EquityProposalOptions,key:string) {
+  return postBookedTrade(`/v1/trades/${encodeURIComponent(id)}/cancel-booking`,payload,options,key);
+}
+export function recordFxDelivery(id:string,payload:components['schemas']['DeliveryRequest'],options:EquityProposalOptions,key:string) {
+  return postBookedTrade(`/v1/trades/${encodeURIComponent(id)}/fx-delivery`,payload,options,key);
+}
+export function getFxDelivery(id:string,options:EquityProposalOptions) {
+  return listReferenceCatalogue<components['schemas']['DeliveryResponse']>(`/v1/trades/${encodeURIComponent(id)}/fx-delivery`,options);
+}
+
 export function getTradeBookingContext(options: EquityProposalOptions): Promise<components["schemas"]["TradeBookingContextResponse"]> {
   return listReferenceCatalogue("/v1/trades/booking-context", options);
+}
+
+export function searchCashBookingListings(options:EquityProposalOptions,params:URLSearchParams) {
+  return listReferenceCatalogue<components['schemas']['CashBookingListingSearchResponse']>(`/v1/trades/cash-listings?${params}`,options);
+}
+export function getCashBookingListing(options:EquityProposalOptions,id:string,asOfDate?:string) {
+  return listReferenceCatalogue<components['schemas']['CashBookingListingResponse']>(`/v1/trades/cash-listings/${encodeURIComponent(id)}${asOfDate?`?asOfDate=${encodeURIComponent(asOfDate)}`:''}`,options);
 }
 export function searchTradeTraders(options: EquityProposalOptions, query: string): Promise<components["schemas"]["TradeTraderResponse"]> {
   return listReferenceCatalogue(`/v1/trades/traders?q=${encodeURIComponent(query)}`, options);
@@ -298,7 +316,7 @@ export function searchTradeTraders(options: EquityProposalOptions, query: string
 export async function getReferenceDataProposal(proposalId: string, options: EquityProposalOptions): Promise<ReferenceDataProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL(`/v1/reference-data-proposals/${proposalId}`, baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",
@@ -329,7 +347,7 @@ export async function decideReferenceDataProposal(
 ): Promise<ReferenceDataProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL(`/v1/reference-data-proposals/${proposalId}/decision`, baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -358,7 +376,7 @@ export async function decideReferenceDataProposal(
 export async function submitEquityProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<EquityProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/equity-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -387,7 +405,7 @@ export async function submitEquityProposal(payload: Record<string, unknown>, opt
 export async function submitCryptoAssetProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<CryptoAssetProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/crypto-asset-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -416,7 +434,7 @@ export async function submitCryptoAssetProposal(payload: Record<string, unknown>
 export async function submitStructuredProductProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<StructuredProductProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/structured-product-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -465,7 +483,7 @@ export async function submitCryptoAssetProposalFromBff(payload: Record<string, u
 export async function getCryptoAssetProposal(proposalId: string, options: EquityProposalOptions): Promise<CryptoAssetProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL(`/v1/crypto-asset-proposals/${proposalId}`, baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",
@@ -496,7 +514,7 @@ export async function decideCryptoAssetProposal(
 ): Promise<CryptoAssetProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL(`/v1/crypto-asset-proposals/${proposalId}/decision`, baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -549,7 +567,7 @@ export async function decideCryptoAssetProposalFromBff(
 export async function submitBondProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<BondProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/bond-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -577,7 +595,7 @@ export async function submitBondProposal(payload: Record<string, unknown>, optio
 
 export async function submitEtpProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<EtpProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
-  const response = await (options.fetchImpl ?? fetch)(new URL("/v1/etp-proposals", baseUrl), {
+  const response = await referenceFetch(options.fetchImpl ?? fetch)(new URL("/v1/etp-proposals", baseUrl), {
     method: "POST", cache: "no-store",
     headers: { Accept: "application/json", "Content-Type": "application/json", "X-Tenant-Id": options.tenantId, "X-User-Account-Id": options.userAccountId },
     body: JSON.stringify(payload),
@@ -589,7 +607,7 @@ export async function submitEtpProposal(payload: Record<string, unknown>, option
 export async function submitFxForwardProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<FxForwardProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/fx-forward-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -618,7 +636,7 @@ export async function submitFxForwardProposal(payload: Record<string, unknown>, 
 export async function submitIndexProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<IndexProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/index-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -647,7 +665,7 @@ export async function submitIndexProposal(payload: Record<string, unknown>, opti
 export async function submitIndexFamilyProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<IndexFamilyProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/index-family-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -676,7 +694,7 @@ export async function submitIndexFamilyProposal(payload: Record<string, unknown>
 export async function decideIndexFamilyProposal(proposalId: string, payload: { decision: "APPROVED" | "REJECTED"; reason: string }, options: EquityProposalOptions): Promise<IndexFamilyProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL(`/v1/index-family-proposals/${proposalId}/decision`, baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -725,7 +743,7 @@ export async function submitIndexFamilyProposalFromBff(payload: Record<string, u
 export async function submitEquityListingProposal(payload: Record<string, unknown>, options: EquityProposalOptions): Promise<EquityProposalPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/listing-proposals", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "POST",
     cache: "no-store",
@@ -754,7 +772,7 @@ export async function submitEquityListingProposal(payload: Record<string, unknow
 export async function listMarketVenues(options: EquityProposalOptions): Promise<MarketVenuePayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/market-venues", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",
@@ -781,7 +799,7 @@ export async function listMarketVenues(options: EquityProposalOptions): Promise<
 export async function listDayCountConventions(options: EquityProposalOptions): Promise<DayCountConventionPayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL("/v1/day-count-conventions", baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",
@@ -808,7 +826,7 @@ export async function listDayCountConventions(options: EquityProposalOptions): P
 async function listReferenceCatalogue<T>(path: string, options: EquityProposalOptions): Promise<T> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
   const url = new URL(path, baseUrl);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
     cache: "no-store",

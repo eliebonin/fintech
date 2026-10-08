@@ -134,12 +134,14 @@ BookingConvention = Annotated[StructuredConvention | FutureConvention | BondConv
 
 
 class ConventionProposalRequest(BaseModel):
+    idempotency_key: str | None = Field(default=None,alias='idempotencyKey',min_length=1,max_length=255)
     instrument_id: UUID = Field(alias='instrumentId')
     convention: BookingConvention
     model_config = dict(populate_by_name=True, extra='forbid')
 
 
 class FutureFamilyProposalRequest(BaseModel):
+    idempotency_key: str | None = Field(default=None,alias='idempotencyKey',min_length=1,max_length=255)
     canonical_name: str = Field(alias='canonicalName', min_length=1, max_length=250)
     family_code: str = Field(alias='familyCode', min_length=1, max_length=80, pattern='^[A-Z0-9_]+$')
     underlying_id: UUID = Field(alias='underlyingId')
@@ -174,6 +176,7 @@ class FutureFamilySearchResponse(BaseModel):
 
 
 class FutureProposalRequest(BaseModel):
+    idempotency_key: str | None = Field(default=None,alias='idempotencyKey',min_length=1,max_length=255)
     canonical_name: str = Field(alias='canonicalName', min_length=1, max_length=250)
     family_code: str = Field(alias='familyCode', min_length=1, max_length=80, pattern='^[A-Z0-9_]+$')
     family_id: UUID | None = Field(default=None, alias='familyId')
@@ -246,6 +249,7 @@ class ProductBookingContextView(BaseModel):
     convention: BookingConvention | None = None
     terms_fingerprint: str | None = Field(default=None, alias='termsFingerprint')
     booking_eligible: bool = Field(default=False, alias='bookingEligible')
+    readiness_status: Literal['READY', 'NOT_READY', 'MISSING_CONFIGURATION', 'INACTIVE', 'CREATION_ONLY'] | None = Field(default=None, alias='readinessStatus', exclude_if=lambda value: value is None)
     ineligibility_message: str | None = Field(default=None, alias='ineligibilityMessage')
     contract_month: date | None = Field(default=None, alias='contractMonth')
     underlying_id: UUID | None = Field(default=None, alias='underlyingId')

@@ -113,8 +113,14 @@ class PropertyView(BaseModel):
     retiredByUserAccountId:UUID|None
     retiredAtUtc:datetime|None
 
+class ConfigurationPagination(BaseModel):
+    limit:int
+    offset:int
+    total:int
+
 class PropertiesResponse(BaseModel):
     data:list[PropertyView]
+    pagination:ConfigurationPagination
 
 class PropertyResponse(BaseModel):
     data:PropertyView
@@ -131,69 +137,73 @@ def configuration_router(connection_dependency):
         except ValueError as error: raise ApiProblem(422,"request.validation_failed","Invalid field definition",str(error)) from error
 
     @router.get("/properties",response_model=PropertiesResponse)
-    def get_properties(context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
-        return {"data":execute(connection,context,list_properties)}
+    def get_properties(limit:int=Query(default=1000,ge=1,le=1000),offset:int=Query(default=0,ge=0,le=10000),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
+        from sqlalchemy import select,func
+        from security_master_schema import models as m
+        data=execute(connection,context,list_properties,limit,offset)
+        total=connection.scalar(select(func.count()).select_from(m.trade_property_definition).where(m.trade_property_definition.c.tenant_id==context.tenant_id))
+        return {"data":data,"pagination":{"limit":limit,"offset":offset,"total":total}}
 
     @router.post("/properties",response_model=PropertyResponse,status_code=201)
-    def post_property(request:PropertyCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def post_property(request:PropertyCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,create_property,request.model_dump(by_alias=True))}
 
     @router.post("/properties/{definition_id}/retire",response_model=PropertyResponse)
-    def retire(definition_id:UUID,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def retire(definition_id:UUID,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,retire_property,definition_id)}
 
     @router.post("/properties/{definition_id}/replace",response_model=PropertyResponse,status_code=201)
-    def replace(definition_id:UUID,request:PropertyCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def replace(definition_id:UUID,request:PropertyCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,replace_property,definition_id,request.model_dump(by_alias=True))}
     @router.get("/catalogues", response_model=CataloguesResponse)
-    def catalogues(q:str=Query(default="",max_length=250),offset:int=Query(default=0,ge=0),limit:int=Query(default=25,ge=1,le=100),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def catalogues(q:str=Query(default="",max_length=250),offset:int=Query(default=0,ge=0),limit:int=Query(default=25,ge=1,le=100),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.list_catalogues,q,offset,limit)}
 
     @router.get("/catalogues/{catalogue_id}", response_model=CatalogueResponse)
-    def catalogue(catalogue_id:UUID,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def catalogue(catalogue_id:UUID,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.get_catalogue,catalogue_id)}
 
     @router.post("/catalogues", response_model=CatalogueResponse, status_code=201)
-    def new_catalogue(request:CatalogueCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def new_catalogue(request:CatalogueCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.create_catalogue,request.model_dump())}
 
     @router.post("/catalogues/{catalogue_id}/publish", response_model=CatalogueResponse)
-    def publish_catalogue(catalogue_id:UUID,request:Reason,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def publish_catalogue(catalogue_id:UUID,request:Reason,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.catalogue_lifecycle,catalogue_id,"ACTIVE",request.reason)}
 
     @router.post("/catalogues/{catalogue_id}/retire", response_model=CatalogueResponse)
-    def retire_catalogue(catalogue_id:UUID,request:Reason,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def retire_catalogue(catalogue_id:UUID,request:Reason,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.catalogue_lifecycle,catalogue_id,"RETIRED",request.reason)}
 
     @router.get("/catalogues/{catalogue_id}/records", response_model=RecordsResponse)
-    def records(catalogue_id:UUID,q:str=Query(default="",max_length=250),offset:int=Query(default=0,ge=0),limit:int=Query(default=25,ge=1,le=100),history:bool=False,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def records(catalogue_id:UUID,q:str=Query(default="",max_length=250),offset:int=Query(default=0,ge=0),limit:int=Query(default=25,ge=1,le=100),history:bool=False,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.list_records,catalogue_id,q,offset,limit,history)}
 
     @router.post("/catalogues/{catalogue_id}/records", response_model=RecordResponse,status_code=201)
-    def new_record(catalogue_id:UUID,request:CatalogueCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def new_record(catalogue_id:UUID,request:CatalogueCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.create_record,catalogue_id,request.model_dump())}
 
     @router.post("/catalogues/{catalogue_id}/records/{record_id}/correct", response_model=RecordResponse)
-    def correct_record(catalogue_id:UUID,record_id:UUID,request:RecordCorrection,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def correct_record(catalogue_id:UUID,record_id:UUID,request:RecordCorrection,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.change_record,catalogue_id,record_id,request.model_dump(),request.reason)}
 
     @router.post("/catalogues/{catalogue_id}/records/{record_id}/retire", response_model=RecordResponse)
-    def retire_record(catalogue_id:UUID,record_id:UUID,request:Reason,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def retire_record(catalogue_id:UUID,record_id:UUID,request:Reason,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.change_record,catalogue_id,record_id,None,request.reason)}
 
     @router.get("/selections/{role}",response_model=SelectionResponse)
-    def selections(role:Role,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def selections(role:Role,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.selection_view,role)}
 
     @router.post("/selections/{role}",response_model=SelectionResponse)
-    def publish_selections(role:Role,request:SelectionPublish,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def publish_selections(role:Role,request:SelectionPublish,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.publish_selection,role,request.ids,request.expectedVersion,request.reason)}
 
     @router.get("/candidates/{role}",response_model=CandidatesResponse)
-    def candidates(role:Role,q:str=Query(default="",max_length=250),curated:bool=True,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def candidates(role:Role,q:str=Query(default="",max_length=250),curated:bool=True,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.selection_candidates,role,q,curated)}
 
     @router.get("/audit",response_model=EventsResponse)
-    def events(offset:int=Query(default=0,ge=0),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency)):
+    def events(offset:int=Query(default=0,ge=0),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         return {"data":execute(connection,context,governed.list_events,offset)}
     return router

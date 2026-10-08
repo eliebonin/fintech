@@ -90,7 +90,14 @@ def test_whole_swap_quote_applies_booked_nominal_and_side_once(funded, side, pri
 
 @pytest.mark.parametrize('as_of,eligible', [('2026-08-31', False), ('2026-09-01', True),
     ('2027-08-31', True), ('2027-09-01', False)])
-def test_execution_effective_boundary_inclusive_and_maturity_exclusive(as_of, eligible):
+def test_execution_effective_boundary_inclusive_and_maturity_exclusive(as_of, eligible, monkeypatch):
+    # Isolate contract effective/maturity boundaries from the new wall-clock
+    # rule: these dates are historical relative to this explicit test clock.
+    # Future UTC-date refusal is covered separately for every writer.
+    from apps.reference_api import booking_controls
+    validate_date=booking_controls.validate_execution_date
+    monkeypatch.setattr(booking_controls,'validate_execution_date',
+        lambda execution: validate_date(execution,today=date(2027,10,1)))
     node = create_swap()
     assert context(node, as_of)['bookingEligible'] is eligible
     data = ticket(node, tradeDatetime=f'{as_of}T10:00:00Z')
@@ -195,8 +202,11 @@ def test_failure_after_trade_insert_rolls_back_all_evidence(monkeypatch):
     monkeypatch.setattr(repository, 'persist_trade_annotations', fail)
     with get_engine().connect() as connection:
         before = connection.scalar(select(func.count()).select_from(m.trade))
-    with pytest.raises(RuntimeError, match='Synthetic persistence failure'):
-        request('POST', '/v1/trades/swaps', data, key)
+    response=request('POST', '/v1/trades/swaps', data, key)
+    assert response.status_code==500
+    assert response.json()['code']=='internal.error'
+    assert response.json()['requestId']==response.headers['X-Request-ID']
+    assert 'Synthetic persistence failure' not in response.text
     with get_engine().connect() as connection:
         assert connection.scalar(select(func.count()).select_from(m.trade)) == before
         assert not connection.scalar(select(m.trade_booking_idempotency.c.trade_id).where(m.trade_booking_idempotency.c.idempotency_key == key))

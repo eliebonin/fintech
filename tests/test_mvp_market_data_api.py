@@ -55,23 +55,6 @@ def test_market_data_series_can_drill_into_one_reference_node():
     assert payload["data"][0]["observations"][-1]["marketDate"] == "2026-08-28"
 
 
-def test_portfolio_pnl_returns_instrument_lines_and_selected_cut():
-    response = asyncio.run(_request("/v1/portfolios/MVP_US_PORTFOLIO/pnl?asOfDate=2026-08-28"))
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["data"]["portfolioCode"] == "MVP_US_PORTFOLIO"
-    assert payload["data"]["baseCurrency"] == "USD"
-    assert payload["data"]["valuationCut"]["cutCode"] == "US_FUND_FX_1600_MVP"
-    assert len(payload["data"]["lines"]) >= 3
-    assert all("totalPnl" in line for line in payload["data"]["lines"])
-    assert any(line["localCurrency"] == "EUR" and line["closingFx"] != "1" for line in payload["data"]["lines"])
-
-
-def test_portfolio_pnl_uses_a_series_with_history_for_the_selected_date():
-    response = asyncio.run(_request("/v1/portfolios/MVP_UK_PORTFOLIO/pnl?asOfDate=2025-12-31"))
-    assert response.status_code == 200
-    assert len(response.json()["data"]["lines"]) >= 3
 
 
 def test_booked_trades_returns_seeded_executions_and_supports_portfolio_filter():

@@ -6,6 +6,9 @@ import hashlib
 import json
 from uuid import UUID, uuid4
 from .booking_errors import RepositoryNotFound, InvalidWorkflowState, InvalidCatalogueValue, IdempotencyKeyConflict
+from .reference_authority import require_reference_action
+from .problem_details import current_api_version
+from .proposal_retries import find_proposal_replay, proposal_request_payload
 
 from sqlalchemy import Connection, and_, cast, exists, func, insert, or_, select, String, true
 
@@ -61,9 +64,6 @@ from .contracts import (
     MarketDataSeriesView,
     MarketVenueResponse,
     MarketVenueView,
-    PortfolioPnlLine,
-    PortfolioPnlResponse,
-    PortfolioPnlView,
     OrganisationOptionResponse,
     OrganisationOptionView,
     ReturnProfileResponse,
@@ -89,6 +89,12 @@ from .contracts import (
 
 
 def create_strategy(connection: Connection, tenant_id: UUID, actor_id: UUID, request: StrategyCreateRequest) -> StrategyView:
+    from .booking_controls import booking_lock_key
+    from .booking_errors import StrategyCodeConflict
+    code=request.strategy_code.strip().upper()
+    connection.execute(select(func.pg_advisory_xact_lock(booking_lock_key(tenant_id,'strategy-code',code))))
+    if connection.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.tenant_id==tenant_id,m.strategy.c.strategy_code==code)) is not None:
+        raise StrategyCodeConflict('Strategy code is already registered in this tenant')
     if request.strategy_type == "OTHER" and not request.operating_model_label:
         raise ValueError("operatingModelLabel is required when strategyType is OTHER")
     currency_id = None
@@ -109,8 +115,16 @@ def list_strategies(connection: Connection, tenant_id: UUID) -> StrategyListResp
 
 
 def get_strategy(connection: Connection, tenant_id: UUID, strategy_id: UUID) -> StrategyView | None:
-    rows = list_strategies(connection, tenant_id).data
-    return next((row for row in rows if row.strategy_id == strategy_id), None)
+    row = connection.execute(select(m.strategy.c.strategy_id, m.strategy.c.tenant_id,
+        m.strategy.c.strategy_code, m.strategy.c.display_name, m.strategy.c.strategy_type,
+        m.strategy.c.status, m.currency.c.currency_code).outerjoin(m.currency,
+        m.currency.c.currency_id == m.strategy.c.base_currency_id).where(
+        m.strategy.c.tenant_id == tenant_id, m.strategy.c.strategy_id == strategy_id)).mappings().first()
+    if row is None:
+        return None
+    return StrategyView(strategyId=row['strategy_id'], tenantId=row['tenant_id'],
+        strategyCode=row['strategy_code'], displayName=row['display_name'],
+        strategyType=row['strategy_type'], baseCurrencyCode=row['currency_code'], status=row['status'])
 
 
 def archive_strategy(connection: Connection, tenant_id: UUID, strategy_id: UUID, request: StrategyStatusRequest) -> StrategyView | None:
@@ -169,8 +183,10 @@ def _visible_node_clause(tenant_id: UUID):
     scope = m.reference_node_scope
     return or_(
         scope.c.reference_node_id.is_(None),
-        scope.c.scope_type == "SHARED_CANONICAL",
-        and_(scope.c.scope_type == "TENANT_PRIVATE", scope.c.owner_tenant_id == tenant_id),
+        and_(scope.c.status == "ACTIVE", or_(
+            scope.c.scope_type == "SHARED_CANONICAL",
+            and_(scope.c.scope_type == "TENANT_PRIVATE", scope.c.owner_tenant_id == tenant_id),
+        )),
     )
 
 
@@ -295,6 +311,8 @@ def _search_predicate(tenant_id: UUID, query: str, rn, inst, typ):
         ),
         func.lower(cast(rn.c.reference_node_id, String)).contains(normalized),
     ]
+    from .reference_search import swap_tenant_identifier_matches
+    predicates.append(swap_tenant_identifier_matches(rn.c.reference_node_id, query))
     return or_(*predicates)
 
 
@@ -351,6 +369,8 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
     if not node_ids:
         return []
     series = m.market_data_series
+    from market_data.rights import denied_display_datasets
+    denied_datasets = denied_display_datasets(connection, tenant_id, date.today())
     series_currency = m.currency.alias("series_currency")
     series_rows = connection.execute(
         select(
@@ -363,6 +383,7 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
         .select_from(series.outerjoin(series_currency, series.c.currency_id == series_currency.c.currency_id))
         .where(series.c.reference_node_id.in_(node_ids))
         .where(series.c.status == "ACTIVE")
+        .where(_market_data_visible_node_clause(series.c.reference_node_id, tenant_id))
         .order_by(series.c.series_type)
     ).mappings().all()
     points: list[MarketDataPointView] = []
@@ -399,6 +420,9 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
             )
             .where(observation.c.market_data_series_id == series_row.market_data_series_id)
             .where(observation.c.quality_status == "ACCEPTED")
+            .where(observation.c.dataset_id.not_in(denied_datasets))
+            .where(_current_market_data_observation_clause(observation))
+            .where(_market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id))
             .where(
                 exists(
                     select(1)
@@ -1154,6 +1178,7 @@ def search_reference_nodes(
 
 
 def create_mapping_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, request: MappingProposalRequest) -> MappingProposalView:
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
     namespace_row = connection.execute(
         select(m.external_id_namespace.c.external_id_namespace_id)
         .where(m.external_id_namespace.c.namespace_code == request.namespace)
@@ -1209,6 +1234,7 @@ def create_mapping_proposal(connection: Connection, tenant_id: UUID, actor_id: U
 
 
 def decide_mapping_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, proposal_id: UUID, decision: str, reason: str) -> MappingProposalView:
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
     proposal = connection.execute(
         select(m.reference_data_proposal)
         .where(m.reference_data_proposal.c.reference_data_proposal_id == proposal_id)
@@ -1351,6 +1377,7 @@ def decide_reference_data_proposal(
     materialisation, so adding a new proposal type cannot silently bypass its
     domain rules.
     """
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
 
     proposal = connection.execute(
         select(m.reference_data_proposal.c.proposal_type, m.reference_data_proposal.c.status)
@@ -1802,6 +1829,7 @@ def _equity_view(connection: Connection, tenant_id: UUID, proposal_id: UUID) -> 
 
 def submit_equity_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, request: EquityProposalRequest) -> EquityProposalView:
     """Validate and record an equity proposal, auto-approving only by policy."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated equity proposals require sourceSystemId")
@@ -1821,12 +1849,7 @@ def submit_equity_proposal(connection: Connection, tenant_id: UUID, actor_id: UU
     if request.idempotency_key:
         if request.source_system_id is None:
             raise InvalidWorkflowState("idempotencyKey requires sourceSystemId")
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _equity_view(connection, tenant_id, existing)
     listing_keys = [(item.market_venue_id, item.trading_symbol.casefold()) for item in request.listings]
@@ -1927,6 +1950,7 @@ def submit_equity_listing_proposal(
     request: EquityListingCreateProposalRequest,
 ) -> EquityProposalView:
     """Record a listing proposal against a selected approved instrument."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     instrument = get_instrument(connection, tenant_id, request.instrument_id)
     if instrument is None or instrument.status != "ACTIVE":
@@ -1936,12 +1960,7 @@ def submit_equity_listing_proposal(
     if request.idempotency_key:
         if request.source_system_id is None:
             raise InvalidWorkflowState("idempotencyKey requires sourceSystemId")
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _equity_view(connection, tenant_id, existing)
     existing_listing = connection.execute(
@@ -1975,6 +1994,7 @@ def submit_equity_listing_proposal(
 
 def decide_equity_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, proposal_id: UUID, decision: str, reason: str) -> EquityProposalView:
     """Record a manual decision and materialize an approved equity proposal."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
 
     proposal = connection.execute(
         select(m.reference_data_proposal)
@@ -1989,7 +2009,7 @@ def decide_equity_proposal(connection: Connection, tenant_id: UUID, actor_id: UU
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("Equity proposal has already received a decision")
     payload = json.loads(proposal.proposed_payload)
-    request = EquityProposalRequest.model_validate(payload) if proposal.proposal_type == "CREATE" else EquityListingCreateProposalRequest.model_validate(payload)
+    request = EquityProposalRequest.model_validate(proposal_request_payload(payload)) if proposal.proposal_type == "CREATE" else EquityListingCreateProposalRequest.model_validate(proposal_request_payload(payload))
     now = datetime.now(timezone.utc)
     instrument_id = None
     if decision == "APPROVED":
@@ -2166,18 +2186,14 @@ def submit_crypto_asset_proposal(
     request: CryptoAssetProposalRequest,
 ) -> CryptoAssetProposalView:
     """Record a manual-first cryptoasset proposal for steward approval."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated cryptoasset proposals require sourceSystemId")
     if request.idempotency_key:
         if request.source_system_id is None:
             raise InvalidWorkflowState("idempotencyKey requires sourceSystemId")
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _crypto_asset_view(connection, tenant_id, existing)
     normalized_symbol = request.native_symbol.strip().upper()
@@ -2241,6 +2257,7 @@ def decide_crypto_asset_proposal(
     reason: str,
 ) -> CryptoAssetProposalView:
     """Record a steward decision and materialize an approved cryptoasset."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
 
     proposal = connection.execute(
         select(m.reference_data_proposal)
@@ -2254,7 +2271,7 @@ def decide_crypto_asset_proposal(
         raise InvalidWorkflowState("This endpoint only handles cryptoasset creation proposals")
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("Cryptoasset proposal has already received a decision")
-    request = CryptoAssetProposalRequest.model_validate(json.loads(proposal.proposed_payload))
+    request = CryptoAssetProposalRequest.model_validate(proposal_request_payload(json.loads(proposal.proposed_payload)))
     instrument_id = None
     if decision == "APPROVED":
         instrument_id, _ = _materialize_crypto_asset(connection, tenant_id, actor_id, request)
@@ -2312,16 +2329,12 @@ def _bond_view(connection: Connection, tenant_id: UUID, proposal_id: UUID) -> Bo
 
 def submit_bond_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, request: BondProposalRequest) -> BondProposalView:
     """Record a sparse bond proposal; external enrichment may complete it before approval."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated bond proposals require sourceSystemId")
-    if request.idempotency_key and request.source_system_id:
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+    if request.idempotency_key:
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _bond_view(connection, tenant_id, existing)
     if request.base_currency_id is not None:
@@ -2372,6 +2385,8 @@ def submit_bond_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID
 def _materialize_bond(connection: Connection, tenant_id: UUID, actor_id: UUID, request: BondProposalRequest) -> UUID:
     if _bond_enrichment_status(request) != "READY_FOR_APPROVAL":
         raise InvalidWorkflowState("Bond requires provider enrichment before approval")
+    from .approval_reference_integrity import validate_approval_references
+    validate_approval_references(connection, tenant_id, request, 'BOND')
     node_types = connection.execute(
         select(m.reference_node_type.c.type_code, m.reference_node_type.c.reference_node_type_id)
         .where(m.reference_node_type.c.type_code == "INSTRUMENT")
@@ -2463,6 +2478,12 @@ def _materialize_bond(connection: Connection, tenant_id: UUID, actor_id: UUID, r
 
 
 def decide_bond_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, proposal_id: UUID, decision: str, reason: str) -> BondProposalView:
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
+    with connection.begin_nested():
+        return _decide_bond_proposal(connection, tenant_id, actor_id, proposal_id, decision, reason)
+
+
+def _decide_bond_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, proposal_id: UUID, decision: str, reason: str) -> BondProposalView:
     proposal = connection.execute(
         select(m.reference_data_proposal)
         .where(m.reference_data_proposal.c.reference_data_proposal_id == proposal_id)
@@ -2476,7 +2497,7 @@ def decide_bond_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("Bond proposal has already received a decision")
     payload = json.loads(proposal.proposed_payload)
-    request = BondProposalRequest.model_validate(payload)
+    request = BondProposalRequest.model_validate(proposal_request_payload(payload))
     instrument_id = None
     if decision == "APPROVED":
         instrument_id = _materialize_bond(connection, tenant_id, actor_id, request)
@@ -2505,7 +2526,7 @@ def _fx_forward_view(connection: Connection, tenant_id: UUID, proposal_id: UUID)
     if proposal is None:
         raise RepositoryNotFound("FX-forward proposal does not exist")
     payload = json.loads(proposal.proposed_payload)
-    request = FxForwardProposalRequest.model_validate(payload)
+    request = FxForwardProposalRequest.model_validate(proposal_request_payload(payload))
     return FxForwardProposalView(
         proposalId=proposal.reference_data_proposal_id,
         status=proposal.status,
@@ -2535,6 +2556,7 @@ def submit_fx_forward_proposal(
     settlement dates live in the common ``instrument_dates`` row.  Counterparty
     trade-specific marks are deliberately not materialised here.
     """
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated FX-forward proposals require sourceSystemId")
@@ -2548,13 +2570,8 @@ def submit_fx_forward_proposal(
         raise InvalidWorkflowState("Cash-settlement date cannot precede maturity date")
     if request.final_settlement_date is not None and request.final_settlement_date < request.maturity_date:
         raise InvalidWorkflowState("Final-settlement date cannot precede maturity date")
-    if request.idempotency_key and request.source_system_id:
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+    if request.idempotency_key:
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _fx_forward_view(connection, tenant_id, existing)
     if request.internal_code:
@@ -2598,6 +2615,8 @@ def _materialize_fx_forward(
 ) -> UUID:
     """Materialise the approved economic FX-forward and its common dates."""
 
+    from .approval_reference_integrity import validate_approval_references
+    validate_approval_references(connection, tenant_id, request, 'FX_FORWARD')
     node_type_id = connection.execute(
         select(m.reference_node_type.c.reference_node_type_id)
         .where(m.reference_node_type.c.type_code == "INSTRUMENT")
@@ -2679,7 +2698,13 @@ def decide_fx_forward_proposal(
     reason: str,
 ) -> FxForwardProposalView:
     """Record a steward decision and materialise an approved FX forward."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
 
+    with connection.begin_nested():
+        return _decide_fx_forward_proposal(connection, tenant_id, actor_id, proposal_id, decision, reason)
+
+
+def _decide_fx_forward_proposal(connection, tenant_id, actor_id, proposal_id, decision, reason):
     proposal = connection.execute(
         select(m.reference_data_proposal)
         .where(m.reference_data_proposal.c.reference_data_proposal_id == proposal_id)
@@ -2693,7 +2718,7 @@ def decide_fx_forward_proposal(
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("FX-forward proposal has already received a decision")
     payload = json.loads(proposal.proposed_payload)
-    request = FxForwardProposalRequest.model_validate(payload)
+    request = FxForwardProposalRequest.model_validate(proposal_request_payload(payload))
     instrument_id = None
     if decision == "APPROVED":
         instrument_id = _materialize_fx_forward(connection, tenant_id, actor_id, request)
@@ -2765,6 +2790,10 @@ def _etp_relationship_type(etp_kind: str) -> str:
 
 def submit_etp_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, request: EtpProposalRequest) -> EtpProposalView:
     """Record a sparse ETP proposal; legal and venue data remain separate workflows."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
+    existing = find_proposal_replay(connection, tenant_id, request)
+    if existing is not None:
+        return _etp_view(connection, tenant_id, existing)
 
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated ETP proposals require sourceSystemId")
@@ -2803,6 +2832,8 @@ def submit_etp_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID,
 
 
 def _materialize_etp(connection: Connection, tenant_id: UUID, actor_id: UUID, request: EtpProposalRequest) -> UUID:
+    from .approval_reference_integrity import validate_approval_references
+    validate_approval_references(connection, tenant_id, request, 'ETP')
     node_type_id = connection.execute(
         select(m.reference_node_type.c.reference_node_type_id)
         .where(m.reference_node_type.c.type_code == "INSTRUMENT")
@@ -2875,6 +2906,12 @@ def _materialize_etp(connection: Connection, tenant_id: UUID, actor_id: UUID, re
 
 
 def decide_etp_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, proposal_id: UUID, decision: str, reason: str) -> EtpProposalView:
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
+    with connection.begin_nested():
+        return _decide_etp_proposal(connection, tenant_id, actor_id, proposal_id, decision, reason)
+
+
+def _decide_etp_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, proposal_id: UUID, decision: str, reason: str) -> EtpProposalView:
     proposal = connection.execute(
         select(m.reference_data_proposal)
         .where(m.reference_data_proposal.c.reference_data_proposal_id == proposal_id)
@@ -2887,7 +2924,7 @@ def decide_etp_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID,
         raise InvalidWorkflowState("This endpoint only handles ETP creation proposals")
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("ETP proposal has already received a decision")
-    request = EtpProposalRequest.model_validate(json.loads(proposal.proposed_payload))
+    request = EtpProposalRequest.model_validate(proposal_request_payload(json.loads(proposal.proposed_payload)))
     instrument_id = _materialize_etp(connection, tenant_id, actor_id, request) if decision == "APPROVED" else None
     now = datetime.now(timezone.utc)
     connection.execute(m.reference_data_approval.insert().values(
@@ -3017,18 +3054,14 @@ def submit_index_family_proposal(
     request: IndexFamilyProposalRequest,
 ) -> IndexFamilyProposalView:
     """Record a manual-first proposal for a conceptual index family."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated index-family proposals require sourceSystemId")
     if request.idempotency_key:
         if request.source_system_id is None:
             raise InvalidWorkflowState("idempotencyKey requires sourceSystemId")
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _index_family_view(connection, tenant_id, existing)
     if request.internal_code:
@@ -3076,6 +3109,7 @@ def decide_index_family_proposal(
     reason: str,
 ) -> IndexFamilyProposalView:
     """Record a steward decision and materialize an approved index family."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
 
     proposal = connection.execute(
         select(m.reference_data_proposal)
@@ -3090,7 +3124,7 @@ def decide_index_family_proposal(
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("Index-family proposal has already received a decision")
     payload = json.loads(proposal.proposed_payload)
-    request = IndexFamilyProposalRequest.model_validate(payload)
+    request = IndexFamilyProposalRequest.model_validate(proposal_request_payload(payload))
     family_node_id = None
     if decision == "APPROVED":
         _, family_node_id = _materialize_index_family_record(connection, tenant_id, request)
@@ -3281,6 +3315,7 @@ def _materialize_index(connection: Connection, tenant_id: UUID, actor_id: UUID, 
 
 def submit_index_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, request: IndexProposalRequest) -> IndexProposalView:
     """Record a manual-first index proposal for Operations approval."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated index proposals require sourceSystemId")
@@ -3293,12 +3328,7 @@ def submit_index_proposal(connection: Connection, tenant_id: UUID, actor_id: UUI
     if request.idempotency_key:
         if request.source_system_id is None:
             raise InvalidWorkflowState("idempotencyKey requires sourceSystemId")
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _index_view(connection, tenant_id, existing)
     if request.internal_code:
@@ -3342,6 +3372,7 @@ def submit_index_proposal(connection: Connection, tenant_id: UUID, actor_id: UUI
 
 def decide_index_proposal(connection: Connection, tenant_id: UUID, actor_id: UUID, proposal_id: UUID, decision: str, reason: str) -> IndexProposalView:
     """Record a manual decision and materialize an approved index proposal."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
 
     proposal = connection.execute(
         select(m.reference_data_proposal)
@@ -3356,7 +3387,7 @@ def decide_index_proposal(connection: Connection, tenant_id: UUID, actor_id: UUI
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("Index proposal has already received a decision")
     payload = json.loads(proposal.proposed_payload)
-    request = IndexProposalRequest.model_validate(payload)
+    request = IndexProposalRequest.model_validate(proposal_request_payload(payload))
     index_id = None
     if decision == "APPROVED":
         index_id = _materialize_index(connection, tenant_id, actor_id, request)
@@ -3389,7 +3420,7 @@ def _structured_product_view(connection: Connection, tenant_id: UUID, proposal_i
     if proposal is None:
         raise RepositoryNotFound("Structured-product proposal does not exist")
     payload = json.loads(proposal.proposed_payload)
-    request = AutocallDraftRequest.model_validate(payload)
+    request = AutocallDraftRequest.model_validate(proposal_request_payload(payload))
     approval = connection.execute(
         select(m.reference_data_approval)
         .where(m.reference_data_approval.c.reference_data_proposal_id == proposal_id)
@@ -4073,6 +4104,7 @@ def submit_structured_product_proposal(
     request: AutocallDraftRequest,
 ) -> StructuredProductProposalView:
     """Validate and persist a structured-product draft for steward review."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     request = validate_autocall_draft(request)
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
@@ -4080,12 +4112,7 @@ def submit_structured_product_proposal(
     if request.idempotency_key:
         if request.source_system_id is None:
             raise InvalidWorkflowState("idempotencyKey requires sourceSystemId")
-        existing = connection.execute(
-            select(m.reference_data_proposal.c.reference_data_proposal_id)
-            .where(m.reference_data_proposal.c.source_system_id == request.source_system_id)
-            .where(m.reference_data_proposal.c.idempotency_key == request.idempotency_key)
-            .where(m.reference_data_proposal.c.tenant_id == tenant_id)
-        ).scalar_one_or_none()
+        existing = find_proposal_replay(connection, tenant_id, request)
         if existing is not None:
             return _structured_product_view(connection, tenant_id, existing)
     if request.internal_code:
@@ -4137,6 +4164,7 @@ def decide_structured_product_proposal(
     reason: str,
 ) -> StructuredProductProposalView:
     """Record a steward decision and atomically materialise an approved graph."""
+    require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_APPROVE')
 
     proposal = connection.execute(
         select(m.reference_data_proposal)
@@ -4150,7 +4178,7 @@ def decide_structured_product_proposal(
         raise InvalidWorkflowState("This endpoint only handles structured-product creation proposals")
     if proposal.status != "PENDING":
         raise InvalidWorkflowState("Structured-product proposal has already received a decision")
-    request = validate_autocall_draft(AutocallDraftRequest.model_validate(json.loads(proposal.proposed_payload)))
+    request = validate_autocall_draft(AutocallDraftRequest.model_validate(proposal_request_payload(json.loads(proposal.proposed_payload))))
     graph: dict[str, object] = {}
     if decision == "APPROVED":
         graph = _materialize_structured_product(connection, tenant_id, actor_id, request)
@@ -4175,10 +4203,14 @@ def decide_structured_product_proposal(
     return _structured_product_view(connection, tenant_id, proposal_id)
 
 
-def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correlation_id: str) -> WorkQueueView:
+def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correlation_id: str, *, limit: int = 100, offset: int = 0) -> WorkQueueView:
     from .contracts import ApiMeta
 
     items: list[WorkQueueItemView] = []
+    proposal_counts = connection.execute(select(m.reference_data_proposal.c.proposal_type, func.count()).where(
+        m.reference_data_proposal.c.tenant_id == tenant_id,
+        m.reference_data_proposal.c.status == 'PENDING').group_by(m.reference_data_proposal.c.proposal_type)).all()
+    proposal_total = sum(count for _, count in proposal_counts)
     proposals = connection.execute(
         select(
             m.reference_data_proposal.c.reference_data_proposal_id,
@@ -4188,7 +4220,8 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         )
         .where(m.reference_data_proposal.c.tenant_id == tenant_id)
         .where(m.reference_data_proposal.c.status == "PENDING")
-        .order_by(m.reference_data_proposal.c.proposed_at_utc)
+        .order_by(m.reference_data_proposal.c.proposed_at_utc, m.reference_data_proposal.c.reference_data_proposal_id)
+        .limit(limit).offset(offset)
     ).mappings().all()
     import json
 
@@ -4313,7 +4346,8 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         select(m.nav_calculation_run.c.nav_calculation_run_id, m.nav_calculation_run.c.valuation_date)
         .where(m.nav_calculation_run.c.tenant_id == tenant_id)
         .where(m.nav_calculation_run.c.status.in_(["DRAFT", "REVIEW", "PENDING_REVIEW"]))
-        .order_by(m.nav_calculation_run.c.valuation_date)
+        .order_by(m.nav_calculation_run.c.valuation_date, m.nav_calculation_run.c.nav_calculation_run_id)
+        .limit(limit - len(items)).offset(max(0, offset - proposal_total))
     ).mappings().all()
     for run in nav_runs:
         items.append(
@@ -4328,12 +4362,53 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         )
     from collections import Counter
 
-    counts = Counter(item.category for item in items)
+    # Counts cover the entire queue, not only this bounded page. Existing order
+    # is retained: reference proposals first, followed by NAV review runs.
+    counts = Counter()
+    for kind, count in proposal_counts:
+        category = 'REFERENCE_DATA_REVIEW' if kind.startswith('CREATE') or kind == 'CONFIGURE_BOOKING_CONVENTION' else 'MAPPING_REVIEW'
+        counts[category] += count
+    counts['NAV_REVIEW'] = connection.scalar(select(func.count()).select_from(m.nav_calculation_run).where(
+        m.nav_calculation_run.c.tenant_id == tenant_id,
+        m.nav_calculation_run.c.status.in_(['DRAFT', 'REVIEW', 'PENDING_REVIEW'])))
     return WorkQueueView(
         counts={key: counts.get(key, 0) for key in ["MAPPING_REVIEW", "REFERENCE_DATA_REVIEW", "NAV_REVIEW", "MARKET_DATA_EXCEPTION"]},
         items=items,
-        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id),
+        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, limit=limit, offset=offset, total=sum(counts.values())),
     )
+
+
+def _current_market_data_observation_clause(observation):
+    newer = m.market_data_observation.alias('display_newer_observation')
+    return ~exists(select(1).select_from(newer).where(
+        newer.c.supersedes_observation_id == observation.c.market_data_observation_id,
+        newer.c.quality_status == 'ACCEPTED'))
+
+
+def _market_data_display_entitlement_clause(dataset_id, tenant_id):
+    entitlement = m.tenant_dataset_entitlement.alias('display_entitlement')
+    profiled = exists(select(1).select_from(m.dataset_access_profile).where(
+        m.dataset_access_profile.c.dataset_id == dataset_id))
+    return exists(select(1).select_from(entitlement).where(
+        entitlement.c.dataset_id == dataset_id, entitlement.c.tenant_id == tenant_id,
+        entitlement.c.status == 'ACTIVE', entitlement.c.valid_from <= date.today(),
+        or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= date.today()),
+        or_(~profiled, entitlement.c.use_purpose == 'INTERNAL_REPORTING')))
+
+
+def _market_data_visible_node_clause(reference_node_id, tenant_id):
+    def direct(node_id, suffix):
+        scope = m.reference_node_scope.alias('market_data_scope_' + suffix)
+        node = m.financial_reference_node.alias('market_data_node_' + suffix)
+        return and_(exists(select(1).select_from(node).where(node.c.reference_node_id == node_id, node.c.status == 'ACTIVE')),
+            or_(~exists(select(1).select_from(scope).where(scope.c.reference_node_id == node_id)),
+                exists(select(1).select_from(scope).where(scope.c.reference_node_id == node_id,
+                    scope.c.status == 'ACTIVE', or_(scope.c.scope_type == 'SHARED_CANONICAL',
+                        and_(scope.c.scope_type == 'TENANT_PRIVATE', scope.c.owner_tenant_id == tenant_id))))))
+    listing = m.listing.alias('market_data_parent_listing')
+    return and_(direct(reference_node_id, 'subject'),
+        ~exists(select(1).select_from(listing).where(listing.c.listing_node_id == reference_node_id,
+            ~direct(listing.c.instrument_node_id, 'parent'))))
 
 
 def list_market_data_series(
@@ -4347,8 +4422,12 @@ def list_market_data_series(
     offset: int,
     api_version: str,
     correlation_id: str,
+    observation_limit: int = 1000,
+    observation_offset: int = 0,
 ) -> MarketDataSeriesResponse:
     """Return a catalogue of precise series with a bounded observation window."""
+    if not 1 <= observation_limit <= 1000 or not 0 <= observation_offset <= 100000:
+        raise ValueError('Invalid observation pagination')
     series = m.market_data_series
     observation = m.market_data_observation
     dataset = m.dataset
@@ -4361,13 +4440,23 @@ def list_market_data_series(
     assignment = m.dataset_licence_assignment
     reference_node = m.financial_reference_node.alias("series_reference_node")
     expected_calendar = m.market_calendar.alias("series_expected_calendar")
-    filters = [series.c.status == "ACTIVE"]
+    from market_data.rights import denied_display_datasets
+    denied_datasets = denied_display_datasets(connection, tenant_id, date.today())
+    filters = [series.c.status == "ACTIVE", reference_node.c.status == 'ACTIVE',
+               _market_data_visible_node_clause(series.c.reference_node_id, tenant_id),
+               or_(series.c.default_dataset_id.is_(None), series.c.default_dataset_id.not_in(denied_datasets)),
+               or_(series.c.default_dataset_id.is_(None),
+                   _market_data_display_entitlement_clause(series.c.default_dataset_id, tenant_id))]
     if reference_node_id is not None:
         filters.append(series.c.reference_node_id == reference_node_id)
     if series_type:
         filters.append(series.c.series_type == series_type)
     if from_date or to_date:
-        obs_exists = select(1).select_from(observation).where(observation.c.market_data_series_id == series.c.market_data_series_id)
+        obs_exists = select(1).select_from(observation).where(
+            observation.c.market_data_series_id == series.c.market_data_series_id,
+            observation.c.quality_status == 'ACCEPTED', observation.c.dataset_id.not_in(denied_datasets),
+            _current_market_data_observation_clause(observation),
+            _market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id))
         if from_date:
             obs_exists = obs_exists.where(observation.c.market_date >= from_date)
         if to_date:
@@ -4424,8 +4513,13 @@ def list_market_data_series(
         .limit(limit)
     ).mappings().all()
     result: list[MarketDataSeriesView] = []
+    total = connection.scalar(select(func.count()).select_from(
+        series.join(reference_node, series.c.reference_node_id == reference_node.c.reference_node_id)).where(*filters))
     for row in rows:
-        obs_filters = [observation.c.market_data_series_id == row.market_data_series_id, observation.c.quality_status == "ACCEPTED"]
+        obs_filters = [observation.c.market_data_series_id == row.market_data_series_id,
+                       observation.c.quality_status == "ACCEPTED", observation.c.dataset_id.not_in(denied_datasets),
+                       _current_market_data_observation_clause(observation),
+                       _market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id)]
         if from_date:
             obs_filters.append(observation.c.market_date >= from_date)
         if to_date:
@@ -4434,6 +4528,7 @@ def list_market_data_series(
         observation_product = m.provider_product.alias("observation_product")
         observation_provider = m.data_provider.alias("observation_provider")
         vintage = m.market_data_vintage
+        observation_total = connection.scalar(select(func.count()).select_from(observation).where(*obs_filters))
         obs_rows = connection.execute(
             select(
                 observation.c.market_data_observation_id,
@@ -4474,8 +4569,9 @@ def list_market_data_series(
                     .where(or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= date.today())),
                 )
             )
-            .order_by(observation.c.market_date)
-            .limit(1000)
+            .order_by(observation.c.market_date, observation.c.observed_at_utc, observation.c.market_data_observation_id)
+            .offset(observation_offset)
+            .limit(observation_limit)
         ).mappings().all()
         first_licence = next((item for item in obs_rows if item.acquisition_licence_id), None)
         result.append(
@@ -4502,6 +4598,9 @@ def list_market_data_series(
                 expectedCalendarCode=row.expected_calendar_code,
                 coverageStartDate=_iso(row.coverage_start_date),
                 coverageEndDate=_iso(row.coverage_end_date),
+                observationTotal=observation_total,
+                observationLimit=observation_limit,
+                observationOffset=observation_offset,
                 observations=[
                     MarketDataObservationView(
                         observationId=item.market_data_observation_id,
@@ -4528,16 +4627,8 @@ def list_market_data_series(
         )
     return MarketDataSeriesResponse(
         data=result,
-        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, limit=limit, offset=offset, total=len(result)),
+        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, limit=limit, offset=offset, total=total),
     )
-
-
-def _latest_observation(connection: Connection, series_id: UUID, as_of: date | None) -> object | None:
-    observation = m.market_data_observation
-    stmt = select(observation).where(observation.c.market_data_series_id == series_id).where(observation.c.quality_status == "ACCEPTED")
-    if as_of:
-        stmt = stmt.where(observation.c.market_date <= as_of)
-    return connection.execute(stmt.order_by(observation.c.market_date.desc().nullslast(), observation.c.observed_at_utc.desc()).limit(1)).mappings().first()
 
 
 def list_booked_trades(
@@ -4825,7 +4916,7 @@ _TRADE_BOOKING_ENDPOINT = "/v1/trades"
 def _trade_booking_fingerprint(payload: TradeBookingRequest, connection: Connection, tenant_id: UUID) -> str:
     data = payload.model_dump(mode="json", by_alias=True)
     # Additive bond fields must not change fingerprints of existing product retries.
-    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence'):
+    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence', 'correction'):
         if data.get(field) is None: data.pop(field, None)
     # Immutable definitions remain available after retirement, so replay can
     # canonicalise values without reapplying today's booking eligibility.
@@ -4880,32 +4971,17 @@ def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotenc
     fingerprint = _trade_booking_fingerprint(request, connection, tenant_id)
     existing = find_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint)
     if existing is not None:
-        replay = get_booked_trade_detail(connection, tenant_id, existing, "v1", request_id)
+        replay = get_booked_trade_detail(connection, tenant_id, existing, current_api_version(), request_id)
         if replay is None:
             raise RepositoryNotFound("Booked trade does not exist")
         return replay
 
-    listing_row = connection.execute(
-        select(
-            m.listing.c.listing_node_id,
-            m.listing.c.instrument_node_id,
-            m.listing.c.market_venue_id,
-            m.listing.c.trading_currency_id,
-            m.currency.c.currency_code,
-        )
-        .select_from(m.listing.join(m.currency, m.currency.c.currency_id == m.listing.c.trading_currency_id))
-        .join(m.financial_reference_node, m.financial_reference_node.c.reference_node_id == m.listing.c.listing_node_id)
-        .where(m.listing.c.listing_node_id == request.listing_id)
-        .where(m.listing.c.status == "ACTIVE")
-        .where(m.financial_reference_node.c.status == "ACTIVE")
-        .with_for_update()
-    ).mappings().first()
-    if listing_row is None:
-        raise RepositoryNotFound("Active listing does not exist")
-    product = connection.scalar(select(m.instrument_type.c.type_code).join(m.instrument,m.instrument.c.instrument_type_id==m.instrument_type.c.instrument_type_id).where(m.instrument.c.instrument_node_id==listing_row.instrument_node_id))
-    if product in {"OPTION", "FX_FORWARD", "FUTURE", "SWAP", "STRUCTURED_PRODUCT", "BOND"}:
-        from .trade_properties import TradeFieldError
-        raise TradeFieldError("listingId", "This derivative requires its product-specific booking ticket; cash-share semantics are not permitted.")
+    from .booking_controls import validate_execution_date
+    validate_execution_date(request.trade_datetime)
+    from .trade_corrections import prepare_correction, complete_correction
+    prepare_correction(connection, tenant_id, request, 'CASH')
+    from .cash_booking_integrity import load_cash_booking_listing
+    listing_row = load_cash_booking_listing(connection, tenant_id, request.listing_id, request.trade_datetime.astimezone(timezone.utc).date())
     from .booking_controls import lock_booking_strategy
     strategy_id = lock_booking_strategy(connection, tenant_id, request.strategy_id)
     from .trade_properties import validate_trade_annotations
@@ -4939,9 +5015,10 @@ def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotenc
         )
     )
     persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values)
-    connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, recorded_by_user_account_id=actor_id))
+    connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(listing_row['booking_snapshot'], sort_keys=True), recorded_by_user_account_id=actor_id))
     record_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint, trade_id)
-    result = get_booked_trade_detail(connection, tenant_id, trade_id, "v1", request_id)
+    complete_correction(connection, tenant_id, actor_id, request, trade_id)
+    result = get_booked_trade_detail(connection, tenant_id, trade_id, current_api_version(), request_id)
     if result is None:
         raise RepositoryNotFound("Booked trade does not exist")
     return result
@@ -4973,175 +5050,16 @@ def persist_trade_annotations(connection, tenant_id, trade_id, request, annotati
         connection.execute(insert(m.trade_tag_assignment).values(trade_id=trade_id, tenant_id=tenant_id, tag_id=tag_id))
 
 
-def _previous_business_day(value: date) -> date:
-    current = value - timedelta(days=1)
-    while current.weekday() >= 5:
-        current -= timedelta(days=1)
-    return current
-
-
-def portfolio_pnl(connection: Connection, tenant_id: UUID, portfolio_code: str, as_of_date: date, api_version: str, correlation_id: str) -> PortfolioPnlResponse | None:
-    """Compute a transparent, display-only price/FX P&L view from booked trades."""
-    strategy = connection.execute(
-        select(m.strategy.c.strategy_id, m.strategy.c.strategy_code, m.strategy.c.display_name, m.strategy.c.base_currency_id)
-        .where(m.strategy.c.strategy_code == portfolio_code)
-        .where(m.strategy.c.tenant_id == tenant_id)
-        .where(m.strategy.c.status == "ACTIVE")
-    ).mappings().first()
-    if strategy is None:
-        return None
-    base_currency = connection.execute(select(m.currency.c.currency_code).where(m.currency.c.currency_id == strategy.base_currency_id)).scalar_one_or_none() or ""
-    cut_code = "US_FUND_FX_1600_MVP" if portfolio_code.endswith("US_PORTFOLIO") else "UK_FUND_FX_1600_MVP"
-    cut_row = connection.execute(select(m.valuation_cut).where(m.valuation_cut.c.cut_code == cut_code)).mappings().first()
-    prev_date = _previous_business_day(as_of_date)
-    subject_node = m.financial_reference_node.alias("subject_node")
-    instrument_node = m.financial_reference_node.alias("instrument_node")
-    listing = m.listing.alias("subject_listing")
-    instrument = m.instrument.alias("instrument")
-    instrument_type = m.instrument_type.alias("instrument_type")
-    local_currency = m.currency.alias("local_currency")
-    trades = connection.execute(
-        select(
-            m.trade.c.trade_id,
-            m.trade.c.trade_subject_reference_node_id,
-            m.trade.c.quantity,
-            m.trade.c.price_currency_id,
-            m.trade.c.execution_price,
-            m.trade.c.price_basis,
-            listing.c.listing_node_id,
-            listing.c.instrument_node_id,
-            listing.c.quote_factor,
-            listing.c.unit_multiplier,
-            subject_node.c.canonical_name.label("subject_name"),
-            instrument_node.c.canonical_name.label("instrument_name"),
-            instrument_type.c.type_code.label("instrument_type"),
-            local_currency.c.currency_code.label("local_currency"),
-        )
-        .select_from(
-            m.trade.join(subject_node, m.trade.c.trade_subject_reference_node_id == subject_node.c.reference_node_id)
-            .outerjoin(listing, listing.c.listing_node_id == m.trade.c.trade_subject_reference_node_id)
-            .outerjoin(instrument, instrument.c.instrument_node_id == func.coalesce(listing.c.instrument_node_id, m.trade.c.trade_subject_reference_node_id))
-            .outerjoin(instrument_node, instrument_node.c.reference_node_id == func.coalesce(listing.c.instrument_node_id, m.trade.c.trade_subject_reference_node_id))
-            .outerjoin(instrument_type, instrument_type.c.instrument_type_id == instrument.c.instrument_type_id)
-            .outerjoin(local_currency, local_currency.c.currency_id == m.trade.c.price_currency_id)
-        )
-        .where(m.trade.c.strategy_id == strategy.strategy_id)
-        .where(m.trade.c.lifecycle_status == "BOOKED")
-        .where(m.trade.c.trade_datetime_utc < datetime.combine(as_of_date + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
-        .order_by(m.trade.c.trade_subject_reference_node_id)
-    ).mappings().all()
-    forward_ids = tuple(trade.trade_id for trade in trades if trade.instrument_type == "FX_FORWARD")
-    if forward_ids:
-        from .fx_forward_booking import FxForwardValuationUnsupported
-        raise FxForwardValuationUnsupported(forward_ids)
-    if any(trade.instrument_type == "OPTION" for trade in trades):
-        from .option_booking import OptionValuationUnsupported
-        raise OptionValuationUnsupported("Option valuation is not supported yet; no partial strategy total is returned.")
-    # Preserve the existing synthetic price-only demo; new bond bookings carry
-    # immutable product economics and must not enter that legacy valuation path.
-    from .product_booking import load_economics as load_product_economics
-    bond_economics = load_product_economics(connection, [trade.trade_id for trade in trades if trade.instrument_type == 'BOND'])
-    if any(trade.instrument_type in {'STRUCTURED_PRODUCT', 'FUTURE', 'SWAP'} or
-           (trade.instrument_type == 'BOND' and trade.trade_id in bond_economics) for trade in trades):
-        from .product_booking import ProductValuationUnsupported
-        raise ProductValuationUnsupported('Structured-product/futures/swaps/nominal-bond valuation is deferred; no partial strategy total is returned.')
-    gbpusd_node = connection.execute(select(m.financial_reference_node.c.reference_node_id).where(m.financial_reference_node.c.internal_code == "MVP_GBPUSD")).scalar_one_or_none()
-    eurusd_node = connection.execute(select(m.financial_reference_node.c.reference_node_id).where(m.financial_reference_node.c.internal_code == "MVP_EURUSD")).scalar_one_or_none()
-
-    def fx_series(pair_node: UUID | None):
-        if pair_node is None:
-            return None
-        pair_cut_code = cut_code
-        # GBP/USD and EUR/USD are separate economic series.  Keep the cut
-        # family aligned with the portfolio context rather than silently using
-        # the GBP cut for every currency conversion.
-        if pair_node == eurusd_node:
-            pair_cut_code = "EUR_FUND_US_1600_MVP" if portfolio_code.endswith("US_PORTFOLIO") else "EUR_FUND_FX_1600_MVP"
-        pair_cut_id = connection.execute(
-            select(m.valuation_cut.c.valuation_cut_id).where(m.valuation_cut.c.cut_code == pair_cut_code)
-        ).scalar_one_or_none()
-        return connection.execute(
-            select(m.market_data_series.c.market_data_series_id)
-            .where(m.market_data_series.c.reference_node_id == pair_node)
-            .where(m.market_data_series.c.valuation_cut_id == pair_cut_id)
-            .where(m.market_data_series.c.status == "ACTIVE")
-            .limit(1)
-        ).scalar_one_or_none()
-
-    gbp_series = fx_series(gbpusd_node)
-    eur_series = fx_series(eurusd_node)
-    fx_cache: dict[UUID, tuple[Decimal, Decimal]] = {}
-    for series_id in [item for item in (gbp_series, eur_series) if item]:
-        close = _latest_observation(connection, series_id, as_of_date)
-        open_ = _latest_observation(connection, series_id, prev_date)
-        if close and open_:
-            fx_cache[series_id] = (Decimal(str(open_.value)), Decimal(str(close.value)))
-
-    def conversion(local: str | None) -> tuple[Decimal, Decimal]:
-        if not local or local == base_currency:
-            return Decimal(1), Decimal(1)
-        gbp = fx_cache.get(gbp_series) if gbp_series else None
-        eur = fx_cache.get(eur_series) if eur_series else None
-        if base_currency == "USD" and local == "GBP" and gbp:
-            return gbp
-        if base_currency == "USD" and local == "EUR" and eur:
-            return eur
-        if base_currency == "GBP" and local == "USD" and gbp:
-            return Decimal(1) / gbp[0], Decimal(1) / gbp[1]
-        if base_currency == "GBP" and local == "EUR" and eur and gbp:
-            return eur[0] / gbp[0], eur[1] / gbp[1]
-        return Decimal(1), Decimal(1)
-
-    lines: list[PortfolioPnlLine] = []
-    for trade in trades:
-        instrument_id = trade.instrument_node_id or trade.trade_subject_reference_node_id
-        listing_id = trade.listing_node_id
-        series_rows = connection.execute(
-            select(m.market_data_series.c.market_data_series_id, m.market_data_series.c.series_type)
-            .where(m.market_data_series.c.reference_node_id.in_([item for item in (listing_id, instrument_id) if item]))
-            .where(m.market_data_series.c.status == "ACTIVE")
-            .where(
-                exists(
-                    select(1)
-                    .select_from(m.market_data_observation)
-                    .where(m.market_data_observation.c.market_data_series_id == m.market_data_series.c.market_data_series_id)
-                    .where(m.market_data_observation.c.quality_status == "ACCEPTED")
-                    .where(m.market_data_observation.c.market_date <= as_of_date)
-                )
-            )
-            .order_by((m.market_data_series.c.reference_node_id == listing_id).desc(), m.market_data_series.c.is_official.desc())
-        ).all()
-        selected_series = series_rows[0].market_data_series_id if series_rows else None
-        opening = _latest_observation(connection, selected_series, prev_date) if selected_series else None
-        closing = _latest_observation(connection, selected_series, as_of_date) if selected_series else None
-        if not opening or not closing:
-            continue
-        scale = Decimal(str(trade.quote_factor or 1))
-        if trade.price_basis == "PCT_OF_PAR":
-            scale *= Decimal(100)
-        multiplier = Decimal(str(trade.unit_multiplier or 1))
-        quantity = Decimal(str(trade.quantity))
-        open_price = Decimal(str(opening.value)) / scale
-        close_price = Decimal(str(closing.value)) / scale
-        local_price_pnl = quantity * (close_price - open_price) * multiplier
-        open_fx, close_fx = conversion(trade.local_currency)
-        opening_value = quantity * open_price * multiplier
-        closing_value = quantity * close_price * multiplier
-        total = closing_value * close_fx - opening_value * open_fx
-        price_pnl = local_price_pnl * close_fx
-        fx_pnl = total - price_pnl
-        lines.append(PortfolioPnlLine(instrumentId=instrument_id, listingId=listing_id, instrumentName=trade.instrument_name or trade.subject_name, instrumentType=trade.instrument_type or "REFERENCE", quantity=_decimal(trade.quantity), localCurrency=trade.local_currency, baseCurrency=base_currency, openingPrice=_decimal(opening.value), closingPrice=_decimal(closing.value), openingFx=_decimal(open_fx), closingFx=_decimal(close_fx), localPricePnl=_decimal(local_price_pnl), fxPnl=_decimal(fx_pnl), totalPnl=_decimal(total), priceSeriesId=selected_series, closingObservationId=closing.market_data_observation_id))
-    total_pnl = sum((Decimal(line.total_pnl) for line in lines), Decimal(0))
-    valuation_cut = {"cutCode": cut_row.cut_code if cut_row else None, "displayName": cut_row.display_name if cut_row else None, "timezoneName": cut_row.timezone_name if cut_row else None, "localTime": cut_row.local_time if cut_row else None}
-    view = PortfolioPnlView(portfolioCode=strategy.strategy_code, portfolioName=strategy.display_name, asOfDate=as_of_date.isoformat(), baseCurrency=base_currency, valuationCut=valuation_cut, lines=lines, totalPnl=_decimal(total_pnl), methodology="Display-only decomposition: local price movement at closing FX plus residual FX movement; derived from immutable booked trades and observations.")
-    return PortfolioPnlResponse(data=view, meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, total=len(lines)))
 
 
 _MARKET_DATA_SNAPSHOT_ENDPOINT = "/v1/market-data-resolution-snapshots"
 
 
 def _market_data_snapshot_fingerprint(payload: MarketDataResolutionSnapshotCreate) -> str:
-    canonical = json.dumps(payload.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":"))
+    body = payload.model_dump(mode="json", by_alias=True)
+    if body.get('strategyId') is None:
+        body.pop('strategyId', None)
+    canonical = json.dumps(body, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -5157,9 +5075,11 @@ def _market_data_snapshot_view(connection: Connection, tenant_id: UUID, snapshot
     if header is None:
         raise RepositoryNotFound("Market-data resolution snapshot does not exist")
     rows = connection.execute(select(m.market_data_resolution_snapshot_item).where(m.market_data_resolution_snapshot_item.c.market_data_resolution_snapshot_id == snapshot_id).order_by(m.market_data_resolution_snapshot_item.c.request_sequence)).mappings().all()
+    from market_data.display_access import assert_dataset_display
+    assert_dataset_display(connection, tenant_id, {row['dataset_id'] for row in rows if row['selected_value'] is not None})
     return MarketDataResolutionSnapshotView(
         marketDataResolutionSnapshotId=header["market_data_resolution_snapshot_id"], tenantId=header["tenant_id"], valuationPolicyId=header["valuation_policy_id"], valuationDate=header["valuation_date"], valuationCutId=header["valuation_cut_id"], marketDataAsOfUtc=header["market_data_as_of_utc"], usePurpose=header["use_purpose"], resolverVersion=header["resolver_version"], status=header["status"], createdAtUtc=header["created_at_utc"],
-        items=[MarketDataResolutionSnapshotItemView(status=row["status"], subjectReferenceNodeId=row["subject_reference_node_id"], policyRuleId=row["policy_rule_id"], marketDataSeriesId=row["market_data_series_id"], marketDataObservationId=row["market_data_observation_id"], marketDataVintageId=row["market_data_vintage_id"], datasetId=row["dataset_id"], acquisitionLicenceId=row["acquisition_licence_id"], sourcePublishedAtUtc=row["source_published_at_utc"], receivedAtUtc=row["received_at_utc"], selectedValue=row["selected_value"], currencyId=row["currency_id"], pricingDateRequested=row["pricing_date_requested"], pricingDateUsed=row["pricing_date_used"], stalenessBusinessDays=row["staleness_business_days"], stalenessStatus=row["staleness_status"], selectionReason=row["selection_reason"], entitlementDecision=row["entitlement_decision"], exceptionCode=row["exception_code"]) for row in rows],
+        items=[MarketDataResolutionSnapshotItemView.model_validate(dict(row)) for row in rows],
     )
 
 
@@ -5174,7 +5094,7 @@ def create_market_data_resolution_snapshot(connection: Connection, tenant_id: UU
         if existing["request_fingerprint"] != fingerprint:
             raise IdempotencyKeyConflict("Idempotency key was already used with a different request")
         return _market_data_snapshot_view(connection, tenant_id, existing["market_data_resolution_snapshot_id"])
-    request = ResolutionRequest(tenant_id=tenant_id, subject_reference_node_id=payload.subject_reference_node_ids[0], valuation_policy_id=payload.valuation_policy_id, valuation_date=payload.valuation_date, valuation_cut_id=payload.valuation_cut_id, market_data_as_of_utc=payload.market_data_as_of_utc, use_purpose=payload.use_purpose)
+    request = ResolutionRequest(tenant_id=tenant_id, subject_reference_node_id=payload.subject_reference_node_ids[0], valuation_policy_id=payload.valuation_policy_id, valuation_date=payload.valuation_date, valuation_cut_id=payload.valuation_cut_id, market_data_as_of_utc=payload.market_data_as_of_utc, use_purpose=payload.use_purpose, strategy_id=payload.strategy_id)
     snapshot_id = persist_resolution_snapshot(connection, request, resolve_market_data_batch(connection, request, tuple(payload.subject_reference_node_ids)))
     connection.execute(insert(m.market_data_resolution_idempotency).values(tenant_id=tenant_id, endpoint=_MARKET_DATA_SNAPSHOT_ENDPOINT, idempotency_key=idempotency_key, request_fingerprint=fingerprint, market_data_resolution_snapshot_id=snapshot_id, expires_at_utc=datetime.now(timezone.utc) + timedelta(hours=24)))
     return _market_data_snapshot_view(connection, tenant_id, snapshot_id)

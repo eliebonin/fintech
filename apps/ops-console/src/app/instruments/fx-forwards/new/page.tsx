@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { listCurrencies, type CurrencyGroup } from "@/lib/reference-api-client";
-import { resolveLocalTenantContext } from "@/lib/tenant-context";
+import { requireReferenceTenantContext } from "@/lib/reference-tenant-context";
 import NewFxForwardForm from "./form";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ type CatalogueState = {
 
 async function loadCatalogues(): Promise<CatalogueState> {
   try {
-    const result = await listCurrencies(resolveLocalTenantContext(), ["REGULAR"]);
+    const result = await listCurrencies(await requireReferenceTenantContext(), ["REGULAR"]);
     return { currencies: result.data, error: null };
   } catch (error) {
     return {

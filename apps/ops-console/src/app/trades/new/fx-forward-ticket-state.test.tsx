@@ -12,12 +12,14 @@ import {PropertyFields} from "./property-fields";
 import {BffApiError} from "@/lib/api-errors";
 const instrument={instrumentId:"instrument",name:"EUR/USD",baseCurrency:"EUR",quoteCurrency:"USD",quoteConvention:"USD_PER_EUR",agreedRate:"1.10",settlementDate:"2026-12-15",maturityDate:"2026-12-15",settlementType:"DELIVERABLE",termsFingerprint:"a".repeat(64),bookingEligible:true};
 const context={tenantId:"tenant",bookedByUserAccountId:"actor",properties:[{definitionId:"decimal",code:"DECIMAL",label:"Numeric",description:null,valueType:"DECIMAL" as const,required:false,choices:[]}],tags:[]};
-function render(){harness.cursor=0;harness.effects=[];return FxForwardTicket({initialInstrument:instrument,strategies:[{strategyId:"strategy",strategyCode:"TEST",displayName:"Test",status:"ACTIVE"}],context});}
+let correction:import('@/lib/trade-correction-model').BookingCorrection|undefined;
+function render(){harness.cursor=0;harness.effects=[];return FxForwardTicket({initialInstrument:instrument,strategies:[{strategyId:"strategy",strategyCode:"TEST",displayName:"Test",status:"ACTIVE"}],context,correction});}
 function find(node:any,predicate:(node:any)=>boolean):any {if(!node||typeof node!=="object")return;if(predicate(node))return node;for(const child of [node.props?.children].flat(Infinity)){const found=find(child,predicate);if(found)return found;}}
 const byId=(tree:any,id:string)=>find(tree,n=>n.props?.id===id);
 const button=(tree:any,text:string)=>find(tree,n=>n.type==="button"&&n.props.children===text);
 function review(){let tree=render();for(const [id,value] of [["strategyId","strategy"],["quantity","1000000"],["tradeDatetime","2026-10-01T10:00:00Z"]])byId(tree,id).props.onChange({target:{value}});find(tree,n=>n.type===PartyFields).props.onChange({counterpartyOrganisationId:"bank",counterpartyName:"Bank"});find(tree,n=>n.type===PropertyFields).props.onChange({properties:{decimal:"0"}});tree=render();find(tree,n=>n.type==="form").props.onSubmit({preventDefault(){}});return render();}
-afterEach(()=>{harness.slots=[];harness.cursor=0;harness.effects=[];harness.send.mockReset();harness.push.mockReset();vi.unstubAllGlobals();});
+afterEach(()=>{correction=undefined;harness.slots=[];harness.cursor=0;harness.effects=[];harness.send.mockReset();harness.push.mockReset();vi.unstubAllGlobals();});
+it('submits the confirmed correction context with the FX ticket',async()=>{correction={tradeId:'original',expectedSequenceNo:1,reason:'Wrong amount'};harness.send.mockResolvedValueOnce({data:{trade:{tradeId:'replacement'}}});await button(review(),'Confirm booking').props.onClick();expect(harness.send.mock.calls[0][0].correction).toEqual(correction);});
 it("preserves custom zero through review and back-to-edit",()=>{const tree=review();button(tree,"Back to edit").props.onClick();expect(find(render(),n=>n.type===PropertyFields).props.draft.properties.decimal).toBe("0");});
 it("retries an uncertain booking with exactly the frozen request/key/tenant",async()=>{
   harness.send.mockRejectedValueOnce(new BffApiError(503,"Unavailable")).mockResolvedValueOnce({data:{trade:{tradeId:"saved"}}});

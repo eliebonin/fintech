@@ -9,6 +9,10 @@ import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-s
 import { WorkspaceShell } from "@/components/workspace-shell";
 import {SwapTermsFacts} from "@/components/swap-terms-facts";
 import { bookedSwapFacts, safeHistoryReturn, type HistorySearchParams } from "@/lib/trade-history";
+import {bookingCorrectionLinks} from "@/lib/trade-correction-model";
+import {RecordCorrectionActions} from "../record-correction-controls";
+import {FxDeliveryControls,DeliveryEventFacts,type FxDeliveryProgress} from '../fx-delivery-controls';
+import {getFxDelivery} from '@/lib/reference-api-client';
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +45,7 @@ export function DetailContent({ detail }: { detail: TradeDetailPayload["data"] }
       </div>
       <div className="detail-columns">
         <section className="detail-card"><div className="detail-card-heading"><div><p className="eyebrow">EXTERNAL REFERENCES</p><h2>Source identifiers</h2></div></div>{detail.externalReferences.length ? <div className="reference-list">{detail.externalReferences.map((reference) => <div className="reference-row" key={reference.tradeExternalReferenceId}><strong>{reference.referenceType}</strong><code>{reference.referenceValue}</code><small>{reference.sourceSystemId ?? "—"}</small></div>)}</div> : <p className="muted">No external references.</p>}</section>
-        <section className="detail-card"><div className="detail-card-heading"><div><p className="eyebrow">LIFECYCLE</p><h2>Audit events</h2></div></div>{detail.lifecycleEvents.length ? <div className="event-list">{detail.lifecycleEvents.map((event) => <div className="event-row" key={event.tradeLifecycleEventId}><div><strong>{event.sequenceNo}. {event.eventType}</strong><small>{formatTradeDateTime(event.eventDatetimeUtc)} · {event.sourceSystemId ?? "internal"}</small></div><code>{event.sourceEventId ?? "—"}</code></div>)}</div> : <p className="muted">No lifecycle events.</p>}</section>
+        <section className="detail-card"><div className="detail-card-heading"><div><p className="eyebrow">LIFECYCLE</p><h2>Audit events</h2></div></div>{detail.lifecycleEvents.length ? <div className="event-list">{detail.lifecycleEvents.map((event) => {const links=bookingCorrectionLinks(event);return <div className="event-row" key={event.tradeLifecycleEventId}><div><strong>{event.sequenceNo}. {event.eventType}</strong><small>Effective (UTC): {formatTradeDateTime(event.eventDatetimeUtc)}</small><small>Recorded (UTC): {formatTradeDateTime(event.recordedAtUtc)} · {event.recordedByUserAccountId}</small><small>{event.sourceSystemId ?? "internal"}</small>{event.eventType==='FX_DELIVERY'?<DeliveryEventFacts raw={event.eventPayload}/>:null}{links?<><p>{links.reason}</p><Link href={`/trades/${links.originalTradeId}`}>Original booking</Link>{links.replacementTradeId?<>{" · "}<Link href={`/trades/${links.replacementTradeId}`}>Replacement booking</Link></>:null}</>:null}</div><code>{event.sourceEventId ?? "—"}</code></div>;})}</div> : <p className="muted">No lifecycle events.</p>}</section>
       </div>
     </>
   );
@@ -54,6 +58,8 @@ export default async function TradeDetailPage({ params, searchParams }: { params
   let workspace;
   try { [context, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
   let detail: TradeDetailPayload["data"] | null = null;
+  let delivery:FxDeliveryProgress|null=null;
+  let deliveryError='';
   let error = "";
   let sourceLabel = "LIVE API";
   try {
@@ -65,11 +71,18 @@ export default async function TradeDetailPage({ params, searchParams }: { params
       : "API UNAVAILABLE";
   }
   const snapshotName=detail&&bookedSwapFacts(detail.trade)?detail.trade.productEconomics!.terms.name:undefined;
+  if(detail?.trade.fxForwardEconomics&&detail.trade.lifecycleStatus==='BOOKED'){
+    try{delivery=(await getFxDelivery(tradeId,context)).data;}
+    catch{deliveryError='FX delivery evidence is unavailable or unsupported. Do not infer fulfilment from the booking or maturity date.';}
+  }
   return (
     <WorkspaceShell sourceLabel={sourceLabel} moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><main className="mvp-page">
       <header className="mvp-header"><div><p className="eyebrow">TRADE DETAIL</p><h1>{snapshotName ?? detail?.trade.instrumentName ?? "Booked execution"}</h1><p className="muted">Normalized parties, fees, source references and append-only lifecycle evidence.</p></div><span className={`synthetic-badge ${sourceLabel === "API UNAVAILABLE" ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
       <p className="back-line"><Link href={returnTo}>← Back to trade history</Link></p>
       {error ? <div role="alert" className="error-panel">{error}</div> : detail ? <DetailContent detail={detail} /> : <div className="error-panel">Booked trade not found.</div>}
+      {deliveryError?<p role="alert" className="error-panel">{deliveryError}</p>:null}
+      {delivery?<FxDeliveryControls key={`${context.tenantId}:${tradeId}:${delivery.expectedSequenceNo}`} progress={delivery} tenantId={context.tenantId} canWrite={workspace.membershipRole==='TENANT_ADMIN'&&workspace.moduleCodes.includes('TRADING')}/>:null}
+      {detail&&workspace.membershipRole==='TENANT_ADMIN'&&workspace.moduleCodes.includes('TRADING')?<RecordCorrectionActions key={`${context.tenantId}:${tradeId}`} detail={detail} tenantId={context.tenantId}/>:null}
     </main></WorkspaceShell>
   );
 }
