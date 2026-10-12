@@ -1,6 +1,6 @@
 # Instrument integrity review — 2026-10-05
 
-**Status:** Review complete; findings not yet remediated
+**Status:** Historical baseline review; subsequent remediation is linked below
 
 **Scope:** Instrument approval, required terms, tenant visibility and new-booking eligibility across the seven supported booking paths. Sequential review of commit `3856214`; valuation/P&L, amendments and post-booking lifecycle are excluded.
 

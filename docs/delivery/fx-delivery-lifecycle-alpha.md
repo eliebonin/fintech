@@ -1,5 +1,7 @@
 # FX delivery lifecycle alpha
 
+> Current scope ruling: contractual lifecycle is **parked/not signed off** after the user deferred settlement/accounting. This preserved implementation is not a resumed work item. See [F24](../product/features/trade-operations.md#f24-contractual-lifecycle) and the [scope ruling](booking-signoff-and-lifecycle-execution.md).
+
 **Date:** 2026-10-06. **Status:** Implemented; isolated browser acceptance is blocked by local browser policy and remains outstanding.
 
 ## Decision and boundaries

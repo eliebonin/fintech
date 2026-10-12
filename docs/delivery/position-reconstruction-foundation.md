@@ -1,5 +1,7 @@
 # Position reconstruction foundation — delivery report
 
+> Historical v2 checkpoint. The position foundation remains current, but the later [economic v3 delivery](economic-pnl-implementation-2026-10-09.md) adds governed FX, fund/bond inputs and economic components. Use [F36–F40 capability records](../product/features/valuation-and-pnl.md) for present scope, rather than the single-currency exclusions at the end of this dated report.
+
 Date: 2026-10-08. Implementation and targeted verification complete. **Operating schema activation complete**: on explicit user instruction, database `fortem_secm` was upgraded from `20261007_69` to `20261008_70 (head)`. Ownership columns, all four ownership/version constraints and both enabled lineage protection triggers were verified. Existing trade/result/batch counts remained 9/0/0; no financial calculation or publication was submitted.
 
 ## Delivered

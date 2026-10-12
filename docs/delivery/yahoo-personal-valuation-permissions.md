@@ -1,5 +1,7 @@
 # Yahoo personal valuation permissions — 2026-10-09
 
+> Historical activation checkpoint. Its single-currency and pending RAW-normalization limitations below were subsequently addressed by [economic P&L v3](economic-pnl-implementation-2026-10-09.md) and [derived Yahoo RAW prices](yahoo-market-data-alpha.md#derived-as-traded-raw-closes--2026-10-09). [Historical EUR/GBP eligibility](yahoo-eurgbp-valuation-setup-2026-10-09.md) was later extended for an explicit bounded scope. The original authorization, tests and activation dates remain evidence of this step.
+
 ## Delivered and activated
 
 The owner explicitly requested use of the existing Yahoo data for valuation in

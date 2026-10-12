@@ -1,5 +1,7 @@
 # P&L demo retirement and fresh start
 
+> Historical retirement checkpoint. The replacement engine was subsequently implemented; see [economic P&L delivery](economic-pnl-implementation-2026-10-09.md) and [current valuation capabilities](../product/features/valuation-and-pnl.md). The exclusions below describe the retirement task's scope.
+
 Date: 2026-10-07. Owner request: discard the old home-page P&L demonstration and start from the current codebase, with meaningful code comments. Status: retirement implemented; replacement calculation engine not implemented.
 
 ## Delivered boundary

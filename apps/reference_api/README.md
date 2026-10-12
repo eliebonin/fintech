@@ -6,6 +6,10 @@ the browser and Next.js client components never receive database credentials.
 
 ## Local run
 
+For current supported scope and remaining gaps, use the [feature register](../../docs/product/feature-register.md). This service now also exposes platform/tenant access, strategies, booking/corrections, market-data configuration and economic P&L/review. The endpoint examples below are selected historical descriptions, not the complete contract; generated OpenAPI owns exact current paths/schemas.
+
+Seeding/migration writes to the configured database; use it for explicit setup, not automatically on every restart. Tests must use the [owned disposable runner](../../docs/delivery/README.md#safe-postgresql-verification), never the operating DB.
+
 1. Start PostgreSQL and load the deterministic schema/fixtures:
 
    ```powershell
@@ -20,11 +24,12 @@ the browser and Next.js client components never receive database credentials.
    ```
 
 The interactive OpenAPI document is available at `http://127.0.0.1:8000/docs`.
-Every non-health request requires `X-Tenant-Id` and an active
-`X-User-Account-Id` membership in that tenant. These headers are supplied by
-the BFF from the authenticated session, not chosen by a browser query
-parameter. Direct header trust is a local boundary; production deployment
-must validate Auth0 claims and derive both values server-side.
+Tenant endpoints require validated tenant/user context and active module/action
+authority. Platform endpoints instead require platform authority; local context
+selection issues opaque sessions retaining real actor/selected subject. The BFF
+propagates validated context, not a browser-chosen query tenant. Direct header trust
+is a local testing boundary; production deployment must verify identity claims
+server-side. See [access delivery](../../docs/delivery/tenant-access-administration.md).
 
 ## Implemented endpoints
 

@@ -7,6 +7,8 @@
 
 ## Delivered
 
+Current capability/gap summary: [valuation and P&L records](../product/features/valuation-and-pnl.md). The activation/test statements below are dated evidence, not a claim that today's database/services were freshly inspected. Later Yahoo RAW evidence supersedes the earlier unqualified price-proof blocker; financial/browser sign-off remains separate.
+
 The [agreed foundation](economic-pnl-agreed-foundation-2026-10-09.md) and
 [implementation plan](../superpowers/plans/2026-10-09-economic-strategy-pnl.md)
 extend the existing position engine, resolver and immutable review storage, not
@@ -122,9 +124,12 @@ assessed evidence, supported redemption/derivative final-mark handlers, automati
 split position replay, FX triangulation, complete unbooked income coverage or an
 independent provider comparison. Mature bond holdings and unsupported option,
 future, swap, structured or FX-forward economics remain blocked rather than
-inventing a final price or settlement. Yahoo's retained chart split events do not
-establish a complete anchored conversion proof; actual Yahoo usability remains
-dependent on its governed source evidence and policy/rights compatibility.
+inventing a final price or settlement. Yahoo chart events alone were insufficient
+at the initial checkpoint. The subsequent [anchored derived-RAW implementation](yahoo-market-data-alpha.md#derived-as-traded-raw-closes--2026-10-09)
+retains full assessed split coverage, snapshot reference and source lineage under
+an explicit provider-method assumption. This enables qualified as-traded marks;
+it does not certify official exchange data or implement position quantity replay.
+Usability still requires compatible policy, current rights and calendar evidence.
 
 ## Local activation — owner approved, 2026-10-09
 

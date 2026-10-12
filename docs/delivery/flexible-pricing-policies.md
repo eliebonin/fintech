@@ -49,9 +49,11 @@ For example, one shared listed-close default can use UK 16:30 London, French
 require London 16:00. Early closes and known closed days come from the relevant
 calendar. Fund NAVs, FX and other non-listing subjects do not borrow this default.
 
-Tenant configuration still requires TENANT_ADMIN + MARKET_DATA. No data rights are
-granted by policy creation. Neither existing operating policies nor provider grants
-were edited as acceptance tests.
+Current configuration authority is the effective `MARKET_DATA_MANAGE` action
+within active MARKET_DATA access; tenant administrators and appropriately granted
+groups can manage it. The original slice used administrator-only authority.
+No data rights are granted by policy creation. Neither existing operating policies
+nor provider grants were edited as acceptance tests for that slice.
 
 ## Freshness and “latest available”
 

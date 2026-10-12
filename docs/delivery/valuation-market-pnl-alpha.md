@@ -1,5 +1,7 @@
 # Market-only valuation and P&L attribution alpha
 
+> Historical first-alpha checkpoint, superseded for current scope by [position reconstruction](position-reconstruction-foundation.md) and [economic v3 delivery](economic-pnl-implementation-2026-10-09.md). Use the [capability register](../product/feature-register.md) for implementation status; the single-currency TRADE-only restrictions below describe this dated slice.
+
 Date: 2026-10-07. Status: implemented, verified and activated locally for the bounded market-only scope.
 
 2026-10-08 superseding implementation: [position reconstruction foundation](position-reconstruction-foundation.md). New calculations use position-owned v2 attribution rather than historical trade-owned lines. Revision 70 was tested on disposable databases and subsequently applied to operating database `fortem_secm` on explicit user instruction; current revision and ownership/lineage protections were verified. No operating calculation/publication was submitted. The verification/activation records below describe the original v1 release, not a current full-suite or v2 browser-signoff claim.

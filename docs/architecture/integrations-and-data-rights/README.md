@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Content type:** Architecture index  
 **Owner:** Data operations and platform security team  
-**Last reviewed:** 2026-10-09
+**Last reviewed:** 2026-10-12
 
 Boundary payloads—FpML, FIX, ISO 20022, provider feeds, custododian messages—are retained with mapping and processing lineage, not copied into the internal schema. Provider/dataset/licence attribution and tenant entitlement govern use and visibility.
 
@@ -15,8 +15,9 @@ Historical selection and current access must each cover the exact same series,
 dataset, tenant and purpose; separately dated grants may satisfy these checks.
 Neither check substitutes for current activity rights. The bounded
 [Yahoo EUR/GBP valuation setup](../../delivery/yahoo-eurgbp-valuation-setup-2026-10-09.md)
-tests this distinction and current revocation. Live configuration activation is
-pending separate approval.
+tests this distinction and current revocation. Its delivery record includes the
+subsequent bounded local activation; this is not a universal grant for all stored
+Yahoo FX observations or commercial access. See [current licensing/data scope](../../product/features/market-data.md).
 
 Tenant-owned administrator, agent and custodian identifiers whose meaning
 depends on an accounting or valuation feed use the dedicated

@@ -12,6 +12,8 @@ Open `/market-data/sources` from **Data sources** in the workspace menu, or from
 
 ## Selection behaviour
 
+Authority clarification (2026-10-12): tenant editing now follows effective `MARKET_DATA_MANAGE` group/admin permissions, not the original administrator-only role wording above. Platform-default editing remains platform authority in an active governed workspace. Source grants and rankings are separate. See [current access](../product/features/access-and-strategies.md) and [source priority](../product/features/market-data.md#f28-provider-catalogue-and-priority).
+
 - Orders rank **datasets**, not provider names. Distinct products/markets can therefore have independent source preferences without inventing separate delivery-provider identities.
 - A saved CUSTOM order excludes every omitted dataset. An empty CUSTOM order explicitly excludes all sources for that instrument type; it does not restore legacy selection.
 - Tenant-owned sources are suggested first in an unsaved new draft. Suggestions are not activated until saved. Uploading data alone does not create a priority override or grant any rights.
@@ -42,7 +44,7 @@ The Next.js BFF derives tenant/actor from the existing signed session. Save retr
 
 ## Explicit boundaries / next work
 
-Flexible/strict policy defaults were subsequently implemented in [the policy update](flexible-pricing-policies.md), using resolver v5; this source-priority delivery originally used v4. Licensing proof/review workflows, package/grant management screens, generic tenant-series uploads, observation validation and broader purpose-specific rankings are not implemented here. The page reflects current recorded permissions; it does not create or repair missing rights. In the operating catalogue, the Yahoo personal-project dataset currently has **INTERNAL_REPORTING only**, without an active VALUATION entitlement. The page distinguishes this from a non-display activity warning. Valuation access requires a separate rights/entitlement investigation, not bypassing controls through ranking.
+Flexible/strict policy defaults were subsequently implemented in [the policy update](flexible-pricing-policies.md), using resolver v5; this source-priority delivery originally used v4. Licensing proof/review workflows, package/grant management screens, generic tenant-series uploads, observation validation and broader purpose-specific rankings are not implemented here. The page reflects current recorded permissions; it does not create or repair missing rights. At the original October 8 activation, Yahoo had **INTERNAL_REPORTING only**. The later [personal valuation permission activation](yahoo-personal-valuation-permissions.md) and [bounded historical EUR/GBP setup](yahoo-eurgbp-valuation-setup-2026-10-09.md) supersede that historical access state for their explicit tenant/dataset/series/date scope. Current eligibility is evaluated from recorded grants on each request; source ranking cannot add missing rights.
 
 Minor follow-up: catalogue/configuration reads currently make per-type/version queries. Batch these if the source/type universe becomes large. A saved preference does not guarantee that the dataset contains compatible prices for every instrument in its type. Independent visual/browser acceptance and broader production load/security review remain necessary before production signoff.
 

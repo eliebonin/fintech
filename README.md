@@ -1,5 +1,12 @@
 # fintech
 
+## Documentation and feature status
+
+Start at the [documentation home](docs/README.md). The maintained
+[desired-versus-implemented feature register](docs/product/feature-register.md)
+links every feature to its current status, evidence, shortcuts and remaining work.
+Historical plans are not current delivery claims.
+
 ## Local tenant access testing
 
 Open `/select-context` to choose platform administration or a tenant/user.

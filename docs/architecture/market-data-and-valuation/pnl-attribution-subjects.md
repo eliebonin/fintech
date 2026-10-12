@@ -1,17 +1,23 @@
 # P&L attribution subjects and cost ownership
 
-**Status:** Accepted design direction; TRADE market-only alpha implemented, broader ownership deferred
+**Status:** Current POSITION ownership implemented; broader typed ownership remains design direction
 **Content type:** Architecture decision  
 **Owner:** Trading, valuation, and operations architecture  
-**Last reviewed:** 2026-10-07
+**Last reviewed:** 2026-10-12
 
-## Decision
+## Current implementation — 2026-10-12
 
-Trade-level attribution is the primary and most common case, but `trade_id` must not be the only possible P&L owner. The future P&L validation and attribution domain will use an **attribution subject**: the economic object to which a monetary P&L item or cost belongs.
+Current economic P&L is owned by a compatible **POSITION** bucket, with original trades/events retained as lineage. Historical first-alpha records remain TRADE-owned and readable. A trade is therefore not the sole attribution owner. The broader design direction below describes additional economic subjects; it is not an implemented generic polymorphic ownership API.
+
+## Original direction and rationale
+
+The October 7 direction treated trade-level attribution as the primary/common case but explicitly rejected `trade_id` as the only possible owner. Revision 70 superseded the first-alpha ownership choice with compatible positions while preserving original execution lineage. The broader **attribution subject** concept remains the economic object to which P&L or a cost belongs.
 
 This prevents fake cash or fee trades from being created merely to satisfy a trade-only attribution schema. It also preserves the distinction between an execution, a holding, a cash state, and a vehicle-level operating cost.
 
 ## Subject types and practical rules
+
+The table is the broader target model. Today the database enforces mutually exclusive trade/position ownership, an actual valued reference subject and immutable trade/event lineage. CASH_BALANCE, direct STRATEGY/FUND/FUND_SHARE_CLASS cost ownership and allocation workflows remain undelivered. Strategy scope on a position result is not the same as strategy-owned attribution.
 
 | Subject type | Use when | Examples |
 | --- | --- | --- |
@@ -61,10 +67,10 @@ The existing Fortem-core P&L attribution package is the source of operating prin
 
 ## Deferred implementation
 
-The [first delivery](../../delivery/valuation-market-pnl-alpha.md) implements TRADE attribution with a real `trd.trade` FK, tenant/strategy scope triggers, frozen inputs, exact price/FX/cross components and review/publication evidence in the existing `nav` schema. A dedicated `pnl` schema is not necessary for this bounded release. It does not create unvalidated generic subject IDs. Broader typed ownership remains the direction above, not an implemented capability.
+The [first delivery](../../delivery/valuation-market-pnl-alpha.md) implemented TRADE ownership; [revision 70/position reconstruction](../../delivery/position-reconstruction-foundation.md) subsequently introduced position-owned financial results and immutable ledger lineage. [Economic v3](../../delivery/economic-pnl-implementation-2026-10-09.md) adds price/FX, assessed accrual/flows and reviewed component amendments. All use the existing `nav` schema. General cash/vehicle-level allocation remains future work, not a second implemented subject engine.
 
 - broader attribution subject links and their type-specific FK checks;
 - calculation-method catalogue, including price/FX, model-mark, sensitivity, and cashflow methods;
 - persisted selection of measurement semantics and valuation methodology per run;
 - allocation policies for costs which arrive strategy-level but need downstream fund/share-class allocation;
-- income/cost/allocation and approved manual-adjustment review workflows beyond the implemented market-only review/publication API/UI.
+- broader cost allocation and cash/vehicle-owned workflows; bounded position income/cost components and staged approved amendments are already implemented.

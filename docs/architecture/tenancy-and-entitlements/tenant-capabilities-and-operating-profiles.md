@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Content type:** Architecture decision and implementation record  
 **Owner:** Platform security and architecture team  
-**Last reviewed:** 2026-09-11
+**Last reviewed:** 2026-10-12
 
 ## Decision
 
@@ -62,11 +62,13 @@ This division makes it possible to sell or enable UCITS controls for a fund mana
 
 ## Deferred scope
 
-- API middleware and UI module navigation will consume the resolver in a later slice.
+This section originally recorded the September foundation. The later [tenant administration delivery](../../delivery/tenant-access-administration.md) implements request-time action/module enforcement, profile visibility, delegated groups, platform module management and local context switching. These are no longer deferred as local-alpha features. Production identity, commercial provisioning/billing, quotas and periodic access reviews remain separate; see [F01–F06](../../product/features/access-and-strategies.md).
+
+- API middleware and permission-aware UI navigation consume the resolver in the current local alpha; production identity and deployment isolation still require a separate implementation.
 - Commercial contract, billing, seat limits, quotas and metering are not yet modelled.
-- The final user-role/permission model and delegated-administration workflow remain separate decisions.
+- Local user/group action permissions and tenant administration are implemented; federated identity, group synchronization and periodic access review remain outstanding.
 - Technical release flags will remain separate from entitlements; no flag provider is introduced here.
-- Entitlement change events, approval UI and notification/audit reporting need a later operational workflow.
+- Platform module changes and tenant administration retain audit events. Commercial approval/provisioning, notifications and full audit-reporting workflows remain outstanding.
 - Dataset licensing continues to be resolved independently; possessing `MARKET_DATA` does not grant any vendor dataset.
 
 ## Implementation and verification

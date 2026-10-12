@@ -1,5 +1,7 @@
 # Historical booking and record corrections alpha
 
+> Historical October 6 delivery checkpoint. Later [trade acceptance](trade-side-acceptance-2026-10-06.md) supplies browser evidence, and [position reconstruction](position-reconstruction-foundation.md) supersedes the blanket correction/P&L refusal described below. Current [F22/F23 scope](../product/features/trade-operations.md#f22-record-corrections) distinguishes removals effective by opening from unsupported in-period removals.
+
 **Status:** Implemented and automated-regression verified alpha; browser acceptance incomplete.  
 **Scope:** Ledger recording, not order execution, valuation, settlement or position management.  
 **Reviewed:** 2026-10-06.

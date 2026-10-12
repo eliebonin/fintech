@@ -3,9 +3,18 @@
 **Status:** Accepted  
 **Content type:** Documentation home  
 **Owner:** Architecture and platform team  
-**Last reviewed:** 2026-09-10
+**Last reviewed:** 2026-10-12
 
 This is the maintained entry point for the project. Historical material is preserved in the [pre-reorganisation archive](archive/2026-09-10-pre-reorganisation/README.md).
+
+## Start here
+
+- **What do we want, what works, and what is missing?** [Feature register](product/feature-register.md): 50 stable capability IDs, status, trade-offs, weaknesses and remaining work. Its [implementation and test map](product/feature-implementation-map.md) links each ID to concrete backend symbols, frontend surfaces and focused tests (or records their absence).
+- **How is the current implementation organised?** [System overview](architecture/system-overview.md) and the domain indexes below. These describe the alpha, not a deployed production target.
+- **Which document should I trust?** [Documentation map and precedence](governance/documentation-map.md).
+- **What changed in the reconciliation?** [October 12 documentation review](delivery/quality-reviews/2026-10-12-documentation-reconciliation.md).
+
+No “implemented” label implies commercial data rights, universal instrument support, complete fund NAV, latest browser acceptance or production readiness.
 
 ## Reading paths
 

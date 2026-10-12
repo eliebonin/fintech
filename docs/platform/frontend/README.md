@@ -1,34 +1,28 @@
 # Frontend
 
-**Status:** Draft  
+**Status:** Current alpha reference  
 **Content type:** Platform index  
-**Owner:** Frontend team  
-**Last reviewed:** 2026-10-01
+**Owner:** Frontend engineering  
+**Last reviewed:** 2026-10-12
 
-The current UI workstream remains at [ui/README.md](../../../ui/README.md). Its [decisions](../../../ui/decisions/0001-mvp-ui-boundary.md), [screen specifications](../../../ui/screen-specs/README.md), and [workflows](../../../ui/workflows/README.md) remain detailed records. The [Operations Console](../../../apps/ops-console/README.md) is the runtime implementation entry point.
+The runtime is Next.js App Router/React in `apps/ops-console`. Server/BFF code calls the Python API; browsers never access PostgreSQL or authoritative financial calculations. Native workspace CSS and focused client forms coexist with the existing MUI dependency; do not assume the old mock-up layout describes every current page.
 
-Grouped family and expiry creation, crypto currency reuse, symbol previews and the
-creation-only physical-delivery boundary are documented in
-[Futures creation and contract conventions alpha](../../delivery/futures-creation-and-contract-conventions-alpha.md).
+## Runtime journeys
 
-The live tenant-scoped trade list and details flow is documented in
-[Trade history alpha](../../delivery/trade-history-alpha.md), including
-query semantics, paging, verification scope, and deferred functionality.
+| Journey | Routes | Current capability/evidence |
+| --- | --- | --- |
+| Context and control plane | `/select-context`, `/platform/tenants` | [Access capabilities](../../product/features/access-and-strategies.md) |
+| Tenant profile/access | `/tenant-profile` and access management | [Users/groups/module scope](../../delivery/tenant-access-administration.md) |
+| Strategies | `/strategies` | [Strategy register](../../delivery/tenant-workspace-strategy-alpha.md) |
+| References | `/instruments`, type creation, detail/listing, `/operations` | [Instrument management](../../product/features/instrument-management.md) |
+| Booking/history | `/trades/new`, `/trades`, trade detail | [Booking types](../../product/features/product-booking.md), [operations](../../product/features/trade-operations.md) |
+| Market data | `/market-data`, `/market-data/explorer`, coverage, sources, policies | [Data capabilities](../../product/features/market-data.md) |
+| Valuation/review | `/valuation` | [Economic P&L/review](../../product/features/valuation-and-pnl.md) |
 
-Tenant-managed trade fields, party eligibility and catalogue lifecycle are
-documented in [Governed trade configuration alpha](../../delivery/governed-trade-configuration-alpha.md).
-The list-first administration UI, draft-preserving catalogue navigation and
-source-backed design choices are documented in
-[Trade configuration UI refresh](../../delivery/trade-configuration-ui-alpha.md).
+Module/group permissions govern actions; backend authority remains decisive. Frozen submissions and stale-context checks preserve retry safety. Loading/error recovery and server access errors must not masquerade as empty data or approved results. The retired home P&L demo is not a supported calculator.
 
-Booking-time required/optional property entry, governed value search and tag
-selection are documented in
-[Trade booking property section refresh](../../delivery/trade-booking-properties-ui-alpha.md).
+## Acceptance boundary
 
-The dedicated option ticket, governed creation/listing workflow and immutable
-premium history are documented in [Listed option booking alpha](../../delivery/listed-option-booking-alpha.md),
-with [dated acceptance evidence](../../delivery/quality-reviews/2026-10-01-option-booking-alpha.md).
+Earlier isolated trade-side browser journeys are recorded separately from the latest access/P&L changes. Component/HTTP tests, typechecks and a production build are not visual/keyboard/mobile/screen-reader acceptance. See [frontend remaining acceptance](../../product/features/platform-quality.md#f49-frontend-acceptance), [style review](../../delivery/frontend-style-review-2026-10-08.md) and [trade walkthrough evidence](../../delivery/trade-side-acceptance-2026-10-06.md).
 
-Structured-security and index-futures tickets, convention configuration and futures
-creation reuse the dedicated booking and Operations workflows. Scope and evidence:
-[Structured security and futures booking alpha](../../delivery/structured-security-and-futures-booking-alpha.md).
+[Operations Console run guide](../../../apps/ops-console/README.md) describes runtime entry points. The [ui workstream](../../../ui/README.md), screen specs and decisions are retained design history; use the [feature register](../../product/feature-register.md) for actual implementation status. Any explicit synthetic fallback is local and route-specific, not a universal substitute for authorized live data.

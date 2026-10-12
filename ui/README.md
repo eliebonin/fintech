@@ -38,6 +38,8 @@ The repository-level layout is recorded in [Decision 0003: modular monorepo foun
 
 ## Current status
 
+This section retains the original slice description. Use the [current route/scope map](../docs/platform/frontend/README.md) and [feature register](../docs/product/feature-register.md) for newer access, product booking, market-data and economic-P&L paths. Local synthetic fallback is route-specific, not universal live-workspace or financial-result behaviour.
+
 The first implementation slice is live under `apps/ops-console`: Next.js App
 Router, React 19, and MUI 9. It implements search-to-detail and work-queue
 views through BFF routes backed by the Python reference API. Responses expose

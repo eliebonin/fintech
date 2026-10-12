@@ -5,9 +5,13 @@ Yahoo personal-project ingestion and layered-rights sources checked on 6 October
 **Status:** Draft  
 **Content type:** Research  
 **Owner:** Product and architecture team  
-**Last reviewed:** 2026-10-07
+**Last reviewed:** 2026-10-12
 
 Primary research records: [external evidence register](../../security-master-notes/24-external-evidence-and-research.md), [range accrual and supertracker research](../../security-master-notes/28-range-accrual-and-supertracker-research.md), [Phoenix research/UI scope](../superpowers/specs/2026-09-10-phoenix-research-and-ui-scope.md), [market evidence and go-to-market](../../fintech-moduls/06-market-evidence-and-go-to-market.md), and [competitor technical operating models](../../fintech-moduls/07-competitor-technical-operating-models.md).
+
+## Capability documentation reconciliation — 2026-10-12
+
+[Diátaxis](https://diataxis.fr/start-here/), [arc42 risk/debt](https://docs.arc42.org/section-11/) and [arc42 decisions](https://docs.arc42.org/section-9/) were opened/read for the documentation review. They informed separation of current reference/explanation from historical evidence/run instructions, explicit limitations and preserved decision rationale. The stable feature IDs, statuses and retained folder layout are project choices, not universal mandated standards. Applicability: engineering documentation for this local alpha; no financial/regulatory compliance claim. See [review](../delivery/quality-reviews/2026-10-12-documentation-reconciliation.md), [map](../governance/documentation-map.md) and [decision](../governance/decisions/2026-10-12-capability-documentation.md).
 
 External sources cited by these records must be rechecked when a decision depends on time-sensitive law, licensing, vendor policy, or market practice.
 

@@ -3,9 +3,11 @@
 **Status:** Accepted  
 **Content type:** Architecture decision and implementation record  
 **Owner:** Market-data and valuation team  
-**Last reviewed:** 2026-09-11
+**Last reviewed:** 2026-10-12
 
 ## Decision
+
+Current terminology clarification: [closing-price consolidation](../../delivery/closing-price-consolidation.md) uses one CLOSE family with independent closing-method/official requirement. OFFICIAL_CLOSE below is retained historical vocabulary, not a requirement to maintain a second parallel closing-price feed. Default analytical movements in this document are not monetary P&L formulas; current valuation records economic price/unit/FX methodology separately.
 
 An immutable market-data observation stores a number; its economic meaning belongs to the governed series definition. `md.series_measure_definition` is therefore referenced by `md.market_data_series` through the nullable transitional foreign key `measure_definition_id`.
 

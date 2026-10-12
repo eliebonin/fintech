@@ -2,9 +2,11 @@
 
 **Status:** Current alpha capability reference
 
+**Content type:** Capability reference
+
 **Owner:** Engineering delivery team
 
-**Last reviewed:** 2026-10-05
+**Last reviewed:** 2026-10-12
 
 Creation, listing and booking are separate capabilities. An approved instrument is not automatically bookable. This matrix supersedes scattered historical scope summaries for navigation; product delivery records still supply detailed evidence and restrictions.
 
@@ -22,7 +24,7 @@ Common booking controls apply to all seven paths: current active writer authoriz
 
 Booking searches now share a ready-first view, Show unavailable, backend refusal reasons and inspection links. Cash has read-only search/detail eligibility using the same validator as its writer. This is advisory instrument readiness, not a promise of execution eligibility; raw pagination and selected-date checks remain bounded by each product's existing support. See [readiness delivery and acceptance](booking-readiness-alpha.md).
 
-After booking, live tenant-scoped trade history/detail displays saved economics and annotations with append-only BOOKED evidence. Supported alpha records can now be cancelled or atomically replaced as record corrections, with mandatory reason, concurrency/replay controls and retained lineage. Historical new writes use UTC dates and current governance. See [historical booking and record corrections](historical-booking-and-record-corrections-alpha.md). OPEN/CLOSE is intent, not inventory or lot validation. No automatic settlement, exercise, expiry, redemption, reset, coupon/dividend or cash posting is implied. Valuation/P&L remains separate; the alpha P&L refuses affected correction history until replay is implemented.
+After booking, live tenant-scoped trade history/detail displays saved economics and annotations with append-only BOOKED evidence. Supported alpha records can be cancelled or atomically replaced as record corrections, with mandatory reason, concurrency/replay controls and retained lineage. Unproved legacy records have cancel-only recovery. Historical writes use UTC dates, a built-in optional effective valuation date and current governance. See [trade operations](../product/features/trade-operations.md). OPEN/CLOSE is intent, not inventory/lot validation. No automatic settlement, exercise, expiry, redemption or income/cash posting is implied. A separate assessed economic-flow/accrual workflow now exists; it does not make every booked product valuation-ready. Current position reconstruction handles supported history conservatively; in-period correction economics and unsupported transformations remain blocking. See [current valuation scope](../product/features/valuation-and-pnl.md).
 
 ## Product references
 

@@ -35,6 +35,8 @@ For the forthcoming source-priority implementation, a tenant's **designated vali
 
 ## Deferred
 
+Current-status clarification (2026-10-12): the following list is the original checkpoint. [Source priorities/catalogue](market-data-sources-ui.md) and [strict/flexible rules](flexible-pricing-policies.md) were subsequently implemented. General tenant uploads, complete licence administration, periodic entitlement review and full price-validation sign-off remain incomplete; see [F27–F35](../product/features/market-data.md).
+
 - Platform default and tenant source-priority lists, including tenant-supplied defaults.
 - Strict/flexible policy mode and comprehensive pre-valuation price-validation workflow.
 - Coverage/licensing management UI and package labels in source pickers.

@@ -1,47 +1,48 @@
 # Market data and valuation
 
-**Status:** Accepted  
+**Status:** Accepted current alpha boundary  
 **Content type:** Architecture index  
 **Owner:** Market-data and valuation team  
-**Last reviewed:** 2026-10-09
+**Last reviewed:** 2026-10-12
 
-`market_data_series` identifies one economically precise observable stream; observations are immutable and selected under an explicit valuation context. Local cut-offs, calendars, source vintage, corporate-action basis, and entitlement must be reproducible in a valuation snapshot.
+Start with [market-data capabilities](../../product/features/market-data.md) and [valuation/P&L capabilities](../../product/features/valuation-and-pnl.md). These distinguish code delivery from source/financial/visual acceptance. Older single-currency TRADE-alpha checkpoints are history, not current supported scope.
 
-Primary detail: [marks and trades](../../../security-master-notes/03-market-data-marks-and-trades.md), [dates/schedules](../../../security-master-notes/05-dates-and-schedules.md), [indices and FX](../../../security-master-notes/09-indices-fx-forwards-and-market-data-architecture.md), [corporate actions](../../../security-master-notes/10-corporate-actions-and-adjusted-market-data.md), [tenant Soft NAV](../../../security-master-notes/15-tenant-overlays-client-ingestion-soft-nav.md), [pricing-date resolution](../../../security-master-notes/17-soft-nav-pricing-date-resolution.md), and [coverage/provenance](../../../security-master-notes/21-market-data-coverage-and-provenance.md).
+## Implemented data path
 
-Current decision: [series measurement semantics](series-measurement-semantics.md).
+Provider adapters and operator entry points acquire retained source payloads outside API request handling. Provider-neutral rights/publication live in `market_data`; the API inspects stored series and evidence. Jobs/attempts retain retries, partial/failure outcomes and recovery evidence. No scalable scheduled worker service is claimed.
 
-Local activation update (2026-10-09): owner-approved backup, migrations through
-81 and API/UI restart completed. Browser and financial acceptance remain separate;
-this supersedes pending local activation wording in the implementation checkpoint.
+Provider, product, dataset and coverage package are distinct. Layered activity rights, tenant/purpose grants and exact series coverage govern use/disclosure. Platform/tenant source priority ranks eligible datasets only. Personal Yahoo declarations/research exceptions do not establish commercial rights. General tenant upload and periodic entitlement recertification are not delivered workflows.
 
-Current code scope: [economic P&L implementation](../../delivery/economic-pnl-implementation-2026-10-09.md) extends the original single-currency alpha below with governed cross-currency attribution, canonical fund NAVs, clean bond marks with assessed daily interest, and explicitly recorded economic flows. Original source prices, booked trades and published financial versions remain immutable. Amendments create reviewed replacement candidates. This is not full NAV or settlement/accounting. Operating activation and browser sign-off remain pending; unsupported product economics fail closed.
+Source series retain price basis. CLOSE is the common closing-price family; exchange-official designation is an optional separate requirement. RAW/as-traded compatibility is an economic requirement, not arbitrary relabelling. Yahoo derived RAW closes append split-only reconstruction with anchored source/action proof, leaving split-adjusted and vendor-adjusted values intact. This does not replay position quantities or generate dividend income.
 
-[P&L demo retirement](../../delivery/pnl-demo-retirement-and-fresh-start.md) removes the old repository/browser calculator and synthetic portfolio pages; old API calls still return410. The replacement [market-only attribution alpha](../../delivery/valuation-market-pnl-alpha.md) adds a dedicated `valuation` package and `/v1/valuation` endpoints. `/valuation` now provides calculation attempts, frozen input inspection, staging and independent review/publication. It requires both VALUATION and MARKET_DATA modules. The first scope is single-currency listed equities/ETFs; it is not full NAV, total-return P&L, accounting or a substitute for missing market-data rights.
+## Policies, calendars and dates
 
-[Tenant fund/strategy calendars](../../delivery/tenant-fund-and-strategy-calendars-alpha.md) reuse the calendar domain with immutable tenant schedules and recorded-time version-pinned assignments. Valuation, dealing and settlement purposes stay separate. NAV_DATE pricing uses explicit fund valuation days; exchange calendars continue to govern underlying market prices. UNKNOWN coverage is not silently treated as an open day.
+STRICT uses explicit rules. FLEXIBLE uses explicit rules first, configured defaults only when none match. A matched rule with missing/ineligible data fails; priority cannot substitute a different fixing or bypass rights/basis/freshness. Session close follows the relevant exchange schedule; FX cuts and fund NAV calendars are independent. Policy valuation context is not one universal closing hour.
 
-[Composite pricing policies](../../delivery/composite-pricing-policy-alpha.md) extend input selection with per-listing session closes, separate named fixings and immutable policy versions under one information cutoff. Configuration and preview are implemented; this does not activate data rights or calculate valuation/P&L. Legacy rules/snapshots retain their original semantics.
+Tenant fund/strategy calendars have separately purposed, published schedules, composite rules and evidenced dated exceptions. Closed, open and UNKNOWN are different. Recorded-time pinned assignments preserve history. Fund NAV economically belonging to T may only be available on T+1; requested/used NAV date, lag and publication/information cutoff remain explicit.
 
-Daily equity ingestion/inspection is implemented in the [Yahoo personal-project alpha](../../delivery/yahoo-market-data-alpha.md). Close and Adj Close have separate adjustment bases; bars are not official prices or certified session-close timestamps. Valuation/P&L and authoritative completeness calendars remain outside this delivery.
+The explorer exposes stored data, lineage and coverage. Eligibility diagnostics are not a complete independently reviewed pre-valuation price-validation workflow. Timed Yahoo research samples are not benchmark fixings, and missing historical bars remain missing.
 
-Yahoo source corporate actions were imported on 2026-10-09: 79 split events and
-8,073 dividend events, with original-payload provenance and five quarantined source
-inconsistencies. They are unreviewed ANNOUNCED reference facts, not cash flows or
-automatic position replay. [Import and evidence assessment](../../delivery/yahoo-market-data-alpha.md#corporate-action-import-and-evidence-assessment--2026-10-09)
-records why this does not yet establish a complete split-only normalization proof.
+## Current valuation path
 
-The subsequent [derived as-traded RAW close implementation](../../delivery/yahoo-market-data-alpha.md#derived-as-traded-raw-closes--2026-10-09)
-assesses full split-event coverage through each Yahoo snapshot's regular-market
-reference date and appends RAW series, retaining source prices and normalization
-lineage. Its explicit provider-method assumption replaces the earlier unspecified
-certification requirement. Quantity replay, dividend recognition and commercial
-source qualification remain separate.
+`positions` reads tenant/strategy ledger history in keyset chunks without a total 1,000-trade cap, then reconstructs compatible opening/closing positions and period executions. Only nonzero boundaries need marks; execution-only round trips retain P&L. Historical facts and financial ownership lineage remain distinct.
 
-The owner-approved [five-year backfill](../../delivery/yahoo-five-year-backfill.md) uses a separately labelled PERSONAL_RESEARCH_EXCEPTION, never CONTRACT evidence, on the local personal Yahoo dataset. Full-universe coverage and known short/missing histories are recorded with execution results.
+`valuation` uses `economic-position-pnl-v3`: supported equity/ETF, native fund NAV and clean-bond economics; governed direct/explicit inverse FX; assessed daily bond interest and explicitly booked economic flows. Price/FX/cross, daily accrual and signed income/cost components reconcile to market/gross/net totals. Cash stock, derivative/final-maturity valuation, full NAV and automatic corporate-action quantity replay remain excluded. Unsupported transformations fail closed rather than inventing prices or exposure.
 
-The [ingestion module boundary](../../delivery/market-data-ingestion-boundary.md) separates provider adapters, daily publication/storage and shared rights from the reference API. Operator entry points live in `apps/market_data_ingestor`; acquisition is not part of API request handling. The existing repository/database remain shared, with import-boundary regression tests.
+Calculation stages immutable candidates. Source corrections require recalculation; controlled component amendments produce replacement candidates. Independent approval/publication checks real operator ancestry, current disclosure rights, selected versions, totals and stale inputs/populations. Financial input and review history are not overwritten. Operational logs survive failed calculation; readable diagnostics and JSON coexist.
 
-Future attribution direction: [P&L attribution subjects and cost ownership](pnl-attribution-subjects.md).
+## Current evidence and remaining work
 
-[Ingestion hardening](../../delivery/md-ingestion-hardening.md) adds durable operational evidence, explicit partial outcomes and historical-continuity reviews. Read-only coverage reconciliation uses versioned exchange schedules, without claiming authoritative calendar certification or rewriting prices.
+- [Economic delivery and latest operator-authority fixes](../../delivery/economic-pnl-implementation-2026-10-09.md).
+- [Position foundation and scaling limits](../../delivery/position-reconstruction-foundation.md).
+- [Flexible policies](../../delivery/flexible-pricing-policies.md), [tenant calendars](../../delivery/tenant-fund-and-strategy-calendars-alpha.md).
+- [Derived RAW Yahoo activation](../../delivery/yahoo-market-data-alpha.md#derived-as-traded-raw-closes--2026-10-09), [GBP FX coverage/sampling limits](../../delivery/yahoo-gbp-fx-backfill.md).
+- [Scoped licences](../../delivery/scoped-dataset-entitlements.md), [source catalogue/ranking](../../delivery/market-data-sources-ui.md).
+- [Attribution ownership: current position owner versus broader future subjects](pnl-attribution-subjects.md).
+- [Merge verification scope](../../delivery/tenant-access-administration-progress.md#completed-remediation-verification).
+
+Local migrations through 83 and prior app activation are recorded in delivery history; this documentation review did not query current live state, migrate or restart. Latest browser/financial acceptance, complete price validation, production scalability and commercial source qualification remain outstanding.
+
+## Historical foundations
+
+[Series measurement semantics](series-measurement-semantics.md), [market data/trade concepts](../../../security-master-notes/03-market-data-marks-and-trades.md), [corporate-action discussion](../../../security-master-notes/10-corporate-actions-and-adjusted-market-data.md), [indicative Soft-NAV](../../../security-master-notes/17-soft-nav-pricing-date-resolution.md). These explain intent; they do not expand current engine support.
