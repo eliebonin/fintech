@@ -91,19 +91,22 @@ def test_new_policy_rejects_foreign_strategy_and_incomplete_fixing():
 
 
 def test_read_only_member_can_inspect_but_not_create():
-    membership=m.tenant_user_account
-    where=(membership.c.tenant_id==DEMO_IDS['tenant']) & (membership.c.user_account_id==DEMO_IDS['demo_user_account'])
+    from security_master_schema import access_management as am
     engine=get_engine()
     with engine.begin() as c:
-        originals=c.execute(select(membership.c.tenant_user_account_id,membership.c.membership_role).where(where)).all()
-        c.execute(membership.update().where(where).values(membership_role='READ_ONLY'))
-    try:
-        assert call('GET','/v1/market-data/valuation-policy-options').json()['canManage'] is False
-        assert call('POST','/v1/market-data/valuation-policies',policy_payload()).status_code==403
-    finally:
-        with engine.begin() as c:
-            for record_id,role in originals:
-                c.execute(membership.update().where(membership.c.tenant_user_account_id==record_id).values(membership_role=role))
+        user=am.add_user(c,DEMO_IDS['tenant'],DEMO_IDS['demo_user_account'],name='Policy reader',role='MEMBER')
+        group=am.save_group(c,DEMO_IDS['tenant'],DEMO_IDS['demo_user_account'],code='POLICY_READ_'+uuid4().hex,
+            name='Policy readers',actions=['MARKET_DATA_READ'])
+        am.set_user_groups(c,DEMO_IDS['tenant'],DEMO_IDS['demo_user_account'],user,[group])
+    async def read_only_request():
+        async with AsyncClient(transport=ASGITransport(app=create_app(engine=engine)),base_url='http://test') as client:
+            headers={'X-Tenant-Id':str(DEMO_IDS['tenant']),'X-User-Account-Id':str(user)}
+            options=await client.get('/v1/market-data/valuation-policy-options',headers=headers)
+            assert options.status_code==200,options.text
+            assert options.json()['canManage'] is False
+            denied=await client.post('/v1/market-data/valuation-policies',json=policy_payload(),headers=headers)
+            assert denied.status_code==403
+    asyncio.run(read_only_request())
 
 
 def test_missing_module_is_forbidden_and_unknown_policy_is_not_disclosed():

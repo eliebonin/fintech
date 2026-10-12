@@ -20,6 +20,8 @@ export type {
   IndexKindPayload,
   IndexProposalPayload,
   InstrumentSearchPayload,
+  InstrumentCatalogueItem,
+  InstrumentCataloguePayload,
   MarketVenue,
   MarketVenuePayload,
   OrganisationOption,

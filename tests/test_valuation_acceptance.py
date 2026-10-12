@@ -41,9 +41,17 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
             reportingCurrencyId=str(request.reporting_currency_id),openingCutoff=request.opening_cutoff.isoformat(),
             closingCutoff=request.closing_cutoff.isoformat(),informationCutoff=request.information_cutoff.isoformat())
         app=create_app(engine=engine);key=str(uuid4())
+        from security_master_schema.access_management import add_user
+        with engine.begin() as c:
+            reviewer=add_user(c,ids['tenant'],ids['demo_user_account'],name='Independent reviewer',role='TENANT_ADMIN')
         headers={'X-Tenant-Id':str(ids['tenant']),'X-User-Account-Id':str(ids['demo_user_account']),'Idempotency-Key':key}
         async def acceptance():
             async with AsyncClient(transport=ASGITransport(app=app),base_url='http://test') as client:
+                operator_headers={'X-User-Account-Id':str(ids['platform_admin_user_account'])}
+                session=await client.post('/v1/local-session',headers=operator_headers,
+                    json={'tenantId':str(ids['tenant']),'userId':str(ids['demo_user_account'])})
+                assert session.status_code==201,session.text
+                headers['X-Local-Access-Token']=session.json()['token']
                 first,concurrent=await asyncio.gather(*[
                     client.post('/v1/valuation/attempts',json=payload,headers=headers) for _ in range(2)])
                 if first.status_code==409:
@@ -72,7 +80,33 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
                 explanation=await client.post(path+'/explanations',json={'comment':'Synthetic input bridge reviewed'},headers=headers)
                 assert explanation.status_code==200,explanation.text
                 denied=await client.post(path+'/publish',json={'comment':'Self-review is forbidden'},headers=headers)
-                assert denied.status_code==409 and 'independent' in denied.text
+                assert denied.status_code==403 and 'independent' in denied.text.lower()
+                change=await client.post(path+'/amendments',headers=headers|{'Idempotency-Key':str(uuid4())},json={
+                    'attributionId':batch['items'][0]['attribution_id'],'component':'ADJUSTMENT','amount':'-10',
+                    'reason':'Synthetic adjustment','sourceReference':'OPS'})
+                assert change.status_code==201,change.text
+                amendment=change.json()['requestId']
+                switched=await client.post('/v1/local-session',headers=operator_headers|{'X-Local-Access-Token':headers['X-Local-Access-Token']},
+                    json={'tenantId':str(ids['tenant']),'userId':str(reviewer)})
+                assert switched.status_code==201,switched.text
+                switched_headers=headers|{'X-User-Account-Id':str(reviewer),'X-Local-Access-Token':switched.json()['token']}
+                decision='/v1/valuation/amendments/'+amendment+'/approve'
+                denied=await client.post(decision,headers=switched_headers,json={'comment':'Same operator, different selected user'})
+                assert denied.status_code==403,denied.text
+                independent={'X-Tenant-Id':str(ids['tenant']),'X-User-Account-Id':str(reviewer)}
+                approved=await client.post(decision,headers=independent,json={'comment':'Independent review of adjustment'})
+                assert approved.status_code==200,approved.text
+                revised=approved.json()['batch']['batch_id']
+                revised_path='/v1/valuation/batches/'+revised+'/publish'
+                denied=await client.post(revised_path,headers=switched_headers,json={'comment':'Original operator tries amended candidate'})
+                assert denied.status_code==403 and 'real operator' in denied.text,denied.text
+                published=await client.post(revised_path,headers=independent,json={'comment':'Independent publication'})
+                assert published.status_code==200,published.text
+                assert published.json()['status']=='PUBLISHED' and published.json()['summary']['netPnl']=='99.877'
+                restored=await client.post('/v1/local-session',headers=operator_headers|{'X-Local-Access-Token':switched.json()['token']},
+                    json={'tenantId':str(ids['tenant']),'userId':str(ids['demo_user_account'])})
+                assert restored.status_code==201,restored.text
+                headers['X-Local-Access-Token']=restored.json()['token']
                 # Calculation authority is not perpetual display authority.
                 with engine.begin() as c:
                     c.execute(m.dataset_access_profile.insert().values(dataset_id=ids['dataset'],

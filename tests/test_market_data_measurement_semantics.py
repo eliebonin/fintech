@@ -1,5 +1,6 @@
 """Focused tests for governed market-data observation meaning."""
 
+import os
 from sqlalchemy import create_engine, select
 
 from security_master_schema import models as m
@@ -7,7 +8,7 @@ from security_master_schema.demo_data import DEMO_IDS, create_schema, load_demo_
 from security_master_schema.seed_data import seed_defaults
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_seeded_measure_definitions_distinguish_return_and_change_conventions() -> None:

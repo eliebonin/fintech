@@ -16,7 +16,19 @@ function find(node:any,predicate:(n:any)=>boolean):any{if(!node||typeof node!=='
 const button=(tree:any,label:string)=>find(tree,n=>n.type==='button'&&n.props.children===label);
 function render(){h.cursor=0;return RecordCorrectionActions({detail,tenantId:'tenant'});}
 function reviewed(){button(render(),'Cancel erroneous booking').props.onClick();find(render(),n=>n.type==='textarea').props.onChange({target:{value:'Wrong security'}});find(render(),n=>n.type==='form').props.onSubmit({preventDefault(){}});return render();}
+
+it('does not offer replacement to cancellation-only operators',()=>{
+ const tree=RecordCorrectionActions({detail,tenantId:'tenant',canReplace:false});
+ expect(find(tree,n=>n.type==='a'&&n.props.children==='Replace erroneous booking')).toBeUndefined();
+ expect(button(tree,'Cancel erroneous booking')).toBeDefined();
+});
 afterEach(()=>{h.slots=[];h.effects=[];h.cursor=0;h.send.mockReset();h.refresh.mockReset();vi.unstubAllGlobals();});
+it('offers cancel only for an active legacy booking with an empty original snapshot',()=>{
+ const legacy={...detail,trade:{...detail.trade,valuationEffectiveDate:'2026-10-01',valuationDateBasis:'LEGACY_UTC_TRADE_DATE'},lifecycleEvents:[{...detail.lifecycleEvents[0],eventPayload:'{}'}]};
+ h.cursor=0;const tree=RecordCorrectionActions({detail:legacy,tenantId:'tenant'});
+ expect(button(tree,'Cancel erroneous booking')).toBeDefined();
+ expect(find(tree,n=>n.type==='a'&&n.props.children==='Replace erroneous booking')).toBeUndefined();
+});
 it('prevents native reason-form submission until client handlers are mounted',()=>{
  const gate=()=>{h.cursor=0;return CorrectionBookingGate({original:detail,strategies:[],context:{tenantId:'tenant',bookedByUserAccountId:'actor',properties:[],tags:[]}});};
  expect(button(gate(),'Continue to replacement ticket').props.disabled).toBe(true);

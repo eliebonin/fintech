@@ -1,5 +1,6 @@
 "use client";
 import {freezeBookingSubmission,type FrozenBookingSubmission} from '@/lib/booking-submission';
+import {RecognitionSummary} from './valuation-recognition-fields';
 import {withBookingCorrection,type BookingCorrection} from '@/lib/trade-correction-model';
 import { useEffect,useRef,useState,type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -22,7 +23,7 @@ export function FxForwardReview({instrument,draft,context,strategies}:{instrumen
     ["Counterparty",draft.counterpartyName??draft.counterpartyOrganisationId??"Required"],["Executing broker",draft.executingBrokerName??"Not specified"],["Trader",draft.traderName??"Not specified"],["Booked by",context.bookedByUserAccountId],["Purpose",draft.tradePurpose],
     ...context.properties.flatMap(def=>{const v=draft.properties[def.definitionId];return v===undefined||v===""?[]:[[def.label,displayTradeProperty(def.valueType,v,draft.propertyLabels?.[def.definitionId])] as [string,string]];}),
     ["Tags",context.tags.filter(t=>draft.tagIds.includes(t.tagId)).map(t=>t.label).join(", ")||"None"],...draft.externalReferences.map(r=>[r.referenceType,r.referenceValue] as [string,string]),["Comment",draft.comment||"None"]];
-  return <section className="detail-card"><h2>Review booking</h2><p>One record of an already-executed deliverable FX forward. These obligations are not settlement postings or a valuation.</p><dl className="ticket-review">{rows.map(([label,value],i)=><div key={i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>;
+  return <section className="detail-card"><h2>Review booking</h2><RecognitionSummary draft={draft}/><p>One record of an already-executed deliverable FX forward. These obligations are not settlement postings or a valuation.</p><dl className="ticket-review">{rows.map(([label,value],i)=><div key={i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>;
 }
 
 export function FxForwardTicket({strategies,context,initialInstrument,correction}:Props) {

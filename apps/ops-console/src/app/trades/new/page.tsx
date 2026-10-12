@@ -1,8 +1,10 @@
+import { apiRead } from "@/lib/server/api-read";
+import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
+import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
 import { notFound, redirect } from "next/navigation";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { ReferenceApiError, getCashBookingListing, getTradeBookingContext } from "@/lib/reference-api-client";
-import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { TradeTicket, type TicketListing, type TicketStrategy } from "./trade-ticket";
 import { FxForwardTicket } from "./fx-forward-ticket";
 import { OptionTicket } from "./option-ticket";
@@ -18,10 +20,14 @@ export const dynamic = "force-dynamic";
 export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ listingId?: string;product?:string;corrects?:string }> }) {
   const { listingId:requestedListingId, product:requestedProduct, corrects } = await searchParams;
   let context; let workspace;
-  try { [context, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
+  const access = await resolveWorkspaceAccess();
+  if (access.kind === "session-required") redirect("/select-tenant");
+  if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
+  context = access.context; workspace = access.workspace;
   if (!canBookTrades(workspace)) return <WorkspaceShell moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}>{null}</WorkspaceShell>;
   let original:TradeDetailPayload['data']|undefined;
   if(corrects){
+    if(workspace.permissionCodes&&!workspace.permissionCodes.includes('TRADE_CORRECT'))return <WorkspaceShell {...workspace}><main className="mvp-page"><h1>Replace booking</h1><p role="alert" className="error-panel">Replacement requires both trade booking and trade correction permissions. Ask your tenant administrator to review your groups.</p></main></WorkspaceShell>;
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(corrects))notFound();
     try {original=(await getBookedTradeDetail(context,corrects)).data;}
     catch(error){
@@ -39,7 +45,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   catch { return <WorkspaceShell sourceLabel="API UNAVAILABLE" moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><main className="mvp-page"><h1>Book listed cash trade</h1><p className="error-panel" role="alert">Booking configuration could not be loaded. Reopen the page when the service is available; required properties cannot be safely omitted.</p></main></WorkspaceShell>; }
   const [nodes, strategiesResponse] = await Promise.all([
     listingId ? getCashBookingListing(context,listingId).then(response=>({data:[response.data]})).catch(error=>{if(error instanceof ReferenceApiError&&error.status===404)notFound();throw error;}) : Promise.resolve({ data: [] }),
-    fetch(new URL("/v1/strategies", process.env.REFERENCE_API_URL ?? "http://localhost:8000"), { headers: { "X-Tenant-Id": context.tenantId, "X-User-Account-Id": context.userAccountId }, cache: "no-store" }),
+    apiRead(new URL("/v1/strategies", process.env.REFERENCE_API_URL ?? "http://localhost:8000"), { headers: { "X-Tenant-Id": context.tenantId, "X-User-Account-Id": context.userAccountId }, cache: "no-store" }),
   ]);
   const listing = listingId ? nodes.data.find((node) => node.referenceNodeId === listingId) : undefined;
   if (listingId && !listing) notFound();

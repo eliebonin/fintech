@@ -8,8 +8,8 @@ from .storage import insert_returning
 
 def require_admin(c,tenant_id,actor_id):
     workspace=resolve_tenant_workspace(c,tenant_id,actor_id,date.today())
-    if workspace.membership_role!='TENANT_ADMIN' or 'MARKET_DATA' not in workspace.module_codes:
-        raise PermissionError('An active MARKET_DATA tenant administrator is required')
+    if 'MARKET_DATA_MANAGE' not in workspace.permission_codes:
+        raise PermissionError('An active MARKET_DATA management permission is required')
 
 
 def history_status(c,mapping_id,start,end):

@@ -767,6 +767,9 @@ trade = Table(
     Column("quantity", Numeric(30, 12), nullable=False, comment="Signed booked quantity, nominal, units, or cash amount according to quantity unit."),
     Column("quantity_unit", String(40), nullable=False, comment="Unit of quantity such as UNITS, NOMINAL, SHARES, CONTRACTS, or CURRENCY_AMOUNT."),
     Column("trade_datetime_utc", DateTime(timezone=True), nullable=False, comment="UTC timestamp at which the economic execution or event occurred."),
+    Column("valuation_effective_date", Date, nullable=True, comment="Built-in date on which the booking enters daily valuation; null legacy records derive the UTC execution date."),
+    Column("valuation_date_basis", String(30), nullable=True, comment="Frozen UTC_TRADE_DATE or EXPLICIT_OVERRIDE recognition convention; not settlement."),
+    Column("valuation_override_reason", String(1000), nullable=True, comment="Recorded reason for a later valuation recognition date; changes require cancel/rebook correction."),
     Column("instruction_date", Date, nullable=True, comment="Business date on which the trade instruction was received or issued."),
     Column("settlement_date", Date, nullable=True, comment="Contractual or expected settlement date of the trade."),
     Column("trader_person_id", UUID_V7, ForeignKey("secm.person.person_id"), nullable=True, comment="Human who made the commercial trading decision, whether internal or external."),
@@ -952,6 +955,9 @@ tenant = Table(
     Column("owning_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Organisation legally or commercially responsible for the tenant context."),
     Column("tenant_code", String(100), nullable=False, unique=True, comment="Stable unique internal code used to identify the tenant in operations and integrations."),
     Column("display_name", String(250), nullable=False, comment="Human-readable tenant name used in operations and client-facing administration."),
+    Column("operational_contact_name", String(250), nullable=True, comment="Platform-managed operational contact; not a login identity or authority grant."),
+    Column("operational_contact_email", String(254), nullable=True, comment="Operational contact email; no invitation or authentication is implied."),
+    Column("profile_version", Integer, nullable=False, server_default=text("0"), comment="Optimistic concurrency token for tenant profile and status edits."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Tenant lifecycle status such as ACTIVE, SUSPENDED, or RETIRED."),
     Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which the tenant was created."),
     schema="ten",
@@ -1262,6 +1268,37 @@ Index("ix_cfg_external_data_object_mapping_target", external_data_object_mapping
 
 
 # md: market-data catalogue, valuation-cut, and observation domain.
+source_priority_version = Table(
+    "source_priority_version", metadata,
+    Column("source_priority_version_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True),
+    Column("instrument_type_id", UUID_V7, ForeignKey("secm.instrument_type.instrument_type_id"), nullable=False),
+    Column("use_purpose", String(40), nullable=False, server_default=text("'VALUATION'")),
+    Column("mode", String(20), nullable=False),
+    Column("version_no", Integer, nullable=False),
+    Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+    Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=text("clock_timestamp()")),
+    Column("submission_key", String(255), nullable=False),
+    Column("submission_fingerprint", String(64), nullable=False),
+    UniqueConstraint("tenant_id", "instrument_type_id", "use_purpose", "version_no", postgresql_nulls_not_distinct=True),
+    UniqueConstraint("tenant_id", "submission_key", postgresql_nulls_not_distinct=True),
+    CheckConstraint("use_purpose='VALUATION'"),
+    CheckConstraint("mode IN ('CUSTOM','INHERIT')"),
+    CheckConstraint("version_no > 0"),
+    CheckConstraint("tenant_id IS NOT NULL OR mode='CUSTOM'"),
+    schema="md",
+)
+source_priority_entry = Table(
+    "source_priority_entry", metadata,
+    Column("source_priority_version_id", UUID_V7, ForeignKey("md.source_priority_version.source_priority_version_id"), primary_key=True),
+    Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), primary_key=True),
+    Column("priority", Integer, nullable=False),
+    UniqueConstraint("source_priority_version_id", "priority"),
+    CheckConstraint("priority > 0"),
+    schema="md",
+)
+Index("ix_source_priority_asof", source_priority_version.c.tenant_id, source_priority_version.c.instrument_type_id,
+      source_priority_version.c.use_purpose, source_priority_version.c.created_at_utc.desc())
 data_provider = Table(
     "data_provider",
     metadata,
@@ -1269,6 +1306,7 @@ data_provider = Table(
     Column("organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Organisation commercially or operationally providing the data service."),
     Column("provider_code", String(100), nullable=False, unique=True, comment="Stable unique code for the provider delivery identity, such as BLOOMBERG, LSEG_DSS, FACTSET, or INTERNAL_FORTEM."),
     Column("display_name", String(250), nullable=False, comment="Human-readable name of the provider delivery identity."),
+    Column("owner_tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Tenant-private delivery identity for tenant-supplied series; null for shared providers. Uploading does not change upstream ownership or licensing rights."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the data provider record."),
     schema="md",
 )
@@ -1341,10 +1379,53 @@ tenant_dataset_entitlement = Table(
     Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=False, comment="Dataset to which the entitlement applies."),
     Column("dataset_licence_assignment_id", UUID_V7, ForeignKey("md.dataset_licence_assignment.dataset_licence_assignment_id"), nullable=True, comment="Specific dataset licence assignment evidencing the entitlement when one is known and applicable."),
     Column("use_purpose", String(40), nullable=False, comment="Permitted intended use such as VALUATION, RISK, INTERNAL_REPORTING, CLIENT_REPORTING, or REDISTRIBUTION."),
+    Column("coverage_mode", String(20), nullable=False, server_default=text("'DATASET'"), comment="DATASET covers the whole dataset; SCOPED permits only explicitly associated coverage packages."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Entitlement status such as ACTIVE, SUSPENDED, EXPIRED, or REVOKED."),
     Column("valid_from", Date, nullable=False, comment="First business date on which the tenant may use the dataset for the stated purpose."),
     Column("valid_to", Date, nullable=True, comment="Last business date on which the tenant may use the dataset for the stated purpose."),
     UniqueConstraint("tenant_id", "dataset_id", "use_purpose", "valid_from", name="uq_tenant_dataset_entitlement_business_key"),
+    UniqueConstraint("tenant_dataset_entitlement_id", "dataset_id", name="uq_entitlement_dataset_scope"),
+    CheckConstraint("coverage_mode IN ('DATASET', 'SCOPED')", name="ck_entitlement_coverage_mode"),
+    schema="ten",
+)
+
+dataset_coverage_package = Table(
+    "dataset_coverage_package", metadata,
+    Column("coverage_package_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=False),
+    Column("package_code", String(100), nullable=False),
+    Column("display_name", String(250), nullable=False),
+    Column("content_owner_provider_id", UUID_V7, ForeignKey("md.data_provider.data_provider_id"), nullable=False),
+    Column("licensing_market_venue_id", UUID_V7, ForeignKey("secm.market_venue.market_venue_id"), nullable=True, comment="Reviewed licensing market, not automatically the delivery channel or Globex."),
+    Column("information_timing", String(30), nullable=False),
+    Column("evidence_reference", Text, nullable=False),
+    Column("status", String(30), nullable=False, server_default=text("'ACTIVE'")),
+    Column("valid_from", Date, nullable=False),
+    Column("valid_to", Date, nullable=True),
+    UniqueConstraint("dataset_id", "package_code", name="uq_dataset_coverage_code"),
+    UniqueConstraint("coverage_package_id", "dataset_id", name="uq_package_dataset_scope"),
+    CheckConstraint("information_timing IN ('REAL_TIME', 'DELAYED', 'END_OF_DAY', 'HISTORICAL')", name="ck_package_information_timing"),
+    CheckConstraint("valid_to IS NULL OR valid_to >= valid_from", name="ck_package_valid_period"),
+    CheckConstraint("length(trim(package_code)) > 0 AND length(trim(evidence_reference)) > 0", name="ck_package_scope_evidence"),
+    schema="md",
+)
+
+market_data_series_coverage = Table(
+    "market_data_series_coverage", metadata,
+    Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), primary_key=True),
+    Column("market_data_series_id", UUID_V7, ForeignKey("md.market_data_series.market_data_series_id"), primary_key=True),
+    Column("coverage_package_id", UUID_V7, nullable=False),
+    ForeignKeyConstraint(["coverage_package_id", "dataset_id"], ["md.dataset_coverage_package.coverage_package_id", "md.dataset_coverage_package.dataset_id"]),
+    schema="md",
+)
+
+tenant_dataset_coverage = Table(
+    "tenant_dataset_coverage", metadata,
+    Column("tenant_dataset_entitlement_id", UUID_V7, primary_key=True),
+    Column("dataset_id", UUID_V7, nullable=False),
+    Column("coverage_package_id", UUID_V7, primary_key=True),
+    ForeignKeyConstraint(["tenant_dataset_entitlement_id", "dataset_id"], ["ten.tenant_dataset_entitlement.tenant_dataset_entitlement_id", "ten.tenant_dataset_entitlement.dataset_id"]),
+    ForeignKeyConstraint(["coverage_package_id", "dataset_id"], ["md.dataset_coverage_package.coverage_package_id", "md.dataset_coverage_package.dataset_id"]),
     schema="ten",
 )
 
@@ -1500,7 +1581,8 @@ market_data_series = Table(
     metadata,
     Column("market_data_series_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a precisely defined market-data series."),
     Column("reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=False, comment="Canonical node observed, priced, valued, or otherwise measured by this series."),
-    Column("series_type", String(50), nullable=False, comment="Series kind such as OFFICIAL_CLOSE, BID, ASK, LAST, EVALUATED_PRICE, FX_SPOT, INDEX_LEVEL, or MARK."),
+    Column("series_type", String(50), nullable=False, comment="Series kind such as CLOSE, BID, ASK, LAST, EVALUATED_PRICE, FX_SPOT, INDEX_LEVEL, or MARK."),
+    Column("closing_method", String(30), nullable=False, server_default=text("'UNKNOWN'"), comment="Closing methodology, separate from adjustment basis: EXCHANGE_OFFICIAL, LAST_TRADE, PROVIDER_DEFINED or UNKNOWN."),
     Column("value_type", String(40), nullable=False, comment="Value shape such as PRICE, RATE, YIELD, SPREAD, INDEX_LEVEL, VOLUME, or QUANTITY."),
     Column("measure_definition_id", UUID_V7, ForeignKey("md.series_measure_definition.series_measure_definition_id"), nullable=True, comment="Governed semantic definition of what one observation measures and how a normal period-on-period movement is expressed; nullable only during legacy-series backfill."),
     Column("currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Currency in which the series values are expressed when applicable."),
@@ -1515,6 +1597,7 @@ market_data_series = Table(
     Column("is_official", Boolean, nullable=False, server_default=text("false"), comment="Whether the series is designated as an official source for its stated observation type."),
     Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which the series definition was created."),
     CheckConstraint("coverage_end_date IS NULL OR coverage_start_date IS NULL OR coverage_end_date >= coverage_start_date", name="ck_market_data_series_coverage_range"),
+    CheckConstraint("closing_method IN ('EXCHANGE_OFFICIAL','LAST_TRADE','PROVIDER_DEFINED','UNKNOWN') AND (series_type='CLOSE' OR closing_method='UNKNOWN')", name="ck_market_data_series_closing_method"),
     schema="md",
 )
 
@@ -1561,6 +1644,19 @@ market_data_observation = Table(
     schema="md",
 )
 
+market_data_price_basis_proof = Table(
+    "market_data_price_basis_proof", metadata,
+    Column("proof_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("observation_id", UUID_V7, ForeignKey("md.market_data_observation.market_data_observation_id"), nullable=False),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW),
+    Column("proof_json", JSONB, nullable=False),
+    Column("proof_hash", String(64), nullable=False),
+    UniqueConstraint("observation_id", "proof_hash", name="uq_price_basis_proof_content"),
+    schema="md",
+)
+Index("ix_price_basis_proof_asof", market_data_price_basis_proof.c.observation_id,
+      market_data_price_basis_proof.c.recorded_at_utc)
+
 market_data_series_dimension = Table(
     "market_data_series_dimension",
     metadata,
@@ -1582,6 +1678,14 @@ Index("ix_external_object_mapping_lookup", external_object_mapping.c.external_id
 Index("ix_external_object_mapping_target", external_object_mapping.c.target_object_type, external_object_mapping.c.target_object_id)
 Index("ix_market_data_observation_series_observed", market_data_observation.c.market_data_series_id, market_data_observation.c.observed_at_utc)
 Index("ix_market_data_observation_dataset_observed", market_data_observation.c.dataset_id, market_data_observation.c.observed_at_utc)
+# Match the catalogue's latest accepted values and correction anti-join without
+# scanning unrelated history. Non-unique indexes preserve immutable evidence.
+Index("ix_md_observation_accepted_latest", market_data_observation.c.market_data_series_id,
+      market_data_observation.c.market_date.desc().nullslast(),
+      market_data_observation.c.observed_at_utc.desc(), market_data_observation.c.received_at_utc.desc(),
+      postgresql_where=text("quality_status = 'ACCEPTED'"))
+Index("ix_md_observation_accepted_supersedes", market_data_observation.c.supersedes_observation_id,
+      postgresql_where=text("quality_status = 'ACCEPTED' AND supersedes_observation_id IS NOT NULL"))
 Index("ix_market_data_series_calendar_frequency", market_data_series.c.expected_market_calendar_id, market_data_series.c.expected_frequency_code)
 Index("ix_market_data_series_measure_definition", market_data_series.c.measure_definition_id)
 Index("ix_tenant_user_account_lookup", tenant_user_account.c.tenant_id, tenant_user_account.c.user_account_id, tenant_user_account.c.status, tenant_user_account.c.valid_from, tenant_user_account.c.valid_to)
@@ -2447,6 +2551,7 @@ valuation_policy = Table(
     Column("valuation_policy_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a tenant-scoped versioned valuation selection policy."),
     Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False, comment="Tenant owning the valuation policy."),
     Column("policy_code", String(100), nullable=False, comment="Tenant-unique code identifying the valuation policy."),
+    Column("selection_mode", String(20), nullable=False, server_default=text("'STRICT'"), comment="STRICT explicit rules only; FLEXIBLE permits configured defaults for unmatched subjects."),
     Column("display_name", String(250), nullable=False, comment="Human-readable valuation policy name."),
     Column("valuation_cut_id", UUID_V7, ForeignKey("md.valuation_cut.valuation_cut_id"), nullable=False, comment="Named business cut used by the policy unless overridden by a rule."),
     Column("version_no", Integer, nullable=False, server_default=text("1"), comment="Monotonically increasing immutable policy version."),
@@ -2459,6 +2564,7 @@ valuation_policy = Table(
     Column("submission_key", String(255), comment="Tenant-scoped idempotency key for managed policy creation."),
     Column("submission_fingerprint", String(64), comment="Canonical creation-payload SHA256 used for idempotent policy replay."),
     UniqueConstraint("tenant_id", "submission_key", name="uq_valuation_policy_submission"),
+    CheckConstraint("selection_mode IN ('STRICT','FLEXIBLE')", name="ck_valuation_policy_selection_mode"),
     UniqueConstraint("tenant_id", "policy_code", "version_no", name="uq_valuation_policy_version"), schema="ten",
 )
 
@@ -2467,16 +2573,21 @@ valuation_policy_rule = Table(
     Column("valuation_policy_rule_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one ordered market-data selection rule in a valuation policy."),
     Column("valuation_policy_id", UUID_V7, ForeignKey("ten.valuation_policy.valuation_policy_id"), nullable=False, comment="Tenant valuation policy version owning the rule."),
     Column("rule_sequence", Integer, nullable=False, comment="Deterministic priority order of the selection rule within its policy."),
+    Column("is_default", Boolean, nullable=False, server_default=text("false"), comment="Default rule considered only in flexible policies after all matching explicit rules."),
     Column("subject_type", String(50), nullable=True, comment="Optional target type filter such as LISTING, INSTRUMENT, INDEX, FX_PAIR, or COMMODITY."),
     Column("instrument_type_id", UUID_V7, ForeignKey("secm.instrument_type.instrument_type_id"), nullable=True, comment="Optional governed economic instrument-type filter for the rule."),
     Column("subject_reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=True, comment="Optional exact instrument, listing, index, FX pair, or other canonical node to which this rule applies ahead of broader type rules."),
     Column("market_data_series_id", UUID_V7, ForeignKey("md.market_data_series.market_data_series_id"), nullable=True, comment="Optional exact market-data series to which this rule applies ahead of broader subject or type rules."),
-    Column("series_type", String(50), nullable=False, comment="Required market-data series type such as OFFICIAL_CLOSE, EVALUATED_PRICE, BID, ASK, or FX_SPOT."),
+    Column("series_type", String(50), nullable=False, comment="Required market-data series type such as CLOSE, EVALUATED_PRICE, BID, ASK, or FX_SPOT; legacy OFFICIAL_CLOSE implies an official-close requirement."),
+    Column("require_official_close", Boolean, nullable=False, server_default=text("false"), comment="Require exchange-official closing designation, independently of price adjustment basis."),
     Column("market_venue_id", UUID_V7, ForeignKey("secm.market_venue.market_venue_id"), comment="Optional selected-listing venue filter; never inferred from instrument currency."),
     Column("pricing_convention", String(30), nullable=False, server_default=text("'LEGACY'"), comment="LEGACY, SESSION_CLOSE, NAMED_FIXING or EXPLICIT_TIME selection semantics."),
     Column("pricing_cut_id", UUID_V7, ForeignKey("md.valuation_cut.valuation_cut_id"), comment="Rule-specific local pricing time definition, separate from the information cutoff."),
     Column("fixing_code", String(100), comment="Exact declared FIXING_CODE series dimension required for named fixing selection."),
     Column("value_basis", String(50), comment="Optional required observation value basis; no implicit adjustment conversion."),
+    Column("price_requirement", String(30), comment="Economic output requirement; AS_TRADED permits only native or verified split-normalized prices. Null preserves legacy selection."),
+    Column("allow_split_conversion", Boolean, nullable=False, server_default=text("false"), comment="Explicit permission to normalize split-adjusted observations with complete frozen proof."),
+    Column("allow_inverse_fx", Boolean, nullable=False, server_default=text("false"), comment="Permit reciprocal conversion only for explicitly timed FX_SPOT rules; no triangulation."),
     Column("selection_method", String(40), nullable=False, comment="Selection method such as LAST_BEFORE_CUT, OFFICIAL, MID, APPROVED, or FALLBACK."),
     Column("pricing_date_rule", String(40), nullable=False, server_default=text("'SAME_DAY'"), comment="Controlled pricing-date selection such as SAME_DAY, PRIOR_AVAILABLE, or FIXED_LAG."),
     Column("lag_business_days", Integer, nullable=False, server_default=text("0"), comment="Non-negative business-day lag subtracted from the valuation date when pricing_date_rule is FIXED_LAG."),
@@ -2485,6 +2596,9 @@ valuation_policy_rule = Table(
     Column("missing_data_action", String(40), nullable=False, server_default=text("'FAIL'"), comment="Required policy outcome when no eligible or sufficiently current value exists, such as FAIL, WARN, or MANUAL_OVERRIDE."),
     Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=True, comment="Optional preferred or required dataset for the selection rule."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Rule lifecycle status."),
+    CheckConstraint("NOT require_official_close OR series_type IN ('CLOSE','OFFICIAL_CLOSE')", name="ck_policy_official_close"),
+    CheckConstraint("NOT allow_inverse_fx OR (series_type='FX_SPOT' AND pricing_convention IN ('EXPLICIT_TIME','NAMED_FIXING'))", name="ck_policy_inverse_fx"),
+    CheckConstraint("(price_requirement IS NULL AND NOT allow_split_conversion) OR (price_requirement='AS_TRADED' AND pricing_convention<>'LEGACY' AND series_type IN ('CLOSE','OFFICIAL_CLOSE') AND (value_basis IS NULL OR value_basis IN ('RAW','SPLIT_ADJUSTED')))", name="ck_policy_price_requirement"),
     UniqueConstraint("valuation_policy_id", "rule_sequence", name="uq_valuation_policy_rule_sequence"), schema="ten",
 )
 
@@ -2737,3 +2851,44 @@ Index(
 # and synthetic bootstrap consistent without a runtime dependency on Fortem-core.
 from valuation.tables import register_valuation_tables
 register_valuation_tables(metadata)
+
+# Access management has its own bounded metadata module.
+from .access_tables import register_access_tables
+access_group, access_group_member, access_group_grant, access_audit_event, local_access_session = register_access_tables(metadata)
+
+# Explicit documentation for the governed provider-selection/evidence additions.
+_provider_evidence_comments={
+    'source_priority_version_id':'Immutable version of a platform or tenant source ranking.',
+    'tenant_id':'Tenant override owner; null identifies the platform default ranking.',
+    'instrument_type_id':'Instrument type to which this source priority version applies.',
+    'use_purpose':'Governed process purpose; currently VALUATION only.',
+    'mode':'CUSTOM ranking or explicit INHERIT of the platform ranking.',
+    'version_no':'Positive immutable source priority version number.',
+    'created_by_user_account_id':'Authenticated operator creating this source priority version.',
+    'created_at_utc':'UTC recording time used for as-of ranking selection.',
+    'submission_key':'Scope-bound idempotency key for an unchanged source-priority request.',
+    'submission_fingerprint':'SHA256 of the submitted source-priority configuration.',
+    'dataset_id':'Exact delivered dataset; provider identity alone does not establish eligible content.',
+    'priority':'Positive unique priority within a version; smaller ranks are selected first.',
+    'coverage_package_id':'Reviewed content/licensing scope package within the dataset.',
+    'package_code':'Dataset-unique code of the reviewed coverage package.',
+    'display_name':'Human-readable description of the licensed content scope.',
+    'content_owner_provider_id':'Content owner whose rights may be distinct from the distributor.',
+    'information_timing':'Licensed timing category: real-time, delayed, end-of-day or historical.',
+    'evidence_reference':'Retained reference substantiating this package classification.',
+    'status':'Controlled coverage-package lifecycle; only ACTIVE packages are eligible.',
+    'valid_from':'Inclusive business-date start of the coverage package.',
+    'valid_to':'Inclusive coverage end; null means no declared end.',
+    'market_data_series_id':'Exact series classified into the dataset coverage package.',
+    'tenant_dataset_entitlement_id':'Tenant entitlement authorizing only the linked coverage packages.',
+    'proof_id':'Immutable identity of the price-basis proof.',
+    'observation_id':'Exact observation whose quantity/price basis is established by this proof.',
+    'recorded_at_utc':'UTC time the immutable price-basis proof was recorded.',
+    'proof_json':'Frozen source, corporate-action coverage and adjustment-reference evidence.',
+    'proof_hash':'Canonical SHA256 protecting the retained price-basis evidence.',
+}
+for _provider_table in (source_priority_version,source_priority_entry,dataset_coverage_package,
+                       market_data_series_coverage,tenant_dataset_coverage,market_data_price_basis_proof):
+    for _provider_column in _provider_table.c:
+        if not _provider_column.comment:
+            _provider_column.comment=_provider_evidence_comments[_provider_column.name]

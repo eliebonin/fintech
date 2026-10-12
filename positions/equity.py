@@ -1,6 +1,6 @@
 """Frozen equity-like units; no live security-master or price dependencies."""
 from decimal import Decimal
-from .contracts import Booking, PositionError, PositionKey
+from .contracts import Booking, PositionError, PositionKey,POSITION_UNITS
 
 def finite(value, name, *, positive=False):
     if not isinstance(value, Decimal) or not value.is_finite():
@@ -11,8 +11,8 @@ def finite(value, name, *, positive=False):
     return value
 
 def booking_key(booking: Booking, tenant_id, strategy_id) -> PositionKey:
-    if booking.product_basis not in {'EQUITY','ETF'} or booking.quantity_unit not in {'SHARES','UNITS'}:
-        raise PositionError('Unsupported booking economics; only equity/ETF positions are enabled')
+    if booking.quantity_unit not in POSITION_UNITS.get(booking.product_basis,()):
+        raise PositionError('Unsupported booking economics; frozen compatible product units required')
     if finite(booking.quantity,'quantity') == 0: raise PositionError('Booked quantity must be nonzero')
     for field in ('price','unit_multiplier','quote_factor'):
         finite(getattr(booking,field),field,positive=True)

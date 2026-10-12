@@ -1,0 +1,13 @@
+# Daily valuation dates and booking recognition
+
+Approved scope: daily P&L accepts valuation dates; bookings retain actual execution and separate valuation-effective dates. Recognition is not settlement or accounting. Default business-date convention is explicitly UTC for this alpha, preserving existing booking semantics; no silent browser-timezone or exchange-calendar inference.
+
+New bookings across cash, FX forwards, options and product tickets freeze the resolved date, UTC convention, default/override basis and override reason in the original BOOKED evidence, with indexed trade columns for selection. A later calendar date requires a nonblank reason; dates before the UTC execution date are rejected. Existing records are not rewritten: absent metadata means the documented legacy UTC execution-date convention. Changes use cancel/rebook correction, never in-place edits.
+
+Daily position reconstruction uses recognition dates for both quantities and signed period execution contributions. Actual execution timestamps remain evidence and corporate-action safety inputs. Economic exposure is not eliminated by deferring its reporting recognition. Historical definition checks still use execution. Opening includes effective dates <= opening date; period includes opening < effective date <= closing. Intraday API compatibility remains, but overridden recognition is not silently ignored.
+
+Date runs use UTC end-of-day boundaries for the position clock, not invented market prices. Instrument/exchange pricing targets remain resolved by the existing composite policy; a target beyond the position boundary is blocked. Completed daily close cannot be after the information cutoff. Holidays are not automatically rolled: calendar/policy validation retains authority. Information cutoff is server-defaulted to submission time and retained by the retrying UI.
+
+No new accounting, FX conversion, derivatives valuation or corporate-action replay. No operating trade/result rewrites, migrations, commits or pushes without explicit activation instructions. Existing unrelated frontend recovery changes are preserved.
+
+Research: FCA COLL 6.3 requires documented consistent valuation policies and defined valuation points (https://handbook.fca.org.uk/handbook/coll6/coll6s3?timeline=true). IASB November 2022 staff paper 16B summarises trade/settlement recognition and consistent treatment (https://www.ifrs.org/content/dam/ifrs/meetings/2022/november/iasb/ap16b-accounting-policy-choice-for-derecognition-of-financial-liabilities.pdf). Neither mandates our field name or a freely selectable recognition date. Governance controls are this project's design recommendation, not an accounting-compliance claim.

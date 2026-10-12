@@ -1,0 +1,85 @@
+.access-admin-page label:not(.access-check) { display:flex;flex-direction:column;gap:.35rem;margin:.7rem 0; }
+.access-admin-page input:not([type=checkbox]),.access-admin-page select { padding:.55rem;border:1px solid #ccd5e4;border-radius:.4rem;background:white;color:#13213b; }
+.access-admin-page fieldset { border:1px solid #dbe2ed;border-radius:.5rem;margin:.8rem 0;padding:.8rem; }
+.access-admin-page legend { font-weight:650; }
+.access-check { display:flex;align-items:center;gap:.6rem;margin:.55rem 0; }
+.access-check input { flex:0 0 auto; }
+.access-check small { color:#596880; }
+.access-tenant-cards,.access-user-list { display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1rem;margin:1rem 0; }
+.access-admin-page details { margin-top:1rem; }
+.access-admin-page summary { cursor:pointer; }
+.access-admin-page button { cursor:pointer; }
+.access-admin-page button:disabled { cursor:default;opacity:.65; }
+.access-testing-banner { padding:.65rem 1.5rem;background:#fff4dc;border-bottom:1px solid #e5c888;display:flex;gap:1rem;justify-content:space-between;flex-wrap:wrap; }
+
+/* Tenant administration shares one visual language; business screens are unaffected. */
+.access-admin-page { max-width:1280px;margin-inline:auto; }
+.access-admin-page .mvp-header p { max-width:720px;line-height:1.6; }
+.access-admin-page .tenant-profile-card { min-height:0; }
+.access-admin-page h2 { font-size:1.2rem;margin:.25rem 0 .8rem; }
+.access-admin-page h3 { font-size:1rem; }
+.access-admin-page p { line-height:1.6; }
+.access-admin-page button,.access-admin-page .access-secondary { min-height:44px;font:inherit;font-size:.875rem;border-radius:8px;padding:.65rem 1rem; }
+.access-admin-page .access-primary { background:#244bd7;color:white;border:1px solid #244bd7;font-weight:650; }
+.access-admin-page .access-secondary { display:inline-flex;align-items:center;justify-content:center;background:white;border:1px solid #cbd5e1;color:#273958;text-decoration:none; }
+.access-admin-page button:hover:not(:disabled),.access-admin-page a.access-secondary:hover { filter:brightness(.96); }
+.access-admin-page :is(button,a,input,select,summary,[tabindex]):focus-visible { outline:3px solid #3266e3;outline-offset:3px; }
+.access-admin-page input:not([type=checkbox]),.access-admin-page select { min-height:44px;width:100%;box-sizing:border-box; }
+.access-admin-page input[type=checkbox] { width:18px;height:18px;accent-color:#244bd7; }
+.access-admin-page .access-summary { display:flex;flex-wrap:wrap;gap:1.5rem;background:#eef3fa;padding:1rem 1.25rem;border:1px solid #dbe5f4;border-radius:12px;margin-bottom:1rem;color:#52617a;font-size:.875rem; }
+.access-summary strong { color:#142b4e;font-size:1.25rem;margin-right:.3rem; }
+.access-hint { font-size:.875rem;color:#52617a;line-height:1.6; }
+.access-feedback { margin:0;min-height:1.5rem;color:#234a3b;font-size:.875rem; }
+.access-tabs { display:flex;border-bottom:1px solid #d6dfeb;gap:.5rem;margin:1.5rem 0 0; }
+.access-admin-page .access-tabs button { background:transparent;border:0;border-bottom:3px solid transparent;border-radius:0;color:#52617a;padding:.8rem 1.2rem; }
+.access-admin-page .access-tabs button[aria-selected=true] { border-bottom-color:#244bd7;color:#19389f;font-weight:700; }
+.access-tabs span,.access-count { display:inline-block;border-radius:20px;background:#edf1f8;padding:.15rem .5rem;font-size:.75rem;margin-left:.4rem;font-weight:500; }
+.access-toolbar { display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:1rem 0; }
+.access-toolbar label { width:min(100%,420px);font-size:.875rem;font-weight:600; }
+.access-actions { display:flex;align-items:center;gap:.6rem;flex-wrap:wrap; }
+.access-table-scroll { overflow-x:auto;border:1px solid #dbe5f4;border-radius:12px;background:white; }
+.access-table { width:100%;border-collapse:collapse;font-size:.875rem;text-align:left; }
+.access-table th { background:#f6f8fc;font-size:.75rem;color:#52617a;font-weight:650; }
+.access-table td,.access-table th { padding:1rem;border-bottom:1px solid #e7edf5;vertical-align:middle; }
+.access-table tr:last-child td { border-bottom:0; }
+.access-table small { display:block;color:#52617a;font-size:.8rem;margin-top:.3rem;max-width:420px;overflow-wrap:anywhere; }
+.access-table td:last-child { text-align:right; }
+.access-status { display:inline-block;color:#24563f;background:#edf7f1;border-radius:6px;padding:.2rem .5rem;font-size:.8rem; }
+.access-empty { text-align:center;padding:2rem;color:#52617a;background:white;border:1px solid #dbe5f4;border-radius:12px; }
+.access-editor { padding:1.5rem;background:white;border:1px solid #b9c9ea;border-left:4px solid #244bd7;border-radius:12px;margin:1rem 0 1.5rem;box-shadow:0 6px 20px #152a4a08; }
+.access-identifier { overflow-wrap:anywhere; }
+.access-fields,.access-editor-columns { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem; }
+.access-admin-page fieldset.access-fields { border:0;padding:0;margin:0 0 1rem; }
+.access-admin-page .access-fields label { margin:0; }
+.access-fields small { font-size:.8rem;color:#52617a;font-weight:400; }
+.access-editor-footer { display:flex;gap:.75rem;justify-content:space-between;align-items:center;margin-top:1.5rem;padding-top:1rem;border-top:1px solid #e7edf5;flex-wrap:wrap; }
+.access-permission-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:1rem; }
+.access-permission-grid fieldset { margin:0;background:#f8fafc; }
+.access-admin-page .access-check { min-height:36px;font-size:.875rem; }
+.access-admin-page summary { color:#334b72;font-size:.875rem;min-height:32px; }
+.access-sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+.access-profile-grid { display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:1rem;margin:1.5rem 0; }
+.access-management-links { display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem; }
+.access-management-links a { display:block;color:inherit;text-decoration:none; }
+.access-management-links a:hover { border-color:#9eafd2;background:#fafcff; }
+.access-management-links a>span { color:#244bd7;font-size:.875rem;font-weight:650; }
+.access-module-rows { list-style:none;margin:1rem 0;padding:0; }
+.access-module-rows li { display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.85rem 0;border-bottom:1px solid #e7edf5;font-size:.875rem; }
+.access-module-rows .muted { font-size:.8rem; }
+.access-context-page { max-width:1080px; }
+.access-context-grid { display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:1.5rem;margin:1.5rem 0;align-items:start; }
+.access-context-main { border-top:3px solid #244bd7; }
+.access-context-aside { background:#f8fafc; }
+.access-context-preview { min-height:94px;padding:1rem;background:#f4f7fc;border:1px solid #e1e8f3;border-radius:8px;margin:1.25rem 0;font-size:.875rem;color:#334b72; }
+.access-context-preview p { margin:.4rem 0; }
+.access-context-preview .module-list { margin-top:.5rem; }
+.access-step { font-size:.75rem;color:#244bd7; }
+@media(max-width:760px) {
+ .access-profile-grid,.access-context-grid,.access-fields,.access-editor-columns { grid-template-columns:1fr; }
+ .access-toolbar { align-items:stretch;flex-direction:column; }
+ .access-toolbar label { width:100%; }
+ .access-table { min-width:620px; }
+ .access-editor { padding:1rem; }
+ .access-module-rows li { flex-wrap:wrap; }
+ .access-summary { gap:1rem; }
+}

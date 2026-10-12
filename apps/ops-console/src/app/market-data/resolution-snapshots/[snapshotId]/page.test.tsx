@@ -1,3 +1,4 @@
+import { SessionRequiredError } from '@/lib/server/workspace-errors';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {it,expect,vi,afterEach} from 'vitest';
@@ -17,7 +18,7 @@ it('reads frozen evidence directly under selected tenant without an internal-coo
  expect(html).toContain('Frozen pricing targets');
 });
 it('requires explicit tenant selection for snapshot evidence',async()=>{
- mocks.context.mockRejectedValue(new Error('No tenant'));
+ mocks.context.mockRejectedValue(new SessionRequiredError());
  const {default:Page}=await import('./page');
  await expect(Page({params:Promise.resolve({snapshotId:'snapshot-id'})})).rejects.toThrow('redirect:/select-tenant');
  expect(mocks.get).not.toHaveBeenCalled();

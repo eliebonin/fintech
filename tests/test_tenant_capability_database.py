@@ -2,13 +2,14 @@
 
 from datetime import date
 
+import os
 from sqlalchemy import create_engine, select
 
 from security_master_schema import models as m
 from security_master_schema.demo_data import DEMO_IDS, create_schema, load_demo_data
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_demo_tenant_has_multiple_profiles_and_explicit_capability_grants() -> None:

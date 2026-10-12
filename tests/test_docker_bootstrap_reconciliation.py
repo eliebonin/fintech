@@ -2,10 +2,11 @@
 
 from alembic.config import Config
 from alembic.script import ScriptDirectory
+import os
 from sqlalchemy import create_engine, text
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_docker_database_is_at_head_with_migration_only_controls() -> None:

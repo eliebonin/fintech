@@ -19,3 +19,10 @@ it('requires a stable key before forwarding a calculation',async()=>{
  const response=await POST(new NextRequest('http://localhost/api/valuation/attempts',{method:'POST',body:'{}'}),{params:Promise.resolve({segments:['attempts']})});
  expect(response.status).toBe(400);expect(upstream).not.toHaveBeenCalled();
 });
+it('allowlists keyed component requests and independent decisions',async()=>{
+ const {POST}=await import('./route');const id='00000000-0000-7000-8000-000000000001';
+ const response=await POST(new NextRequest(`http://localhost/api/valuation/batches/${id}/amendments`,{method:'POST',headers:{'Idempotency-Key':'retry-key'},body:'{}'}),{params:Promise.resolve({segments:['batches',id,'amendments']})});
+ expect(response.status).toBe(200);expect(new Headers(upstream.mock.calls[0][1].headers).get('Idempotency-Key')).toBe('retry-key');
+ const denied=await POST(new NextRequest('http://localhost/api/valuation/amendments/not-an-id/approve',{method:'POST',body:'{}'}),{params:Promise.resolve({segments:['amendments','not-an-id','approve']})});
+ expect(denied.status).toBe(404);
+});

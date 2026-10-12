@@ -1,10 +1,11 @@
+import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
+import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { describeMvpError, getBookedTrades, getHistoryStrategies, type HistoryStrategy } from "@/lib/mvp-api-client";
 import { formatTradeDateTime, formatTradeNumber, formatTradeExactDecimal, tradeDirection, type BookedTrade } from "@/lib/trades";
 import { bookedSwapFacts, historyHref, parseHistoryQuery, type HistorySearchParams } from "@/lib/trade-history";
-import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import {canBookTrades} from '@/lib/instrument-authority';
 
@@ -29,7 +30,10 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
   const query = parseHistoryQuery(await searchParams);
   let context;
   let workspace;
-  try { [context, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
+  const access = await resolveWorkspaceAccess();
+  if (access.kind === "session-required") redirect("/select-tenant");
+  if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
+  context = access.context; workspace = access.workspace;
   let trades: BookedTrade[] = [];
   let strategies: HistoryStrategy[] = [];
   let total = 0;

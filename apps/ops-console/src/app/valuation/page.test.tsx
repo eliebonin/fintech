@@ -1,3 +1,4 @@
+import { SessionRequiredError } from "@/lib/server/workspace-errors";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -14,16 +15,16 @@ vi.mock("@/lib/tenant-session", () => ({
 }));
 beforeEach(() => {
   session.context.mockResolvedValue({ tenantId: "selected", userAccountId: "user" });
-  session.workspace.mockResolvedValue({tenantName: "Selected tenant", membershipRole: "TENANT_ADMIN", moduleCodes: ["MARKET_DATA", "VALUATION"]});
+  session.workspace.mockResolvedValue({tenantName: "Selected tenant", membershipRole: "TENANT_ADMIN", moduleCodes: ["MARKET_DATA", "VALUATION"],permissionCodes:["VALUATION_READ","VALUATION_RUN","VALUATION_REVIEW","MARKET_DATA_READ"]});
 });
 afterEach(() => { vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
-it("shows bounded live market-only workflow without browser pricing or a guessed total", async () => {
+it("shows bounded economic workflow without browser pricing or a guessed total", async () => {
   const fetch = vi.fn(() => { throw new Error("No financial query is allowed"); });
   vi.stubGlobal("fetch", fetch);
   const { default: Page } = await import("./page");
   const html = renderToStaticMarkup(await Page());
-  expect(html).toContain("MARKET-ONLY ALPHA");
+  expect(html).toContain("ECONOMIC P&amp;L ALPHA");
   expect(html).toContain("Run history");
   expect(html).not.toContain("Total P&amp;L");
   expect(html).not.toContain("LIVE API · DEMO DATA");
@@ -31,7 +32,7 @@ it("shows bounded live market-only workflow without browser pricing or a guessed
 });
 
 it("requires a selected tenant instead of using the old demo context", async () => {
-  session.context.mockRejectedValue(new Error("No selected tenant"));
+  session.context.mockRejectedValue(new SessionRequiredError());
   const { default: Page } = await import("./page");
   await expect(Page()).rejects.toThrow("redirect:/select-tenant");
   expect(session.workspace).not.toHaveBeenCalled();
@@ -52,4 +53,23 @@ it("does not expose calculation with market data access alone", async () => {
   const html = renderToStaticMarkup(await Page());
   expect(html).toContain("ACCESS RESTRICTED");
   expect(html).not.toContain("Run history");
+});
+
+it("allows a group-granted member to calculate without granting review", async () => {
+  session.workspace.mockResolvedValue({tenantName:"Delegated",membershipRole:"MEMBER",
+    moduleCodes:["MARKET_DATA","VALUATION"],permissionCodes:["MARKET_DATA_READ","VALUATION_READ","VALUATION_RUN"]});
+  const {default:Page}=await import("./page");
+  const html=renderToStaticMarkup(await Page());
+  expect(html).toContain("Calculate and stage");
+  expect(html).toContain("Daily input register");
+});
+
+it("does not give a review-only member calculation controls", async () => {
+  session.workspace.mockResolvedValue({tenantName:"Reviewer",membershipRole:"MEMBER",
+    moduleCodes:["MARKET_DATA","VALUATION"],permissionCodes:["MARKET_DATA_READ","VALUATION_READ","VALUATION_REVIEW"]});
+  const {default:Page}=await import("./page");
+  const html=renderToStaticMarkup(await Page());
+  expect(html).toContain("Run history");
+  expect(html).not.toContain("Calculate and stage");
+  expect(html).not.toContain("Daily input register");
 });

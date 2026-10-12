@@ -28,18 +28,27 @@ def _definition(connection, table, key, value, execution_date, *, lock=True):
     approved = [row for row in rows if row.status == 'APPROVED' and row.is_current]
     if len(approved) != 1:
         _invalid('Exactly one current approved definition is required for the listing and its instrument.', 'MISSING_CONFIGURATION')
-    row = approved[0]
-    if row.effective_from > execution_date or (row.effective_to and row.effective_to < execution_date):
+    eligible = [row for row in rows if row.status == 'APPROVED'
+                and row.effective_from <= execution_date
+                and (row.effective_to is None or execution_date <= row.effective_to)]
+    if not eligible:
         _invalid('Execution date is outside the approved reference definition.')
-    return row
+    if len(eligible) != 1:
+        _invalid('Ambiguous approved reference definitions cover the execution date.', 'MISSING_CONFIGURATION')
+    return eligible[0]
+
+
+def _within_lifecycle(projection, execution_date):
+    # Overall reference availability and a particular version's business-valid
+    # interval are distinct. Both must cover execution; approval time is not
+    # backdated when a steward adds evidence-supported historical coverage.
+    if ((projection.effective_from and projection.effective_from > execution_date)
+            or (projection.effective_to and projection.effective_to < execution_date)):
+        _invalid('Execution date is outside the reference lifecycle.')
 
 
 def _consistent(projection, definition, fields):
     for field in fields:
-        # Legacy undated projections predate approval versioning. The explicit
-        # approved start controls eligibility; no synthetic date is inserted.
-        if field == 'effective_from' and projection[field] is None:
-            continue
         if projection[field] != definition[field]:
             _invalid('The listing or instrument differs from its approved definition. Reselect an approved reference.')
 
@@ -81,8 +90,14 @@ def load_cash_booking_listing(connection, tenant_id, listing_id, execution_date,
         _invalid('An active tradable listing and current approved instrument are required.')
     definition = _definition(connection, m.instrument_definition_version, 'instrument_node_id', parent_id, execution_date, lock=lock)
     listing_definition = _definition(connection, m.listing_definition_version, 'listing_node_id', listing_id, execution_date, lock=lock)
-    _consistent(instrument, definition, ('instrument_type_id', 'asset_class', 'issuer_organisation_id', 'base_currency_id', 'effective_from', 'effective_to', 'sequence_no'))
-    _consistent(listing, listing_definition, ('market_venue_id', 'trading_currency_id', 'trading_symbol', 'quote_factor', 'unit_multiplier', 'effective_from', 'effective_to'))
+    _within_lifecycle(instrument, execution_date)
+    _within_lifecycle(listing, execution_date)
+    # Historical cash booking is deliberately limited to unchanged economics:
+    # do not substitute today's currency, venue or factors for different terms.
+    _consistent(instrument, definition, ('instrument_type_id', 'asset_class', 'issuer_organisation_id', 'base_currency_id'))
+    if definition.is_current:
+        _consistent(instrument, definition, ('sequence_no',))
+    _consistent(listing, listing_definition, ('market_venue_id', 'trading_currency_id', 'trading_symbol', 'quote_factor', 'unit_multiplier'))
     for node, expected in sorted(((listing_node, 'LISTING'), (parent_node, 'INSTRUMENT')),
                                  key=lambda item: str(item[0].reference_node_type_id)):
         rows = _locked(connection, m.reference_node_type, 'reference_node_type_id', node.reference_node_type_id, lock=lock)

@@ -138,7 +138,7 @@ export function InstrumentDetail({ instrument, standalone = false, futureTerms,s
           <Stack divider={<Divider flexItem />}>
             {instrument.identifiers.map((identifier) => (
               <Stack key={`${identifier.scheme}-${identifier.value}`} direction="row" spacing={2} sx={{ py: 1, justifyContent: "space-between" }}>
-                <Typography variant="body2" color="text.secondary">{identifier.scheme} <Chip label={identifier.scope} size="small" sx={{ ml: 0.5, height: 20, fontSize: 10 }} /></Typography>
+                <Typography component="div" variant="body2" color="text.secondary">{identifier.scheme} <Chip label={identifier.scope} size="small" sx={{ ml: 0.5, height: 20, fontSize: 10 }} /></Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace" }}>{identifier.value}</Typography>
               </Stack>
             ))}

@@ -26,7 +26,7 @@ def _original(connection, tenant, trade_id):
     return row
 
 
-def _chain(connection, original, expected_sequence):
+def _chain(connection, original, expected_sequence, *, allow_legacy_cancel=False):
     events=connection.execute(select(m.trade_lifecycle_event).where(
         m.trade_lifecycle_event.c.trade_id==original.trade_id).order_by(m.trade_lifecycle_event.c.sequence_no)).mappings().all()
     if not events or events[-1].sequence_no!=expected_sequence:
@@ -35,8 +35,17 @@ def _chain(connection, original, expected_sequence):
         raise CorrectionConflict('tradeId','Only active booking records can be corrected; this record was already cancelled or superseded.')
     if len(events)>2 or [e.sequence_no for e in events]!=list(range(1,len(events)+1)) or events[0].event_type!='BOOKED':
         raise CorrectionConflict('tradeId','This lifecycle chain requires a separately supported workflow.')
+    if original.trade_type!='INVESTMENT':
+        raise CorrectionConflict('tradeId','Only supported investment booking records can be corrected.')
     try:
         payload=json.loads(events[0].event_payload or '{}')
+        # Cancelling an erroneous record needs identity/history, not invented
+        # product conventions. Only the original empty legacy shape qualifies;
+        # replacement and malformed/new-format evidence remain fail-closed.
+        if (allow_legacy_cancel and payload=={} and len(events)==1 and
+            events[0].event_datetime_utc==original.trade_datetime_utc and
+            all(original[key] is None for key in ('valuation_effective_date','valuation_date_basis','valuation_override_reason'))):
+            return events,None
         if payload.get('schemaVersion')!=1: raise ValueError()
         kind={'CASH_BOOKING':'CASH','FX_FORWARD_BOOKING':'FX_FORWARD','OPTION_BOOKING':'OPTION'}.get(payload.get('kind'))
         if payload.get('kind')=='PRODUCT_BOOKING': kind=payload['economics']['terms']['kind']
@@ -53,9 +62,10 @@ def _chain(connection, original, expected_sequence):
     return events,kind
 
 
-def prepare_correction(connection, tenant, request, kind):
+def prepare_correction(connection, tenant, request, kind, *, actor):
     correction=request.correction
     if correction is None: return
+    authorize_booking(connection,tenant,actor,action='TRADE_CORRECT')
     original=_original(connection,tenant,correction.trade_id)
     _,original_kind=_chain(connection,original,correction.expected_sequence_no)
     if original.strategy_id!=request.strategy_id or original_kind!=kind:
@@ -88,7 +98,7 @@ def complete_correction(connection, tenant, actor, request, new_trade_id):
 def cancel_booking(connection, tenant, actor, trade_id, request, key, request_id):
     from .repository import get_booked_trade_detail
     with connection.begin_nested():
-        authorize_booking(connection,tenant,actor)
+        authorize_booking(connection,tenant,actor,action='TRADE_CORRECT')
         normalized=request.model_dump(mode='json',by_alias=True)|dict(tradeId=str(trade_id))
         fingerprint=sha256(json.dumps(normalized,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         replay=find_booking_replay(connection,tenant,CANCEL_ENDPOINT,key,fingerprint)
@@ -97,7 +107,7 @@ def cancel_booking(connection, tenant, actor, trade_id, request, key, request_id
             if result is None: raise RepositoryNotFound('Booked trade does not exist')
             return result
         original=_original(connection,tenant,trade_id)
-        events,_=_chain(connection,original,request.expected_sequence_no)
+        events,_=_chain(connection,original,request.expected_sequence_no,allow_legacy_cancel=True)
         payload=dict(schemaVersion=1,kind='BOOKING_CORRECTION',action='CANCEL_BOOKING',reason=request.reason,originalTradeId=str(trade_id))
         _append(connection,actor,original,events,'CANCELLED',payload,source_system=f'fortem:booking-cancel:{tenant}',source_event=key,fingerprint=fingerprint)
         connection.execute(update(m.trade).where(m.trade.c.trade_id==trade_id).values(lifecycle_status='CANCELLED'))

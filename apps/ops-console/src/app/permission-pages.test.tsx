@@ -25,7 +25,7 @@ it('hides request-page creation from an unqualified member',async()=>{
 });
 it('explains a directly opened booking page instead of silently redirecting',async()=>{
  h.path='/trades/new';const html=renderToStaticMarkup(await NewTradePage({searchParams:Promise.resolve({})}));
- expect(html).toContain('TENANT_ADMIN');expect(html).toContain('TRADING');expect(html).toContain('administrator');
+ expect(html).toContain('permission');expect(html).toContain('TRADING');expect(html).toContain('administrator');
  expect(html.includes('Review booking')).toBe(false);expect(h.booking).not.toHaveBeenCalled();
 });
 it.each([
@@ -36,6 +36,6 @@ it.each([
  ['/instruments/id/booking-conventions',()=>ConventionPage({params:Promise.resolve({instrumentId:'id'})})],
 ] as const)('explains instrument stewardship denial before opening any write form: %s',async(path,page)=>{
  h.path=path;const html=renderToStaticMarkup(await page());
- expect(html).toContain('TENANT_ADMIN');expect(html).toContain('SECURITY_MASTER');expect(html).toContain('administrator');
+ expect(html).toContain('permission');expect(html).toContain('SECURITY_MASTER');expect(html).toContain('administrator');
  expect(html.includes('<form')).toBe(false);
 });

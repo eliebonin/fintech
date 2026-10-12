@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 def test_alembic_can_generate_offline_sql_for_head() -> None:
     result = subprocess.run(
-        [str(PROJECT_ROOT / ".venv" / "Scripts" / "alembic.exe"), "upgrade", "head", "--sql"],
+        [sys.executable, "-m", "alembic", "upgrade", "head", "--sql"],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,

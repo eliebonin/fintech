@@ -32,5 +32,5 @@ def test_http_empty_result_is_explicit_and_retry_stable(valued):
             detail=await client.get('/v1/valuation/attempts/'+result['attempt']['attempt_id'],headers=headers)
             assert detail.status_code==200 and detail.json()['batch']['summary']['marketPnl']=='0'
             rejected=await client.post('/v1/valuation/batches/'+batch['batch_id']+'/publish',json={'comment':'Self-review'},headers=headers)
-            assert rejected.status_code==409 and 'independent' in rejected.text
+            assert rejected.status_code==403 and 'independent' in rejected.text.lower()
     asyncio.run(exercise())

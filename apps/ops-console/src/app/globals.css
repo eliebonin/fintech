@@ -122,12 +122,12 @@ code { color: #64748b; font-family: ui-monospace, SFMono-Regular, Menlo, monospa
 .negative { color: #b91c1c; }
 .neutral { color: #475569; }
 .table-wrap { max-width: 1280px; margin: 0 auto; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
-table { width: 100%; border-collapse: collapse; min-width: 780px; }
-th, td { padding: 14px 16px; border-bottom: 1px solid #eef2f7; text-align: right; font-size: 13px; }
-th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
-th { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
-th small { font-size: 9px; font-weight: 500; text-transform: none; letter-spacing: 0; }
-td:first-child { display: grid; gap: 4px; }
+.mvp-page table:not(.MuiTable-root) { width: 100%; border-collapse: collapse; min-width: 780px; }
+.mvp-page th:not(.MuiTableCell-root), .mvp-page td:not(.MuiTableCell-root) { padding: 14px 16px; border-bottom: 1px solid #eef2f7; text-align: right; font-size: 13px; }
+.mvp-page th:first-child:not(.MuiTableCell-root), .mvp-page td:first-child:not(.MuiTableCell-root), .mvp-page th:nth-child(2):not(.MuiTableCell-root), .mvp-page td:nth-child(2):not(.MuiTableCell-root) { text-align: left; }
+.mvp-page th:not(.MuiTableCell-root) { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.mvp-page th:not(.MuiTableCell-root) small { font-size: 9px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+/* Preserve native table-cell layout; inner content owns its spacing. */
 @media (max-width: 760px) { .mvp-page { padding: 22px 18px 48px; } .mvp-header { display: block; } .synthetic-badge { display: inline-block; margin-top: 18px; } .date-form { flex-wrap: wrap; } .history-heading { display: block; } .history-heading > strong { display: block; margin-top: 12px; } }
 @media (max-width: 1000px) { .strategy-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }.strategy-form button { grid-column: 1 / -1; justify-self: start; } }
 @media (max-width: 900px) { .tenant-profile-grid { grid-template-columns: 1fr; } }
@@ -258,3 +258,10 @@ td:first-child { display: grid; gap: 4px; }
 .pricing-policy-editor pre,.history-panel pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:400px; overflow:auto; }
 .futures-workspace [aria-pressed="true"] { background:#1d4ed8; color:white; border-color:#1d4ed8; }
 @media(max-width:650px) { .futures-facts { grid-template-columns:1fr; gap:6px; }.futures-facts dd { margin-bottom:12px; }.futures-months { grid-template-columns:1fr 1fr; }.futures-form fieldset { padding:16px; } }
+
+/* Keep menu feedback local to the clicked link, with no layout shift or
+   full-page flash. Fast transitions complete before the hint appears. */
+.workspace-nav-hint { position:absolute; left:12px; right:12px; bottom:2px; height:2px; border-radius:2px; background:#6e9aff; opacity:0; pointer-events:none; }
+.workspace-nav-hint.is-pending { animation:workspace-nav-reveal 180ms ease 250ms forwards; }
+@keyframes workspace-nav-reveal { to { opacity:0.8; } }
+@media (prefers-reduced-motion:reduce) { .workspace-nav-hint.is-pending { animation:workspace-nav-reveal 0s linear 250ms forwards; } }

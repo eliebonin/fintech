@@ -3,10 +3,35 @@
 **Status:** Accepted  
 **Content type:** Delivery index  
 **Owner:** Engineering delivery team  
-**Last reviewed:** 2026-10-07
+**Last reviewed:** 2026-10-08
 
 Use [specifications](specifications/README.md) for approved design intent, [implementation plans](implementation-plans/README.md) for execution sequences, and [quality reviews](quality-reviews/README.md) for dated evidence. None is automatically current architecture without a link from a canonical page.
 # Delivery documentation
+
+- [Latest available EoD defaults, explicit overrides and policy-context clarification](flexible-pricing-policies.md)
+
+- [EUR/GBP UK FX readiness for October 6–7 — activated with FLEXIBLE_EOD v2](yahoo-eurgbp-valuation-setup-2026-10-09.md)
+
+- [Economic strategy P&L — delivered scope, tests and pending activation](economic-pnl-implementation-2026-10-09.md)
+
+- [Economic strategy P&L implementation plan — market, income/accruals, staged amendments and publication](../superpowers/plans/2026-10-09-economic-strategy-pnl.md)
+
+- [Agreed economic P&L foundation, research and legacy frontend reference](economic-pnl-agreed-foundation-2026-10-09.md)
+
+- [Proposed valuation price-basis plan: economic requirements and evidenced split conversion](../superpowers/plans/2026-10-09-valuation-price-basis.md)
+
+- [One CLOSE price family with closing-method metadata and official-only policies](closing-price-consolidation.md)
+
+- [Market data provider/scope catalogue and operational source priorities](market-data-sources-ui.md)
+
+- [Public-universe historical booking dates and October 7 Yahoo update](index-trading-history-and-yahoo-2026-10-08.md)
+
+- [Legacy booking cancel-only workflow and lifecycle-aware valuation exclusion](legacy-booking-cancellation-2026-10-08.md)
+
+- [Daily valuation dates and built-in trade recognition — implementation, evidence and pending activation](daily-valuation-recognition-progress.md)
+
+- [Lightweight instrument catalogue, batched reads and operating performance](instrument-catalogue-performance-2026-10-08.md)
+- [Frontend loading, workspace failures, catalogue provenance and isolated verification](frontend-loading-recovery-2026-10-08.md)
 
 - [Legacy P&L demo retirement and fresh valuation/P&L starting boundary](pnl-demo-retirement-and-fresh-start.md)
 - [Yahoo daily equities, layered rights and personal-project activation](yahoo-market-data-alpha.md)
@@ -61,3 +86,6 @@ To check the migration boundary against a running local service, run:
 $env:DATABASE_URL='postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm'
 .venv\Scripts\python.exe -m pytest tests/test_migrations.py -v
 ```
+
+- [Frontend presentation review — 8 October 2026](frontend-style-review-2026-10-08.md): native workspace styling, responsive forms and verification limits.
+- [Market data workspace — operational overview, compact explorer and explicit coverage checks](market-data-workspace-2026-10-09.md)

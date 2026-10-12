@@ -30,7 +30,7 @@ def evaluate_rights(profile, requirements, grants, activity: str, on_date: date,
                          else {'CONTRACT', 'PERSONAL_DECLARATION'})
         if (scope == 'PERSONAL' and activity == 'ACQUIRE'
                 and requirement['requirement_code'] == 'AUTOMATED_SOURCE_ACCESS'
-                and profile.get('dataset_code') == 'YAHOO_PERSONAL_EQUITY_DAILY'
+                and profile.get('dataset_code') in {'YAHOO_PERSONAL_EQUITY_DAILY','YAHOO_PERSONAL_FX_GBP'}
                 and profile.get('permitted_tenant_id') is not None):
             allowed_bases = allowed_bases | {'PERSONAL_RESEARCH_EXCEPTION'}
         candidates = []

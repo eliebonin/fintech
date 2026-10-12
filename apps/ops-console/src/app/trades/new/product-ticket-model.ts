@@ -1,3 +1,4 @@
+import {recognitionPayload} from '@/lib/valuation-recognition';
 import type {components} from 'api-contracts';
 import type {TradeBookingContext} from '@/lib/browser-api-client';
 import {validateTradeAnnotations,type EnrichedTicketDraft,type TicketError} from './ticket-model';
@@ -55,7 +56,7 @@ export function validateProductDraft(terms:ProductTerms,draft:ProductDraft,conte
   return errors;
 }
 export function buildProductPayload(terms:ProductTerms,draft:ProductDraft):ProductRequest {
-  return {...(terms.kind==='BOND'?{priceType:draft.priceType as 'CLEAN'|'DIRTY',accruedInterestAmount:draft.accruedInterestAmount,settlementEvidence:draft.settlementEvidence?.trim()}:{}),instrumentId:terms.instrumentId,listingId:terms.listingId??null,executionRoute:terms.executionRoute,
+  return {...recognitionPayload(draft),...(terms.kind==='BOND'?{priceType:draft.priceType as 'CLEAN'|'DIRTY',accruedInterestAmount:draft.accruedInterestAmount,settlementEvidence:draft.settlementEvidence?.trim()}:{}),instrumentId:terms.instrumentId,listingId:terms.listingId??null,executionRoute:terms.executionRoute,
     expectedTermsFingerprint:terms.termsFingerprint??'',strategyId:draft.strategyId,side:draft.side,quantity:draft.quantity,
     executionPrice:draft.executionPrice,tradeDatetime:draft.tradeDatetime,settlementDate:terms.kind==='FUTURE'||terms.kind==='SWAP'?null:draft.settlementDate,
     positionEffect:terms.kind==='FUTURE'?draft.positionEffect:null,tradePurpose:draft.tradePurpose,marketActivity:draft.marketActivity||null,

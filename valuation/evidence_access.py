@@ -29,4 +29,13 @@ def batch_datasets(batch):
 
 
 def assert_batch_display(c, tenant, batch):
-    assert_dataset_display(c,tenant,batch_datasets(batch))
+    datasets=batch_datasets(batch)
+    contexts=[]
+    try:
+        for item in batch['items']:
+            for selection in item['evidence'].get('selections', []):
+                contexts.append((UUID(str(selection['dataset_id'])),
+                    UUID(str(selection['market_data_series_id'])) if selection.get('market_data_series_id') else None))
+    except (KeyError,ValueError,TypeError) as exc:
+        raise EvidenceDisplayDenied('Source coverage evidence is incomplete; disclosure cannot be authorised.') from exc
+    assert_dataset_display(c,tenant,datasets,series_contexts=contexts)

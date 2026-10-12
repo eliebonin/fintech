@@ -55,6 +55,10 @@ def assert_no_unreplayed_actions(c,lots,closing_cutoff,information_cutoff,error_
         for row in c.execute(select(m.listing.c.listing_node_id,m.listing.c.instrument_node_id,
             m.market_venue.c.timezone_name).select_from(m.listing.outerjoin(m.market_venue)).where(
                 m.listing.c.listing_node_id.in_(subjects)))}
+    canonical=set(c.scalars(select(m.instrument.c.instrument_node_id).where(m.instrument.c.instrument_node_id.in_(subjects-parents.keys()))))
+    # No venue timezone is fabricated for OTC instruments. Timestamped action
+    # evidence can be ordered; date-only actions without a timezone fail closed.
+    parents.update({subject:(subject,None) for subject in canonical})
     if subjects-parents.keys():
         raise error_type('Corporate action safety requires an explicit canonical listing parent')
     actions=m.corporate_action;dates=m.corporate_action_date

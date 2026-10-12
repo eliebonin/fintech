@@ -7,7 +7,7 @@ from sqlalchemy import Table,Column,String,DateTime,Date,Integer,Numeric,Foreign
 from sqlalchemy.dialects.postgresql import UUID,JSONB
 
 def register_valuation_tables(metadata):
-    global attempt, run_event, attribution, batch, item, review_event, lineage
+    global attempt, run_event, attribution, batch, item, review_event, lineage, accrual_input, amendment
     uid=UUID(as_uuid=True)
     # Wall-clock evidence time, not the start of a long financial transaction.
     now=text('clock_timestamp()')
@@ -67,6 +67,29 @@ def register_valuation_tables(metadata):
     review_event=Table('pnl_review_event',metadata,key('review_event_id'),Column('batch_id',uid,ForeignKey('nav.pnl_review_batch.batch_id'),nullable=False),
         actor('actor_id'),Column('action',String(30),nullable=False),Column('comment',String(2000),nullable=False),
         Column('recorded_at',DateTime(timezone=True),nullable=False,server_default=now),schema='nav')
+    accrual_input=Table('daily_accrual_input',metadata,key('input_id'),*scope(),actor('recorded_by'),
+        Column('instrument_id',uid,ForeignKey('secm.instrument.instrument_node_id'),nullable=False),
+        Column('value_date',Date,nullable=False),Column('input_type',String(30),nullable=False),
+        Column('revision',Integer,nullable=False),Column('supersedes_input_id',uid,ForeignKey('nav.daily_accrual_input.input_id')),
+        Column('submission_key',String(255),nullable=False),Column('input_hash',String(64),nullable=False),
+        Column('request_hash',String(64),nullable=False),
+        Column('payload',JSONB,nullable=False),Column('recorded_at',DateTime(timezone=True),nullable=False,server_default=now),
+        UniqueConstraint('tenant_id','submission_key',name='uq_accrual_submission'),
+        UniqueConstraint('tenant_id','strategy_id','instrument_id','value_date','input_type','revision',name='uq_accrual_revision'),
+        CheckConstraint("input_type='DAILY_INTEREST' AND revision>0",name='ck_accrual_type_revision'),schema='nav')
+    amendment=Table('pnl_amendment_request',metadata,key('request_id'),*scope(),actor('requested_by'),
+        Column('base_batch_id',uid,nullable=False),Column('base_attribution_id',uid,nullable=False),
+        Column('population_hash',String(64),nullable=False),Column('submission_key',String(255),nullable=False),
+        Column('request_hash',String(64),nullable=False),Column('component',String(40),nullable=False),
+        Column('amount',Numeric(30,12),nullable=False),Column('reason',String(2000),nullable=False),
+        Column('source_reference',String(500),nullable=False),Column('status',String(20),nullable=False),
+        Column('reviewed_by',uid,ForeignKey('secm.user_account.user_account_id')),Column('review_comment',String(2000)),
+        Column('applied_batch_id',uid,ForeignKey('nav.pnl_review_batch.batch_id')),
+        Column('created_at',DateTime(timezone=True),nullable=False,server_default=now),Column('reviewed_at',DateTime(timezone=True)),
+        ForeignKeyConstraint(['base_batch_id','tenant_id'],['nav.pnl_review_batch.batch_id','nav.pnl_review_batch.tenant_id']),
+        ForeignKeyConstraint(['base_attribution_id','tenant_id'],['nav.pnl_attribution.attribution_id','nav.pnl_attribution.tenant_id']),
+        UniqueConstraint('tenant_id','submission_key',name='uq_pnl_amendment_key'),
+        CheckConstraint("status IN ('PENDING','APPLIED','REJECTED','STALE')",name='ck_pnl_amendment_status'),schema='nav')
     documentation={
         'position_key':'Hash of compatible position conventions; null for historical trade-owned results.',
         'subject_id':'Actual listing/traded subject valued by this position-owned result.',
@@ -105,8 +128,29 @@ def register_valuation_tables(metadata):
         'summary':'Frozen period bridge, currency, validation state and scope limitations presented to reviewers.',
         'action':'Recorded workflow action such as STAGED, EXPLANATION, PUBLISHED, CANCELLED or SUPERSEDED.',
         'comment':'Bounded human explanation or publication rationale, retained with actor and recording time.',
+        'event_id':'Immutable booked lifecycle event supporting the selected attribution.',
+        'role':'Contribution role: opening evidence, period execution or lifecycle evidence.',
+        'recorded_by':'Authenticated account recording this daily-interest input revision.',
+        'instrument_id':'Canonical instrument whose strategy position earns the stated daily interest.',
+        'input_type':'DAILY_INTEREST flow input; not an accumulated interest balance.',
+        'revision':'Positive immutable revision within tenant, strategy, instrument, date and input type.',
+        'supersedes_input_id':'Previous daily-interest revision replaced by this input.',
+        'submission_key':'Tenant-scoped idempotency key for an unchanged input or amendment request.',
+        'payload':'Frozen decimal amounts, source currency, daily interest and source evidence.',
+        'requested_by':'Authenticated account requesting the staged component amendment.',
+        'base_batch_id':'Tenant-scoped staged candidate to which this amendment request applies.',
+        'base_attribution_id':'Exact attribution version selected for the requested component amendment.',
+        'population_hash':'Hash of the candidate selection when the amendment was requested.',
+        'component':'Income, cost or adjustment component being amended; market/accrual changes require recalculation.',
+        'amount':'Signed incremental amendment in the attribution reporting currency.',
+        'reason':'Bounded operational explanation for the requested component amendment.',
+        'source_reference':'Reference to supporting evidence for the amendment.',
+        'reviewed_by':'Independent authenticated account deciding this amendment request.',
+        'review_comment':'Retained independent reviewer explanation for approval, rejection or staleness.',
+        'applied_batch_id':'Replacement staged candidate produced by an approved amendment.',
+        'reviewed_at':'UTC recording time of the amendment decision.',
     }
-    for table in (attempt,run_event,attribution,batch,item,review_event):
+    for table in (attempt,run_event,attribution,batch,item,lineage,review_event,accrual_input,amendment):
         table.comment='Valuation/P&L evidence and review domain; operational attempts remain distinct from official financial selection.'
         for column in table.columns:
             column.comment=documentation.get(column.name) or ('Immutable UUIDv7 identity of this record.' if column.primary_key else

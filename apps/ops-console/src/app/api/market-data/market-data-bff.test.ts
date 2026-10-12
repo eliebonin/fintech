@@ -52,3 +52,10 @@ describe("market-data BFF routes", () => {
     expect(response.status).toBe(201);
   });
 });
+
+it('rejects a coverage request frozen under a different tenant before contacting the resolver',async()=>{
+ mockPost.mockReset();
+ const {POST:preview}=await import('./resolution-preview/route');
+ const response=await preview(new Request('http://ops.test/api/market-data/resolution-preview',{method:'POST',headers:{'X-Expected-Tenant-Id':'previous-tenant'},body:'{}'}));
+ expect(response.status).toBe(409);expect(mockPost).not.toHaveBeenCalled();
+});

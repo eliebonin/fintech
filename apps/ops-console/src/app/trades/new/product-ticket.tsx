@@ -1,5 +1,6 @@
 'use client';
 import { BookingSearchResults } from './booking-search-results';
+import {RecognitionSummary} from './valuation-recognition-fields';
 import {freezeBookingSubmission,type FrozenBookingSubmission} from '@/lib/booking-submission';
 import {withBookingCorrection,type BookingCorrection} from '@/lib/trade-correction-model';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
@@ -40,7 +41,7 @@ export function ProductReview({terms,draft,context,strategies}:{terms:ProductTer
   if(terms.kind==='BOND')rows.push(['Quoted price type',draft.priceType??''],['Clean consideration',`${bondAmounts(terms,draft)?.clean??'—'} ${terms.currency}`],['Total signed accrued interest',`${draft.accruedInterestAmount} ${terms.currency}`],['Settlement/accrual evidence',draft.settlementEvidence??'']);
   if(swap&&terms.swapDetails?.genericTerms)rows[2][0]='Booked nominal';
   if(swap)rows.push(['Side interpretation',draft.side==='BUY'?'Canonical holder orientation':'Reversed holder orientation (both legs reversed)']);
-  return <><ProductFacts terms={terms}/><section className="detail-card"><h2>Review execution</h2><dl className="ticket-review">{rows.map(([label,value],index)=><div key={index}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>{swap?'Entry reference value — not a payment or independently verified valuation. One swap trade; no automatic cash entry. SELL reverses both canonical legs.':future?'Reference value is not a purchase payment. OPEN/CLOSE is intent only; no positions, clearing, margin or cash postings are verified.':'One trade on the parent security. Consideration is not confirmed payment; its payoff components are not booked separately.'}</p></section></>;
+  return <><ProductFacts terms={terms}/><section className="detail-card"><h2>Review execution</h2><RecognitionSummary draft={draft}/><dl className="ticket-review">{rows.map(([label,value],index)=><div key={index}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>{swap?'Entry reference value — not a payment or independently verified valuation. One swap trade; no automatic cash entry. SELL reverses both canonical legs.':future?'Reference value is not a purchase payment. OPEN/CLOSE is intent only; no positions, clearing, margin or cash postings are verified.':'One trade on the parent security. Consideration is not confirmed payment; its payoff components are not booked separately.'}</p></section></>;
 }
 
 export function ProductTicket({kind,strategies,context,correction}:{kind:'STRUCTURED_PRODUCT'|'FUTURE'|'BOND'|'SWAP';strategies:TicketStrategy[];context:TradeBookingContext;correction?:BookingCorrection}) {

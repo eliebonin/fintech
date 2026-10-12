@@ -125,3 +125,198 @@ Review was performed sequentially by the implementing agent, following the user'
 See the [design](../superpowers/specs/2026-10-06-yahoo-market-data.md) and [execution plan](../superpowers/plans/2026-10-06-yahoo-market-data.md).
 
 Subsequent operational changes are recorded in [ingestion hardening](md-ingestion-hardening.md): PARTIAL exits with code 3, jobs/attempts retain execution evidence, --retry-gaps targets explicit missing prices, and --audit-only performs read-only calendar/continuity reconciliation. The earlier verification above is dated evidence, not verification of this later extension.
+
+## Corporate-action import and evidence assessment — 2026-10-09
+
+The owner requested importing Yahoo corporate actions and assessing whether they
+resolve the as-traded price-basis gap. This extension reuses retained responses;
+it does not redownload the universe or relabel adjusted prices as RAW.
+
+### Implementation and boundaries
+
+- `market_data/providers/yahoo/corporate_actions.py` interprets Yahoo split ratios
+  and dividend ex-dates and reassesses retained deliveries. Provider symbol,
+  venue/currency/timezone, source hash, event key/date, query coverage, ratio and
+  numeric checks precede publication. Inconsistent events retain explicit rejection
+  evidence and do not destroy otherwise valid price points.
+- `market_data/corporate_actions.py` publishes normalized facts into existing
+  `secm.corporate_action`, `corporate_action_date` and `corporate_action_effect`.
+  Sources link back to original payloads; recorded time is today, not backdated.
+  Events are **ANNOUNCED/unreviewed**, not CONFIRMED or paid. Split ratios and cash
+  amounts are source-reported candidates. Dividend amounts retain the explicit
+  `PROVIDER_REPORTED_UNASSESSED` assessment: their historical unit/currency basis
+  must be reviewed before recognising financial income.
+- Only EX dates are supplied. Yahoo event epoch timestamps are not treated as
+  precise intraday entitlement boundaries. No announcement, record or payment
+  date is invented. No automatic cash trade, income/accrual, payment or position
+  replay is produced.
+- New accepted Yahoo deliveries publish their events through the provider-neutral
+  parsed-delivery contract. Repeat events are deduplicated; changed unreviewed
+  terms append a new sequence. Old retained vintages cannot undo newer corrections.
+  Reviewed/cancelled events are not replaced or revived by a provider refresh.
+- The operator entry point is `apps.market_data_ingestor.yahoo_corporate_actions`.
+  It is local/test-only, dry-run by default and requires the owning personal tenant's
+  administrator and current STORE rights. Rights/grants are not broadened.
+- Backfill evidence lives in existing ingestion jobs/attempts, referencing each
+  original source run. Earlier exceptions are not hidden by a later empty response.
+  Original ingestion runs, observations and financial versions are unchanged.
+  No migration was required; the API guard reads the new DB facts without restart.
+
+### Applied DB result
+
+Executed after isolated checks with:
+
+```powershell
+.venv/Scripts/python.exe -m apps.market_data_ingestor.yahoo_corporate_actions --tenant 00000000-0000-7000-8000-000000000011 --actor 00000000-0000-7000-8000-000000000083 --apply
+```
+
+- Job `01a120ae-fe57-7671-b8a4-7c7ef852d220` committed **8,152** source events from
+  **1,086 validated retained deliveries / 543 symbols**: **79 splits** and
+  **8,073 cash-dividend events**. One older rejected delivery was excluded.
+- Outcome **PARTIAL** accurately retains five rejected event-key/date inconsistencies
+  for `A`, `DG`, `DGX`, `JPM` and `PGR`; no delivery failed. Accepted events were
+  committed, not rolled back because of those source warnings.
+- TTE.PA: **21 dividends, zero reported splits**, covering its retained five-year
+  request and October 7 response. This is observed source history, not certification
+  that all possible relevant splits are absent.
+- DB readback confirmed the event counts/status and operational job summary.
+  No normalization proof or Yahoo adjustment-factor row was created.
+
+### Price-basis conclusion and remaining work
+
+Corporate-action **facts** and provider price-normalization **evidence** are distinct.
+The chart response gives dated events within the requested window, but this importer
+does not establish the anchor of the source's split-adjusted Close history or certify
+coverage through that anchor. An empty event list does not by itself prove factor 1.
+The assessment retains `anchorDate=null`, `complete=false` and
+`PROVIDER_ADJUSTMENT_ANCHOR_NOT_CERTIFIED`. Do not set those flags to true merely
+because import succeeded or because a source calls its data "Close".
+
+At this import checkpoint TTE's **PRICE_BASIS_PROOF_MISSING remained unresolved**. The next step
+is qualification of the source's adjustment anchor and complete relevant history,
+or verified native as-traded prices. Once qualified, attach observation/vintage-
+specific split-only evidence at the existing price-basis boundary. Dividends are
+not folded into that split-only factor. Policy selection remains separate from
+the engine's mandatory quantity/price compatibility checks.
+
+Existing corporate-action valuation safety is **a blocking guard, not quantity
+replay**. Newly imported unit-changing events intersecting an exposure may correctly
+block calculation until replay is implemented; importing an event does not apply it
+to a trade. Original bookings must remain unchanged.
+
+### Verification
+
+- Test-first parser failures were observed before implementation. Subsequent DB
+  regressions caught invalid job outcomes, stale-vintage correction reversal and
+  hidden earlier warnings before live activation.
+- **81** focused parser, ingestion, corporate-action service and valuation-guard
+  tests passed in a disposable DB; **3** runtime ingestion-isolation tests passed.
+  Eight pre-existing SQLAlchemy Result.tuples seed deprecation warnings remain.
+- CLI help, compile checks and relevant diff whitespace checks passed. The full
+  suite, static dependency-contract check and authenticated browser walkthrough
+  were not run for this slice. No valuation was run or published; no commit/push.
+
+## Derived as-traded RAW closes — 2026-10-09
+
+The owner approved reconstructing as-traded prices from Yahoo Close and its split
+history. Original split-adjusted Close and provider-adjusted Adj Close remain
+immutable, separately identifiable source series. Dividends are not part of this
+conversion. The earlier certification wording is superseded by the operational
+assessment below; no external certification or new licence is claimed.
+
+### Method and boundaries
+
+- `YAHOO_SPLIT_TO_AS_TRADED_V1` explicitly assumes Yahoo Close is split-adjusted
+  through the snapshot's latest regular-market date, derived in the venue timezone
+  from `meta.regularMarketTime`. The requested historical end date is **not** the
+  adjustment reference date. Missing/future/contradictory metadata blocks conversion.
+  This is a documented provider-method assumption, not a Yahoo-issued anchor field.
+- Assess retained, identity-checked chart responses covering every calendar date
+  from the original requested start through that snapshot reference date. Newer
+  responses resolve overlapping event revisions; a malformed split interval cannot
+  establish coverage. Dividend-only defects do not invalidate split-only evidence.
+- For market date D, multiply Close by the product of split numerators/denominators
+  for `D < split date <= snapshot reference date`. The split-day close is already
+  in the new unit, so is **not** multiplied for that day's split. Reverse splits
+  work using the same ratios. Complete coverage with no relevant splits means 1.
+- Example: AMZN Close 122.35 before its 2022-06-06 20:1 split reconstructs to
+  2,447; a 124.79 close on the split day stays 124.79. Numeric(30,12) rounding
+  remains explicit; source floating-point approximations are not repaired to cents.
+- Append a separate `CLOSE / RAW` series in the **same licensed dataset**, tagged
+  `DERIVED_RAW_CLOSE`, normalization method and original series ID. Copy exact
+  series coverage classification; no grant, source priority or policy is broadened.
+  Source ingestion excludes derived series, preventing ambiguity or accidental overwrite.
+- Each derived point retains the original payload, licence, market/bar timestamps,
+  a new normalization vintage/receipt, and source-observation-specific split lineage.
+  Evidence is recorded when assessed, not backdated. The existing proof table holds
+  split-only source proofs and derived-point provenance. Selection freezes that
+  provenance, prefers eligible RAW and does not apply the split factor twice.
+- Replay is idempotent. Current source corrections append derived corrections;
+  superseded source observations are not replayed over newer values. Source/trade
+  records, historical runs and published financial versions are never rewritten.
+
+### Operator flow
+
+`market_data/providers/yahoo/raw_prices.py` owns the provider-specific assessment
+and derived publication. `apps.market_data_ingestor.yahoo_raw_prices` is the local
+operator entry point, dry-run by default:
+
+```powershell
+.venv/Scripts/python.exe -m apps.market_data_ingestor.yahoo_raw_prices --tenant 00000000-0000-7000-8000-000000000011 --actor 00000000-0000-7000-8000-000000000083 --fill-gaps --apply
+```
+
+`--fill-gaps` fetches only missing split-coverage intervals, using existing bounded
+Yahoo requests, serial spacing and exponential 429 retries. Event-only suffix
+deliveries retain complete source payloads but publish **no** price bars, including
+no incomplete current-day bar. Current ACQUIRE/STORE rights and dataset ownership
+are enforced. Current source metadata may refer to today while the price request
+ends yesterday; such missing event coverage is reported, never assumed empty.
+
+The ordinary Yahoo equity CLI now runs normalization after source publication and
+reports its separate status. Missing coverage remains PARTIAL/BLOCKED until this
+event-coverage completion command is used; successful acquisition alone does not
+promise RAW readiness. Database/job evidence records per-symbol results and failures.
+
+### Activation checkpoint
+
+AMZN and TTE.PA were committed first in job
+`01a120c9-222c-72b8-a959-e8619b1d4317`: **2,536 derived RAW prices**, no blocked
+deliveries. TTE's October 8 event-only suffix was fetched to assess the October 7
+price snapshot. Both October 6–7 prices have qualified split-only lineage. The
+full 543-symbol conversion completed in job
+`01a120cb-9b5f-73be-8a3a-221d16caf8aa`: **671,011 additional RAW observations**,
+plus the earlier 2,536, for **673,547 reconstructed prices / 543 listings**.
+Outcome COMPLETE, zero blocked deliveries, zero reported failures. Thirty-nine
+additional October 8 event-only suffix requests completed European coverage;
+the TTE suffix had already been retained in the initial activation. Those requests
+did not publish October 8 price bars or overwrite the October 6–7 source series.
+
+Read-only resolver checks and the restarted API's tenant-authorized resolution
+preview both selected TTE on October 6 (**75.720001220703 EUR**) and October 7
+(**75.419998168945 EUR**) under FLEXIBLE_EOD v2, returning DERIVED_RAW provenance.
+AMZN DB readback confirmed June 3, 2022 source **122.349998474121** becomes RAW
+**2446.999969482420**, while June 6 **124.790000915527** is unchanged. Values retain
+Yahoo's original floating-point precision; these are reconstructed, not newly
+certified official exchange closes. No policy version or financial run was changed.
+Final DB reconciliation confirmed **673,547 observations in each** of RAW,
+SPLIT_ADJUSTED and VENDOR_ADJUSTED, **543 RAW listing series**, and **zero RAW
+observations without normalization lineage**. The original two series counts
+are preserved, rather than relabelled or replaced.
+
+### Verification of the RAW slice
+
+- **108 focused tests passed** in a disposable DB, covering source publication,
+  corporate actions, split normalization, resolution/valuation price basis and
+  flexible policies. **3 runtime module-boundary checks passed**; the existing
+  static dependency-contract check and full suite were not run.
+- Cases include forward/reverse/cumulative splits, split-day boundary, factor one,
+  missing suffix/metadata, source mismatch, idempotency, append-only corrections,
+  STORE denial, event-only retention and proof-required derived RAW selection.
+- CLI help, compilation and relevant diff whitespace checks passed. API restarted
+  and health returned OK; both TTE date previews returned HTTP 200 / SELECTED.
+- No financial calculation, staging, publication, trade change, commit or push.
+
+Corporate-action quantity replay remains separate and is **not** added by price
+normalization. Positions spanning splits may still hit the existing replay safety
+guard. Income and dividend recognition remain separate; this is not total-return
+or fully production-qualified market data.

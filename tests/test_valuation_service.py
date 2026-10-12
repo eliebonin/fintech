@@ -28,6 +28,8 @@ def valued():
             display_name='Isolated valuation fixture',effective_from=date(2026,9,1),effective_to=None,status='ACTIVE'))))
     with engine.connect() as c:
         tx=c.begin()
+        original_policy_rule=dict(c.execute(select(m.valuation_policy_rule).where(
+            m.valuation_policy_rule.c.valuation_policy_rule_id==ids['valuation_policy_rule'])).mappings().one())
         try:
             # Insert complete immutable booking evidence without holding the
             # booking workflow's FOR UPDATE lock throughout the test. That lock
@@ -67,6 +69,15 @@ def valued():
             yield c,request,booked
         finally:
             if tx.is_active: tx.rollback()
+            else:
+                # HTTP acceptance commits this fixture so the independent runner
+                # can read it. Restore its shared demo rule before later tests;
+                # retain only the uniquely owned synthetic evidence/population.
+                c.rollback()
+                with engine.begin() as cleanup:
+                    cleanup.execute(m.valuation_policy_rule.update().where(
+                        m.valuation_policy_rule.c.valuation_policy_rule_id==ids['valuation_policy_rule'])
+                        .values(**original_policy_rule))
 
 def test_frozen_input_execution_bridge_uses_booking_factors(valued):
     c,request,trade=valued
@@ -93,6 +104,10 @@ def test_unsupported_product_snapshot_is_not_share_valued(valued):
 def test_reporting_currency_requires_real_frozen_fx_not_one(valued):
     from dataclasses import replace
     c,request,_=valued
+    source=dict(c.execute(select(m.market_data_observation).where(m.market_data_observation.c.market_data_observation_id==ids['market_data_observation'])).mappings().one())
+    stamp=datetime(2026,9,30,16,tzinfo=timezone.utc)
+    c.execute(m.market_data_observation.insert().values(**(source|dict(market_data_observation_id=uuid4(),market_date=stamp.date(),value=D('1050'),
+        market_data_vintage_id=None,observed_at_utc=stamp,received_at_utc=stamp,source_published_at_utc=stamp,source_observation_key='FX_MISSING_'+uuid4().hex))))
     with pytest.raises(service().ValuationBlocked,match='currency'):
         service().calculate(c,replace(request,reporting_currency_id=ids['usd_currency']))
 

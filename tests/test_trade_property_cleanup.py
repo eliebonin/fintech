@@ -5,7 +5,7 @@ from apps.reference_api import trade_properties
 from scripts.provision_trade_properties import provision_config
 
 def test_provisioning_cannot_create_new_embedded_choices(monkeypatch):
-    monkeypatch.setattr(trade_properties,"assert_trade_writer",lambda *args:None)
+    monkeypatch.setattr(trade_properties,"assert_trade_configurator",lambda *args:None)
     monkeypatch.setattr(trade_properties,"lock_trade_catalogue",lambda *args:None)
     connection=MagicMock()
     connection.scalar.return_value=0
@@ -45,7 +45,7 @@ def test_migration_preserves_old_values_and_replay_and_blocks_new_choices():
     from apps.reference_api.contracts import TradeBookingRequest
     from apps.reference_api.repository import _trade_booking_fingerprint, _TRADE_BOOKING_ENDPOINT, book_listed_cash_trade
 
-    base = os.environ.get("DATABASE_URL", "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm").rsplit("/",1)[0]
+    base = os.environ.get("DATABASE_URL", os.environ["DATABASE_URL"]).rsplit("/",1)[0]
     name = "fortem_choice_cleanup_test_" + uuid4().hex
     admin = create_engine(base + "/postgres", isolation_level="AUTOCOMMIT")
     engine = create_engine(base + "/" + name)

@@ -4,6 +4,10 @@ import type { FxForwardBookingInstrumentView } from "@/lib/browser-api-client";
 export const instrument: FxForwardBookingInstrumentView = {instrumentId:"00000000-0000-0000-0000-000000000001",name:"EUR/USD contract",baseCurrency:"EUR",quoteCurrency:"USD",quoteConvention:"USD_PER_EUR",agreedRate:"1.10",maturityDate:"2026-12-15",settlementDate:"2026-12-15",settlementType:"DELIVERABLE",termsFingerprint:"a".repeat(64),bookingEligible:true};
 export const draft: FxForwardTicketDraft = {strategyId:"strategy",side:"BUY",quantity:"1000000",tradeDatetime:"2026-10-01T10:00:00Z",counterpartyOrganisationId:"bank",tradePurpose:"HEDGING",properties:{},tagIds:[],externalReferences:[]};
 const context={tenantId:"tenant",bookedByUserAccountId:"actor",properties:[],tags:[]};
+it('sends shared valuation recognition outside tenant properties',()=>{
+ const payload=buildFxForwardTicketPayload(instrument,{...draft,valuationEffectiveDate:'2026-10-02',valuationOverrideReason:'Deferred'});
+ expect(payload.valuationEffectiveDate).toBe('2026-10-02');expect(payload.valuationOverrideReason).toBe('Deferred');expect(payload.properties).toEqual([]);
+});
 it("derives BUY and SELL obligations without creating a second trade",()=>{
  expect(previewFxForwardObligations(instrument,"BUY","1000000")).toEqual({receiveCurrency:"EUR",receiveAmount:"1000000",payCurrency:"USD",payAmount:"1100000"});
  expect(previewFxForwardObligations(instrument,"SELL","1000000")).toEqual({receiveCurrency:"USD",receiveAmount:"1100000",payCurrency:"EUR",payAmount:"1000000"});

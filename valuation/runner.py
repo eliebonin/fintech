@@ -56,8 +56,9 @@ def recover_attempt(engine, tenant, attempt_id, actor, reason, *, confirmed_work
         store._event(c,attempt_id,'FAILED','RECOVERY',dict(errorCode='INTERRUPTED',actorId=actor,reason=reason.strip()))
 
 
-def execute(engine, request, actor, key, correlation_id, *, configure_transaction=None):
-    attempt_id=store.begin_attempt(engine,request,actor,key,correlation_id,configure_transaction=configure_transaction)
+def execute(engine, request, actor, key, correlation_id, *, configure_transaction=None,real_operator_id=None):
+    attempt_id=store.begin_attempt(engine,request,actor,key,correlation_id,configure_transaction=configure_transaction,
+        real_operator_id=real_operator_id)
     started=perf_counter()
     owns_attempt=False
     try:
@@ -80,7 +81,7 @@ def execute(engine, request, actor, key, correlation_id, *, configure_transactio
                     result=calculate(c,request)
                     calculated_ms=int((perf_counter()-started)*1000)
                     store._event(c,attempt_id,'VALIDATED','CALCULATION',{'elapsedMs':calculated_ms,'lineCount':len(result.period.lines),
-                        'scope':'MARKET_ONLY','externalComparison':'NOT_COMPARED','serializationRetries':retry,
+                        'scope':result.scope,'externalComparison':'NOT_COMPARED','serializationRetries':retry,
                         'method':result.method,'factsScanned':result.projection.facts_scanned,
                         'positionCount':len(result.projection.buckets),'executionCount':len(result.projection.executions),
                         'markRequestCount':result.evidence['requiredMarkCount']})

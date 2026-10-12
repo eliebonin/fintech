@@ -13,7 +13,7 @@ from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 from security_master_schema.mvp_demo_data import MVP_NAMESPACE
 
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm")
+DATABASE_URL = os.environ.get("DATABASE_URL", os.environ["DATABASE_URL"])
 
 
 def test_business_daily_series_rejects_an_observation_without_market_date() -> None:

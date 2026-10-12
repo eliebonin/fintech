@@ -1,4 +1,5 @@
 import "server-only";
+import { apiRead } from "./server/api-read";
 
 import type { TenantContext } from "./tenant-types";
 import type { MarketDataSeriesPayload } from "./market-data-series";
@@ -36,10 +37,10 @@ export function describeMvpError(error: unknown, resource: string): string {
 const apiBase = () => process.env.REFERENCE_API_URL ?? "http://localhost:8000";
 
 async function getJson<T>(path: string, context: TenantContext, fetchImpl: typeof fetch = fetch): Promise<T> {
-  const response = await fetchImpl(new URL(path, apiBase()), {
+  const response = await apiRead(new URL(path, apiBase()), {
     cache: "no-store",
     headers: { Accept: "application/json", "X-Tenant-Id": context.tenantId, "X-User-Account-Id": context.userAccountId },
-  });
+  }, fetchImpl);
   if (!response.ok) {
     let message = `Reference API returned HTTP ${response.status}`;
     let code: string | undefined;
@@ -65,11 +66,13 @@ export function getInstrument(context: TenantContext, instrumentId: string, fetc
   return getJson<InstrumentDetailPayload>(`/v1/instruments/${encodeURIComponent(instrumentId)}`, context, fetchImpl);
 }
 
-export function getMarketDataSeries(context: TenantContext, params: { fromDate?: string; toDate?: string; limit?: number; offset?: number; observationLimit?: number; observationOffset?: number; referenceNodeId?: string } = {}) {
+export function getMarketDataSeries(context: TenantContext, params: { fromDate?: string; toDate?: string; limit?: number; offset?: number; observationLimit?: number; observationOffset?: number; referenceNodeId?: string; seriesId?: string; includeChart?: boolean } = {}) {
   const query = new URLSearchParams();
   if (params.fromDate) query.set("fromDate", params.fromDate);
   if (params.toDate) query.set("toDate", params.toDate);
   if (params.referenceNodeId) query.set("referenceNodeId", params.referenceNodeId);
+  if (params.seriesId) query.set("seriesId", params.seriesId);
+  if (params.includeChart) query.set("includeChart", "true");
   query.set("limit", String(params.limit ?? 12));
   if (params.offset !== undefined) query.set("offset", String(params.offset));
   if (params.observationLimit !== undefined) query.set("observationLimit", String(params.observationLimit));
@@ -97,4 +100,10 @@ export function getBookedTradeDetail(context: TenantContext, tradeId: string) {
 export type HistoryStrategy = { strategyId: string; strategyCode: string; displayName: string; status: string };
 export function getHistoryStrategies(context: TenantContext) {
   return getJson<{ data: HistoryStrategy[] }>("/v1/strategies", context);
+}
+
+export function getMarketDataCatalogue(context:TenantContext,params:{q?:string;asOf?:string;limit?:number;offset?:number}={}) {
+ const query=new URLSearchParams({q:params.q??'',limit:String(params.limit??25),offset:String(params.offset??0)});
+ if(params.asOf)query.set('asOf',params.asOf);
+ return getJson<import('api-contracts').components['schemas']['MarketDataCatalogueResponse']>(`/v1/market-data/catalogue?${query}`,context);
 }

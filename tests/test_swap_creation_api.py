@@ -125,7 +125,30 @@ def test_approval_materializes_typed_terms_and_only_contractual_legs(reference, 
     assert detail.status_code == 200, detail.text
     assert detail.json()['data']['genericTerms']['contractualNotional'] == '1000000'
     assert detail.json()['data']['genericTerms']['tenantIdentifier'] == 'CONFIRMATION-42'
-    assert request('GET', f'/v1/instruments/{node}', tenant='second_tenant').status_code == 404
+    # Test visibility through a genuinely authorized foreign-tenant reader;
+    # an ungranted legacy member would be rejected before the resource lookup.
+    from security_master_schema import access_management as am
+    with get_engine().begin() as connection:
+        reader=uuid4(); group=uuid4()
+        connection.execute(m.user_account.insert().values(user_account_id=reader,account_type='HUMAN',status='ACTIVE'))
+        connection.execute(m.tenant_user_account.insert().values(tenant_id=DEMO_IDS['second_tenant'],user_account_id=reader,
+            membership_role='MEMBER',status='ACTIVE',valid_from=date(2026,1,1)))
+        connection.execute(m.access_group.insert().values(group_id=group,tenant_id=DEMO_IDS['second_tenant'],
+            code='SWAP_READ_'+uuid4().hex,display_name='Swap isolation reader'))
+        connection.execute(m.access_group_grant.insert().values(group_id=group,tenant_id=DEMO_IDS['second_tenant'],action_code='REFERENCE_READ'))
+        connection.execute(m.access_group_member.insert().values(group_id=group,tenant_id=DEMO_IDS['second_tenant'],user_account_id=reader))
+        module=connection.scalar(select(m.platform_module.c.platform_module_id).where(m.platform_module.c.module_code=='SECURITY_MASTER'))
+        was_enabled=connection.scalar(select(m.tenant_module_entitlement.c.tenant_module_entitlement_id).where(
+            m.tenant_module_entitlement.c.tenant_id==DEMO_IDS['second_tenant'],m.tenant_module_entitlement.c.platform_module_id==module,
+            m.tenant_module_entitlement.c.entitlement_state=='GRANTED',m.tenant_module_entitlement.c.valid_from<=date.today(),
+            m.tenant_module_entitlement.c.valid_to.is_(None)|(m.tenant_module_entitlement.c.valid_to>=date.today()))) is not None
+        if not was_enabled: am.set_module(connection,DEMO_IDS['second_tenant'],DEMO_IDS['platform_admin_user_account'],'SECURITY_MASTER',True)
+    try:
+        assert request('GET', f'/v1/instruments/{node}', tenant='second_tenant',user=reader).status_code == 404
+    finally:
+        if not was_enabled:
+            with get_engine().begin() as connection:
+                am.set_module(connection,DEMO_IDS['second_tenant'],DEMO_IDS['platform_admin_user_account'],'SECURITY_MASTER',False)
 
 
 @pytest.mark.parametrize('change', ['hidden', 'retired', 'draft', 'not_current', 'expired', 'swap'])

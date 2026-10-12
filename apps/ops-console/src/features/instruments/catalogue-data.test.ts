@@ -1,0 +1,14 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+vi.mock('server-only',()=>({}));
+const h=vi.hoisted(()=>({search:vi.fn()}));
+vi.mock('@/lib/reference-api-client',async original=>({...await original<typeof import('@/lib/reference-api-client')>(),searchInstrumentCatalogue:h.search}));
+import {ReferenceApiError} from '@/lib/reference-api-client';
+import {loadCatalogue} from './catalogue-data';
+const context={tenantId:'tenant',userAccountId:'actor',source:'local-session' as const};
+beforeEach(()=>{vi.stubEnv('NODE_ENV','development');vi.stubEnv('APP_ENV','development');vi.stubEnv('ALLOW_SYNTHETIC_FALLBACK','true');});
+afterEach(()=>{h.search.mockReset();vi.unstubAllEnvs();});
+it.each([401,403,404,422])('never substitutes fixture data for HTTP %s',async status=>{h.search.mockRejectedValue(new ReferenceApiError(status,'denied'));await expect(loadCatalogue('',context)).rejects.toMatchObject({status});});
+it.each(['NODE_ENV','APP_ENV'])('never substitutes fixtures when %s is production',async name=>{vi.stubEnv(name,'production');h.search.mockRejectedValue(new TypeError('fetch failed'));await expect(loadCatalogue('',context)).rejects.toThrow('fetch failed');});
+it('requires explicit synthetic opt-in',async()=>{vi.stubEnv('ALLOW_SYNTHETIC_FALLBACK','');h.search.mockRejectedValue(new TypeError('fetch failed'));await expect(loadCatalogue('',context)).rejects.toThrow('fetch failed');});
+it('applies type, status, asset class and pagination to development fixtures',async()=>{h.search.mockRejectedValue(new ReferenceApiError(503,'unavailable'));const bond=await loadCatalogue('',{...context,instrumentType:'BOND',assetClass:'FIXED_INCOME',status:'ACTIVE',limit:1,offset:0});expect(bond.data).toHaveLength(1);expect(bond.data[0].instrumentType).toBe('BOND');expect(bond.meta.total).toBe(1);expect(bond.meta.source).toBe('synthetic-fixture-fallback');const empty=await loadCatalogue('',{...context,instrumentType:'BOND',limit:1,offset:1});expect(empty.data).toEqual([]);expect(empty.meta.total).toBe(1);});
+it('does not hide local programmer errors as synthetic fallback',async()=>{h.search.mockRejectedValue(new TypeError('Bad payload'));await expect(loadCatalogue('',context)).rejects.toThrow('Bad payload');});

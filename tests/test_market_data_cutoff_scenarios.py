@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 
+import os
 from sqlalchemy import create_engine, select, text
 
 from security_master_schema import models as m
@@ -9,7 +10,7 @@ from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 from security_master_schema.market_data_resolver import ResolutionRequest, resolve_market_data
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def _request(*, policy_id, cut_id, as_of_utc):

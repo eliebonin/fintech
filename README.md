@@ -1,5 +1,10 @@
 # fintech
 
+## Local tenant access testing
+
+Open `/select-context` to choose platform administration or a tenant/user.
+See [tenant administration, permissions, seed and verification](docs/delivery/tenant-access-administration.md).
+
 ## Market data ingestion
 
 Daily ingestion lives in `market_data`, with provider adapters under

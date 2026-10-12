@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {withBookingCorrection,type BookingCorrection} from '@/lib/trade-correction-model';
+import {recognitionPayload} from '@/lib/valuation-recognition';
 
 import { createIdempotencyKey, searchCashBookingListingsFromBff, getCashBookingListingFromBff, submitBookedTradeFromBff, type CashBookingListingView, type TradeBookingRequest } from "@/lib/browser-api-client";
 import type { TradeBookingContext } from "@/lib/browser-api-client";
@@ -27,6 +28,8 @@ export type TicketListing = {
 export type TicketStrategy = { strategyId: string; strategyCode: string; displayName: string; status: string };
 
 export type TicketDraft = {
+  valuationEffectiveDate?: string;
+  valuationOverrideReason?: string;
   strategyId: string;
   side: "BUY" | "SELL";
   quantity: string;
@@ -85,6 +88,7 @@ export function validateBasicTicketFields(draft: Omit<TicketDraft, "side">): Tic
 
 export function buildTicketPayload(listing: TicketListing, draft: TicketDraft): TradeBookingRequest {
   return {
+    ...recognitionPayload(draft),
     listingId: listing.referenceNodeId,
     strategyId: draft.strategyId,
     side: draft.side,

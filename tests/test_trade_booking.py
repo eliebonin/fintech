@@ -5,6 +5,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+import os
 from sqlalchemy import create_engine, insert, select
 from sqlalchemy.exc import IntegrityError
 
@@ -14,7 +15,7 @@ from apps.reference_api.contracts import TradeBookingRequest
 from apps.reference_api.repository import IdempotencyKeyConflict, book_listed_cash_trade
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_trade_booking_idempotency_is_unique_per_tenant_endpoint_and_key() -> None:

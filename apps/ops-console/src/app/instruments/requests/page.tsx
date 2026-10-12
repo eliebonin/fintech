@@ -1,3 +1,5 @@
+import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
+import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
@@ -5,7 +7,6 @@ import { Alert, Box, Button, Card, Chip, Stack, Typography } from "@mui/material
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { filterInstrumentCreationRequests } from "@/lib/instrument-requests";
-import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { getWorkQueue, type WorkQueuePayload } from "@/lib/work-queue";
 import {QueuePagination,queueOffset} from '@/components/queue-pagination';
 import {canManageInstruments} from '@/lib/instrument-authority';
@@ -13,7 +14,10 @@ import {canManageInstruments} from '@/lib/instrument-authority';
 export default async function InstrumentRequestsPage({searchParams}:{searchParams?:Promise<{offset?:string}>}={}) {
   let tenantContext;
   let workspace;
-  try { [tenantContext, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
+  const access = await resolveWorkspaceAccess();
+  if (access.kind === "session-required") redirect("/select-tenant");
+  if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
+  tenantContext = access.context; workspace = access.workspace;
   let queue: WorkQueuePayload | undefined;
   try { queue = await getWorkQueue({...tenantContext,offset:queueOffset((await searchParams)?.offset)}); } catch { /* The page explains the unavailable queue without substituting unrelated work. */ }
   const requests = filterInstrumentCreationRequests(queue?.items ?? []);

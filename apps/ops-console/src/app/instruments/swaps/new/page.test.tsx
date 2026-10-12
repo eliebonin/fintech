@@ -1,5 +1,7 @@
+import { SessionRequiredError } from '@/lib/server/workspace-errors';
 import {beforeEach,expect,it,vi} from 'vitest';
 const h=vi.hoisted(()=>({context:vi.fn(),workspace:vi.fn()}));
+vi.mock('server-only',()=>({}));
 vi.mock('@/lib/tenant-session',()=>({getActiveTenantContext:h.context,getActiveTenantWorkspace:h.workspace}));
 vi.mock('next/navigation',()=>({redirect:(path:string)=>{throw new Error(`redirect:${path}`);}}));
 import NewSwapPage from './page';
@@ -11,5 +13,5 @@ it('passes the selected tenant to creation within the existing workspace shell',
 it('enforces tenant-admin and security-master access and missing-session redirection',async()=>{
   h.workspace.mockResolvedValue({membershipRole:'TRADER',moduleCodes:['TRADING']});expect((await NewSwapPage()).props.children).toBeNull();
   h.workspace.mockResolvedValue({membershipRole:'TENANT_ADMIN',moduleCodes:[]});expect((await NewSwapPage()).props.children).toBeNull();
-  h.context.mockRejectedValue(new Error('No session'));await expect(NewSwapPage()).rejects.toThrow('redirect:/select-tenant');
+  h.context.mockRejectedValue(new SessionRequiredError());await expect(NewSwapPage()).rejects.toThrow('redirect:/select-tenant');
 });

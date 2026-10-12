@@ -1,8 +1,15 @@
 import {expect,it} from 'vitest';
-import {bookingCorrectionEligibility,bookingCorrectionLinks,withBookingCorrection} from './trade-correction-model';
+import {bookingCancellationEligibility,bookingCorrectionEligibility,bookingCorrectionLinks,withBookingCorrection} from './trade-correction-model';
 import type {TradeDetailPayload} from './trades';
 const id='00000000-0000-7000-8000-000000000001',next='00000000-0000-7000-8000-000000000002';
 const detail={trade:{tradeId:id,lifecycleStatus:'BOOKED',tradeType:'INVESTMENT',strategyId:'strategy'},lifecycleEvents:[{sequenceNo:1,eventType:'BOOKED',eventPayload:JSON.stringify({schemaVersion:1,kind:'CASH_BOOKING'})}]} as TradeDetailPayload['data'];
+it('legacy cancellation rejects malformed evidence, missing history and new metadata',()=>{
+ const legacy={...detail,lifecycleEvents:[{...detail.lifecycleEvents[0],eventPayload:'{}'}]};
+ expect(bookingCancellationEligibility(legacy).eligible).toBe(true);
+ for(const raw of ['{broken','null','[]','{"kind":"UNKNOWN"}'])expect(bookingCancellationEligibility({...legacy,lifecycleEvents:[{...legacy.lifecycleEvents[0],eventPayload:raw}]}).eligible).toBe(false);
+ expect(bookingCancellationEligibility({...legacy,lifecycleEvents:[]}).eligible).toBe(false);
+ expect(bookingCancellationEligibility({...legacy,trade:{...legacy.trade,valuationDateBasis:'UTC_TRADE_DATE',valuationEffectiveDate:'2026-10-01'}}).eligible).toBe(false);
+});
 it('keeps ordinary payload unchanged and attaches correction only explicitly',()=>{
  const payload={strategyId:'strategy',quantity:'10'};expect(withBookingCorrection(payload)).toBe(payload);
  const correction={tradeId:id,expectedSequenceNo:1,reason:'Wrong quantity'};

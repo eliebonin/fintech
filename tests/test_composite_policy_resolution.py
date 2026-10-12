@@ -124,11 +124,12 @@ def test_basis_mismatch_is_missing_not_permission_denial(composite):
     assert result.status=='MISSING' and result.entitlement_decision=='ALLOWED'
 
 
-def test_mixed_us_uk_paris_closes_and_separate_london_fixing(composite):
+@pytest.mark.parametrize('mode', ['STRICT', 'FLEXIBLE'])
+def test_mixed_us_uk_paris_closes_and_separate_london_fixing(composite, mode):
     from security_master_schema.market_data_resolver import resolve_market_data_batch
     c,request,_=composite
     policy=c.execute(m.valuation_policy.insert().values(tenant_id=request.tenant_id,policy_code='MIXED_'+uuid4().hex,
-        display_name='Synthetic mixed market',valuation_cut_id=request.valuation_cut_id,status='ACTIVE',valid_from=date(2026,8,1)).returning(m.valuation_policy.c.valuation_policy_id)).scalar_one()
+        display_name='Synthetic mixed market',valuation_cut_id=request.valuation_cut_id,selection_mode=mode,status='ACTIVE',valid_from=date(2026,8,1)).returning(m.valuation_policy.c.valuation_policy_id)).scalar_one()
     original_listing=dict(c.execute(select(m.listing).where(m.listing.c.listing_node_id==request.subject_reference_node_id)).mappings().one())
     original_node=dict(c.execute(select(m.financial_reference_node).where(m.financial_reference_node.c.reference_node_id==request.subject_reference_node_id)).mappings().one())
     subjects=[]
@@ -159,16 +160,24 @@ def test_mixed_us_uk_paris_closes_and_separate_london_fixing(composite):
         c.execute(m.market_data_observation.insert().values(market_data_series_id=series,dataset_id=DEMO_IDS['dataset'],
             market_date=request.valuation_date,observed_at_utc=target if seq==4 else datetime(2026,8,28,8,tzinfo=timezone.utc),
             received_at_utc=target+timedelta(minutes=1),source_published_at_utc=target,value='1.250000000001' if seq==4 else '100.123456789012',quality_status='ACCEPTED'))
-        c.execute(m.valuation_policy_rule.insert().values(valuation_policy_id=policy,rule_sequence=seq,
-            subject_reference_node_id=subject if seq==4 else None,market_venue_id=venue,pricing_convention=convention,
-            market_calendar_id=calendar,pricing_cut_id=cut,fixing_code='TEST_LONDON_4PM' if seq==4 else None,
-            series_type='SYNTHETIC_FIX' if seq==4 else 'SYNTHETIC_CLOSE',selection_method='OFFICIAL',max_staleness_business_days=0))
+        if mode == 'STRICT' or seq == 4:
+            c.execute(m.valuation_policy_rule.insert().values(valuation_policy_id=policy,rule_sequence=seq,
+                subject_reference_node_id=subject if seq==4 else None,market_venue_id=venue,pricing_convention=convention,
+                market_calendar_id=calendar,pricing_cut_id=cut,fixing_code='TEST_LONDON_4PM' if seq==4 else None,
+                series_type='SYNTHETIC_FIX' if seq==4 else 'SYNTHETIC_CLOSE',selection_method='OFFICIAL',max_staleness_business_days=0))
         subjects.append(subject)
+    if mode == 'FLEXIBLE':
+        c.execute(m.valuation_policy_rule.insert().values(valuation_policy_id=policy,rule_sequence=10,
+            subject_type='LISTING',is_default=True,pricing_convention='SESSION_CLOSE',series_type='SYNTHETIC_CLOSE',
+            selection_method='OFFICIAL',max_staleness_business_days=0))
     coherent=replace(request,valuation_policy_id=policy,market_data_as_of_utc=datetime(2026,8,28,22,tzinfo=timezone.utc))
     results=resolve_market_data_batch(c,coherent,tuple(subjects))
     assert [r.status for r in results]==['SELECTED']*4
     assert [r.pricing_evidence['pricingTargetUtc'] for r in results]==[
         '2026-08-28T15:30:00+00:00','2026-08-28T20:00:00+00:00','2026-08-28T15:30:00+00:00','2026-08-28T15:00:00+00:00']
     assert str(results[0].selected_value)=='100.123456789012'
+    assert [r.pricing_evidence['ruleOrigin'] for r in results] == (['DEFAULT']*3+['EXPLICIT'] if mode == 'FLEXIBLE' else ['EXPLICIT']*4)
+    if mode == 'FLEXIBLE':
+        assert len({r.policy_rule_id for r in results[:3]}) == 1
     before_us_close=resolve_market_data_batch(c,replace(coherent,market_data_as_of_utc=datetime(2026,8,28,16,tzinfo=timezone.utc)),tuple(subjects))
     assert [r.status for r in before_us_close]==['SELECTED','MISSING','SELECTED','SELECTED']

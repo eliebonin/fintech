@@ -88,14 +88,23 @@ export type ReferenceApiSearchOptions = Pick<TenantContext, "tenantId" | "userAc
   offset?: number;
   correlationId?: string;
   fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
 };
 
 export type TradeBookingRequest = components["schemas"]["TradeBookingRequest"];
 export type TradeDetailResponse = components["schemas"]["TradeDetailResponse"];
 
-export async function searchReferenceInstruments(query: string, options: ReferenceApiSearchOptions): Promise<InstrumentSearchPayload> {
+export function searchReferenceInstruments(query: string, options: ReferenceApiSearchOptions): Promise<InstrumentSearchPayload> {
+  return searchInstrumentRead(query, options, "/v1/instruments/search");
+}
+
+export function searchInstrumentCatalogue(query: string, options: ReferenceApiSearchOptions): Promise<import("api-contracts").InstrumentCataloguePayload> {
+  return searchInstrumentRead(query, options, "/v1/instruments/catalogue");
+}
+
+async function searchInstrumentRead<T>(query: string, options: ReferenceApiSearchOptions, path: string): Promise<T> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
-  const url = new URL("/v1/instruments/search", baseUrl);
+  const url = new URL(path, baseUrl);
   url.searchParams.set("q", query);
   url.searchParams.set("limit", String(options.limit ?? 50));
   url.searchParams.set("offset", String(options.offset ?? 0));
@@ -105,6 +114,7 @@ export async function searchReferenceInstruments(query: string, options: Referen
   const fetchImpl = referenceFetch(options.fetchImpl ?? fetch);
   const response = await fetchImpl(url, {
     method: "GET",
+    signal: options.signal,
     cache: "no-store",
     headers: {
       Accept: "application/json",
@@ -125,7 +135,7 @@ export async function searchReferenceInstruments(query: string, options: Referen
     }
     throw new ReferenceApiError(response.status, `Reference API returned HTTP ${response.status}`);
   }
-  return (await response.json()) as InstrumentSearchPayload;
+  return (await response.json()) as T;
 }
 
 export type ReferenceNodeSearchOptions = Pick<TenantContext, "tenantId" | "userAccountId"> & {

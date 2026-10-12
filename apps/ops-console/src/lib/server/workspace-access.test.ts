@@ -1,0 +1,13 @@
+import {beforeEach,afterEach,expect,it,vi} from 'vitest';
+vi.mock('server-only',()=>({}));
+const h=vi.hoisted(()=>({context:vi.fn(),workspace:vi.fn()}));
+vi.mock('@/lib/tenant-session',()=>({getActiveTenantContext:h.context,getActiveTenantWorkspace:h.workspace}));
+import {resolveWorkspaceAccess} from './workspace-access';
+import {SessionRequiredError,WorkspaceApiError} from './workspace-errors';
+beforeEach(()=>{h.context.mockResolvedValue({tenantId:'tenant',userAccountId:'actor',source:'local-session'});h.workspace.mockResolvedValue({tenantId:'tenant',tenantName:'Tenant',moduleCodes:[],membershipRole:'READ_ONLY'});});
+afterEach(()=>vi.clearAllMocks());
+it('keeps a valid tenant session during workspace service outage',async()=>{h.workspace.mockRejectedValue(new WorkspaceApiError(503));expect((await resolveWorkspaceAccess()).kind).toBe('unavailable');});
+it('returns session-required only for a missing or invalid session',async()=>{h.context.mockRejectedValue(new SessionRequiredError());expect((await resolveWorkspaceAccess()).kind).toBe('session-required');expect(h.workspace).not.toHaveBeenCalled();});
+it.each([401,403])('preserves upstream access denial %s',async status=>{h.workspace.mockRejectedValue(new WorkspaceApiError(status));expect((await resolveWorkspaceAccess()).kind).toBe('forbidden');});
+it('does not disguise configuration errors as missing sessions',async()=>{h.context.mockRejectedValue(new Error('Secret missing'));await expect(resolveWorkspaceAccess()).rejects.toThrow('Secret missing');});
+it('resolves the next tenant instead of retaining previous grants',async()=>{await resolveWorkspaceAccess();h.context.mockResolvedValue({tenantId:'other',userAccountId:'actor'});h.workspace.mockResolvedValue({tenantId:'other',tenantName:'Other',moduleCodes:[],membershipRole:'READ_ONLY'});const result=await resolveWorkspaceAccess();expect(result.kind==='ready'&&result.workspace.tenantId).toBe('other');});

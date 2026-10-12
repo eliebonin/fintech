@@ -42,6 +42,8 @@ class TenantWorkspaceView(BaseModel):
     membership_role: str = Field(alias="membershipRole")
     module_codes: list[str] = Field(alias="moduleCodes")
     platform_role: str | None = Field(default=None, alias="platformRole")
+    permission_codes: list[str] = Field(default_factory=list, alias='permissionCodes')
+    tenant_module_codes: list[str] = Field(default_factory=list, alias='tenantModuleCodes')
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -278,11 +280,19 @@ class MarketDataObservationView(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class MarketDataChartPoint(BaseModel):
+    market_date: str | None = Field(alias="marketDate")
+    value: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class MarketDataSeriesView(BaseModel):
     series_id: UUID = Field(alias="seriesId")
     reference_node_id: UUID = Field(alias="referenceNodeId")
     reference_node_name: str = Field(alias="referenceNodeName")
     series_type: str = Field(alias="seriesType")
+    closing_method: str = Field(default='UNKNOWN', alias='closingMethod')
     value_type: str = Field(alias="valueType")
     currency: str | None
     provider_id: UUID | None = Field(alias="providerId")
@@ -302,6 +312,7 @@ class MarketDataSeriesView(BaseModel):
     coverage_start_date: str | None = Field(alias="coverageStartDate")
     coverage_end_date: str | None = Field(alias="coverageEndDate")
     observations: list[MarketDataObservationView] = Field(default_factory=list)
+    chart_points: list[MarketDataChartPoint] | None = Field(default=None, alias="chartPoints")
     observation_total: int = Field(default=0, alias="observationTotal")
     observation_limit: int = Field(default=1000, alias="observationLimit")
     observation_offset: int = Field(default=0, alias="observationOffset")
@@ -427,6 +438,9 @@ class TradeView(BaseModel):
     quantity: str = Field(alias="quantity")
     quantity_unit: str = Field(alias="quantityUnit")
     trade_datetime_utc: str = Field(alias="tradeDatetimeUtc")
+    valuation_effective_date: str | None = Field(default=None, alias='valuationEffectiveDate')
+    valuation_date_basis: str | None = Field(default=None, alias='valuationDateBasis')
+    valuation_override_reason: str | None = Field(default=None, alias='valuationOverrideReason')
     instruction_date: str | None = Field(alias="instructionDate")
     settlement_date: str | None = Field(alias="settlementDate")
     trader_person_id: UUID | None = Field(alias="traderPersonId")
@@ -523,7 +537,19 @@ class BookingCorrectionRequest(CancelBookingRequest):
     trade_id: UUID = Field(alias='tradeId')
 
 
-class TradeBookingRequest(BaseModel):
+class ValuationRecognitionFields(BaseModel):
+    """Platform-wide optional booking fields; never curated tenant properties."""
+    valuation_effective_date: date | None = Field(default=None, alias='valuationEffectiveDate')
+    valuation_override_reason: str | None = Field(default=None, alias='valuationOverrideReason', max_length=1000)
+
+    @model_validator(mode='after')
+    def validate_recognition(self):
+        from .valuation_recognition import recognition
+        recognition(self)
+        return self
+
+
+class TradeBookingRequest(ValuationRecognitionFields):
     correction: BookingCorrectionRequest | None = None
     listing_id: UUID = Field(alias="listingId")
     strategy_id: UUID = Field(alias="strategyId")
@@ -600,7 +626,7 @@ class OptionProposalRequest(BaseModel):
         return self
 
 
-class FxForwardBookingRequest(BaseModel):
+class FxForwardBookingRequest(ValuationRecognitionFields):
     correction: BookingCorrectionRequest | None = None
     instrument_id: UUID = Field(alias="instrumentId")
     strategy_id: UUID = Field(alias="strategyId")
@@ -765,6 +791,23 @@ class InstrumentView(BaseModel):
     generic_terms: GenericSwapTerms | None = Field(default=None, alias="genericTerms")
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class InstrumentCatalogueItem(BaseModel):
+    """Tenant-visible table row; priced evidence is fetched only in detail views."""
+    instrument_id: UUID = Field(alias="instrumentId")
+    canonical_name: str = Field(alias="canonicalName")
+    instrument_type: str = Field(alias="instrumentType")
+    asset_class: str = Field(alias="assetClass")
+    status: str
+    base_currency: str | None = Field(alias="baseCurrency")
+    listing_count: int = Field(alias="listingCount", ge=0)
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class InstrumentCatalogueResponse(BaseModel):
+    data: list[InstrumentCatalogueItem]
+    meta: ApiMeta
 
 
 class InstrumentSearchResponse(BaseModel):

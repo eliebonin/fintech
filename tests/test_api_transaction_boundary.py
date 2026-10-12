@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import contextmanager
 from uuid import UUID
+from types import SimpleNamespace
 
 from httpx import ASGITransport, AsyncClient
 
@@ -16,12 +17,17 @@ class TransactionEngine:
     def __init__(self, fail_commit=False):
         self.fail_commit = fail_commit
         self.outcome = None
+        self.transaction_count = 0
 
     @contextmanager
     def begin(self):
+        self.transaction_count += 1
+        transaction_number = self.transaction_count
         try:
             yield self
-            if self.fail_commit:
+            # Authorization performs a read-only transaction before the domain
+            # write. Inject failure only at the domain commit under test.
+            if self.fail_commit and transaction_number == 2:
                 raise RuntimeError('synthetic-commit-failure')
             self.outcome = 'COMMITTED'
         except Exception:
@@ -43,6 +49,8 @@ def strategy_app(monkeypatch, engine):
     monkeypatch.setattr(api, '_assert_tenant_membership', lambda *_: IDENTIFIER)
     monkeypatch.setattr(api, 'resolve_tenant_workspace', lambda *_: None)
     monkeypatch.setattr(api, 'require_tenant_action', lambda *_: None)
+    from apps.reference_api import access_boundary
+    monkeypatch.setattr(access_boundary, 'resolve_tenant_workspace', lambda *_: SimpleNamespace(permission_codes={'STRATEGY_WRITE'}))
     monkeypatch.setattr(api, 'create_strategy', lambda *_: StrategyView(
         strategyId=IDENTIFIER, tenantId=IDENTIFIER, strategyCode='BOUNDARY',
         displayName='Boundary', strategyType='FUND', baseCurrencyCode='GBP', status='ACTIVE'))

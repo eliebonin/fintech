@@ -9,10 +9,10 @@ from apps.reference_api.db import get_engine
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 from security_master_schema import models as m
 
-def request(method, path, payload=None, key=None, tenant="tenant"):
+def request(method, path, payload=None, key=None, tenant="tenant", user=None):
     async def run():
         async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://test") as client:
-            return await client.request(method, path, json=payload, headers={"X-Tenant-Id":str(DEMO_IDS[tenant]), "X-User-Account-Id":str(DEMO_IDS["demo_user_account"]), "Idempotency-Key":key or str(uuid4())})
+            return await client.request(method, path, json=payload, headers={"X-Tenant-Id":str(DEMO_IDS[tenant]), "X-User-Account-Id":str(user or DEMO_IDS["demo_user_account"]), "Idempotency-Key":key or str(uuid4())})
     return asyncio.run(run())
 
 @pytest.fixture(scope="module")

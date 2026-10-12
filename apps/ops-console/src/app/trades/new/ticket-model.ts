@@ -1,6 +1,7 @@
 import type { TradeBookingRequest, TradeBookingContext } from "@/lib/browser-api-client";
 import { BffApiError } from "@/lib/api-errors";
 import {multiplyBookingDecimals} from '@/lib/booking-decimal';
+import {recognitionErrors,type RecognitionDraft} from '@/lib/valuation-recognition';
 import { buildTicketPayload, validateBasicTicketFields, type TicketListing, type TicketDraft } from "./trade-ticket";
 
 export type EnrichedTicketDraft = TicketDraft & {
@@ -35,8 +36,8 @@ export function validateEnrichedTicketDraft(draft:EnrichedTicketDraft, context:T
   return [...errors,...validateTradeAnnotations(draft,context)];
 }
 
-export function validateTradeAnnotations(draft:Pick<EnrichedTicketDraft,"tradePurpose"|"comment"|"properties"|"externalReferences">, context:TradeBookingContext):TicketError[] {
-  const errors:TicketError[]=[];
+export function validateTradeAnnotations(draft:Pick<EnrichedTicketDraft,"tradePurpose"|"comment"|"properties"|"externalReferences">&Partial<RecognitionDraft>, context:TradeBookingContext):TicketError[] {
+  const errors:TicketError[]=draft.tradeDatetime?recognitionErrors(draft as RecognitionDraft):[];
   if (draft.tradePurpose==="OTHER" && !draft.comment?.trim()) errors.push({field:"comment",message:"Explain the OTHER purpose in the comment."});
   for (const definition of context.properties) {
     const value = draft.properties[definition.definitionId];

@@ -1,0 +1,13 @@
+import {beforeEach,afterEach,expect,it,vi} from 'vitest';
+const h=vi.hoisted(()=>({slots:[] as any[],cursor:0,effects:[] as (()=>any)[]}));
+vi.mock('react',async original=>({...await original<typeof import('react')>(),useState:(initial:any)=>{const i=h.cursor++;if(!(i in h.slots))h.slots[i]=initial;return [h.slots[i],(v:any)=>h.slots[i]=typeof v==='function'?v(h.slots[i]):v];},useRef:(initial:any)=>{const i=h.cursor++;if(!(i in h.slots))h.slots[i]={current:initial};return h.slots[i];},useEffect:(effect:()=>any)=>h.effects.push(effect)}));
+import {InstrumentCatalogue} from './instrument-catalogue';
+const source=vi.fn();
+function render(){h.cursor=0;h.effects=[];return InstrumentCatalogue({initialResults:[],onSourceChange:source} as any);}
+function find(node:any,predicate:(n:any)=>boolean):any{if(!node||typeof node!=='object')return;if(predicate(node))return node;for(const child of [node.props?.children].flat(Infinity)){const found=find(child,predicate);if(found)return found;}}
+function setQuery(value:string){find(render(),n=>n.props?.placeholder?.startsWith('Search name')).props.onChange({target:{value}});}
+beforeEach(()=>{vi.useFakeTimers();vi.stubGlobal('window',{setTimeout,clearTimeout});render();h.effects[0]();});
+afterEach(()=>{h.slots=[];source.mockReset();vi.useRealTimers();vi.unstubAllGlobals();});
+it('provides type choices outside the initial result page',()=>{expect(find(render(),n=>n.props?.value==='SWAP')).toBeDefined();expect(find(render(),n=>n.props?.value==='BOND')).toBeDefined();});
+it('cancels immediately and ignores a late response during the next debounce',async()=>{let finish:(value:any)=>void=()=>{};let signal:AbortSignal|undefined;vi.stubGlobal('fetch',(_url:any,init:any)=>{signal=init.signal;return new Promise(resolve=>finish=resolve);});setQuery('old');render();const cleanup=h.effects[0]();await vi.advanceTimersByTimeAsync(300);cleanup();expect(signal?.aborted).toBe(true);setQuery('new');render();h.effects[0]();finish(Response.json({data:[],meta:{source:'synthetic-fixture-fallback',total:77}}));await vi.advanceTimersByTimeAsync(0);expect(source).not.toHaveBeenCalled();});
+it('reports current data provenance and aborts on unmount',async()=>{let signal:AbortSignal|undefined;let requestedUrl='';vi.stubGlobal('fetch',async(_url:any,init:any)=>{requestedUrl=_url;signal=init.signal;return Response.json({data:[],meta:{source:'synthetic-fixture-fallback',total:0}});});setQuery('bond');render();const cleanup=h.effects[0]();await vi.advanceTimersByTimeAsync(300);expect(source).toHaveBeenCalledWith('LOCAL FIXTURES');expect(requestedUrl).toContain('/api/instruments/catalogue?');cleanup();expect(signal?.aborted).toBe(true);});

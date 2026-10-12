@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
+import os
 from sqlalchemy import create_engine, update
 
 from apps.reference_api.contracts import MarketDataResolutionSnapshotCreate
@@ -20,7 +21,7 @@ from security_master_schema import models as m
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 @pytest.fixture(scope="module")
@@ -64,7 +65,7 @@ def test_create_replay_conflict_and_frozen_read(seeded_engine) -> None:
             )
             assert [item.subject_reference_node_id for item in created.items] == payload.subject_reference_node_ids
             assert created.use_purpose == "VALUATION"
-            assert all(item.market_data_observation_id for item in created.items)
+            assert all(item.market_data_observation_id for item in created.items), [item.model_dump() for item in created.items]
 
             replay = create_market_data_resolution_snapshot(
                 connection, DEMO_IDS["tenant"], payload, key, "test-request"

@@ -91,12 +91,16 @@ def main():
     parser.add_argument('--actor', type=UUID, default=DEMO_IDS['demo_user_account'])
     parser.add_argument('--symbols', nargs='*', help='Explicit Yahoo symbols; e.g. AAPL AIR.PA MT.AS')
     parser.add_argument('--limit', type=int, default=5, help='Maximum listings this run, from 1 to 543')
+    parser.add_argument('--request-spacing-seconds', type=float, default=5,
+        help='Serial HTTP request spacing, 1..60 seconds; 429 backoff is unchanged')
     window = parser.add_mutually_exclusive_group()
     window.add_argument('--days', type=int, help='Calendar days ending at --through, from 1 to 365; default 14')
     window.add_argument('--start', type=date.fromisoformat,
         help='Explicit history start, at most 1830 days; resumes exact successful ticker windows')
     parser.add_argument('--through', type=date.fromisoformat, default=date.today() - timedelta(days=1))
     args = parser.parse_args()
+    if not 1 <= args.request_spacing_seconds <= 60:
+        parser.error('Request spacing must be 1..60 seconds.')
     if args.retry_gaps and not args.start:
         parser.error('--retry-gaps requires --start for an exact original request')
     if args.audit_only and (args.retry_gaps or args.personal_research_exception or args.initialize_only or args.apply or args.abort_job):
@@ -172,10 +176,26 @@ def main():
         return 0
     from .yahoo_run import execute
     try:
-        return execute(engine,dataset_id=UUID(onboarded['datasetId']),namespace_id=UUID(onboarded['namespaceId']),
+        outcome=execute(engine,dataset_id=UUID(onboarded['datasetId']),namespace_id=UUID(onboarded['namespaceId']),
             tenant_id=args.tenant,actor_id=args.actor,selected=selected,start=start,end=args.through,
             provider=provider,parser=parse_delivery,fetch=fetch_chart,lookup_previous=completed_request,
-            history=bool(args.start),retry_gaps=args.retry_gaps,sleep=time.sleep)
+            history=bool(args.start),retry_gaps=args.retry_gaps,sleep=time.sleep,
+            request_spacing_seconds=args.request_spacing_seconds)
+        if outcome not in (0,3):
+            return outcome  # Failed/blocked source acquisition is not RAW readiness.
+        # Publication and split normalization are distinct stages. Complete source
+        # ingestion is not an assertion that every derived RAW price is ready.
+        from market_data.providers.yahoo.raw_prices import normalize_dataset
+        with engine.begin() as c:
+            normalized=normalize_dataset(c,UUID(onboarded['datasetId']),args.tenant,args.actor,
+                symbols=[r['symbol'] for r in selected])
+        exit_code=outcome or (0 if normalized['status']=='COMPLETE' else 3)
+        # Keep event identity and normalization result distinct; normalize_dataset
+        # already supplies a status, so expanding it into dict(status=...) crashes.
+        print(json.dumps(dict(status='RAW_NORMALIZATION_FINISHED',normalization=normalized,
+            sourceOutcome='COMPLETE' if outcome==0 else 'PARTIAL',
+            outcome='COMPLETE' if exit_code==0 else 'PARTIAL')),flush=True)
+        return exit_code
     finally:
         engine.dispose()
 

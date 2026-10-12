@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { WORKSPACE_NAV_ITEMS, getActiveWorkspaceSection } from "./navigation";
 
 describe("workspace navigation", () => {
+  it('exposes source settings as its own market-data destination',()=>{
+    expect(WORKSPACE_NAV_ITEMS.find(item=>item.href==='/market-data/sources')?.label).toBe('Data sources');
+    expect(getActiveWorkspaceSection('/market-data/sources')).toBe('market-data-sources');
+  });
   it("routes valuation to a fresh workspace rather than a hardcoded demo strategy", () => {
     expect(WORKSPACE_NAV_ITEMS.find((item) => item.key === "pnl")?.href).toBe("/valuation");
     expect(getActiveWorkspaceSection("/valuation")).toBe("pnl");

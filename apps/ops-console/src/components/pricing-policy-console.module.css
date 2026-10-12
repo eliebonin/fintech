@@ -1,0 +1,32 @@
+.editor { min-width: 0; }
+.editor fieldset.rule { padding: 24px; border: 1px solid #c7d5e8; border-radius: 12px; background: #fff; }
+.editor .rule > legend { font-size: 17px; font-weight: 700; color: #172238; }
+.editor .ruleSummary { margin: 0 0 20px; color: #355185; font-size: 13px; overflow-wrap: anywhere; }
+.editor .group { padding: 20px 0; border-top: 1px solid #e7ecf4; }
+.editor .group h3 { margin: 0 0 8px; font-size: 16px; color: #172238; }
+.editor .group > p, .editor .advanced > p { margin: 0 0 16px; color: #52627a; font-size: 13px; max-width: 85ch; }
+.editor .rule .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; margin: 16px 0 0; align-items: start; }
+.editor .rule .fields label { margin-bottom: 0; }
+.editor .rule .fields small, .editor .checks small { font-weight: 400; font-size: 12px; line-height: 1.6; color: #52627a; }
+.editor .checks { display: grid; gap: 12px; margin-top: 18px; }
+.editor .checks label { display: grid; grid-template-columns: 18px 1fr; column-gap: 10px; row-gap: 4px; align-items: start; margin: 0; }
+.editor .checks label small { grid-column: 2; }
+.editor .checks input { margin-top: 3px; }
+.editor details.advanced { margin: 8px 0 0; padding: 16px; background: #f7f9fc; }
+.editor .advanced > summary { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: disclosure-closed; }
+.editor .advanced > summary::before { content: '+ '; }
+.editor .advanced[open] > summary::before { content: '− '; }
+.editor .advanced > summary span { color: #52627a; font-size: 12px; font-weight: 400; overflow-wrap: anywhere; }
+.editor .advanced[open] > summary { margin-bottom: 16px; }
+.editor .ruleActions { display: flex; justify-content: flex-end; margin-top: 16px; }
+.reference > summary { font-size: 14px; font-weight: 600; color: #344054; cursor: pointer; }
+.reference[open] > summary { margin-bottom: 18px; }
+.reference > section { margin: 0; padding: 0; border: 0; box-shadow: none; }
+.reference dl { display: grid; grid-template-columns: minmax(160px, 1fr) 3fr; gap: 12px 24px; }
+.reference dt { font-weight: 600; }
+.reference dd { margin: 0; color: #52627a; }
+@media (max-width: 760px) {
+ .editor fieldset.rule { padding: 16px; }
+ .editor .rule .fields, .reference dl { grid-template-columns: 1fr; }
+ .reference dd { margin-bottom: 10px; }
+}

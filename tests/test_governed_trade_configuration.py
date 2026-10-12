@@ -2,6 +2,7 @@
 from uuid import uuid4
 import pytest
 from apps.reference_api.trade_properties import normalize_property_value
+import os
 from sqlalchemy import create_engine, select, insert, update, func
 from sqlalchemy.exc import IntegrityError
 from security_master_schema import models as m
@@ -16,7 +17,7 @@ TENANT, ACTOR = DEMO_IDS["tenant"], DEMO_IDS["demo_user_account"]
 
 @pytest.fixture(scope="module")
 def engine():
-    result=create_engine("postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm")
+    result=create_engine(os.environ["DATABASE_URL"])
     load_demo_data(result)
     yield result
     result.dispose()

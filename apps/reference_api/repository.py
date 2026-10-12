@@ -62,6 +62,7 @@ from .contracts import (
     MarketDataObservationView,
     MarketDataSeriesResponse,
     MarketDataSeriesView,
+    MarketDataChartPoint,
     MarketVenueResponse,
     MarketVenueView,
     OrganisationOptionResponse,
@@ -293,6 +294,8 @@ def _search_predicate(tenant_id: UUID, query: str, rn, inst, typ):
                         .select_from(listing)
                         .where(listing.c.listing_node_id == mapping.c.target_object_id)
                         .where(listing.c.instrument_node_id == rn.c.reference_node_id)
+                        # The node belongs to the outer instrument query, two EXISTS levels up.
+                        .correlate(rn, mapping)
                     ),
                 )
             )
@@ -422,7 +425,7 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
             .where(observation.c.quality_status == "ACCEPTED")
             .where(observation.c.dataset_id.not_in(denied_datasets))
             .where(_current_market_data_observation_clause(observation))
-            .where(_market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id))
+            .where(_market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id, observation.c.market_data_series_id))
             .where(
                 exists(
                     select(1)
@@ -4203,13 +4206,16 @@ def decide_structured_product_proposal(
     return _structured_product_view(connection, tenant_id, proposal_id)
 
 
-def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correlation_id: str, *, limit: int = 100, offset: int = 0) -> WorkQueueView:
+def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correlation_id: str, *, limit: int = 100, offset: int = 0, permission_codes=None) -> WorkQueueView:
     from .contracts import ApiMeta
 
     items: list[WorkQueueItemView] = []
+    # Filter before pagination/counts, not merely the visible page.
+    include_reference = permission_codes is None or 'REFERENCE_READ' in permission_codes
+    include_nav = permission_codes is None or 'VALUATION_READ' in permission_codes
     proposal_counts = connection.execute(select(m.reference_data_proposal.c.proposal_type, func.count()).where(
         m.reference_data_proposal.c.tenant_id == tenant_id,
-        m.reference_data_proposal.c.status == 'PENDING').group_by(m.reference_data_proposal.c.proposal_type)).all()
+        m.reference_data_proposal.c.status == 'PENDING', include_reference).group_by(m.reference_data_proposal.c.proposal_type)).all()
     proposal_total = sum(count for _, count in proposal_counts)
     proposals = connection.execute(
         select(
@@ -4220,6 +4226,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         )
         .where(m.reference_data_proposal.c.tenant_id == tenant_id)
         .where(m.reference_data_proposal.c.status == "PENDING")
+        .where(include_reference)
         .order_by(m.reference_data_proposal.c.proposed_at_utc, m.reference_data_proposal.c.reference_data_proposal_id)
         .limit(limit).offset(offset)
     ).mappings().all()
@@ -4346,6 +4353,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         select(m.nav_calculation_run.c.nav_calculation_run_id, m.nav_calculation_run.c.valuation_date)
         .where(m.nav_calculation_run.c.tenant_id == tenant_id)
         .where(m.nav_calculation_run.c.status.in_(["DRAFT", "REVIEW", "PENDING_REVIEW"]))
+        .where(include_nav)
         .order_by(m.nav_calculation_run.c.valuation_date, m.nav_calculation_run.c.nav_calculation_run_id)
         .limit(limit - len(items)).offset(max(0, offset - proposal_total))
     ).mappings().all()
@@ -4370,7 +4378,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         counts[category] += count
     counts['NAV_REVIEW'] = connection.scalar(select(func.count()).select_from(m.nav_calculation_run).where(
         m.nav_calculation_run.c.tenant_id == tenant_id,
-        m.nav_calculation_run.c.status.in_(['DRAFT', 'REVIEW', 'PENDING_REVIEW'])))
+        m.nav_calculation_run.c.status.in_(['DRAFT', 'REVIEW', 'PENDING_REVIEW']), include_nav))
     return WorkQueueView(
         counts={key: counts.get(key, 0) for key in ["MAPPING_REVIEW", "REFERENCE_DATA_REVIEW", "NAV_REVIEW", "MARKET_DATA_EXCEPTION"]},
         items=items,
@@ -4385,15 +4393,22 @@ def _current_market_data_observation_clause(observation):
         newer.c.quality_status == 'ACCEPTED'))
 
 
-def _market_data_display_entitlement_clause(dataset_id, tenant_id):
+def _market_data_display_entitlement_clause(dataset_id, tenant_id, series_id=None):
+    from market_data.entitlements import tenant_series_entitlement_clause
     entitlement = m.tenant_dataset_entitlement.alias('display_entitlement')
+    # This subquery is nested inside the entitlement EXISTS. Explicit multi-level
+    # correlation keeps dataset_id tied to the outer observation/series, rather
+    # than adding that entire table to the profile lookup's FROM clause.
     profiled = exists(select(1).select_from(m.dataset_access_profile).where(
-        m.dataset_access_profile.c.dataset_id == dataset_id))
+        m.dataset_access_profile.c.dataset_id == dataset_id)
+        .correlate_except(m.dataset_access_profile))
     return exists(select(1).select_from(entitlement).where(
         entitlement.c.dataset_id == dataset_id, entitlement.c.tenant_id == tenant_id,
         entitlement.c.status == 'ACTIVE', entitlement.c.valid_from <= date.today(),
         or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= date.today()),
-        or_(~profiled, entitlement.c.use_purpose == 'INTERNAL_REPORTING')))
+        or_(~profiled, entitlement.c.use_purpose == 'INTERNAL_REPORTING'),
+        tenant_series_entitlement_clause(dataset_id, series_id, tenant_id, None,
+            date.today(), entitlement=entitlement)).correlate_except(entitlement))
 
 
 def _market_data_visible_node_clause(reference_node_id, tenant_id):
@@ -4424,6 +4439,8 @@ def list_market_data_series(
     correlation_id: str,
     observation_limit: int = 1000,
     observation_offset: int = 0,
+    series_id: UUID | None = None,
+    include_chart: bool = False,
 ) -> MarketDataSeriesResponse:
     """Return a catalogue of precise series with a bounded observation window."""
     if not 1 <= observation_limit <= 1000 or not 0 <= observation_offset <= 100000:
@@ -4446,17 +4463,22 @@ def list_market_data_series(
                _market_data_visible_node_clause(series.c.reference_node_id, tenant_id),
                or_(series.c.default_dataset_id.is_(None), series.c.default_dataset_id.not_in(denied_datasets)),
                or_(series.c.default_dataset_id.is_(None),
-                   _market_data_display_entitlement_clause(series.c.default_dataset_id, tenant_id))]
+                   _market_data_display_entitlement_clause(series.c.default_dataset_id, tenant_id, series.c.market_data_series_id))]
     if reference_node_id is not None:
         filters.append(series.c.reference_node_id == reference_node_id)
+    if series_id is not None:
+        filters.append(series.c.market_data_series_id == series_id)
     if series_type:
-        filters.append(series.c.series_type == series_type)
+        from market_data.closing_prices import close_type
+        filters.append(series.c.series_type == close_type(series_type))
+        if series_type=='OFFICIAL_CLOSE':
+            filters.append(series.c.closing_method=='EXCHANGE_OFFICIAL')
     if from_date or to_date:
         obs_exists = select(1).select_from(observation).where(
             observation.c.market_data_series_id == series.c.market_data_series_id,
             observation.c.quality_status == 'ACCEPTED', observation.c.dataset_id.not_in(denied_datasets),
             _current_market_data_observation_clause(observation),
-            _market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id))
+            _market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id, observation.c.market_data_series_id))
         if from_date:
             obs_exists = obs_exists.where(observation.c.market_date >= from_date)
         if to_date:
@@ -4468,6 +4490,7 @@ def list_market_data_series(
             series.c.reference_node_id,
             reference_node.c.canonical_name.label("reference_node_name"),
             series.c.series_type,
+            series.c.closing_method,
             series.c.value_type,
             currency.c.currency_code,
             provider.c.data_provider_id,
@@ -4519,7 +4542,7 @@ def list_market_data_series(
         obs_filters = [observation.c.market_data_series_id == row.market_data_series_id,
                        observation.c.quality_status == "ACCEPTED", observation.c.dataset_id.not_in(denied_datasets),
                        _current_market_data_observation_clause(observation),
-                       _market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id)]
+                       _market_data_display_entitlement_clause(observation.c.dataset_id, tenant_id, observation.c.market_data_series_id)]
         if from_date:
             obs_filters.append(observation.c.market_date >= from_date)
         if to_date:
@@ -4529,7 +4552,7 @@ def list_market_data_series(
         observation_provider = m.data_provider.alias("observation_provider")
         vintage = m.market_data_vintage
         observation_total = connection.scalar(select(func.count()).select_from(observation).where(*obs_filters))
-        obs_rows = connection.execute(
+        obs_statement = (
             select(
                 observation.c.market_data_observation_id,
                 observation.c.market_date,
@@ -4572,7 +4595,15 @@ def list_market_data_series(
             .order_by(observation.c.market_date, observation.c.observed_at_utc, observation.c.market_data_observation_id)
             .offset(observation_offset)
             .limit(observation_limit)
-        ).mappings().all()
+        )
+        obs_rows = connection.execute(obs_statement).mappings().all()
+        chart_points = None
+        if include_chart:
+            # Same visibility/current/accepted/date filters, without table pagination or provenance payload.
+            chart_rows = connection.execute(obs_statement.with_only_columns(
+                observation.c.market_date, observation.c.value
+            ).offset(None).limit(None)).mappings().all()
+            chart_points = [MarketDataChartPoint(marketDate=_iso(item.market_date), value=_decimal(item.value)) for item in chart_rows]
         first_licence = next((item for item in obs_rows if item.acquisition_licence_id), None)
         result.append(
             MarketDataSeriesView(
@@ -4580,6 +4611,7 @@ def list_market_data_series(
                 referenceNodeId=row.reference_node_id,
                 referenceNodeName=row.reference_node_name,
                 seriesType=row.series_type,
+                closingMethod=row.closing_method,
                 valueType=row.value_type,
                 currency=row.currency_code,
                 providerId=row.data_provider_id,
@@ -4599,6 +4631,7 @@ def list_market_data_series(
                 coverageStartDate=_iso(row.coverage_start_date),
                 coverageEndDate=_iso(row.coverage_end_date),
                 observationTotal=observation_total,
+                chartPoints=chart_points,
                 observationLimit=observation_limit,
                 observationOffset=observation_offset,
                 observations=[
@@ -4752,6 +4785,9 @@ def list_booked_trades(
             quantity=_decimal(row.quantity),
             quantityUnit=row.quantity_unit,
             tradeDatetimeUtc=_iso(row.trade_datetime_utc) or "",
+            valuationEffectiveDate=_iso(row.valuation_effective_date or row.trade_datetime_utc.date()),
+            valuationDateBasis=row.valuation_date_basis or 'LEGACY_UTC_TRADE_DATE',
+            valuationOverrideReason=row.valuation_override_reason,
             instructionDate=_iso(row.instruction_date),
             settlementDate=_iso(row.settlement_date),
             traderPersonId=row.trader_person_id,
@@ -4915,8 +4951,8 @@ _TRADE_BOOKING_ENDPOINT = "/v1/trades"
 
 def _trade_booking_fingerprint(payload: TradeBookingRequest, connection: Connection, tenant_id: UUID) -> str:
     data = payload.model_dump(mode="json", by_alias=True)
-    # Additive bond fields must not change fingerprints of existing product retries.
-    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence', 'correction'):
+    # Omitted additive fields must not invalidate already-recorded retry keys.
+    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence', 'correction', 'valuationEffectiveDate', 'valuationOverrideReason'):
         if data.get(field) is None: data.pop(field, None)
     # Immutable definitions remain available after retirement, so replay can
     # canonicalise values without reapplying today's booking eligibility.
@@ -4967,6 +5003,7 @@ def book_listed_cash_trade(
 
 def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotency_key, request_id):
     from .booking_controls import find_booking_replay, record_booking_replay
+    from .valuation_recognition import trade_values, frozen_recognition
 
     fingerprint = _trade_booking_fingerprint(request, connection, tenant_id)
     existing = find_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint)
@@ -4979,7 +5016,7 @@ def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotenc
     from .booking_controls import validate_execution_date
     validate_execution_date(request.trade_datetime)
     from .trade_corrections import prepare_correction, complete_correction
-    prepare_correction(connection, tenant_id, request, 'CASH')
+    prepare_correction(connection, tenant_id, request, 'CASH', actor=actor_id)
     from .cash_booking_integrity import load_cash_booking_listing
     listing_row = load_cash_booking_listing(connection, tenant_id, request.listing_id, request.trade_datetime.astimezone(timezone.utc).date())
     from .booking_controls import lock_booking_strategy
@@ -5005,6 +5042,7 @@ def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotenc
             quantity=signed_quantity,
             quantity_unit="SHARES",
             trade_datetime_utc=trade_datetime_utc,
+            **trade_values(request),
             settlement_date=request.settlement_date,
             booked_by_user_account_id=actor_id,
             execution_channel="MANUAL_UI",
@@ -5015,7 +5053,7 @@ def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotenc
         )
     )
     persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values)
-    connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(listing_row['booking_snapshot'], sort_keys=True), recorded_by_user_account_id=actor_id))
+    connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(listing_row['booking_snapshot'] | frozen_recognition(request), sort_keys=True), recorded_by_user_account_id=actor_id))
     record_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint, trade_id)
     complete_correction(connection, tenant_id, actor_id, request, trade_id)
     result = get_booked_trade_detail(connection, tenant_id, trade_id, current_api_version(), request_id)
@@ -5076,7 +5114,9 @@ def _market_data_snapshot_view(connection: Connection, tenant_id: UUID, snapshot
         raise RepositoryNotFound("Market-data resolution snapshot does not exist")
     rows = connection.execute(select(m.market_data_resolution_snapshot_item).where(m.market_data_resolution_snapshot_item.c.market_data_resolution_snapshot_id == snapshot_id).order_by(m.market_data_resolution_snapshot_item.c.request_sequence)).mappings().all()
     from market_data.display_access import assert_dataset_display
-    assert_dataset_display(connection, tenant_id, {row['dataset_id'] for row in rows if row['selected_value'] is not None})
+    selected = [row for row in rows if row['selected_value'] is not None]
+    assert_dataset_display(connection, tenant_id, {row['dataset_id'] for row in selected},
+        series_contexts=[(row['dataset_id'], row['market_data_series_id']) for row in selected])
     return MarketDataResolutionSnapshotView(
         marketDataResolutionSnapshotId=header["market_data_resolution_snapshot_id"], tenantId=header["tenant_id"], valuationPolicyId=header["valuation_policy_id"], valuationDate=header["valuation_date"], valuationCutId=header["valuation_cut_id"], marketDataAsOfUtc=header["market_data_as_of_utc"], usePurpose=header["use_purpose"], resolverVersion=header["resolver_version"], status=header["status"], createdAtUtc=header["created_at_utc"],
         items=[MarketDataResolutionSnapshotItemView.model_validate(dict(row)) for row in rows],

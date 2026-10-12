@@ -26,6 +26,9 @@ export type BookedTrade = {
   quantity: string;
   quantityUnit: string;
   tradeDatetimeUtc: string;
+  valuationEffectiveDate?: string | null;
+  valuationDateBasis?: string | null;
+  valuationOverrideReason?: string | null;
   instructionDate: string | null;
   settlementDate: string | null;
   traderPersonId: string | null;

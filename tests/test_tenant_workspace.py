@@ -1,6 +1,7 @@
 """Database controls for the tenant workspace alpha."""
 
 from datetime import date
+import os
 from uuid import UUID, uuid4
 
 import pytest
@@ -18,13 +19,16 @@ from security_master_schema.tenant_workspace import (
 )
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
 SECOND_TENANT_ID = UUID("00000000-0000-7000-8000-000000000301")
 
 
 @pytest.fixture(scope="module")
 def engine():
-    engine = create_engine(DATABASE_URL)
+    database_url = os.environ['DATABASE_URL']
+    from sqlalchemy.engine import make_url
+    if make_url(database_url).database == 'fortem_secm':
+        raise RuntimeError('Tenant workspace tests require an isolated test database')
+    engine = create_engine(database_url)
     create_schema(engine)
     load_demo_data(engine)
     return engine
@@ -135,6 +139,7 @@ def test_expired_entitlement_removes_strategy_write_permission(engine) -> None:
         connection.execute(
             update(m.tenant_module_entitlement)
             .where(m.tenant_module_entitlement.c.tenant_id == DEMO_IDS["tenant"])
+            .where(m.tenant_module_entitlement.c.valid_from <= date(2026, 9, 28))
             .values(valid_to=date(2026, 9, 28))
         )
         workspace = resolve_tenant_workspace(connection, DEMO_IDS["tenant"], DEMO_IDS["demo_user_account"], date(2026, 9, 29))

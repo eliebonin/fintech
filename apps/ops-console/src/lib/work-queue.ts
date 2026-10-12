@@ -1,5 +1,6 @@
 import { ReferenceApiError, type ReferenceApiMeta } from "./reference-api-client";
 import type { TenantContext } from "./tenant-context";
+import { referenceFetch } from './reference-fetch';
 
 export type WorkQueueItem = {
   itemId: string;
@@ -30,7 +31,7 @@ export type WorkQueueOptions = Pick<TenantContext, "tenantId" | "userAccountId">
 
 export async function getWorkQueue(options: WorkQueueOptions): Promise<WorkQueuePayload> {
   const baseUrl = options.baseUrl ?? process.env.REFERENCE_API_URL ?? "http://localhost:8000";
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = options.fetchImpl ?? referenceFetch();
   const url = new URL('/v1/work-queue',baseUrl);
   if(options.limit!==undefined)url.searchParams.set('limit',String(options.limit));
   if(options.offset!==undefined)url.searchParams.set('offset',String(options.offset));

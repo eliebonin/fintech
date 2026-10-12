@@ -27,6 +27,9 @@ def test_cli_rejects_nonlocal_personal_targets_before_network(environment, datab
     (['--start','2021-10-07','--days','14'], 'not allowed with argument'),
     (['--retry-gaps'], 'requires --start'),
     (['--retry-gaps','--start','2021-10-07','--audit-only'], 'cannot combine'),
+    (['--request-spacing-seconds','0'], '1..60 seconds'),
+    (['--request-spacing-seconds','nan'], '1..60 seconds'),
+    (['--request-spacing-seconds','61'], '1..60 seconds'),
 ])
 def test_exception_and_history_guards_precede_database_or_network(arguments, message):
     result = subprocess.run([sys.executable, '-m', 'apps.market_data_ingestor.yahoo',

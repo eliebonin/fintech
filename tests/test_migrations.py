@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, text
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ADMIN_DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+    os.environ["DATABASE_URL"],
 ).rsplit("/", 1)[0] + "/postgres"
 TEST_DATABASE_NAME = "fortem_secm_migration_test"
 TEST_DATABASE_URL = ADMIN_DATABASE_URL.rsplit("/", 1)[0] + f"/{TEST_DATABASE_NAME}"

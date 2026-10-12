@@ -6,6 +6,7 @@ import json
 from .contracts import DeliveryParser, ListingContext, ProviderSpec
 from .rights import load_rights
 from . import storage
+from .closing_prices import close_type
 
 
 def validate_normalized(parsed,provider,start,end,received_at):
@@ -23,9 +24,10 @@ def validate_normalized(parsed,provider,start,end,received_at):
             if point.value!=point.value.quantize(Decimal('0.000000000001')):
                 raise ValueError('Normalized PRICE must match database precision')
         identity=(point.field,point.value_basis,parsed.timestamp_semantics)
-        if point.series_type in dimensions and dimensions[point.series_type]!=identity:
+        kind=close_type(point.series_type)
+        if kind in dimensions and dimensions[kind]!=identity:
             raise ValueError('Inconsistent normalized series dimensions')
-        dimensions[point.series_type]=identity
+        dimensions[kind]=identity
 
 
 def ingest_delivery(c, *, provider: ProviderSpec, parser: DeliveryParser,
@@ -69,6 +71,8 @@ def ingest_delivery(c, *, provider: ProviderSpec, parser: DeliveryParser,
         if report['historicalContinuity']=='REJECTED':
             raise ValueError('Historical mapping review rejects this market-date interval')
         report['rejections'].extend(parsed.rejections)
+        if parsed.adjustment_evidence:
+            report['adjustmentEvidence'] = parsed.adjustment_evidence
     except (ValueError, TypeError) as exc:
         report['rejections'].append(dict(reason=str(exc)))
         parsed = None
@@ -77,6 +81,9 @@ def ingest_delivery(c, *, provider: ProviderSpec, parser: DeliveryParser,
             listing=listing, mapping=mapping, symbol=symbol, delivery_key=delivery_key,
             digest=digest, source_payload_id=source_payload_id, received_at=received_at,
             evidence=evidence, report=report)
+    if parsed and parsed.corporate_actions:
+        from .corporate_actions import publish_actions
+        report['corporateActions']=publish_actions(c,parsed.corporate_actions,listing=listing,source_payload_id=source_payload_id)
     storage.finish_delivery(c, run_id=run_id, dataset_id=dataset_id,
         source_payload_id=source_payload_id, delivery_key=delivery_key, digest=digest,
         raw_payload=raw_payload, received_at=received_at, evidence=evidence, report=report)

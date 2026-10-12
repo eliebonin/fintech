@@ -88,6 +88,10 @@ def _correlation_id(value: str | None) -> str:
 def create_app(*, settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
     resolved_settings = settings or Settings.from_environment()
     app = FastAPI(title="Reference Data API", version=resolved_settings.api_version)
+    from .access_boundary import install_access_boundary
+    install_access_boundary(app,lambda: engine or get_engine(resolved_settings),resolved_settings.environment)
+    # Starlette executes middleware last-added first. Correlation/error handling
+    # surrounds the body budget, which surrounds authorization and DB access.
     from .resource_limits import RequestBodyBudget
     app.add_middleware(RequestBodyBudget, max_bytes=resolved_settings.max_request_body_bytes)
     configure_problem_details(app)
@@ -105,6 +109,11 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             raise HTTPException(status_code=403, detail='Market-data module is not enabled for this tenant')
         return actor_id
 
+    from .market_data_workspace import market_data_workspace_router
+    from .access_routes import access_router
+    app.include_router(access_router(connection_dependency,resolved_settings.environment))
+    app.include_router(market_data_workspace_router(connection_dependency, market_data_actor, resolved_settings.api_version))
+
     from .trade_configuration_routes import configuration_router
     app.include_router(configuration_router(connection_dependency))
     from .fx_forward_booking import fx_forward_booking_router
@@ -121,11 +130,17 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     app.include_router(delivery_router(connection_dependency, _assert_tenant_membership))
     from .valuation_policy_routes import valuation_policy_router
     app.include_router(valuation_policy_router(connection_dependency, _assert_tenant_membership))
+    from .market_data_source_routes import market_data_source_router
+    app.include_router(market_data_source_router(connection_dependency, _assert_tenant_membership))
     from .valuation_routes import valuation_router
     from .resource_limits import configure_transaction_budget
     app.include_router(valuation_router(connection_dependency, _assert_tenant_membership, lambda: engine or get_engine(resolved_settings),
         lambda connection: configure_transaction_budget(connection, resolved_settings)))
     from .calendar_routes import calendar_router
+    from .valuation_input_routes import valuation_input_router
+    app.include_router(valuation_input_router(connection_dependency, _assert_tenant_membership))
+    from .valuation_amendment_routes import valuation_amendment_router
+    app.include_router(valuation_amendment_router(connection_dependency, _assert_tenant_membership))
     app.include_router(calendar_router(connection_dependency, _assert_tenant_membership))
 
     @app.get("/health")
@@ -152,6 +167,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             membershipRole=workspace.membership_role,
             moduleCodes=sorted(workspace.module_codes),
             platformRole=workspace.platform_role,
+            permissionCodes=sorted(workspace.permission_codes),
+            tenantModuleCodes=sorted(workspace.tenant_module_codes),
         ))
 
     @app.post("/v1/strategies", response_model=StrategyResponse, status_code=status.HTTP_201_CREATED)
@@ -193,6 +210,26 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         if result is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
         return StrategyResponse(data=result)
+
+    from .instrument_catalogue import search_instrument_catalogue
+    from .contracts import InstrumentCatalogueResponse
+
+    @app.get("/v1/instruments/catalogue")
+    def instrument_catalogue(
+        q: str = Query(default="", max_length=200),
+        instrument_type: str | None = Query(default=None, max_length=80),
+        asset_class: str | None = Query(default=None, max_length=80),
+        status: str | None = Query(default=None, max_length=80),
+        limit: int = Query(default=25, ge=1, le=100),
+        offset: int = Query(default=0, ge=0),
+        context: TenantContext = Depends(get_tenant_context),
+        connection=Depends(connection_dependency, scope='function'),
+        x_correlation_id: str | None = Header(default=None),
+    ) -> InstrumentCatalogueResponse:
+        _assert_tenant_membership(connection, context)
+        return search_instrument_catalogue(connection, context.tenant_id, q, limit, offset,
+            resolved_settings.api_version, _correlation_id(x_correlation_id),
+            instrument_type, asset_class, status)
 
     @app.get("/v1/instruments/search")
     def search(
@@ -816,7 +853,9 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         x_correlation_id: str | None = Header(default=None),
     ) -> WorkQueueView:
         _assert_tenant_membership(connection, context)
-        return work_queue(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id), limit=limit, offset=offset)
+        from security_master_schema.tenant_workspace import resolve_tenant_workspace
+        workspace = resolve_tenant_workspace(connection, context.tenant_id, context.user_account_id, date.today())
+        return work_queue(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id), limit=limit, offset=offset, permission_codes=workspace.permission_codes)
 
     @app.post(
         "/v1/market-data-resolution-snapshots",
@@ -874,6 +913,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         to_date: date | None = Query(default=None, alias="toDate"),
         reference_node_id: UUID | None = Query(default=None, alias="referenceNodeId"),
         series_type: str | None = Query(default=None, alias="seriesType", max_length=50),
+        series_id: UUID | None = Query(default=None, alias="seriesId"),
+        include_chart: bool = Query(default=False, alias="includeChart"),
         limit: int = Query(default=20, ge=1, le=100),
         offset: int = Query(default=0, ge=0),
         observation_limit: int = Query(default=1000, ge=1, le=1000, alias="observationLimit"),
@@ -888,7 +929,9 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Market-data module is not enabled for this tenant')
         if from_date and to_date and from_date > to_date:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="fromDate must be on or before toDate")
-        return list_market_data_series(connection, context.tenant_id, from_date, to_date, reference_node_id, series_type, limit, offset, resolved_settings.api_version, _correlation_id(x_correlation_id), observation_limit, observation_offset)
+        if include_chart and (not (reference_node_id or series_id) or not from_date or not to_date):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="includeChart requires a referenceNodeId or seriesId and both fromDate and toDate")
+        return list_market_data_series(connection, context.tenant_id, from_date, to_date, reference_node_id, series_type, limit, offset, resolved_settings.api_version, _correlation_id(x_correlation_id), observation_limit, observation_offset, series_id=series_id, include_chart=include_chart)
 
     @app.get("/v1/market-venues", response_model=MarketVenueResponse)
     def market_venues(

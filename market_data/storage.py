@@ -2,6 +2,15 @@
 from sqlalchemy import exists, func, or_, select
 
 from security_master_schema import models as m
+from .closing_prices import close_type
+
+
+def source_series_only():
+    """Derived series coexist with source fields; source ingestion never rewrites them."""
+    dimensions=m.market_data_series_dimension
+    return ~exists(select(1).select_from(dimensions).where(
+        dimensions.c.market_data_series_id==m.market_data_series.c.market_data_series_id,
+        dimensions.c.dimension_code=='NORMALIZATION_METHOD'))
 
 
 def insert_returning(c, table, key, **values):
@@ -85,7 +94,8 @@ def validate_series(c, *, listing, dataset_id, provider):
     existing_series = c.execute(select(m.market_data_series).where(
         m.market_data_series.c.reference_node_id == listing['listing_node_id'],
         m.market_data_series.c.default_dataset_id == dataset_id,
-        m.market_data_series.c.series_type.in_(provider.series_types))).mappings().all()
+        source_series_only(),
+        m.market_data_series.c.series_type.in_([close_type(kind) for kind in provider.series_types]))).mappings().all()
     if any(s['status'] != 'ACTIVE' or s['currency_id'] != listing['trading_currency_id']
            or s['value_type'] != 'PRICE' or s['source_system_id'] != provider.source_system_id
            for s in existing_series):
@@ -93,11 +103,12 @@ def validate_series(c, *, listing, dataset_id, provider):
 
 
 def validate_dimensions(c,listing_id,dataset_id,parsed):
-    expected={p.series_type:{'SOURCE_FIELD':p.field,'VALUE_BASIS':p.value_basis,
+    expected={close_type(p.series_type):{'SOURCE_FIELD':p.field,'VALUE_BASIS':p.value_basis,
         'TIMESTAMP_SEMANTICS':parsed.timestamp_semantics} for p in parsed.points}
     series=c.execute(select(m.market_data_series).where(
         m.market_data_series.c.reference_node_id==listing_id,
         m.market_data_series.c.default_dataset_id==dataset_id,
+        source_series_only(),
         m.market_data_series.c.series_type.in_(expected))).mappings().all()
     for row in series:
         stored=dict(c.execute(select(m.market_data_series_dimension.c.dimension_code,
@@ -132,7 +143,8 @@ def publish_points(c, *, parsed, provider, dataset, listing, mapping, symbol,
         series_id = c.scalar(select(m.market_data_series.c.market_data_series_id).where(
             m.market_data_series.c.reference_node_id == listing['listing_node_id'],
             m.market_data_series.c.default_dataset_id == dataset_id,
-            m.market_data_series.c.series_type == point.series_type))
+            source_series_only(),
+            m.market_data_series.c.series_type == close_type(point.series_type)))
         if not series_id:
             series_id = insert_returning(c, m.market_data_series, 'market_data_series_id',
                 reference_node_id=listing['listing_node_id'], default_dataset_id=dataset_id,

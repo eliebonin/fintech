@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 import hashlib, json
 import pytest
+import os
 from sqlalchemy import create_engine, insert, select, update, func
 from security_master_schema import models as m
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
@@ -11,7 +12,7 @@ from apps.reference_api.repository import book_listed_cash_trade, get_booked_tra
 
 @pytest.fixture(scope="module")
 def engine():
-    engine = create_engine("postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm")
+    engine = create_engine(os.environ["DATABASE_URL"])
     load_demo_data(engine)
     yield engine
     engine.dispose()

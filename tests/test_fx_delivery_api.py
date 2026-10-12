@@ -85,7 +85,10 @@ def test_http_delivery_contract_and_opaque_foreign_trade(matured):
     assert saved.json()['data']['receiveConfirmed']=='40'
     assert request('POST',path,payload(),key).status_code==200
     assert request('POST',path,payload()).status_code==409
-    assert request('GET',path,tenant='second_tenant').status_code==404
+    # This legacy shared user has no group grant in the second tenant: deny
+    # authority before looking up the trade. Authorized foreign-ID 404 is also
+    # checked by tenant-access HTTP acceptance with the seeded second admin.
+    assert request('GET',path,tenant='second_tenant').status_code==403
     invalid=request('POST',path,payload(2,amount='61'))
     # The request shape is valid but it conflicts with the remaining booked obligation.
     assert invalid.status_code==409,invalid.text

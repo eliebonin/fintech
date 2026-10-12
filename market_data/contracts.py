@@ -36,6 +36,8 @@ class ParsedDelivery:
     rejections: tuple[dict, ...]
     vintage_value_basis: str
     timestamp_semantics: str
+    adjustment_evidence: dict | None = None
+    corporate_actions: tuple[dict, ...] = ()
 
 
 class DeliveryParser(Protocol):

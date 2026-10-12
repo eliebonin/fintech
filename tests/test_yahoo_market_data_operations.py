@@ -84,9 +84,12 @@ def test_partial_resume_and_exact_gap_retry_remain_partial(monkeypatch,capsys,op
     capsys.readouterr()
     result['indicators']['quote'][0]['close']=[252]
     result['indicators']['adjclose'][0]['adjclose']=[252]
-    assert yahoo.main()==0
+    # Source gaps are resolved, but this synthetic response has no certified
+    # split-adjustment anchor. RAW readiness must remain partial, not be invented.
+    assert yahoo.main()==3
     final=json.loads(capsys.readouterr().out.splitlines()[-1])
-    assert final['outcome']=='COMPLETE'
+    assert final['sourceOutcome']=='COMPLETE' and final['outcome']=='PARTIAL'
+    assert final['normalization']['status']!='COMPLETE'
     with engine.connect() as c:
         # The original partial report stays immutable even after its missing date is filled.
         original=c.execute(select(m.market_data_ingestion_run.c.report).where(

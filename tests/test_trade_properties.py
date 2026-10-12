@@ -1,12 +1,13 @@
 """Trade catalogue validation and database invariants."""
 from uuid import uuid4
 import pytest
+import os
 from sqlalchemy import create_engine, insert, select, update
 from sqlalchemy.exc import IntegrityError, DBAPIError
 from security_master_schema import models as m
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 def test_trade_registry_has_unique_assignment_and_tenant_keys():
     assert "trd.trade_property_definition" in m.metadata.tables

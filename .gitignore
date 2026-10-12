@@ -10,6 +10,8 @@ node_modules/
 .pnpm-store/
 dist/
 .next/
+.next-*/
+.next-economic-pnl/
 .turbo/
 *.tsbuildinfo
 

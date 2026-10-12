@@ -15,7 +15,7 @@ async function proxy(request:NextRequest,ctx:{params:Promise<{path:string[]}>}) 
   try {
     const context=await getActiveTenantContext();
     if(request.headers.get("X-Expected-Tenant-Id")!==context.tenantId)return NextResponse.json({error:{message:"Tenant context changed. Reload this page."}},{status:409});
-    const response=await fetch(new URL(`/v1/trade-configuration/${path}${request.nextUrl.search}`,process.env.REFERENCE_API_URL??"http://localhost:8000"),{
+    const response=await referenceFetch()(new URL(`/v1/trade-configuration/${path}${request.nextUrl.search}`,process.env.REFERENCE_API_URL??"http://localhost:8000"),{
       method:request.method,cache:"no-store",headers:{"Content-Type":"application/json","X-Tenant-Id":context.tenantId,"X-User-Account-Id":context.userAccountId},
       ...(request.method==="POST"?{body:JSON.stringify(await request.json())}:{}),
     });
@@ -26,3 +26,4 @@ async function proxy(request:NextRequest,ctx:{params:Promise<{path:string[]}>}) 
 }
 export const GET=proxy;
 export const POST=proxy;
+import {referenceFetch} from '@/lib/reference-fetch';

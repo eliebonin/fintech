@@ -9,7 +9,7 @@ class EvidenceDisplayDenied(PermissionError):
     """Retained inputs exist but must not be disclosed to this caller now."""
 
 
-def assert_dataset_display(c, tenant, datasets):
+def assert_dataset_display(c, tenant, datasets, *, series_contexts=None):
     datasets=set(datasets)
     if not datasets:
         return
@@ -26,3 +26,14 @@ def assert_dataset_display(c, tenant, datasets):
     denied=set(denied_display_datasets(c,tenant,today)) & datasets
     if datasets-allowed or denied:
         raise EvidenceDisplayDenied('Current dataset display rights and tenant reporting entitlement are required to inspect these inputs.')
+    from .entitlements import tenant_series_entitlement_clause
+    contexts = set(series_contexts or ())
+    # An omitted context may satisfy a dataset-wide grant, never a scoped grant.
+    contexts.update((dataset, None) for dataset in datasets - {d for d, _ in contexts})
+    for dataset, series in contexts:
+        if dataset not in datasets:
+            raise EvidenceDisplayDenied('Unexpected source dataset context.')
+        purpose = 'INTERNAL_REPORTING' if dataset in profiles else None
+        if not c.scalar(select(1).where(tenant_series_entitlement_clause(
+                dataset, series, tenant, purpose, today))):
+            raise EvidenceDisplayDenied('Current tenant coverage does not permit this source series.')

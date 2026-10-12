@@ -90,7 +90,7 @@ def calendar_context(c, calendar_id, venue, end, tenant=None, asof=None, fund_na
         'package':'pandas_market_calendars','packageVersion':version('pandas_market_calendars'), 'authoritative':False}
 
 
-def select_composite(c, request, rule, rows):
+def select_composite(c, request, rule, rows, source_priority=None):
     """Return frozen target/result evidence, rejecting unknown semantics explicitly."""
     convention = rule['pricing_convention']
     evidence = {'convention':convention, 'informationCutoffUtc':request.market_data_as_of_utc.isoformat(),
@@ -139,6 +139,7 @@ def select_composite(c, request, rule, rows):
                     m.market_data_series_dimension.c.market_data_series_id.in_(ids))):
                 dimensions.setdefault(sid, {}).setdefault(code, set()).add(value)
         eligible = []
+        basis_failures = []
         for row in rows:
             if rule['value_basis'] and row['value_basis'] != rule['value_basis']:
                 continue
@@ -165,13 +166,31 @@ def select_composite(c, request, rule, rows):
                     continue
                 if convention == 'NAMED_FIXING' and row['received_at_utc'] < row_target:
                     continue
+            if rule.get('price_requirement') == 'AS_TRADED':
+                from .price_basis import normalise_as_traded
+                from .price_basis_store import load_price_basis_proof
+                try:
+                    proof = load_price_basis_proof(c, row['market_data_observation_id'], request.market_data_as_of_utc) if row['value_basis'] != 'RAW' or dims.get('NORMALIZATION_METHOD') else None
+                    if dims.get('NORMALIZATION_METHOD') and (not proof or proof.get('method')!='DERIVED_SPLIT_ONLY'):
+                        raise ValueError('PRICE_BASIS_PROOF_MISSING')
+                    normalized = normalise_as_traded(row['value'], row['value_basis'], proof,
+                        allow_split_conversion=rule['allow_split_conversion'])
+                    row = dict(row, valuation_value=normalized.valuation_value, price_basis_evidence=normalized.evidence)
+                except ValueError as exc:
+                    basis_failures.append(str(exc))
+                    continue
             eligible.append(row)
-        if eligible:
-            row = max(eligible, key=lambda r: (r['market_date'], r['observed_at_utc'] if convention == 'EXPLICIT_TIME' else r['received_at_utc'], r['received_at_utc'], str(r['market_data_observation_id'])))
+        from .source_priority import choose_row
+        row = choose_row(eligible, source_priority or {'datasetIds': None}, observed_time=convention == 'EXPLICIT_TIME')
+        if row:
+            if row.get('price_basis_evidence'):
+                evidence['priceBasis'] = row['price_basis_evidence']
             stale = session_distance(requested, row['market_date'], sessions)
             result.update(row=row, used=row['market_date'], staleness=stale, status='SELECTED', exception=None)
             if rule['max_staleness_business_days'] is not None and stale > rule['max_staleness_business_days']:
                 result.update(status='STALE', exception='MAX_STALENESS_EXCEEDED')
+        elif basis_failures:
+            result['exception'] = sorted(set(basis_failures))[0]
     except (ValueError, KeyError) as exc:
         result['exception'] = 'CALENDAR_NOT_ASSESSED' if str(exc).startswith('Calendar coverage') else str(exc) if str(exc).isupper() else 'CALENDAR_OR_LOCAL_TIME_NOT_ASSESSED'
     if result['status'] != 'SELECTED' and rule['missing_data_action'] == 'MANUAL_OVERRIDE':

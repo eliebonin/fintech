@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { searchInstruments } from "@/lib/instrument-data";
-import { searchReferenceInstruments } from "@/lib/reference-api-client";
+import { loadInstrumentSearch as loadCatalogue } from "@/features/instruments/catalogue-data";
 import { bffErrorResponse } from "@/lib/bff-error";
 import { getActiveTenantContext } from "@/lib/tenant-session";
 
@@ -22,22 +21,7 @@ export async function GET(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: { code: "ACTIVE_TENANT_REQUIRED" } }, { status: 401 });
   }
-  return searchReferenceInstruments(query, { ...context, instrumentType, assetClass, status, limit, offset })
+  return loadCatalogue(query, { ...context, instrumentType, assetClass, status, limit, offset, signal: request.signal })
     .then((payload) => NextResponse.json(payload))
-    .catch((error: unknown) => {
-      const localFallbackAllowed = process.env.APP_ENV !== "production" && process.env.ALLOW_SYNTHETIC_FALLBACK !== "false";
-      if (!localFallbackAllowed) {
-        return bffErrorResponse(error, "Reference data service is unavailable", request, "REFERENCE_API_UNAVAILABLE");
-      }
-      return NextResponse.json({
-        data: searchInstruments(query),
-        meta: {
-          tenantContext: context.tenantId,
-          source: "synthetic-fixture-fallback",
-          apiVersion: "fixture-v1",
-          correlationId: request.headers.get("X-Correlation-Id") ?? crypto.randomUUID(),
-          warning: "Reference API unavailable; synthetic fixtures are shown for local development only.",
-        },
-      });
-    });
+    .catch((error: unknown) => bffErrorResponse(error, "Reference data service is unavailable", request, "REFERENCE_API_UNAVAILABLE"));
 }

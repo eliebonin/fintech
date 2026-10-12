@@ -24,12 +24,12 @@ def validate_execution_date(execution: datetime, *, today: date | None = None) -
     return execution_date
 
 
-def authorize_booking(connection: Connection, tenant_id: UUID, actor_id: UUID) -> None:
+def authorize_booking(connection: Connection, tenant_id: UUID, actor_id: UUID, *, action='TRADE_WRITE') -> None:
     active = connection.scalar(select(m.user_account.c.user_account_id).where(
         m.user_account.c.user_account_id == actor_id, m.user_account.c.status == 'ACTIVE'))
     if active is None:
         raise TenantActionForbidden('User account is not active')
-    require_tenant_action(resolve_tenant_workspace(connection, tenant_id, actor_id, governance_date()), 'TRADE_WRITE')
+    require_tenant_action(resolve_tenant_workspace(connection, tenant_id, actor_id, governance_date()), action)
 
 
 def lock_booking_strategy(connection: Connection, tenant_id: UUID, strategy_id: UUID) -> UUID:

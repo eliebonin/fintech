@@ -11,7 +11,14 @@ from .economics import canonical_payload, evidence_hash, validate_totals
 from .service import METHOD
 
 
+def input_revision_lock(c, tenant, strategy):
+    """Serialize source revisions with review across every date in a strategy."""
+    scope=f'valuation-inputs:{tenant}:{strategy}'
+    c.execute(select(func.pg_advisory_xact_lock(int.from_bytes(sha256(scope.encode()).digest()[:8],'big',signed=True))))
+
+
 def _lock(c, tenant, strategy, day):
+    input_revision_lock(c,tenant,strategy)
     scope=f'valuation:{tenant}:{strategy}:{day}'
     lock_id=int.from_bytes(sha256(scope.encode()).digest()[:8],'big',signed=True)
     c.execute(select(func.pg_advisory_xact_lock(lock_id)))
@@ -25,10 +32,19 @@ def _event(c, attempt_id, event_code, stage, details):
     c.execute(t.run_event.insert().values(attempt_id=attempt_id,event_code=event_code,stage=stage,details=canonical_payload(details)))
 
 
-def begin_attempt(engine, request, actor, key, correlation_id=None, *, configure_transaction=None):
+def request_identity(request):
+    """Keep pre-date-mode retry identities stable; daily mode is explicit."""
+    values = asdict(request)
+    if not values.get('daily'): values.pop('daily', None)
+    for key in ('predecessor_batch_id','recalculation_reason'):
+        if values.get(key) is None: values.pop(key,None)
+    return values
+
+
+def begin_attempt(engine, request, actor, key, correlation_id=None, *, configure_transaction=None,real_operator_id=None):
     """Commit operational STARTED independently of any financial transaction."""
     if not isinstance(key,str) or not key.strip() or len(key)>255: raise ValueError('Request key required')
-    digest=evidence_hash(dict(request=asdict(request),actor=actor))
+    digest=evidence_hash(dict(request=request_identity(request),actor=actor))
     with engine.begin() as c:
         if configure_transaction: configure_transaction(c)
         # Serialize identical keys without taking unrelated strategy/date locks.
@@ -37,11 +53,21 @@ def begin_attempt(engine, request, actor, key, correlation_id=None, *, configure
         old=c.execute(select(t.attempt).where(t.attempt.c.tenant_id==request.tenant_id,t.attempt.c.request_key==key)).mappings().one_or_none()
         if old:
             if old['request_hash']!=digest: raise ValueError('Idempotency key already used for different valuation inputs')
+            operators=c.scalars(select(t.run_event.c.details).where(t.run_event.c.attempt_id==old['attempt_id'],
+                t.run_event.c.event_code=='STARTED')).all()
+            if any(e.get('realOperatorId') and e['realOperatorId']!=str(real_operator_id or actor) for e in operators):
+                raise ValueError('Valuation request key belongs to a different real operator')
+            if not any(e.get('realOperatorId') for e in operators):
+                from .review_authority import _legacy
+                lineage=_legacy(c,request.tenant_id,old['attempt_id'],actor)
+                if (lineage.complete and (real_operator_id or actor) not in lineage.operators
+                    or not lineage.complete and real_operator_id and real_operator_id!=actor):
+                    raise ValueError('Legacy request real operator cannot be verified; use a new request key')
             return old['attempt_id']
         attempt=c.execute(t.attempt.insert().values(tenant_id=request.tenant_id,strategy_id=request.strategy_id,
             initiated_by=actor,request_key=key,request_hash=digest,request_payload=canonical_payload(asdict(request)),
             correlation_id=correlation_id or str(uuid4()),status='RUNNING').returning(t.attempt.c.attempt_id)).scalar_one()
-        _event(c,attempt,'STARTED','REQUEST',{})
+        _event(c,attempt,'STARTED','REQUEST',{'realOperatorId':str(real_operator_id or actor)})
         return attempt
 
 
@@ -94,7 +120,7 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
     attempt=c.execute(select(t.attempt).where(t.attempt.c.attempt_id==attempt_id,t.attempt.c.tenant_id==request.tenant_id).with_for_update()).mappings().one_or_none()
     if not attempt or attempt['strategy_id']!=request.strategy_id or attempt['initiated_by']!=actor:
         raise ValueError('Valuation attempt scope mismatch')
-    if attempt['request_hash']!=evidence_hash(dict(request=asdict(request),actor=actor)):
+    if attempt['request_hash']!=evidence_hash(dict(request=request_identity(request),actor=actor)):
         raise ValueError('Calculation does not match the attempted request')
     if attempt['status']=='FAILED': raise ValueError('Failed attempt needs a new request key')
     prior=c.execute(select(t.batch).where(t.batch.c.tenant_id==request.tenant_id,t.batch.c.strategy_id==request.strategy_id,
@@ -108,20 +134,27 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
     official=published(c,request.tenant_id,request.strategy_id,day)
     selected={}
     from collections import defaultdict
-    facts_by_trade=defaultdict(list); selections_by_subject=defaultdict(list)
+    facts_by_trade=defaultdict(list); selections_by_subject=defaultdict(list); executions_by_key=defaultdict(list)
     if calculation.projection is not None:
         for fact in calculation.projection.facts: facts_by_trade[fact.trade_id].append(fact)
         for selection in calculation.evidence['selections']:
-            selections_by_subject[selection['subject_reference_node_id']].append(selection)
+            selections_by_subject[selection.get('valuation_position_subject_id',selection['subject_reference_node_id'])].append(selection)
+        for execution in calculation.projection.executions:
+            executions_by_key[execution.key].append(execution)
     for line in calculation.period.lines:
-        components=line.attribution.components();total=line.attribution.market_pnl
-        validate_totals(components,market=total,gross=total,net=total)
-        for amount in [*components.values(),total]: _amount(amount)
+        total=line.attribution.market_pnl
+        components=line.components() if calculation.projection is not None else line.attribution.components()
+        gross=line.gross_pnl if calculation.projection is not None else total
+        net=line.net_pnl if calculation.projection is not None else total
+        validate_totals(components,market=total,gross=gross,net=net)
+        for amount in [*components.values(),total,gross,net]: _amount(amount)
         if calculation.projection is not None:
             from .position_storage import stage_line
             position,attribution=stage_line(c,attempt_id,calculation,line,
                 facts=[fact for trade in line.bucket.trade_ids for fact in facts_by_trade[trade]],
-                selections=selections_by_subject[str(line.bucket.key.subject_id)])
+                selections=selections_by_subject[str(line.bucket.key.subject_id)]+[s for s in calculation.evidence['selections']
+                    if s.get('input_role')=='FX' and s.get('valuation_source_currency_id')==str(line.bucket.key.currency_id)],
+                executions=executions_by_key[line.bucket.key])
             selected[position]=attribution
             continue
         # Unrelated trade changes must not manufacture a new version of this lot.
@@ -147,9 +180,14 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
         t.batch.c.value_date==day,t.batch.c.status=='STAGED')).scalars().all()
     for old in old_staged:
         c.execute(t.batch.update().where(t.batch.c.batch_id==old).values(status='CANCELLED'))
+        c.execute(t.amendment.update().where(t.amendment.c.base_batch_id==old,t.amendment.c.status=='PENDING').values(
+            status='STALE',reviewed_by=actor,reviewed_at=datetime.now(timezone.utc),
+            review_comment='Base candidate replaced by a new staged calculation'))
         c.execute(t.review_event.insert().values(batch_id=old,actor_id=actor,action='CANCELLED',comment='Replaced by a new staged calculation'))
     summary=canonical_payload(dict(scope=calculation.scope,externalComparison=calculation.external_comparison,
         marketPnl=calculation.period.market_pnl,openingValue=calculation.period.opening_value,closingValue=calculation.period.closing_value,
+        grossPnl=calculation.gross_pnl if calculation.projection is not None else calculation.period.market_pnl,
+        netPnl=calculation.net_pnl if calculation.projection is not None else calculation.period.market_pnl,
         executionValue=calculation.period.execution_value,reportingCurrencyId=request.reporting_currency_id,
         request=asdict(request),limitations=calculation.evidence['limitations'],blockingValidation=[],inputHash=calculation.input_hash,
         resultFormat='POSITION_V2' if calculation.projection is not None else 'TRADE_V1',
@@ -163,7 +201,7 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
     for owner,attribution in selected.items():
         ownership={'position_key':owner} if calculation.projection is not None else {'trade_id':owner}
         c.execute(t.item.insert().values(tenant_id=request.tenant_id,batch_id=batch,attribution_id=attribution,**ownership))
-    c.execute(t.review_event.insert().values(batch_id=batch,actor_id=actor,action='STAGED',comment='Calculated market-only attribution staged for review'))
+    c.execute(t.review_event.insert().values(batch_id=batch,actor_id=actor,action='STAGED',comment='Calculated P&L attribution staged for review'))
     c.execute(t.attempt.update().where(t.attempt.c.attempt_id==attempt_id).values(status='COMPLETED',completed_at=datetime.now(timezone.utc)))
     _event(c,attempt_id,'COMPLETED','STAGING',{'batchId':batch,'attributionCount':len(selected)})
     return batch
@@ -185,19 +223,25 @@ def batch_view(c, tenant, batch_id):
     return dict(header)|dict(items=items,reviews=reviews)
 
 
-def publish(c, tenant, batch_id, actor, comment):
+def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None):
     header=c.execute(select(t.batch).where(t.batch.c.batch_id==batch_id,t.batch.c.tenant_id==tenant)).mappings().one_or_none()
     if header is None: raise LookupError('Review batch not found')
     _lock(c,tenant,header['strategy_id'],header['value_date'])
     header=c.execute(select(t.batch).where(t.batch.c.batch_id==batch_id).with_for_update()).mappings().one()
     if actor==header['staged_by']: raise ValueError('Publication requires an independent reviewer')
+    from .review_authority import assert_batch_independent
+    assert_batch_independent(c,tenant,batch_id,actor,real_operator_id)
     if not isinstance(comment,str) or not comment.strip() or len(comment)>2000: raise ValueError('Review explanation required')
     if header['status']=='PUBLISHED': return batch_id
     if header['status']!='STAGED': raise ValueError('Batch is no longer staged')
+    if c.scalar(select(t.amendment.c.request_id).where(t.amendment.c.base_batch_id==batch_id,t.amendment.c.status=='PENDING').limit(1)):
+        raise ValueError('Resolve pending amendment requests before publication')
     if header['summary'].get('blockingValidation'): raise ValueError('Blocking validation must be resolved before publication')
     # Review the exact selected versions, not just a stored UI summary. This is
     # also a guard against incomplete population edits before publication.
     candidate=batch_view(c,tenant,batch_id)['items']
+    from .accruals import assert_current_accrual_versions
+    assert_current_accrual_versions(c,tenant,candidate)
     if not candidate:
         from .position_storage import valid_empty_summary
         if not valid_empty_summary(header['summary']): raise ValueError('Empty-population publication is not enabled')
@@ -212,6 +256,10 @@ def publish(c, tenant, batch_id, actor, comment):
                 raise ValueError('Review currency mismatch')
             if selected_total!=values['marketPnl'] or selected_total!=values['closingValue']-values['openingValue']-values['executionValue']:
                 raise ValueError('Review summary and selected attribution do not reconcile')
+            for column,label in [('gross_pnl','grossPnl'),('net_pnl','netPnl')]:
+                expected=sum((row[column] for row in candidate),Decimal(0))
+                if Decimal(summary.get(label,summary['marketPnl']))!=expected:
+                    raise ValueError('Economic review totals do not reconcile')
     except (KeyError,TypeError,ArithmeticError) as exc:
         raise ValueError('Review summary and selected attribution do not reconcile') from exc
     current=published(c,tenant,header['strategy_id'],header['value_date'])
@@ -224,4 +272,6 @@ def publish(c, tenant, batch_id, actor, comment):
         c.execute(t.review_event.insert().values(batch_id=prior,actor_id=actor,action='SUPERSEDED',comment='Superseded by a reviewed publication'))
     c.execute(t.batch.update().where(t.batch.c.batch_id==batch_id).values(status='PUBLISHED'))
     c.execute(t.review_event.insert().values(batch_id=batch_id,actor_id=actor,action='PUBLISHED',comment=comment.strip()))
+    _event(c,header['attempt_id'],'PUBLISHED','REVIEW',{'batchId':batch_id,
+        'reviewerId':actor,'realOperatorId':real_operator_id or actor})
     return batch_id

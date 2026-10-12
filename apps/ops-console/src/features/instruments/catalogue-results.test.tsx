@@ -1,0 +1,11 @@
+import {afterEach,expect,it,vi} from 'vitest';
+vi.mock('server-only',()=>({}));
+const h=vi.hoisted(()=>({search:vi.fn()}));
+vi.mock('@/lib/reference-api-client',async original=>({...await original<typeof import('@/lib/reference-api-client')>(),searchInstrumentCatalogue:h.search}));
+import {ReferenceApiError} from '@/lib/reference-api-client';
+import {CatalogueResults} from './catalogue-results';
+const context={tenantId:'tenant',userAccountId:'actor',source:'local-session' as const};
+const workspace={tenantId:'tenant',tenantCode:'T',tenantName:'Tenant',membershipRole:'READ_ONLY',moduleCodes:[]};
+afterEach(()=>{h.search.mockReset();vi.unstubAllEnvs();});
+it('shows a retryable initial catalogue outage without synthetic rows',async()=>{vi.stubEnv('NODE_ENV','production');h.search.mockRejectedValue(new ReferenceApiError(503,'unavailable'));const tree=await CatalogueResults({context,workspace});expect(tree.props.initialResults).toEqual([]);expect(tree.props.initialError).toContain('unavailable');expect(tree.props.initialSource).toBe('API UNAVAILABLE');});
+it('preserves initial catalogue permission failure',async()=>{h.search.mockRejectedValue(new ReferenceApiError(403,'denied'));const tree=await CatalogueResults({context,workspace});expect(tree.props.initialResults).toEqual([]);expect(tree.props.initialError).toContain('access');expect(tree.props.initialSource).toBe('ACCESS RESTRICTED');});

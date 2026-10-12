@@ -1,10 +1,13 @@
 /** UI affordances mirror API stewardship; the API remains authoritative. */
-export function canManageInstruments(workspace:{membershipRole:string;moduleCodes:readonly string[]}):boolean {
-  return workspace.membershipRole==='TENANT_ADMIN'&&workspace.moduleCodes.includes('SECURITY_MASTER');
+type AccessWorkspace={membershipRole:string;moduleCodes:readonly string[];permissionCodes?:readonly string[]};
+export function canManageInstruments(workspace:AccessWorkspace):boolean {
+  return workspace.moduleCodes.includes('SECURITY_MASTER')&&(workspace.permissionCodes
+    ?workspace.permissionCodes.includes('REFERENCE_PROPOSE'):workspace.membershipRole==='TENANT_ADMIN');
 }
 
-export function canBookTrades(workspace:{membershipRole:string;moduleCodes:readonly string[]}):boolean {
-  return workspace.membershipRole==='TENANT_ADMIN'&&workspace.moduleCodes.includes('TRADING');
+export function canBookTrades(workspace:AccessWorkspace):boolean {
+  return workspace.moduleCodes.includes('TRADING')&&(workspace.permissionCodes
+    ?workspace.permissionCodes.includes('TRADE_WRITE'):workspace.membershipRole==='TENANT_ADMIN');
 }
 
 /** A UI guard only: upstream authorization is checked again for every write. */

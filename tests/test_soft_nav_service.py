@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
+import os
 from sqlalchemy import create_engine, select
 
 from security_master_schema import models as m
@@ -10,7 +11,7 @@ from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 from security_master_schema.soft_nav_service import SoftNavRequest, calculate_soft_nav
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_soft_nav_freezes_entitled_input_and_calculates_listing_quote_factor() -> None:

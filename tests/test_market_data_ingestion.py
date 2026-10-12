@@ -385,9 +385,17 @@ def test_normalized_non_yahoo_delivery_uses_provider_source_and_series(series_ty
             assert report['accepted'] == 1 and report['duplicates'] == report['rejected'] == 0
             series = c.execute(select(m.market_data_series).where(
                 m.market_data_series.c.default_dataset_id == dataset)).mappings().one()
-            assert series['series_type'] == 'OFFICIAL_CLOSE'
+            assert series['series_type'] == 'CLOSE'
+            assert series['closing_method'] == 'EXCHANGE_OFFICIAL'
             assert series['source_system_id'] == 'SYNTHETIC_OTHER_SOURCE'
             assert series['reference_node_id'] == listing
+            again = ingest_delivery(c, provider=provider, parser=parse_synthetic,
+                dataset_id=dataset, namespace_id=namespace, symbol='AAPL',
+                raw_payload='{"final":"123.5"}', delivery_key='other-source-second',
+                received_at=datetime(2026, 10, 7, 9, tzinfo=timezone.utc),
+                start=date(2026, 10, 5), end=date(2026, 10, 6))
+            assert again['accepted']==0 and again['duplicates']==1
+            assert c.scalar(select(func.count()).select_from(m.market_data_series).where(m.market_data_series.c.default_dataset_id==dataset))==1
             observation = c.execute(select(m.market_data_observation).where(
                 m.market_data_observation.c.dataset_id == dataset)).mappings().one()
             assert observation['value'] == Decimal('123.5')

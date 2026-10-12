@@ -3,13 +3,14 @@
 from uuid import UUID
 
 import pytest
+import os
 from sqlalchemy import create_engine
 
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 from security_master_schema.tenancy import TenantScopeError, assert_tenant_owns_strategy
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_tenant_can_use_its_owned_strategy() -> None:

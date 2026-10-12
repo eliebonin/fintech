@@ -1,7 +1,9 @@
 import { WorkspaceShell } from "@/components/workspace-shell";
 import {pricingEvidenceLabel} from '@/lib/pricing-policy';
 import {redirect} from 'next/navigation';
-import {getActiveTenantContext,getActiveTenantWorkspace} from '@/lib/tenant-session';
+import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
+import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
+
 import {pricingPolicyClient} from '@/lib/pricing-policy-api';
 import { formatResolutionTimestamp, resolutionStatusLabel, type MarketDataResolutionSnapshot } from "@/lib/market-data-resolution";
 
@@ -9,8 +11,11 @@ export const dynamic = "force-dynamic";
 
 export default async function MarketDataResolutionSnapshotPage({ params }: { params: Promise<{ snapshotId: string }> }) {
   const { snapshotId } = await params;
-  try{await getActiveTenantContext();}catch{redirect('/select-tenant');}
-  const workspace=await getActiveTenantWorkspace();
+  const access = await resolveWorkspaceAccess();
+  if (access.kind === "session-required") redirect("/select-tenant");
+  if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
+
+  const {workspace}=access;
   let snapshot:MarketDataResolutionSnapshot|null=null;
   try{if(workspace.moduleCodes.includes('MARKET_DATA')){const result=await (await pricingPolicyClient()).GET('/v1/market-data-resolution-snapshots/{snapshot_id}',{params:{path:{snapshot_id:snapshotId}}});snapshot=result.data??null;}}catch{/* Do not re-resolve or use a fallback tenant. */}
   return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes}><main className="mvp-page"><header className="mvp-header"><div><p className="eyebrow">FROZEN MARKET DATA EVIDENCE</p><h1>Resolution snapshot</h1><p className="muted">{snapshot ? `${snapshot.status} · cut ${formatResolutionTimestamp(snapshot.marketDataAsOfUtc)}` : "Snapshot is unavailable."}</p></div></header>

@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
+import os
 from sqlalchemy import create_engine, insert, select
 
 from security_master_schema import models as m
@@ -11,7 +12,7 @@ from security_master_schema.corporate_action_service import derive_adjusted_obse
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 ACTION_ID = UUID("00000000-0000-7000-8000-000000000190")
 FACTOR_ID = UUID("00000000-0000-7000-8000-000000000191")
 

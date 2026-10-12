@@ -16,5 +16,7 @@ describe("booking property review",()=>{
     const html=renderToStaticMarkup(<BookingReview listing={{referenceNodeId:"listing",canonicalName:"Example",marketVenueMic:"XLON",venueName:"London",tradingSymbol:"TEST",tradingCurrency:"GBP",status:"ACTIVE",isTradable:true}} strategies={[]} context={{tenantId:"tenant",bookedByUserAccountId:"actor",properties,tags:[]}} draft={{strategyId:"strategy",side:"BUY",quantity:"1",executionPrice:"1",tradeDatetime:"2026-10-01T10:00:00Z",settlementDate:"2026-10-05",tradePurpose:"INVESTMENT",properties:{false:false,true:true,zero:"0",exact:"0.123456789012",reference:"identity"},propertyLabels:{reference:"CORE — Original label"},tagIds:[],externalReferences:[]}}/>);
     for(const value of ["No","Yes","0","0.123456789012","CORE — Original label"])expect(html).toContain(`<dd>${value}</dd>`);
     expect(html).not.toContain("<dd>false</dd>");
+    expect(html).toContain('Valuation effective date:');
+    expect(html).toContain('<strong>2026-10-01</strong>');
   });
 });

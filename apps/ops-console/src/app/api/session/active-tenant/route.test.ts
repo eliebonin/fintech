@@ -1,3 +1,4 @@
+import { WorkspaceApiError } from "@/lib/server/workspace-errors";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -17,7 +18,7 @@ describe("active tenant BFF route", () => {
   });
 
   it("does not set an active-tenant cookie for a tenant outside the membership list", async () => {
-    vi.mocked(selectActiveTenant).mockRejectedValueOnce(new Error("not a member"));
+    vi.mocked(selectActiveTenant).mockRejectedValueOnce(new WorkspaceApiError(403));
     const response = await POST(new NextRequest("http://ops.test/api/session/active-tenant", { method: "POST", body: JSON.stringify({ tenantId: "tenant-foreign" }) }));
     expect(response.status).toBe(403);
     expect(response.headers.get("set-cookie")).toBeNull();

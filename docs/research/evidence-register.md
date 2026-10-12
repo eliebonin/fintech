@@ -68,3 +68,8 @@ Booking-property form sources reviewed on 2026-10-01 (W3C WAI grouping and
 GOV.UK optional labels, hints and field errors), with applicability and the
 project's grouping/search decisions, are recorded in
 [Trade booking property section refresh](../delivery/trade-booking-properties-ui-alpha.md#best-practice-evidence).
+
+Market-data coverage, licensing boundaries and tenant-supplied source decisions
+reviewed on 2026-10-08 (CME entitlement/licensing guidance and ESMA valuation
+source governance) are recorded in
+[Scoped dataset entitlements](../delivery/scoped-dataset-entitlements.md#best-practice-evidence).

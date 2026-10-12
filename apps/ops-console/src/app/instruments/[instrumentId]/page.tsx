@@ -1,3 +1,5 @@
+import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
+import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Alert, Box, Typography } from "@mui/material";
@@ -5,7 +7,6 @@ import { Alert, Box, Typography } from "@mui/material";
 import { InstrumentDetail } from "@/components/instrument-detail";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getInstrument, MvpApiError } from "@/lib/mvp-api-client";
-import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { getInstrument as getFixtureInstrument } from "@/lib/instrument-data";
 import {getProductInstrument,getSwapTermsLabels} from '@/lib/reference-api-client';
 import {canManageInstruments} from '@/lib/instrument-authority';
@@ -15,8 +16,10 @@ export const dynamic = "force-dynamic";
 export default async function InstrumentPage({ params }: { params: Promise<{ instrumentId: string }> }) {
   const { instrumentId } = await params;
   let context, workspace;
-  try { [context, workspace] = await Promise.all([getActiveTenantContext(),getActiveTenantWorkspace()]); }
-  catch { redirect('/select-tenant'); }
+  const access = await resolveWorkspaceAccess();
+  if (access.kind === "session-required") redirect("/select-tenant");
+  if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
+  context = access.context; workspace = access.workspace;
   const shell = {tenantName:workspace.tenantName,membershipRole:workspace.membershipRole,moduleCodes:workspace.moduleCodes};
   try {
     const response = await getInstrument(context, instrumentId);

@@ -65,11 +65,17 @@ def test_calendar_permissions_and_missing_ids():
     with get_engine().begin() as c:
         rows=c.execute(select(membership.c.tenant_user_account_id,membership.c.membership_role).where(where)).all()
         c.execute(membership.update().where(where).values(membership_role='READ_ONLY'))
+        group=c.execute(m.access_group.insert().values(tenant_id=DEMO_IDS['tenant'],code=uuid4().hex,display_name='Calendar reader').returning(m.access_group.c.group_id)).scalar_one()
+        c.execute(m.access_group_member.insert().values(tenant_id=DEMO_IDS['tenant'],group_id=group,user_account_id=DEMO_IDS['demo_user_account']))
+        c.execute(m.access_group_grant.insert().values(tenant_id=DEMO_IDS['tenant'],group_id=group,action_code='CALENDAR_READ'))
     try:
         assert call('GET',ROOT+'/options').json()['canManage'] is False
         assert call('POST',ROOT,payload()).status_code==403
     finally:
         with get_engine().begin() as c:
+            c.execute(m.access_group_member.delete().where(m.access_group_member.c.group_id==group))
+            c.execute(m.access_group_grant.delete().where(m.access_group_grant.c.group_id==group))
+            c.execute(m.access_group.delete().where(m.access_group.c.group_id==group))
             for rid,role in rows:
                 c.execute(membership.update().where(membership.c.tenant_user_account_id==rid).values(membership_role=role))
 

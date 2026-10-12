@@ -1,11 +1,15 @@
 import { redirect } from "next/navigation";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import { getActiveTenantWorkspace } from "@/lib/tenant-session";
+import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
+import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
+
 import { TradeConfigurationConsole } from "./trade-configuration-console";
 export const dynamic="force-dynamic";
 export default async function TradeConfigurationPage() {
-  let workspace;
-  try {workspace=await getActiveTenantWorkspace();}catch{redirect("/select-tenant");}
-  const allowed=workspace.membershipRole==="TENANT_ADMIN"&&workspace.moduleCodes.includes("TRADING");
-  return <WorkspaceShell moduleCodes={workspace.moduleCodes} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}>{allowed?<TradeConfigurationConsole key={workspace.tenantId} tenantId={workspace.tenantId}/>:<main className="mvp-page"><h1>Trade configuration</h1><p>Tenant administrator and Trading access are required.</p></main>}</WorkspaceShell>;
+  const access = await resolveWorkspaceAccess();
+  if (access.kind === "session-required") redirect("/select-tenant");
+  if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
+  const {workspace} = access;
+  const allowed=workspace.permissionCodes?.includes("TRADE_CONFIGURE")??false;
+  return <WorkspaceShell {...workspace}>{allowed?<TradeConfigurationConsole key={workspace.tenantId} tenantId={workspace.tenantId}/>:<main className="mvp-page"><h1>Trade configuration</h1><p>Trade configuration permission in the Trading module is required. Ask your tenant administrator to review your groups.</p></main>}</WorkspaceShell>;
 }

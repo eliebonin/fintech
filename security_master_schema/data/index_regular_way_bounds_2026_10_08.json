@@ -1,0 +1,11 @@
+{
+  "GOOG": {"start": "2014-04-03", "source": "https://www.sec.gov/Archives/edgar/data/1288776/000128877615000008/goog2014123110-k.htm", "reason": "Class C is distinct from the older Class A provider history"},
+  "DELL": {"start": "2018-12-28", "source": "https://investors.delltechnologies.com/stock-information", "reason": "Class C is distinct from predecessor Class V tracking shares"},
+  "CARR": {"start": "2020-04-03", "source": "https://www.sec.gov/Archives/edgar/data/1783180/000178318021000011/carr-20201231.htm", "reason": "Exclude when-issued trading before distribution"},
+  "OTIS": {"start": "2020-04-03", "source": "https://www.prnewswire.com/news-releases/otis-common-stock-begins-trading-on-new-york-stock-exchange-301034586.html", "reason": "Exclude when-issued trading before distribution; issuer release"},
+  "DOW": {"start": "2019-04-02", "source": "https://investors.dow.com/en/news/news-details/2019/Dow-completes-separation-from-DowDuPont/default.aspx", "reason": "Exclude when-issued trading before distribution"},
+  "NWS": {"start": "2013-07-01", "source": "https://newscorp.com/2013/06/28/the-new-news-corp-launches-as-global-media-and-information-services-company/", "reason": "New News Corp Class B regular-way listing"},
+  "NWSA": {"start": "2013-07-01", "source": "https://newscorp.com/2013/06/28/the-new-news-corp-launches-as-global-media-and-information-services-company/", "reason": "New News Corp Class A regular-way listing"},
+  "FOX": {"start": "2019-03-19", "source": "https://www.foxcorporation.com/news/corp-press-releases/2019/fox-corporation-announces-first-day-as-standalone/", "reason": "New Fox Class B regular-way listing, not when-issued"},
+  "FOXA": {"start": "2019-03-19", "source": "https://www.foxcorporation.com/news/corp-press-releases/2019/fox-corporation-announces-first-day-as-standalone/", "reason": "New Fox Class A regular-way listing, not when-issued"}
+}

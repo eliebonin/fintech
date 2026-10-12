@@ -1,6 +1,7 @@
 """Governed booking of funded structured securities and cash-settled index futures."""
 from datetime import date, datetime, timezone
 from .problem_details import current_api_version
+from .valuation_recognition import trade_values, frozen_recognition
 from decimal import Decimal, localcontext
 from hashlib import sha256
 import json
@@ -503,7 +504,7 @@ def book(connection, tenant, actor, request, key, kind, request_id):
         from .booking_controls import validate_execution_date
         validate_execution_date(execution)
         from .trade_corrections import prepare_correction, complete_correction
-        prepare_correction(connection, tenant, request, kind)
+        prepare_correction(connection, tenant, request, kind, actor=actor)
         terms = load_context(connection, tenant, request.instrument_id, request.listing_id, execution.date(), True)
         if terms.kind != kind or not terms.booking_eligible: raise ProductBookingError(terms.ineligibility_message or 'Wrong booking product.')
         if terms.terms_fingerprint != request.expected_terms_fingerprint:
@@ -561,15 +562,23 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             position_effect=request.position_effect, trade_datetime_utc=execution, settlement_date=request.settlement_date,
             execution_venue_id=venue, execution_channel='MANUAL_UI', lifecycle_status='BOOKED', trade_purpose=request.trade_purpose,
             market_activity=request.market_activity, trader_person_id=request.trader_person_id,
-            booked_by_user_account_id=actor, created_by_user_account_id=actor, comment=request.comment))
+            booked_by_user_account_id=actor, created_by_user_account_id=actor, comment=request.comment, **trade_values(request)))
         persist_trade_annotations(connection, tenant, trade_id, request, annotations)
         economics = ProductTradeEconomicsView(terms=terms, amount=decimal_text(dirty if kind == 'BOND' else amount), bondDetails=bond_details,
             bookedNotional=request.quantity if kind == 'SWAP' and terms.swap_details.generic_terms else None,
             amountKind='ENTRY_REFERENCE_VALUE' if kind == 'SWAP' else 'REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION',
             direction=None if kind in {'FUTURE', 'SWAP'} else ('PAY' if request.side == 'BUY' else 'RECEIVE'))
+        valuation_conventions={}
+        if kind=='BOND':
+            definition_id=connection.scalar(select(m.instrument_definition_version.c.instrument_definition_version_id).where(
+                m.instrument_definition_version.c.instrument_node_id==request.instrument_id,m.instrument_definition_version.c.is_current,
+                m.instrument_definition_version.c.status=='APPROVED'))
+            valuation_conventions={'valuationConventions':dict(instrumentDefinitionId=str(definition_id),instrumentId=str(request.instrument_id),
+                priceCurrencyId=str(convention.price_currency_id),unitMultiplier='1',quoteFactor='100',productBasis='BOND',
+                cleanExecutionAmount=decimal_text(clean),maturityDate=terms.maturity_date.isoformat() if terms.maturity_date else None)}
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type='BOOKED',
             event_datetime_utc=execution, source_event_id=key, payload_hash=fingerprint,
-            event_payload=json.dumps({'schemaVersion': 1, 'kind': 'PRODUCT_BOOKING', 'economics': economics.model_dump(mode='json', by_alias=True)}, sort_keys=True),
+            event_payload=json.dumps({'schemaVersion': 1, 'kind': 'PRODUCT_BOOKING', 'economics': economics.model_dump(mode='json', by_alias=True)} | frozen_recognition(request) | valuation_conventions, sort_keys=True),
             recorded_by_user_account_id=actor))
         record_booking_replay(connection, tenant, endpoint, key, fingerprint, trade_id)
         complete_correction(connection, tenant, actor, request, trade_id)

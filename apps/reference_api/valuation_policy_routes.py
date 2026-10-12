@@ -4,7 +4,7 @@ from fastapi import APIRouter,Depends,Header,Response
 from .tenant_context import TenantContext,get_tenant_context
 from .problem_details import ApiProblem
 from .contracts import MarketDataResolutionSnapshotCreate
-from .valuation_policy_contracts import PolicyCreate,PolicyView,PolicyOptions,ResolutionPreview
+from .valuation_policy_contracts import PolicyCreate,PolicyView,PolicyOptions,ResolutionPreview,PolicyDataOptions,PolicyCompatibility
 from . import valuation_policies as policies
 from .repository import IdempotencyKeyConflict,RepositoryNotFound
 from market_data.display_access import EvidenceDisplayDenied
@@ -31,6 +31,14 @@ def valuation_policy_router(connection_dependency,membership):
     @router.get('/valuation-policy-options',response_model=PolicyOptions)
     def options(context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         return run(c,context,lambda actor:policies.options(c,context.tenant_id,actor))
+
+    @router.get('/policy-data-options',response_model=PolicyDataOptions)
+    def data_options(context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
+        return run(c,context,lambda actor:policies.data_options(c,context.tenant_id,actor))
+
+    @router.post('/policy-compatibility',response_model=PolicyCompatibility)
+    def compatibility(payload:PolicyCreate,context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
+        return run(c,context,lambda actor:policies.compatibility(c,context.tenant_id,actor,payload))
 
     @router.get('/valuation-policies/{policy_id}',response_model=PolicyView)
     def detail(policy_id:UUID,context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):

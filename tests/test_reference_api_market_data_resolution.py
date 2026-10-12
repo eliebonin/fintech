@@ -5,13 +5,14 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from httpx import ASGITransport, AsyncClient
+import os
 from sqlalchemy import create_engine
 
 from apps.reference_api.main import create_app
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def _headers() -> dict[str, str]:

@@ -1,0 +1,16 @@
+import Link from 'next/link';
+import {accessLabel} from '@/lib/access-administration';
+import type {ActiveTenantWorkspace} from '@/lib/tenant-session';
+export function TenantProfileOverview({workspace}:{workspace:ActiveTenantWorkspace}) {
+ const modules=workspace.tenantModuleCodes??workspace.moduleCodes;
+ return <main className="mvp-page access-admin-page"><header className="mvp-header"><div><p className="eyebrow">TENANT PROFILE</p><h1>{workspace.tenantName}</h1><p className="muted">Your workspace, enabled modules and personal access at a glance.</p></div><Link className="access-secondary" href="/select-context">Switch context</Link></header>
+  <div className="access-summary"><span><strong>{modules.length}</strong> enabled modules</span><span><strong>{workspace.moduleCodes.length}</strong> accessible to you</span><span><strong>{workspace.permissionCodes?.length??0}</strong> granted actions</span></div>
+  <div className="access-profile-grid"><section className="tenant-profile-card"><p className="eyebrow">YOUR WORKSPACE</p><h2>{workspace.userName??'Current member'}</h2><span className="access-status">{accessLabel(workspace.membershipRole)}</span><dl><div><dt>Tenant</dt><dd>{workspace.tenantName}</dd></div><div><dt>Tenant code</dt><dd>{workspace.tenantCode}</dd></div></dl><details><summary>Technical identifier</summary><code>{workspace.tenantId}</code></details><p className="access-hint">Tenant role and group permissions control what you can do within enabled modules.</p></section>
+   <section className="tenant-profile-card"><p className="eyebrow">MODULE ACCESS</p><h2>Subscriptions &amp; your access</h2><p className="muted">A tenant subscription makes a module available. Your role and groups determine your access.</p><ul className="access-module-rows">{modules.map(code=><li key={code}><strong>{accessLabel(code)}</strong><span className={workspace.moduleCodes.includes(code)?'access-status':'muted'}>{workspace.moduleCodes.includes(code)?'Available to you':'Not assigned to you'}</span></li>)}</ul>{!modules.length?<p>No modules enabled.</p>:null}<details><summary>Your effective actions ({workspace.permissionCodes?.length??0})</summary><ul>{workspace.permissionCodes?.map(code=><li key={code}>{accessLabel(code)}</li>)}</ul>{!workspace.permissionCodes?.length?<p>No module actions granted.</p>:null}</details></section>
+  </div>
+  {workspace.permissionCodes?.some(code=>['ACCESS_MANAGE','TRADE_CONFIGURE'].includes(code))?<section className="access-management-links" aria-label="Tenant settings">
+   {workspace.permissionCodes.includes('ACCESS_MANAGE')?<Link className="tenant-profile-card" href="/tenant-profile/access"><p className="eyebrow">PEOPLE &amp; ACCESS</p><h2>Manage users and groups</h2><p className="muted">Add people, assign groups and configure module permissions.</p><span>Open access management →</span></Link>:null}
+   {workspace.permissionCodes.includes('TRADE_CONFIGURE')?<Link className="tenant-profile-card" href="/tenant-profile/trade-configuration"><p className="eyebrow">TRADING SETTINGS</p><h2>Manage trade configuration</h2><p className="muted">Curate parties, custom fields and reference catalogues.</p><span>Open trade configuration →</span></Link>:null}
+  </section>:null}
+ </main>;
+}

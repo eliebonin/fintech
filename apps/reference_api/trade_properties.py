@@ -49,9 +49,13 @@ def assert_trade_writer(connection, tenant_id, actor_id):
     from .booking_controls import authorize_booking
     authorize_booking(connection, tenant_id, actor_id)
 
+def assert_trade_configurator(connection, tenant_id, actor_id):
+    from .booking_controls import authorize_booking
+    authorize_booking(connection, tenant_id, actor_id, action='TRADE_CONFIGURE')
+
 def provision_trade_catalogue(connection, tenant_id, actor_id, definitions, tags):
     """Idempotently provision immutable definitions; never silently overwrite."""
-    assert_trade_writer(connection, tenant_id, actor_id)
+    assert_trade_configurator(connection, tenant_id, actor_id)
     lock_trade_catalogue(connection, tenant_id)
     reserved = {"counterparty", "counterpartyorganisationid", "trader", "traderpersonid", "quantity", "executionprice", "settlementdate", "listingid", "strategyid", "instrument", "maturity", "strike", "broker"}
     for table, items in ((m.trade_property_definition, definitions), (m.trade_tag, tags)):

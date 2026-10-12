@@ -26,3 +26,16 @@ export function bookingCorrectionEligibility(detail:TradeDetailPayload['data']):
  if(events.length===2){const links=bookingCorrectionLinks(events[1]);if(events[1].eventType!=='CORRECTED'||payload(events[1])?.action!=='REPLACES_BOOKING'||!links||links.replacementTradeId!==detail.trade.tradeId||links.originalTradeId===detail.trade.tradeId||!links.reason.trim())return no;}
  return {eligible:true,sequenceNo:events.at(-1)!.sequenceNo,product:kind};
 }
+
+export function bookingCancellationEligibility(detail:TradeDetailPayload['data']):{eligible:boolean;sequenceNo:number;legacy:boolean} {
+ const regular=bookingCorrectionEligibility(detail);
+ if(regular.eligible)return {...regular,legacy:false};
+ const events=detail.lifecycleEvents,first=events[0],value=first&&payload(first);
+ const empty=first&&(first.eventPayload==null||first.eventPayload===''||(value&&Object.keys(value).length===0));
+ const trade=detail.trade;
+ const validTime=!first?.eventDatetimeUtc||Date.parse(first.eventDatetimeUtc)===Date.parse(trade.tradeDatetimeUtc);
+ const legacyRecognition=trade.valuationDateBasis==='LEGACY_UTC_TRADE_DATE'||(!trade.valuationEffectiveDate&&!trade.valuationDateBasis);
+ const eligible=trade.lifecycleStatus==='BOOKED'&&trade.tradeType==='INVESTMENT'&&events.length===1&&first.sequenceNo===1&&first.eventType==='BOOKED'&&!!empty&&validTime&&
+  legacyRecognition&&!trade.valuationOverrideReason;
+ return {eligible,sequenceNo:events.at(-1)?.sequenceNo??0,legacy:eligible};
+}

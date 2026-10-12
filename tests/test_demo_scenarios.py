@@ -16,7 +16,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
 
@@ -30,7 +30,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
 
@@ -98,7 +98,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
         load_demo_data(engine)
@@ -188,7 +188,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
         load_demo_data(engine)
@@ -230,7 +230,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
         load_demo_data(engine)
@@ -288,7 +288,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
         load_demo_data(engine)
@@ -336,7 +336,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
         load_demo_data(engine)
@@ -355,7 +355,7 @@ class DemoScenarioTests(unittest.TestCase):
         engine = create_engine(
             os.environ.get(
                 "DATABASE_URL",
-                "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+                os.environ["DATABASE_URL"],
             )
         )
         load_demo_data(engine)

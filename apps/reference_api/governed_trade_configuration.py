@@ -4,7 +4,7 @@ import re
 from uuid import UUID, uuid4
 from sqlalchemy import select, insert, update, delete, func
 from security_master_schema import models as m
-from .trade_properties import assert_trade_writer, lock_trade_catalogue, TradeFieldError
+from .trade_properties import assert_trade_configurator, lock_trade_catalogue, TradeFieldError
 from .trade_configuration import ConfigurationConflict
 
 def audit(connection, tenant_id, actor_id, action, subject_id, reason, payload=None):
@@ -35,7 +35,7 @@ def record_view(row):
                 description=row["description"], versionNo=row["version_no"], status=row["status"])
 
 def create_catalogue(connection, tenant_id, actor_id, values):
-    assert_trade_writer(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
+    assert_trade_configurator(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
     data = text_values(values)
     table = m.reference_catalogue
     row = connection.execute(select(table).where(table.c.tenant_id == tenant_id, table.c.code == data["code"])).mappings().first()
@@ -48,7 +48,7 @@ def create_catalogue(connection, tenant_id, actor_id, values):
     return catalogue_view(find_catalogue(connection, tenant_id, identifier))
 
 def catalogue_lifecycle(connection, tenant_id, actor_id, catalogue_id, status, reason):
-    assert_trade_writer(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
+    assert_trade_configurator(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
     row = find_catalogue(connection, tenant_id, catalogue_id)
     if row["status"] == status: return catalogue_view(row)
     if row["status"] == "RETIRED": raise ConfigurationConflict("Retired catalogues cannot be republished.")
@@ -63,18 +63,18 @@ def catalogue_lifecycle(connection, tenant_id, actor_id, catalogue_id, status, r
     return catalogue_view(find_catalogue(connection, tenant_id, catalogue_id))
 
 def list_catalogues(connection, tenant_id, actor_id, q="", offset=0, limit=25):
-    assert_trade_writer(connection, tenant_id, actor_id)
+    assert_trade_configurator(connection, tenant_id, actor_id)
     table = m.reference_catalogue
     statement = select(table).where(table.c.tenant_id == tenant_id)
     if q: statement = statement.where(func.lower(table.c.label + " " + table.c.code).contains(q.lower(), autoescape=True))
     return [catalogue_view(r) for r in connection.execute(statement.order_by(table.c.code).offset(offset).limit(limit)).mappings()]
 
 def get_catalogue(connection, tenant_id, actor_id, catalogue_id):
-    assert_trade_writer(connection, tenant_id, actor_id)
+    assert_trade_configurator(connection, tenant_id, actor_id)
     return catalogue_view(find_catalogue(connection, tenant_id, catalogue_id))
 
 def list_records(connection, tenant_id, actor_id, catalogue_id, q="", offset=0, limit=25, history=False):
-    assert_trade_writer(connection, tenant_id, actor_id)
+    assert_trade_configurator(connection, tenant_id, actor_id)
     catalogue = find_catalogue(connection, tenant_id, catalogue_id)
     if not history and catalogue["status"] != "ACTIVE": return []
     table = m.reference_catalogue_record
@@ -84,7 +84,7 @@ def list_records(connection, tenant_id, actor_id, catalogue_id, q="", offset=0, 
     return [record_view(r) for r in connection.execute(statement.order_by(table.c.code, table.c.version_no.desc()).offset(offset).limit(limit)).mappings()]
 
 def create_record(connection, tenant_id, actor_id, catalogue_id, values):
-    assert_trade_writer(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
+    assert_trade_configurator(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
     if find_catalogue(connection, tenant_id, catalogue_id)["status"] == "RETIRED": raise ConfigurationConflict("Catalogue is retired.")
     data = text_values(values)
     table = m.reference_catalogue_record
@@ -99,7 +99,7 @@ def create_record(connection, tenant_id, actor_id, catalogue_id, values):
     return record_view(row)
 
 def change_record(connection, tenant_id, actor_id, catalogue_id, record_version_id, values=None, reason=""):
-    assert_trade_writer(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
+    assert_trade_configurator(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
     if find_catalogue(connection, tenant_id, catalogue_id)["status"] == "RETIRED": raise ConfigurationConflict("Catalogue is retired.")
     table = m.reference_catalogue_record
     old = connection.execute(select(table).where(table.c.catalogue_id == catalogue_id, table.c.record_version_id == record_version_id).with_for_update()).mappings().first()
@@ -146,7 +146,7 @@ def assert_selection(connection, tenant_id, role, identifier, field):
         raise TradeFieldError(field, "This record is not eligible for this tenant and trade role.")
 
 def selection_view(connection, tenant_id, actor_id, role):
-    assert_trade_writer(connection, tenant_id, actor_id)
+    assert_trade_configurator(connection, tenant_id, actor_id)
     policy, member = m.trade_selection_policy, m.trade_selection_member
     row = connection.execute(select(policy).where(policy.c.tenant_id == tenant_id, policy.c.role == role)).mappings().first()
     entity = m.person if role == "TRADER" else m.organisation
@@ -156,7 +156,7 @@ def selection_view(connection, tenant_id, actor_id, role):
     return dict(role=role, versionNo=row["version_no"] if row else 0, mode="CURATED" if row else "LEGACY", records=[dict(id=str(r[0]), label=r[1]) for r in records])
 
 def publish_selection(connection, tenant_id, actor_id, role, identifiers, expected_version, reason):
-    assert_trade_writer(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
+    assert_trade_configurator(connection, tenant_id, actor_id); lock_trade_catalogue(connection, tenant_id)
     if role not in {"COUNTERPARTY", "EXECUTING_BROKER", "TRADER"}: raise ValueError("Unsupported trade role.")
     if len(set(identifiers)) != len(identifiers) or len(identifiers) > 1000: raise ValueError("Use at most 1000 distinct eligible records.")
     if not reason.strip() or len(reason) > 2000: raise ValueError("A reason of at most 2000 characters is required.")
@@ -188,7 +188,7 @@ def publish_selection(connection, tenant_id, actor_id, role, identifiers, expect
     return selection_view(connection, tenant_id, actor_id, role)
 
 def selection_candidates(connection, tenant_id, actor_id, role, q="", curated=True):
-    assert_trade_writer(connection, tenant_id, actor_id)
+    assert_trade_configurator(connection, tenant_id, actor_id)
     if role == "TRADER":
         from .trade_properties import list_trade_traders
         return [dict(id=r["personId"],label=r["displayName"]) for r in list_trade_traders(connection,tenant_id,q,25,curated)]
@@ -199,6 +199,6 @@ def selection_candidates(connection, tenant_id, actor_id, role, q="", curated=Tr
     return [dict(id=r[0],label=r[1]) for r in connection.execute(statement.order_by(table.c.display_name,table.c.organisation_id).limit(25))]
 
 def list_events(connection,tenant_id,actor_id,offset=0):
-    assert_trade_writer(connection,tenant_id,actor_id)
+    assert_trade_configurator(connection,tenant_id,actor_id)
     table=m.trade_configuration_event
     return [dict(eventId=r.event_id,action=r.action,reason=r.reason,actorId=r.actor_id,recordedAtUtc=r.recorded_at_utc,payload=r.payload) for r in connection.execute(select(table).where(table.c.tenant_id==tenant_id).order_by(table.c.recorded_at_utc.desc(),table.c.event_id).offset(offset).limit(25)).mappings()]

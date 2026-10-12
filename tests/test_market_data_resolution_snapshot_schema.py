@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+import os
 from sqlalchemy import create_engine, insert, select, update
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
@@ -11,7 +12,7 @@ from security_master_schema import models as m
 from security_master_schema.demo_data import DEMO_IDS, load_demo_data
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_resolution_snapshot_item_preserves_frozen_vintage_evidence() -> None:

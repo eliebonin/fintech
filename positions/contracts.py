@@ -1,11 +1,14 @@
 """Immutable contracts shared by ledger adapters and economic consumers."""
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from uuid import UUID
 
 class PositionError(ValueError):
     """Position evidence cannot safely represent the requested economic state."""
+
+POSITION_UNITS={'EQUITY':frozenset({'SHARES','UNITS'}),'ETF':frozenset({'SHARES','UNITS'}),
+    'FUND':frozenset({'UNITS'}),'BOND':frozenset({'NOMINAL'}),'CASH':frozenset({'CURRENCY_AMOUNT'})}
 
 @dataclass(frozen=True)
 class ProjectionRequest:
@@ -15,6 +18,7 @@ class ProjectionRequest:
     information_cutoff: datetime
     opening_cutoff: datetime | None = None
     mode: str = 'AS_OF'
+    daily: bool = False
 
 @dataclass(frozen=True)
 class PositionKey:
@@ -24,6 +28,7 @@ class PositionKey:
     currency_id: UUID
     quantity_unit: str
     product_basis: str
+
     unit_multiplier: Decimal
     quote_factor: Decimal
 
@@ -39,6 +44,10 @@ class Booking:
     quote_factor: Decimal
     definition_id: UUID
     product_basis: str
+    valuation_effective_date: date | None = None
+    valuation_date_basis: str | None = None
+    valuation_override_reason: str | None = None
+    product_evidence: dict | None = None
 
 @dataclass(frozen=True)
 class LedgerFact:

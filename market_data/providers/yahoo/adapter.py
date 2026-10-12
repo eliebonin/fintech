@@ -29,15 +29,17 @@ def parse_delivery(payload: dict, *, symbol: str, listing: ListingContext,
 
 def fetch_chart(client: httpx.Client, symbol: str, start: date, end: date, *,
                 sleep=time.sleep, now=lambda: datetime.now(timezone.utc), on_retry=None,
-                max_window_days: int = 366) -> str:
+                max_window_days: int = 366, interval: str = '1d') -> str:
     """Serial GET with three bounded 429 retries; never retry an access denial."""
     if (not isinstance(max_window_days, int) or isinstance(max_window_days, bool)
             or not 1 <= max_window_days <= 1830 or not symbol or len(symbol) > 100
-            or end < start or (end - start).days + 1 > max_window_days):
+            or end < start or (end - start).days + 1 > max_window_days
+            or interval not in {'1d','5m','1h'} or (interval=='5m' and (end-start).days+1>60)
+            or (interval=='1h' and (end-start).days+1>730)):
         raise ValueError('A symbol and a bounded daily/history window of at most 1830 days are required')
     params = dict(period1=int(datetime.combine(start, datetime.min.time(), timezone.utc).timestamp()),
                   period2=int(datetime.combine(end + timedelta(days=1), datetime.min.time(), timezone.utc).timestamp()),
-                  interval='1d', events='div,splits', includePrePost='false')
+                  interval=interval, events='div,splits', includePrePost='false')
     for attempt in range(4):
         with client.stream('GET', f'https://query1.finance.yahoo.com/v8/finance/chart/{quote(symbol, safe="")}',
                            params=params, headers={'User-Agent': 'PersonalPriceResearch/1.0',
@@ -138,7 +140,15 @@ def parse_chart(payload: dict, *, symbol: str, currency: str, mic: str,
                 else:
                     points.append(DailyPoint(field, market_date, observed, value, basis,
                                              'CLOSE' if field == 'CLOSE' else 'ADJUSTED_CLOSE'))
+        from .corporate_actions import parse_events
+        actions,splits,dividends,event_rejections=parse_events(result,symbol=symbol,timezone_name=timezone_name,start=start,end=end)
+        # The chart endpoint returns events for a bounded query window, not a
+        # certified timeline through the price adjustment anchor. Retain facts
+        # for assessment without manufacturing usable normalization proof.
+        adjustment = dict(method='YAHOO_CHART_SPLIT_EVENTS',splits=splits,dividends=dividends,eventRejections=event_rejections,
+            queryStart=start.isoformat(),queryEnd=end.isoformat(),anchorDate=None,complete=False,
+            blockingReason='PROVIDER_ADJUSTMENT_ANCHOR_NOT_CERTIFIED')
         return ParsedChart(tuple(points), tuple(rejections),
-                           'VENDOR_ADJUSTED', 'PROVIDER_DAILY_BAR_TIMESTAMP')
+                           'VENDOR_ADJUSTED', 'PROVIDER_DAILY_BAR_TIMESTAMP', adjustment,actions)
     except (KeyError, IndexError, TypeError, OverflowError) as exc:
         raise ValueError('Malformed Yahoo chart payload') from exc

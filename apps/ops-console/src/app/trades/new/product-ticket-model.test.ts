@@ -4,6 +4,12 @@ const common={effectiveFrom:'2026-09-01',priceCurrencyId:'currency',quoteFactor:
 const note:ProductTerms={instrumentId:'note',name:'Note',kind:'STRUCTURED_PRODUCT',executionRoute:'OTC',bookingEligible:true,convention:{...common,kind:'STRUCTURED_PRODUCT',funding:'FULLY_FUNDED',quantityUnit:'NOMINAL',priceBasis:'PCT_OF_PAR',quantityMinimum:'1000',quantityIncrement:'1000',accrual:'NONE',otcAllowed:true}};
 const future:ProductTerms={instrumentId:'future',name:'Future',kind:'FUTURE',executionRoute:'LISTED',listingId:'listing',bookingEligible:true,convention:{...common,kind:'FUTURE',quoteFactor:'1',quantityUnit:'CONTRACTS',priceBasis:'INDEX_POINTS',settlementMethod:'CASH',monetaryMultiplier:'5',tickSize:'.25',allowNegativePrice:true,lastTradingAtUtc:'2027-03-19T13:30:00Z',finalSettlementDate:'2027-03-19'}};
 describe('exact product preview',()=>{
+  it('sends platform recognition independently of product terms and custom properties',()=>{
+    const draft={strategyId:'s',side:'BUY',quantity:'2',executionPrice:'6000',tradeDatetime:'2026-10-01T10:00:00Z',settlementDate:'',positionEffect:'OPEN',tradePurpose:'INVESTMENT',properties:{},tagIds:[],externalReferences:[],valuationEffectiveDate:'2026-10-02',valuationOverrideReason:'Deferred'} as ProductDraft;
+    for(const terms of [note,future]){
+      const payload=buildProductPayload(terms,draft);expect(payload.valuationEffectiveDate).toBe('2026-10-02');expect(payload.valuationOverrideReason).toBe('Deferred');
+    }
+  });
   it('uses exponent-serialized convention decimals without rounding',()=>{
     const wireFuture={...future,convention:{...future.convention!,quoteFactor:'1E+0',monetaryMultiplier:'5E+0'}} as ProductTerms;
     expect(productAmount(wireFuture,'2','-1.25E+0')).toBe('-12.5');

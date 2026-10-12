@@ -1,5 +1,6 @@
 'use client';
 import {freezeBookingSubmission,type FrozenBookingSubmission} from '@/lib/booking-submission';
+import {RecognitionSummary} from './valuation-recognition-fields';
 import {withBookingCorrection,type BookingCorrection} from '@/lib/trade-correction-model';
 import { useEffect,useRef,useState,type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,7 +19,7 @@ function Terms({terms}:{terms:OptionBookingListingView}) {
 }
 export function OptionReview({terms,draft,context,strategies}:{terms:OptionBookingListingView;draft:OptionTicketDraft;context:TradeBookingContext;strategies:TicketStrategy[]}) {
   const rows:[string,string][]=[['Strategy',strategies.find(s=>s.strategyId===draft.strategyId)?.displayName??draft.strategyId],['Side / execution intent',`${draft.side} / ${draft.positionEffect}`],['Contracts',draft.quantity],['Executed premium',`${draft.executionPrice} (quoted units)`],['Gross premium',`${draft.side==='BUY'?'PAY':'RECEIVE'} ${previewOptionPremium(terms,draft.quantity,draft.executionPrice)} ${terms.premiumCurrency}`],['Trade time',draft.tradeDatetime],['Premium settlement date',draft.settlementDate],['Counterparty',draft.counterpartyName||'Not specified'],['Executing broker',draft.executingBrokerName||'Not specified'],['Trader',draft.traderName||'Not specified'],['Booked by',context.bookedByUserAccountId],['Purpose',draft.tradePurpose],['Market activity',draft.marketActivity||'Not specified'],...context.properties.flatMap(def=>{const value=draft.properties[def.definitionId];return value===undefined||value===''?[]:[[def.label,displayTradeProperty(def.valueType,value,draft.propertyLabels?.[def.definitionId])] as [string,string]];}),['Tags',context.tags.filter(t=>draft.tagIds.includes(t.tagId)).map(t=>t.label).join(', ')||'None'],...draft.externalReferences.map(r=>[`${r.referenceType}${r.sourceSystemId?` (${r.sourceSystemId})`:''}`,r.referenceValue] as [string,string]),['Comment',draft.comment||'None']];
-  return <><Terms terms={terms}/><section className="detail-card"><h2>Review booking</h2><dl className="ticket-review">{rows.map(([label,value],i)=><div key={i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>OPEN/CLOSE records execution intent; it does not verify a position, allocate lots, exercise the option or post cash.</p></section></>;
+  return <><Terms terms={terms}/><section className="detail-card"><h2>Review booking</h2><RecognitionSummary draft={draft}/><dl className="ticket-review">{rows.map(([label,value],i)=><div key={i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>OPEN/CLOSE records execution intent; it does not verify a position, allocate lots, exercise the option or post cash.</p></section></>;
 }
 export function OptionTicket({strategies,context,initialListing,correction}:Props) {
   const router=useRouter();

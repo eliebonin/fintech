@@ -1,3 +1,5 @@
+import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
+import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
@@ -5,14 +7,16 @@ import { Alert, Box, Typography } from "@mui/material";
 
 import { OperationsWorkQueue } from "@/components/operations-work-queue";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import { getActiveTenantContext, getActiveTenantWorkspace } from "@/lib/tenant-session";
 import { getWorkQueue } from "@/lib/work-queue";
 import {QueuePagination,queueOffset} from '@/components/queue-pagination';
 
 export default async function OperationsPage({searchParams}:{searchParams?:Promise<{offset?:string}>}={}) {
   let tenantContext;
   let workspace;
-  try { [tenantContext, workspace] = await Promise.all([getActiveTenantContext(), getActiveTenantWorkspace()]); } catch { redirect("/select-tenant"); }
+  const access = await resolveWorkspaceAccess();
+  if (access.kind === "session-required") redirect("/select-tenant");
+  if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
+  tenantContext = access.context; workspace = access.workspace;
 
   try {
     const offset=queueOffset((await searchParams)?.offset);

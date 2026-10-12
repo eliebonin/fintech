@@ -18,7 +18,9 @@ def test_valuation_revision_round_trip_preserves_source_tables():
     environment=dict(os.environ,DATABASE_URL=target.render_as_string(hide_password=False))
     root=Path(__file__).resolve().parents[1]
     try:
-        for command in [('upgrade','head'),('downgrade','20261007_68'),('upgrade','head')]:
+        # This is the revision-69/70 round trip, not permission to downgrade
+        # newer retained evidence (e.g. access history in revision 82).
+        for command in [('upgrade','20261008_70'),('downgrade','20261007_68'),('upgrade','20261008_70')]:
             subprocess.run([sys.executable,'-m','alembic',*command],cwd=root,env=environment,check=True,capture_output=True)
         engine=create_engine(target)
         try:

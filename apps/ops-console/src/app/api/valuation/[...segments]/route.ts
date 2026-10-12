@@ -11,19 +11,22 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function forward(request:NextRequest,context:Context,method:'GET'|'POST') {
  const {segments}=await context.params;
  const allowed=method==='GET'
-  ? (segments.length===1&&['options','attempts'].includes(segments[0]))||(segments.length===2&&segments[0]==='attempts'&&uuid.test(segments[1]))
-  : (segments.length===1&&segments[0]==='attempts')||(segments.length===3&&segments[0]==='batches'&&uuid.test(segments[1])&&['explanations','publish'].includes(segments[2]));
+  ? (segments.length===1&&['options','attempts','accrual-inputs'].includes(segments[0]))||(segments.length===2&&segments[0]==='attempts'&&uuid.test(segments[1]))||(segments.length===3&&segments[0]==='batches'&&uuid.test(segments[1])&&segments[2]==='amendments')
+  : (segments.length===1&&['attempts','accrual-inputs','economic-flows'].includes(segments[0]))||(segments.length===3&&segments[0]==='batches'&&uuid.test(segments[1])&&['explanations','publish','amendments'].includes(segments[2]))||(segments.length===3&&segments[0]==='amendments'&&uuid.test(segments[1])&&['approve','reject'].includes(segments[2]))||(segments.length===3&&segments[0]==='economic-flows'&&uuid.test(segments[1])&&segments[2]==='cancel');
  if(!allowed)return NextResponse.json({error:{message:'Valuation route not found.'}},{status:404});
  try {
   const tenant=await getActiveTenantContext();
   const headers=new Headers({'X-Tenant-Id':tenant.tenantId,'X-User-Account-Id':tenant.userAccountId,'Content-Type':'application/json'});
   const key=request.headers.get('Idempotency-Key');
-  if(method==='POST'&&segments[0]==='attempts') {
+  if(method==='POST'&&(segments.length===1||segments[2]==='amendments'||segments[0]==='economic-flows')) {
    if(!key?.trim()||key.length>255)return NextResponse.json({error:{message:'A stable request key is required.'}},{status:400});
    headers.set('Idempotency-Key',key);
   }
   const query=new URLSearchParams();
   if(method==='GET'&&segments[0]==='attempts'&&segments.length===1)for(const name of ['limit','offset']) {
+   const value=request.nextUrl.searchParams.get(name);if(value!==null)query.set(name,value);
+  }
+  if(method==='GET'&&segments[0]==='accrual-inputs')for(const name of ['strategyId','fromDate','toDate']){
    const value=request.nextUrl.searchParams.get(name);if(value!==null)query.set(name,value);
   }
   const response=await referenceFetch()(`${process.env.REFERENCE_API_URL??'http://localhost:8000'}/v1/valuation/${segments.join('/')}${query.size?'?'+query:''}`,{

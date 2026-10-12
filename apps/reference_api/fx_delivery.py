@@ -152,7 +152,7 @@ def get_delivery(connection, tenant, trade_id, request_id):
 
 def record_delivery(connection, tenant, actor, trade_id, request, key, request_id):
     with connection.begin_nested():
-        authorize_booking(connection, tenant, actor)
+        authorize_booking(connection, tenant, actor, action='TRADE_CORRECT')
         normalized = request.model_dump(mode='json', by_alias=True, exclude_none=True)
         if request.amount is not None:
             normalized['amount'] = decimal_text(request.amount)

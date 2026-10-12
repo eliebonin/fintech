@@ -7,8 +7,7 @@ const tradeDetailPage = readFileSync(new URL("./[tradeId]/page.tsx", import.meta
 describe("trade pages", () => {
   it("use the selected tenant session rather than the legacy local context", () => {
     for (const page of [tradesPage, tradeDetailPage]) {
-      expect(page).toContain("getActiveTenantContext");
-      expect(page).toContain("getActiveTenantWorkspace");
+      expect(page).toContain("resolveWorkspaceAccess");
       expect(page).not.toContain("resolveLocalTenantContext");
     }
   });

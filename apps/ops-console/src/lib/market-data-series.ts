@@ -23,6 +23,7 @@ export type MarketDataSeries = {
   referenceNodeId: string;
   referenceNodeName: string;
   seriesType: string;
+  closingMethod?: string;
   valueType: string;
   currency: string | null;
   providerId: string | null;
@@ -42,6 +43,7 @@ export type MarketDataSeries = {
   coverageStartDate: string | null;
   coverageEndDate: string | null;
   observations: MarketDataObservation[];
+  chartPoints?: Array<{marketDate: string | null; value: string}> | null;
   observationTotal?: number;
   observationLimit?: number;
   observationOffset?: number;

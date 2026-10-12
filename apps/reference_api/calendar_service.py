@@ -10,8 +10,14 @@ from market_data.calendar_composition import compose_day
 from market_data.calendar_store import visible_calendar, calendar_days
 from market_data.pricing_conventions import local_target
 from .calendar_contracts import CalendarView,CalendarOptions,CalendarAssignmentView
-from .valuation_policies import authority
+from security_master_schema.tenant_workspace import resolve_tenant_workspace, require_tenant_action
+from .resource_limits import governance_date
 from .repository import RepositoryNotFound,IdempotencyKeyConflict
+
+def authority(c,tenant,actor,write=False):
+    workspace=resolve_tenant_workspace(c,tenant,actor,governance_date())
+    require_tenant_action(workspace,'CALENDAR_MANAGE' if write else 'CALENDAR_READ')
+    return 'CALENDAR_MANAGE' in workspace.permission_codes
 
 def lock(c,value):
     c.execute(select(func.pg_advisory_xact_lock(int.from_bytes(hashlib.sha256(value.encode()).digest()[:8],'big',signed=True))))

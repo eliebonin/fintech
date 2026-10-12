@@ -15,10 +15,13 @@ def emit(value):
 
 
 def execute(engine,*,dataset_id,namespace_id,tenant_id,actor_id,selected,start,end,
-            provider,parser,fetch,lookup_previous,history,retry_gaps,sleep):
+            provider,parser,fetch,lookup_previous,history,retry_gaps,sleep,request_spacing_seconds=5):
+    if not 1 <= request_spacing_seconds <= 60:
+        raise ValueError('Request spacing must be 1..60 seconds.')
     with engine.begin() as c:
         job=start_job(c,dataset_id,namespace_id,tenant_id,actor_id,[r['symbol'] for r in selected],start,end)
-    emit({'status':'JOB_STARTED','jobId':str(job),'selected':len(selected)})
+    emit({'status':'JOB_STARTED','jobId':str(job),'selected':len(selected),
+          'requestSpacingSeconds':request_spacing_seconds})
     downloaded=resumed=0
     stop=False
     with httpx.Client() as client:
@@ -96,7 +99,7 @@ def execute(engine,*,dataset_id,namespace_id,tenant_id,actor_id,selected,start,e
                     stop=True
                     break
                 if index<len(selected) or (window_start,window_end)!=windows[-1]:
-                    sleep(5)
+                    sleep(request_spacing_seconds)
             if stop:
                 break
             if previous and retry_gaps:
@@ -105,7 +108,8 @@ def execute(engine,*,dataset_id,namespace_id,tenant_id,actor_id,selected,start,e
                     assessed=lookup_previous(c,dataset_id,namespace_id,symbol,start,end)
                     attempt=start_attempt(c,job,symbol,start,end)
                     finish_attempt(c,attempt,delivery_outcome(assessed),dict(assessed,gapAssessment=True),assessed.get('runId'))
-    summary={'selected':len(selected),'attempted':downloaded,'resumed':resumed,'start':start.isoformat(),'end':end.isoformat()}
+    summary={'selected':len(selected),'attempted':downloaded,'resumed':resumed,'start':start.isoformat(),'end':end.isoformat(),
+             'requestSpacingSeconds':request_spacing_seconds}
     with engine.begin() as c:
         status=finish_job(c,job,summary)
     emit(dict(status='RUN_FINISHED',outcome=status,jobId=str(job),**summary))

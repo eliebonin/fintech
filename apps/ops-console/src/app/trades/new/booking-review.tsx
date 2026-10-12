@@ -1,4 +1,5 @@
 import type { TradeBookingContext } from "@/lib/browser-api-client";
+import {RecognitionSummary} from './valuation-recognition-fields';
 import { displayTradeProperty } from "@/lib/trade-property-display";
 import type { TicketListing,TicketStrategy } from "./trade-ticket";
 import {grossConsideration,type EnrichedTicketDraft} from "./ticket-model";
@@ -12,5 +13,5 @@ export function BookingReview({listing,draft,context,strategies}:{listing:Ticket
     ...context.properties.flatMap(def=>{const value=draft.properties[def.definitionId];return value===undefined||value===""?[]:[[def.label,displayTradeProperty(def.valueType,value,draft.propertyLabels?.[def.definitionId])] as [string,string]];}),
     ...draft.externalReferences.map(ref=>[`${ref.referenceType} (${ref.sourceSystemId||"unspecified source"})`,ref.referenceValue] as [string,string]),["Comment",draft.comment||"None"],
   ];
-  return <section className="detail-card"><h2>Review booking</h2><p className="muted">Check all facts before confirming this immutable record of an already-executed trade. This does not send an order.</p><dl className="ticket-review">{fields.map(([label,value],index)=><div key={`${label}-${index}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p className="muted">Settlement suggestion excludes weekends only; public holidays are not applied.</p></section>;
+  return <section className="detail-card"><h2>Review booking</h2><RecognitionSummary draft={draft}/><p className="muted">Check all facts before confirming this immutable record of an already-executed trade. This does not send an order.</p><dl className="ticket-review">{fields.map(([label,value],index)=><div key={`${label}-${index}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p className="muted">Settlement suggestion excludes weekends only; public holidays are not applied.</p></section>;
 }

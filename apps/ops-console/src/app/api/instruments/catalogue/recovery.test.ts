@@ -1,0 +1,11 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {NextRequest} from 'next/server';
+vi.mock('server-only',()=>({}));
+vi.mock('@/lib/tenant-session',()=>({getActiveTenantContext:async()=>({tenantId:'tenant',userAccountId:'actor'})}));
+const h=vi.hoisted(()=>({search:vi.fn()}));
+vi.mock('@/lib/reference-api-client',async original=>({...await original<typeof import('@/lib/reference-api-client')>(),searchInstrumentCatalogue:h.search}));
+import {ReferenceApiError} from '@/lib/reference-api-client';
+import {GET} from './route';
+afterEach(()=>{vi.unstubAllEnvs();h.search.mockReset();});
+it('keeps permission errors instead of returning successful synthetic results',async()=>{vi.stubEnv('ALLOW_SYNTHETIC_FALLBACK','true');h.search.mockRejectedValue(new ReferenceApiError(403,'denied'));const response=await GET(new NextRequest('http://localhost/api/instruments/catalogue'));expect(response.status).toBe(403);expect((await response.json()).data).toBeUndefined();});
+it('preserves fixture paging totals and filters after an outage',async()=>{vi.stubEnv('NODE_ENV','development');vi.stubEnv('APP_ENV','development');vi.stubEnv('ALLOW_SYNTHETIC_FALLBACK','true');h.search.mockRejectedValue(new ReferenceApiError(503,'unavailable'));const response=await GET(new NextRequest('http://localhost/api/instruments/catalogue?instrument_type=BOND&offset=1&limit=1'));const payload=await response.json();expect(payload.data).toEqual([]);expect(payload.meta.total).toBe(1);});

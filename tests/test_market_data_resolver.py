@@ -5,6 +5,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+import os
 from sqlalchemy import create_engine, insert, select, update
 from sqlalchemy.exc import DBAPIError
 
@@ -19,7 +20,7 @@ from security_master_schema.market_data_resolver import (
 )
 
 
-DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 def test_legacy_selection_and_snapshot_preserve_database_decimal(seeded_engine):

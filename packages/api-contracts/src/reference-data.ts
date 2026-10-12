@@ -7,6 +7,8 @@ import type { components } from "./generated";
  */
 export type ReferenceApiMeta = components["schemas"]["ApiMeta"];
 export type ReferenceDataProposalPayload = components["schemas"]["ReferenceDataProposalResponse"];
+export type InstrumentCatalogueItem = components["schemas"]["InstrumentCatalogueItem"];
+export type InstrumentCataloguePayload = components["schemas"]["InstrumentCatalogueResponse"];
 export type InstrumentSearchPayload = components["schemas"]["InstrumentSearchResponse"];
 export type ReferenceNodeOption = components["schemas"]["ReferenceNodeOptionView"];
 export type ReferenceNodeSearchPayload = components["schemas"]["ReferenceNodeSearchResponse"];

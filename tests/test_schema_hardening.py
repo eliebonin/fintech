@@ -60,7 +60,7 @@ def test_instrument_detail_hides_market_data_without_dataset_entitlement() -> No
     engine = create_engine(
         os.environ.get(
             "DATABASE_URL",
-            "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+            os.environ["DATABASE_URL"],
         )
     )
     with engine.begin() as connection:
@@ -104,7 +104,7 @@ def test_instrument_reads_use_approved_definition_version_not_projection() -> No
     engine = create_engine(
         os.environ.get(
             "DATABASE_URL",
-            "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm",
+            os.environ["DATABASE_URL"],
         )
     )
     with engine.begin() as connection:
