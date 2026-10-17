@@ -2,7 +2,8 @@
 from datetime import date, datetime, timezone
 from .problem_details import current_api_version
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Depends, HTTPException, Query
+from .request_audit import AuditRouter as APIRouter
 from sqlalchemy import select, func, or_, exists, String, cast
 from security_master_schema import models as m
 from security_master_schema.tenant_workspace import TenantActionForbidden

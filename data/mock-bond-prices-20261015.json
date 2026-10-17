@@ -1,0 +1,16 @@
+{
+  "synthetic": true,
+  "purpose": "Owner-requested local UI valuation fixture, not actual market data",
+  "reference": "MOCK_BOND_MATURITY_20261001",
+  "currency": "GBP",
+  "priceType": "CLEAN",
+  "quotation": "Price per 100 nominal",
+  "basis": "RAW",
+  "prices": [
+    {"date": "2026-09-29", "close": "98.50"},
+    {"date": "2026-09-30", "close": "99.00"},
+    {"date": "2026-10-01", "close": "100.00"}
+  ],
+  "dailyEarnedInterest": "10.00",
+  "dailyInterestNote": "Explicit illustrative Ops-assessed position amount, not calculated contractual accrual or a receivable balance."
+}

@@ -3,7 +3,7 @@
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Trading operations/engineering  
-**Last reviewed:** 2026-10-12
+**Last reviewed:** 2026-10-14
 
 [Feature register](../feature-register.md). [Product restrictions](product-booking.md) remain authoritative alongside common controls.
 
@@ -55,8 +55,37 @@
 ## F24 Contractual lifecycle
 
 - **Desired:** Linked delivery, option exercise/expiry, bond redemption and swap reset/termination events without fabricated opposite executions.
-- **Status / backend / frontend:** DEFERRED. A bounded FX-delivery event/workflow implementation exists; broader contractual lifecycle and this slice's final acceptance are parked.
+- **Status / backend / frontend:** PARTIAL. Ops-triggered full plain-bond redemption and deliverable FX-forward maturity closure verify zero remaining compatible exposure. `/trades/lifecycle` supplies Bonds / FX forwards sections, preview, preparation, approval, posting and cancellation. FX uses a maturity-day spot suggestion or sourced entered rate, feeds rate-based P&L, and does not create cash/delivery. Discounted model MTM remains unsupported. The separate FX-delivery prototype remains parked/not signed off.
 - **Cuts/trade-offs:** Maturity is a term, not evidence of performed settlement. Settling a cash purchase/premium does not extinguish its holding.
 - **Weaknesses:** No signed-off general exposure-extinction/obligation/cash-security movement framework across instruments.
-- **Remaining:** Resume a separately scoped event/position transition, then settlement/accounting; choose one authoritative posting path and prevent double counting. Do not auto-close exposure just because the calendar date passed.
-- **Evidence:** [Current scope ruling](../../delivery/booking-signoff-and-lifecycle-execution.md), [FX prototype](../../delivery/fx-delivery-lifecycle-alpha.md), [agreed lifecycle boundary](../../delivery/booking-and-lifecycle-scope.md).
+- **Remaining:** Partial/amortising/indexed/defaulted redemptions, derivative lifecycle and notification discovery; settlement/accounting remain separate. Do not auto-close exposure just because the calendar date passed. Final bond interest coverage is still required independently.
+- **Evidence:** [Plain-bond delivery](../../delivery/plain-bond-redemption-20261014.md), [FX maturity delivery](../../delivery/fx-forward-maturity-20261014.md), [earlier scope ruling](../../delivery/booking-signoff-and-lifecycle-execution.md), [FX prototype](../../delivery/fx-delivery-lifecycle-alpha.md), [agreed lifecycle boundary](../../delivery/booking-and-lifecycle-scope.md).
+
+The [tenant lifecycle handling modes](#f51-tenant-lifecycle-handling-modes) now apply to the bounded plain-bond workflow; this does not sign off the FX prototype or enable other product lifecycles.
+
+14 October follow-up: [deliverable FX maturity](../../delivery/fx-forward-maturity-20261014.md)
+also consumes these modes for exposure closure, not actual delivery or general
+forward valuation. Other derivative lifecycles remain deferred.
+
+FX prefilled booking may now use a sourced Ops-entered closing rate, retaining the
+spot suggestion, source/reference, reason and actor separately. Missing spot
+blocks one-click booking, not sourced manual entry. REVIEW still independently
+approves the retained proposal; approval cannot replace its rate. Bond redemption
+prices remain contractual and non-editable.
+
+## F51 Tenant lifecycle handling modes
+
+- **Desired:** Each tenant can choose how lifecycle events are handled per instrument type, including events such as dividends, coupons and maturity.
+- **Origin:** Requested on 12 October; clarified and permission implementation approved on 14 October. Earlier unattended automatic/four-mode wording is superseded by Ops-triggered processing below.
+- **Status / backend / frontend:** ALPHA for plain bonds and deliverable FX-forward maturity. Explicit scoped permissions protect separate per-product/per-strategy processing modes, immutable proposals, independent approval, posting and linked cancellation; `/trades/lifecycle` exposes these controls. Default REVIEW; FX additionally requires an explicit pricing policy/cut and MARKET_DATA_READ. Notification dashboard and other lifecycle products remain deferred.
+
+| Mode | Desired booking behavior | Desired notification behavior |
+| --- | --- | --- |
+| 1. Book now (DIRECT) | Ops clicks to execute a validated closing entry, without a second-person approval step. No unattended scheduler. | Event notifications remain deferred. |
+| 2. Prepare for approval (REVIEW) | Prepare an entry; an independent selected user and real operator approve before booking. | Prepared-entry table exists; event notifications remain deferred. |
+| 3. Manual (MANUAL) | Ops confirms sourced contractual inputs; editable price authority is not supplied by this increment. | Event notifications remain deferred. |
+
+- **Cuts/trade-offs:** Explicit lifecycle grants require TRADING and action-bound strategy scope. Book/approve additionally require TRADE_WRITE on the same strategy. Corrections reuse TRADE_CORRECT. Administrator role and existing seed/bootstrap never grant future lifecycle actions. No live grants were added. Future mode/ancestry must come from server records, not browser-supplied authority.
+- **Weaknesses:** No due-event detector/notification dashboard or generic manual lifecycle ticket. Plain-bond principal and deliverable FX maturity closure only; no NDF/early termination/other derivatives. Final bond interest is separate. FX maturity posting does not enable general forward valuation.
+- **Remaining:** Broader lifecycle economics and notifications. Full termination zeroes exposure per distinct canonical instrument/strategy, never through risk likeness; recognition on T includes closure P&L on T. Payment remains separate. Backdated corrections require recalculating affected valuations; published evidence is not silently rewritten.
+- **Evidence / related capabilities:** [Plain-bond delivery](../../delivery/plain-bond-redemption-20261014.md), [approved authority foundation](../../delivery/lifecycle-authority-foundation-20261014.md), [authority guards](../../../security_master_schema/lifecycle_authority.py), [scope tests](../../../tests/test_lifecycle_authority.py), [contractual lifecycle](#f24-contractual-lifecycle), [economic flows](valuation-and-pnl.md#f38-accruals-and-economic-flows), and [deferred settlement/accounting](future-modules.md#f47-settlement-and-accounting).

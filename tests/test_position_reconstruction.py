@@ -94,6 +94,43 @@ def test_in_period_cancellation_is_not_a_sale():
         reconstruct([b,event(b,'CANCELLED',CLOSE)],request())
 
 
+def test_record_correction_removes_in_period_booking_without_execution():
+    b = booked(1, '2', OPEN + timedelta(hours=1))
+    cancel = event(b, 'CANCELLED', b.effective_at, INFO)
+    result = reconstruct([b, cancel], request())
+    assert result.buckets == () and result.executions == ()
+    assert len(result.facts) == 2
+
+
+def test_later_known_closure_cancellation_restores_original_exposure():
+    original = booked(1, '2', OPEN)
+    close = booked(2, '-2', CLOSE, '110')
+    cancel = event(close, 'CANCELLED', close.effective_at, INFO)
+    before = reconstruct([original, close, cancel], request(information_cutoff=INFO-timedelta(seconds=1)))
+    after = reconstruct([original, close, cancel], request())
+    assert before.buckets[0].closing_quantity == 0
+    assert after.buckets[0].closing_quantity == 2
+    assert after.executions == ()
+    assert before.input_hash != after.input_hash
+
+
+def test_corrected_closure_counts_only_replacement_execution():
+    original = booked(1, '2', OPEN)
+    close = booked(2, '-2', CLOSE, '110')
+    cancel = event(close, 'CANCELLED', close.effective_at, INFO)
+    replacement = replace(booked(3, '-2', CLOSE, '115'), recorded_at=INFO)
+    result = reconstruct([original, close, cancel, replacement], request())
+    assert result.buckets[0].closing_quantity == 0
+    assert [execution.booking.price for execution in result.executions] == [D('115')]
+    assert len(result.facts) == 4
+
+
+def test_unknown_corrected_event_cannot_silently_change_economics():
+    b=booked(1,'2',OPEN)
+    with pytest.raises(PositionError,match='correction evidence'):
+        reconstruct([b,event(b,'CORRECTED',OPEN)],request())
+
+
 @pytest.mark.parametrize('kind',['EXPIRED','DELIVERED','UNKNOWN'])
 def test_unsupported_lifecycle_blocks_instead_of_disappearing(kind):
     b = booked(1,'2',OPEN)

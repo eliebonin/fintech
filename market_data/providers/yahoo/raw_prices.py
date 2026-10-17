@@ -6,6 +6,7 @@ a claim that Yahoo publishes a certified adjustment anchor. Assess every date
 from the requested history through that reference date using retained responses.
 """
 from datetime import date, datetime, timedelta, timezone
+from security_master_schema.governance_clock import governance_date
 from hashlib import sha256
 import json
 from zoneinfo import ZoneInfo
@@ -171,7 +172,7 @@ def normalize_dataset(c,dataset_id,tenant_id,actor_id,*,symbols=None,on_symbol=N
         raise PermissionError('Owning personal dataset administrator required')
     namespace=profile['external_id_namespace_id']
     storage.lock_dataset(c,dataset_id,namespace)
-    rights=load_rights(c,dataset_id,'STORE',date.today(),'PERSONAL')
+    rights=load_rights(c,dataset_id,'STORE',governance_date(),'PERSONAL')
     if not rights.allowed: raise PermissionError('Current STORE rights required')
     runs=c.execute(select(m.market_data_ingestion_run).join(m.source_payload).where(
         m.market_data_ingestion_run.c.dataset_id==dataset_id,m.source_payload.c.processing_status=='VALIDATED')

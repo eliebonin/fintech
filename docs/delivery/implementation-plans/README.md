@@ -9,6 +9,7 @@ Start with the [feature register](../../product/feature-register.md) for desired
 
 ## Collection (newest filename first, not priority order)
 
+- [Structured-product termsheet ingestion — proposed execution plan](../../superpowers/plans/2026-10-13-structured-product-termsheet-ingestion.md)
 - [Valuation Price Basis Implementation Plan](../../superpowers/plans/2026-10-09-valuation-price-basis.md)
 - [Tenant access administration implementation plan](../../superpowers/plans/2026-10-09-tenant-access-administration.md)
 - [Market Data Workspace Implementation Plan](../../superpowers/plans/2026-10-09-market-data-workspace.md)

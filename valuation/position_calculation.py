@@ -69,6 +69,13 @@ def attribute_projection(projection: PositionProjection, marks, reporting_curren
         context.prec=512; context.traps[Inexact]=True
         for bucket in projection.buckets:
             key=bucket.key
+            strike=Decimal(0)
+            if key.product_basis=='FX_FORWARD':
+                if key.unit_multiplier!=1 or key.quote_factor!=1:raise ValueError('Forward rates require native base amounts and unit factors')
+                strikes={Decimal(f.booking.product_evidence['agreedRate']) for f in projection.facts
+                    if f.booking and f.trade_id in bucket.trade_ids and f.booking.product_evidence}
+                if len(strikes)!=1:raise ValueError('Unique frozen forward agreed rate required')
+                strike=finite_decimal(next(iter(strikes)),'agreed forward rate',positive=True)
             def fx(cutoff):
                 if key.currency_id==reporting_currency_id: return Decimal(1)
                 value=(fx_inputs or {}).get((key.currency_id,cutoff))
@@ -84,8 +91,10 @@ def attribute_projection(projection: PositionProjection, marks, reporting_curren
                 mark=marks.get(MarkKey(key.subject_id,cutoff))
                 if mark is None: raise ValueError(f'Missing required position mark for {key.subject_id}')
                 finite_decimal(mark,'market price',positive=True)
-                values.append(quantity*factor*mark)
-            execution_local=sum((effect.booking.quantity*factor*effect.booking.price
+                # Rate-difference value is separate from gross currency notional.
+                # It is explicitly an undiscounted rate-based value, not model MTM.
+                values.append(quantity*factor*(mark-strike))
+            execution_local=sum((effect.booking.quantity*factor*(effect.booking.price-strike)
                 for effect in execution_groups[key]),Decimal(0))
             opening_local,closing_local=values
             # Daily end-date execution FX: new trades do not acquire overnight FX

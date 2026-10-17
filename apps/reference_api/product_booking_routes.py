@@ -3,7 +3,8 @@ from .resource_limits import governance_date
 from .problem_details import current_api_version
 from typing import Literal
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header, Query, HTTPException, Response
+from fastapi import Depends, Header, Query, HTTPException, Response
+from .request_audit import AuditRouter as APIRouter
 from security_master_schema.tenant_workspace import resolve_tenant_workspace, require_tenant_action, TenantActionForbidden
 from .tenant_context import TenantContext, get_tenant_context
 from .problem_details import ApiProblem, ValidationIssue, current_request_id
@@ -35,7 +36,7 @@ def product_booking_router(connection_dependency, membership):
                offset: int = Query(default=0, ge=0), as_of: date = Query(default=None, alias='asOfDate'),
                context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(connection, context)
-        items, total = service.search(connection, context.tenant_id, kind, route, q, limit, offset, as_of or date.today())
+        items, total = service.search(connection, context.tenant_id, kind, route, q, limit, offset, as_of or governance_date())
         return ProductBookingSearchResponse(data=items, meta=meta(context, total=total, limit=limit, offset=offset))
 
     @router.get('/v1/trades/product-instruments/{instrument_id}', response_model=ProductBookingContextResponse)

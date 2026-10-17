@@ -1,3 +1,4 @@
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {bookingSubmissionOptions} from './booking-submission';
 import type {
   BondProposalPayload,
@@ -171,7 +172,7 @@ export function submitEquityProposalFromBff(payload: Record<string, unknown>, id
 }
 
 export function submitEquityListingProposalFromBff(payload: Record<string, unknown>, idempotencyKey?: string, fetchImpl: FetchImplementation = fetch): Promise<EquityProposalPayload> {
-  return bffPost<EquityProposalPayload>("/api/instruments/equity-listing-proposals", payload, idempotencyKey, fetchImpl);
+  return proposalPost<EquityProposalPayload>("/api/instruments/equity-listing-proposals", payload, idempotencyKey, fetchImpl);
 }
 
 export function submitBondProposalFromBff(payload: Record<string, unknown>, idempotencyKey?: string, fetchImpl: FetchImplementation = fetch): Promise<BondProposalPayload> {
@@ -179,7 +180,7 @@ export function submitBondProposalFromBff(payload: Record<string, unknown>, idem
 }
 
 export function submitEtpProposalFromBff(payload: Record<string, unknown>, idempotencyKey?: string, fetchImpl: FetchImplementation = fetch): Promise<EtpProposalPayload> {
-  return bffPost<EtpProposalPayload>("/api/instruments/etps", payload, idempotencyKey, fetchImpl);
+  return proposalPost<EtpProposalPayload>("/api/instruments/etps", payload, idempotencyKey, fetchImpl);
 }
 
 export function submitFxForwardProposalFromBff(payload: Record<string, unknown>, idempotencyKey?: string, fetchImpl: FetchImplementation = fetch): Promise<FxForwardProposalPayload> {
@@ -199,7 +200,21 @@ export function submitCryptoAssetProposalFromBff(payload: Record<string, unknown
 }
 
 export function submitStructuredProductProposalFromBff(payload: Record<string, unknown>, idempotencyKey?: string, fetchImpl: FetchImplementation = fetch): Promise<StructuredProductProposalPayload> {
-  return bffPost<StructuredProductProposalPayload>("/api/instruments/structured-products", payload, idempotencyKey, fetchImpl);
+  return proposalPost<StructuredProductProposalPayload>("/api/instruments/structured-products", payload, idempotencyKey, fetchImpl);
+}
+
+export type ContractualCalendarChoice={calendarId:string;displayName:string;version:number|null;timezone:string};
+export function contractualCalendarsFromBff(fetchImpl:FetchImplementation=fetch) {
+  return bffGet<{data:ContractualCalendarChoice[]}>('/api/instruments/structured-products/payment-dates',fetchImpl);
+}
+export function contractualPaymentDatesFromBff(payload:{calendarId:string;observationDates:string[];paymentLagBusinessDays:number},fetchImpl:FetchImplementation=fetch) {
+  return bffPost<{calendarId:string;paymentDates:Record<string,string>}>('/api/instruments/structured-products/payment-dates',payload,undefined,fetchImpl);
+}
+
+async function proposalPost<T extends {data:{proposalId:string}}>(path:string,payload:unknown,key:string|undefined,fetchImpl:FetchImplementation):Promise<T>{
+ const result=await bffPost<T>(path,payload,key,fetchImpl);
+ if(!result?.data?.proposalId)throw new BffApiError(502,'The proposal outcome could not be confirmed. Check Operations or retry the unchanged request.','INVALID_SUCCESS_RESPONSE',undefined,undefined,true);
+ return result;
 }
 
 export function submitBookedTradeFromBff(

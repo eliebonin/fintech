@@ -43,7 +43,7 @@ describe("reference API client", () => {
 
   it("preserves safe Problem Details fields without exposing unknown upstream bodies", async () => {
     const problemFetch: typeof fetch = async () => new Response(JSON.stringify({
-      type: "https://api.fortem.local/problems/request-conflict",
+      type: "https://api.platform.local/problems/request-conflict",
       title: "Conflict",
       status: 409,
       detail: "The request conflicts with the current resource state.",

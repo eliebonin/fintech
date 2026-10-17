@@ -1,5 +1,6 @@
 """Governed fixed-strike vanilla options; existing listing workflow stays separate."""
 from datetime import datetime, timezone, date
+from security_master_schema.governance_clock import governance_date
 import json
 from sqlalchemy import select, or_
 from security_master_schema import models as m
@@ -19,7 +20,7 @@ def validate_references(connection,tenant_id,request):
 
 def underlying_kind(connection,tenant_id,underlying_id):
     _visible_reference_node(connection,tenant_id,underlying_id)
-    today=date.today()
+    today=governance_date()
     definition=m.instrument_definition_version
     kind=connection.scalar(select(m.instrument_type.c.type_code).join(m.instrument,m.instrument.c.instrument_type_id==m.instrument_type.c.instrument_type_id).join(definition,definition.c.instrument_node_id==m.instrument.c.instrument_node_id).where(m.instrument.c.instrument_node_id==underlying_id,m.instrument.c.is_current,m.instrument_type.c.status=='ACTIVE',definition.c.instrument_type_id==m.instrument.c.instrument_type_id,definition.c.is_current,definition.c.status=='APPROVED',definition.c.effective_from<=today,or_(definition.c.effective_to.is_(None),definition.c.effective_to>=today)))
     if kind in {'EQUITY','ETF','ETC','ETN','ETV','ETI'}: return kind

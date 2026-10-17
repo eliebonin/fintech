@@ -14,6 +14,7 @@ from uuid import UUID
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sqlalchemy import select, func
 from sqlalchemy.engine import make_url
+from security_master_schema.database_config import local_workspace_database
 from apps.reference_api.config import Settings
 from apps.reference_api.db import get_engine
 from apps.reference_api import product_booking as products
@@ -153,8 +154,8 @@ def main():
     args = parser.parse_args()
     settings = Settings.from_environment()
     url = make_url(settings.database_url)
-    if settings.environment != 'local' or url.host not in ('localhost', '127.0.0.1') or url.database != 'fortem_secm':
-        raise SystemExit('This command is restricted to the local fortem_secm workspace.')
+    if settings.environment != 'local' or url.host not in ('localhost', '127.0.0.1') or url.database != local_workspace_database():
+        raise SystemExit('This command is restricted to the local platform_secm workspace.')
     with get_engine(settings).connect() as connection:
         transaction = connection.begin()
         try:

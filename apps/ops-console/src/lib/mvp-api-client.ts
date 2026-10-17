@@ -66,6 +66,10 @@ export function getInstrument(context: TenantContext, instrumentId: string, fetc
   return getJson<InstrumentDetailPayload>(`/v1/instruments/${encodeURIComponent(instrumentId)}`, context, fetchImpl);
 }
 
+export function getInstrumentTermsSchedule(context: TenantContext, instrumentId: string, fetchImpl: typeof fetch = fetch) {
+  return getJson<{data: import('./instrument-terms-schedule').TermsSchedule}>(`/v1/instruments/${encodeURIComponent(instrumentId)}/terms-schedule`, context, fetchImpl);
+}
+
 export function getMarketDataSeries(context: TenantContext, params: { fromDate?: string; toDate?: string; limit?: number; offset?: number; observationLimit?: number; observationOffset?: number; referenceNodeId?: string; seriesId?: string; includeChart?: boolean } = {}) {
   const query = new URLSearchParams();
   if (params.fromDate) query.set("fromDate", params.fromDate);

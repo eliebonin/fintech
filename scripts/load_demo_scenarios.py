@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from security_master_schema.demo_data import load_demo_data
 
 
-database_url = os.environ.get("DATABASE_URL", "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm")
+database_url = os.environ.get("DATABASE_URL", "postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm")
 project_root = Path(__file__).resolve().parents[1]
 alembic_config = Config(str(project_root / "alembic.ini"))
 alembic_config.set_main_option("script_location", str(project_root / "alembic"))

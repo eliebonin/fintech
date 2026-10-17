@@ -12,9 +12,14 @@ Canonical pages use this metadata block: `Status`, `Content type`, `Owner`, and 
 - **Reference** records stable vocabulary, structures, or contracts.
 - **Research**, **Specification**, **Plan**, and **Review** are evidence or time-bound records, not current architecture by themselves.
 
-Update the canonical page first; then update a decision, plan, or review only when its own historical record changes. Every canonical page links to its principal historical sources. The archive is immutable and is never a destination for new authored content. New local Markdown links must resolve from the source file’s directory.
+Update the canonical page first; then update a decision, plan, or review only when its own historical record changes. Every canonical page links to its principal historical sources. Subject to the explicitly recorded exception below, the archive is immutable and is never a destination for new authored content. New local Markdown links must resolve from the source file’s directory.
 
 ## Current capability maintenance
+
+The recorded exception is the user-approved 17 October 2026 repository-wide
+operator-name anonymisation. Archived copy hashes are recorded alongside, not
+instead of, original hashes. See [the archive record](../archive/2026-09-10-pre-reorganisation/README.md).
+This exception does not authorize future rewriting of historical delivery claims.
 
 The [feature register](../product/feature-register.md) owns stable feature IDs and summary status. Its linked capability records own desired scope, backend/frontend evidence, deliberate cuts/trade-offs, weaknesses and remaining work. Update both when a capability changes; one successful test, a migration/table, module label or checked plan box is not end-to-end delivery.
 

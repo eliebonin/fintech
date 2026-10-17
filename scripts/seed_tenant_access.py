@@ -15,7 +15,7 @@ from security_master_schema import models as m
 def main():
     if os.environ.get('APP_ENV','local') not in {'local','test','development'}:
         raise SystemExit('Access personas are local-development fixtures only')
-    engine=create_engine(os.environ.get('DATABASE_URL','postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm'))
+    engine=create_engine(os.environ.get('DATABASE_URL','postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm'))
     with engine.begin() as c:
         # Serialize repeat runs without granting removed permissions again.
         from sqlalchemy import text

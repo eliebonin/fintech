@@ -1,7 +1,8 @@
 """Selected-tenant calendar management and read-only schedule inspection."""
 from datetime import date
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header
+from fastapi import Depends, Header
+from .request_audit import AuditRouter as APIRouter
 from .tenant_context import TenantContext,get_tenant_context
 from .problem_details import ApiProblem
 from .calendar_contracts import CalendarPublish,CalendarView,CalendarDaysView,CalendarOptions,CalendarAssignmentCreate,CalendarAssignmentView

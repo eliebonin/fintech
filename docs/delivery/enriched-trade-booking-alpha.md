@@ -71,7 +71,7 @@ Run from the repository root with an authorised tenant writer:
 
 Provisioning is idempotent and rejects changes to existing definition meaning.
 The supplied example contains five **optional** fields and two tags. It has been
-provisioned for the local Fortem Demo Tenant; no required fields were imposed on
+provisioned for the local Platform Demo Tenant; no required fields were imposed on
 existing bookings. Migration 50 is applied locally. Console: localhost:3000;
 reference API: localhost:8000. Open `/trades/new` after selecting the demo tenant.
 

@@ -10,7 +10,7 @@ financial_reference_node
   -> venue listing when tradeable on a venue
 ```
 
-Fortem UUIDv7 remains the immutable internal identity. Formal identifiers and all provider, bank, client, custodian, and legacy codes remain effective-dated mappings; none becomes a primary key.
+Platform UUIDv7 remains the immutable internal identity. Formal identifiers and all provider, bank, client, custodian, and legacy codes remain effective-dated mappings; none becomes a primary key.
 
 The table layer is useful, but table breadth must not substitute for operating controls. Delivery therefore shifts from adding product tables to completing one tenant-safe, reproducible Soft-NAV vertical slice.
 

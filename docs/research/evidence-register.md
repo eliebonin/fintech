@@ -1,5 +1,21 @@
 # Evidence register
 
+17 October 2026 tenant organisation implementation: [research, application and limits](../delivery/tenant-organisations-20261017.md#research-used-for-implementation). Opened OWASP authorization guidance, PostgreSQL 18 explicit locking and GOV.UK tables; consulted installed Next 16.3.4 forms guidance. Applied existing request-level authority, shared tenant transaction locks, revision conflicts and semantic paged tables. Trading-only role scope and reuse of existing eligibility storage are project decisions, not a KYC/regulatory certification.
+
+16 October 2026 organisation directory and tenant roles: [source-backed design and applicability](../superpowers/specs/2026-10-16-tenant-organisations-design.md#source-backed-rationale). EDM Council FIBO, GLEIF Golden Copy/delta and LEI search guidance were opened/read in the preceding best-practice review. They support separating identity, relationships and sourced statuses; the tenant eligibility schema/UI and delivery sequence are project recommendations, not mandated regulatory controls. No application implementation is implied.
+
+15 October 2026 monetary-report UI: [source applications and verification](../delivery/position-values-report-ui-20261015.md#source-backed-ui-decisions).
+GOV.UK table, details, status-tag and error-summary guidance was searched/opened;
+it informs scanability, progressive disclosure and readable noninteractive status,
+not financial conventions or an accessibility-certification claim.
+
+15 October 2026 position monetary measures: [cross-measure source/application review](../delivery/quality-reviews/2026-10-15-position-measures-review.md#source-backed-review).
+Opened Strata FX-single/fixed-coupon bond pricers and CME index-notional/clearing money
+calculation guidance. The report distinguishes source-backed definitions from project
+conventions; no regulatory or independent financial validation is implied.
+
+14 October 2026 valuation methodology: [source/application register](../architecture/market-data-and-valuation/valuation-methodology.md#research-and-applicability). SEC and IFRIC primary guidance were opened; FSA identifies the June 2026 IOSCO update, whose final text could not be accessed. Detailed inaccessible provisions are not treated as verified recommendations.
+
 Yahoo personal-project ingestion and layered-rights sources checked on 6 October 2026, including licensing limitations and project-specific decisions, are recorded in the [delivery report](../delivery/yahoo-market-data-alpha.md#best-practice-review-and-decisions).
 
 **Status:** Draft  

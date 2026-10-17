@@ -123,7 +123,7 @@ Treat ticker as venue-scoped and effective-dated; it is never a global key by it
 
 ## Integration identifiers and external mappings
 
-Every canonical object has an immutable Fortem UUID. External systems must map their own identifiers to that UUID through a governed integration-identity layer; never make an upstream identifier the internal primary key.
+Every canonical object has an immutable Platform UUID. External systems must map their own identifiers to that UUID through a governed integration-identity layer; never make an upstream identifier the internal primary key.
 
 Keep two related concepts separate:
 
@@ -139,7 +139,7 @@ external_object_mapping
   mapping ID
   namespace ID
   external object type and external ID value
-  target object type and Fortem UUID
+  target object type and Platform UUID
   mapping role and optional venue/context
   valid-from / valid-to, recorded-at
   mapping status, confidence/verification, source-payload link

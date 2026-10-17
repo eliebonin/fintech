@@ -1,5 +1,5 @@
 """Tenant access-management metadata, registered separately from security terms."""
-from sqlalchemy import Column, Table, String, ForeignKey, ForeignKeyConstraint, UniqueConstraint, CheckConstraint, DateTime, Text, text
+from sqlalchemy import Column, Table, String, Integer, ForeignKey, ForeignKeyConstraint, UniqueConstraint, CheckConstraint, DateTime, Text, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 
@@ -11,10 +11,13 @@ def register_access_tables(metadata):
         Column('tenant_id', uid, ForeignKey('ten.tenant.tenant_id'), nullable=False),
         Column('code', String(100), nullable=False), Column('display_name', String(250), nullable=False),
         Column('description', Text), Column('status', String(20), nullable=False, server_default=text("'ACTIVE'")),
+        Column('scope_mode',String(20),nullable=False,server_default=text("'SELECTED'")),
+        Column('version_no',Integer,nullable=False,server_default=text('1')),
         Column('created_at_utc', DateTime(timezone=True), nullable=False, server_default=now),
         UniqueConstraint('tenant_id', 'code', name='uq_access_group_code'),
         UniqueConstraint('tenant_id', 'group_id', name='uq_access_group_scope'),
-        CheckConstraint("status IN ('ACTIVE','SUSPENDED')", name='ck_access_group_status'), schema='ten')
+        CheckConstraint("status IN ('ACTIVE','SUSPENDED')", name='ck_access_group_status'),
+        CheckConstraint("scope_mode IN ('ALL','SELECTED')",name='ck_access_group_strategy_mode'),schema='ten')
     member = Table('access_group_member', metadata,
         Column('tenant_id', uid, nullable=False, primary_key=True),
         Column('group_id', uid, nullable=False, primary_key=True),
@@ -26,6 +29,10 @@ def register_access_tables(metadata):
         Column('group_id', uid, nullable=False, primary_key=True),
         Column('action_code', String(60), nullable=False, primary_key=True),
         ForeignKeyConstraint(['tenant_id','group_id'], ['ten.access_group.tenant_id','ten.access_group.group_id']), schema='ten')
+    scope = Table('access_group_strategy',metadata,
+        Column('tenant_id',uid,primary_key=True),Column('group_id',uid,primary_key=True),Column('strategy_id',uid,primary_key=True),
+        ForeignKeyConstraint(['tenant_id','group_id'],['ten.access_group.tenant_id','ten.access_group.group_id']),
+        ForeignKeyConstraint(['tenant_id','strategy_id'],['trd.strategy.tenant_id','trd.strategy.strategy_id']),schema='ten')
     audit = Table('access_audit_event', metadata,
         Column('event_id', uid, primary_key=True, server_default=text('uuidv7()')),
         Column('tenant_id', uid, ForeignKey('ten.tenant.tenant_id')),
@@ -49,6 +56,9 @@ def register_access_tables(metadata):
         'display_name':'Human-readable name of the tenant permission group.',
         'description':'Optional operational purpose of this tenant group.',
         'status':'ACTIVE or SUSPENDED; suspended groups confer no permissions.',
+        'scope_mode':'ALL includes future tenant strategies; SELECTED grants only explicitly associated strategies.',
+        'version_no':'Optimistic group revision for atomic permission/scope edits.',
+        'strategy_id':'Strategy in the same tenant, attached to this group operational scope.',
         'created_at_utc':'UTC recording time of group or local session creation.',
         'user_account_id':'Account assigned to this tenant group; active tenant membership is checked separately.',
         'action_code':'Controlled action grant; effective access also requires the tenant module entitlement.',
@@ -63,6 +73,6 @@ def register_access_tables(metadata):
         'expires_at_utc':'UTC expiry boundary after which this local session is invalid.',
         'revoked_at_utc':'UTC revocation time; null while not explicitly revoked.',
     }
-    for table in (group,member,grant,audit,session):
+    for table in (group,member,grant,scope,audit,session):
         for column in table.c: column.comment=documentation[column.name]
-    return group, member, grant, audit, session
+    return group, member, grant, audit, session, scope

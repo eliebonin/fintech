@@ -36,7 +36,7 @@ No operating DB query/write, seed, migration, app restart or provider acquisitio
 | Catalogue and strategy labels implied universal economics | Product-specific creation, listing, booking and valuation capabilities remain distinct. |
 | Tenant trade properties were described as “unlimited” | The schema is not a fixed field1…30 layout, but provisioning enforces 1,000 active field definitions per tenant and a separate 1,000-tag quota. |
 | P&L “immutable results” wording blurred stored evidence and workflow status | Financial attribution versions and operational events are protected/append-only, while attempt and batch statuses transition; a later publication marks the prior batch `SUPERSEDED` without rewriting its financial values. |
-| Old delivery index ran pytest against `fortem_secm` | Current instructions use owned disposable databases; guard/CI isolation and forward-only migration rules are explicit. |
+| Old delivery index ran pytest against `platform_secm` | Current instructions use owned disposable databases; guard/CI isolation and forward-only migration rules are explicit. |
 | Old merged-work tests could be read as one clean full pass | Preserve partitioned failing diagnostics and successful focused remediation; no single clean final full-suite rerun is claimed. |
 | Prior browser success was generalized to newer UI | Earlier trade journeys are dated evidence; latest access/P&L/market chart interactions still need appropriate sign-off. |
 

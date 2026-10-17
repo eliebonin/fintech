@@ -26,7 +26,7 @@ def test_list_is_live_tenant_scoped_not_demo():
 
 def test_policy_options_distinguish_versions_with_the_same_display_name():
     engine=get_engine()
-    assert engine.url.database.startswith('fortem_isolated_tests_')
+    assert engine.url.database.startswith('platform_isolated_tests_')
     policy=m.valuation_policy
     new_ids=[uuid4(),uuid4()]
     with engine.begin() as c:
@@ -65,7 +65,7 @@ def test_daily_date_transport_freezes_resolved_request_even_if_inputs_missing():
 
 def test_market_data_alone_does_not_grant_valuation_access():
     engine=get_engine()
-    assert engine.url.database.startswith('fortem_isolated_tests_')
+    assert engine.url.database.startswith('platform_isolated_tests_')
     entitlement=m.tenant_module_entitlement
     with engine.begin() as c:
         row=c.execute(select(entitlement).where(entitlement.c.tenant_module_entitlement_id==ids['valuation_module_entitlement'])).mappings().one()

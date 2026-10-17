@@ -85,7 +85,7 @@ checkout as requested. Preserve pre-existing modifications. No commit/push.
 ## Owner-approved local activation — 2026-10-09
 
 The user explicitly approved backup, migrations and restart. A full local DB
-backup was retained under `logs/fortem-secm-before-economic-pnl-20261009-114809.dump`.
+backup was retained under `logs/platform-secm-before-economic-pnl-20261009-114809.dump`.
 Operating head is now 81; API/UI were restarted on 8000/3000. Health/OpenAPI checks
 passed; frontend unauthenticated access correctly redirects to tenant selection
 and returns HTTP 200. No financial calculation/publication was performed.

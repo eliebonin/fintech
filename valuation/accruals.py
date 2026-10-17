@@ -36,20 +36,30 @@ def record_accrual(c,tenant,actor,payload,key,*,recorded_at=None,request_hash=No
     require_visible(c,tenant,payload['instrumentId'])
     instrument=c.execute(select(m.instrument,m.instrument_type.c.type_code).join(m.instrument_type).where(
         m.instrument.c.instrument_node_id==payload['instrumentId'])).mappings().one()
-    if instrument['type_code']!='BOND' or instrument['base_currency_id']!=payload['currencyId']:
-        raise ValueError('Daily bond accrual currency must match the canonical instrument')
-    inputs=payload.get('inputs',{})
-    expected=accrual_amounts(inputs)
-    if payload.get('amounts')!=expected:
-        raise ValueError('Accrual amounts must equal the validated local/base bridge')
-    if payload['currencyId']==payload['reportingCurrencyId']:
-        if inputs['openingFx']!=1 or inputs['closingFx']!=1:
-            raise ValueError('Same-currency accrual requires identity FX')
-    elif len(payload.get('fxEvidence',[]))!=2 or any(not e.get('selection') for e in payload['fxEvidence']):
-        raise ValueError('Foreign accrual requires frozen opening and closing FX selections')
-    finite_decimal(payload['eligibleNominal'],'eligible nominal')
-    if not payload['sourceReference'].strip() or not payload['eligibilityConvention'].strip():
-        raise ValueError('Source reference and nominal eligibility convention required')
+    if instrument['type_code']!='BOND': raise ValueError('Daily interest requires a canonical bond')
+    if not c.scalar(select(m.currency.c.currency_id).where(m.currency.c.currency_id==payload['currencyId'],m.currency.c.status=='ACTIVE')):
+        raise ValueError('Active daily interest currency required')
+    inputs=payload.get('inputs')
+    daily=payload.get('dailyEarned',inputs.get('dailyEarned') if inputs else None)
+    finite_decimal(daily,'daily earned interest')
+    with localcontext() as ctx:
+        ctx.prec=512
+        if daily!=daily.quantize(Decimal('0.000000000001')) or abs(daily)>=Decimal('1e18'):
+            raise ValueError('daily earned interest exceeds NUMERIC(30,12); no silent rounding')
+    if inputs:
+        if instrument['base_currency_id']!=payload['currencyId']: raise ValueError('Reconciled balance currency must match the canonical bond')
+        expected=accrual_amounts(inputs)
+        if daily!=inputs['dailyEarned'] or payload.get('amounts')!=expected:
+            raise ValueError('daily accrual amounts must equal the validated local/base bridge')
+        if payload['currencyId']==payload['reportingCurrencyId']:
+            if inputs['openingFx']!=1 or inputs['closingFx']!=1: raise ValueError('Same-currency accrual requires identity FX')
+        elif len(payload.get('fxEvidence',[]))!=2 or any(not e.get('selection') for e in payload['fxEvidence']):
+            raise ValueError('Foreign accrual requires frozen opening and closing FX selections')
+    elif payload.get('amounts'):
+        raise ValueError('Balance amounts require reconciled inputs')
+    if payload.get('eligibleNominal') is not None: finite_decimal(payload['eligibleNominal'],'eligible nominal')
+    for name in ('sourceReference','eligibilityConvention'):
+        if name in payload and not payload[name].strip(): raise ValueError('Provided source/eligibility description cannot be blank')
     digest=evidence_hash(payload);request_hash=request_hash or digest;table=t.accrual_input
     from .storage import input_revision_lock
     input_revision_lock(c,tenant,payload['strategyId'])
@@ -69,6 +79,7 @@ def record_accrual(c,tenant,actor,payload,key,*,recorded_at=None,request_hash=No
     if stamp.utcoffset() is None or old and stamp<old['recorded_at']: raise ValueError('Invalid accrual revision recording time')
     return c.scalar(table.insert().values(tenant_id=tenant,strategy_id=payload['strategyId'],recorded_by=actor,
         instrument_id=payload['instrumentId'],value_date=payload['valueDate'],input_type=payload['inputType'],
+        daily_earned_interest=daily,currency_id=payload['currencyId'],
         revision=old['revision']+1 if old else 1,supersedes_input_id=payload.get('supersedesInputId'),
         submission_key=key,input_hash=digest,request_hash=request_hash,payload=canonical_payload(payload),recorded_at=stamp).returning(table.c.input_id))
 
@@ -130,7 +141,22 @@ def load_accrual_inputs(c,request,position_projection):
             if not active: continue
             row=known.get((instrument,day))
             if row is None: raise ValueError(f'Missing assessed daily accrued-interest input for {instrument} on {day}')
-            payload=row['payload'];inputs={k:Decimal(v) for k,v in payload['inputs'].items()}
+            payload=dict(row['payload']);daily_amount=row['daily_earned_interest'];currency=row['currency_id']
+            finite_decimal(daily_amount,'stored daily earned interest')
+            source_amount=payload.get('dailyEarned',(payload.get('amounts') or {}).get('dailyLocal'))
+            if source_amount is None or Decimal(source_amount)!=daily_amount or UUID(payload['currencyId'])!=currency:
+                raise ValueError('Typed daily interest differs from retained source evidence')
+            if not payload.get('inputs'):
+                from .fx import resolve_fx
+                fx=resolve_fx(c,request,currency,request.reporting_currency_id,day)
+                with localcontext() as ctx:
+                    ctx.prec=512
+                    amounts=dict(dailyLocal=str(daily_amount),dailyBase=str(daily_amount*fx.rate))
+                payload.update(amounts=amounts,reportingCurrencyId=str(request.reporting_currency_id),
+                    fxEvidence=[fx.evidence],balanceReconciliation='NOT_PROVIDED')
+                results.append(AccrualInput(row['input_id'],instrument,day,row['revision'],payload,active[0].key))
+                continue
+            inputs={k:Decimal(v) for k,v in payload['inputs'].items()}
             expected=accrual_amounts(inputs)
             if {k:Decimal(v) for k,v in payload['amounts'].items()}!=expected:
                 raise ValueError('Stored accrued-interest bridge is inconsistent')
@@ -140,7 +166,7 @@ def load_accrual_inputs(c,request,position_projection):
             if UUID(payload['currencyId'])!=request.reporting_currency_id and (
                 payload.get('policyId')!=str(request.policy_id) or payload.get('cutId')!=str(request.cut_id)):
                 raise ValueError('Foreign accrued-interest inputs require matching frozen valuation policy/cut')
-            results.append(AccrualInput(row['input_id'],instrument,day,row['revision'],payload,keys[0]))
+            results.append(AccrualInput(row['input_id'],instrument,day,row['revision'],payload,active[0].key))
         day+=timedelta(days=1)
     return tuple(results)
 
@@ -155,9 +181,11 @@ def attach_accruals(period,inputs):
         with localcontext() as ctx:
             ctx.prec=512
             for name,field in [('ACCRUAL','dailyBase'),('CARRY','receivableFx')]:
-                components[name]=components.get(name,Decimal(0))+Decimal(source.payload['amounts'][field])
+                if field in source.payload['amounts']:
+                    components[name]=components.get(name,Decimal(0))+Decimal(source.payload['amounts'][field])
         proof=dict(kind='DAILY_ACCRUAL',inputId=str(source.input_id),revision=source.revision,
-            valueDate=source.value_date.isoformat(),payload=source.payload,receivableFxComponent='CARRY',
+            valueDate=source.value_date.isoformat(),payload=source.payload,
+            receivableFxComponent='CARRY' if 'receivableFx' in source.payload['amounts'] else None,
             allocation='ONCE_PER_CANONICAL_INSTRUMENT')
         lines[index]=replace(line,economic_components=components,economic_evidence=line.economic_evidence+(proof,))
     return replace(period,lines=tuple(lines))

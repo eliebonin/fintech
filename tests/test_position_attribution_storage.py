@@ -72,7 +72,13 @@ def test_legacy_results_remain_readable_and_v2_replaces_population(valued):
     from tests.legacy_valuation_reference import calculate
     c,r,_=valued
     old=staged(c,r,calculate(c,r)); actor=reviewer(c)
-    storage.publish(c,r.tenant_id,old,actor,'Legacy reviewed')
+    # Migration 92 forbids NEW publication without frozen ledger revision proof.
+    # Model an already-published pre-92 historical record in this disposable
+    # fixture; do not weaken today's publication guard to manufacture history.
+    assert storage.batch_view(c,r.tenant_id,old)['sourceHealth']['status']=='UNKNOWN_LEGACY'
+    with pytest.raises(ValueError,match='lack revision proof'):
+        storage.publish(c,r.tenant_id,old,actor,'Legacy reviewed')
+    c.execute(t.batch.update().where(t.batch.c.batch_id==old).values(status='PUBLISHED'))
     new=staged(c,r,calculate_position(c,r))
     storage.publish(c,r.tenant_id,new,actor,'Position-owned bridge reviewed')
     assert storage.batch_view(c,r.tenant_id,old)['items'][0]['trade_id'] is not None

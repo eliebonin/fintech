@@ -1,6 +1,7 @@
 """PostgreSQL read/write queries behind the reference-data API."""
 
 from datetime import date, datetime, timedelta, timezone
+from security_master_schema.governance_clock import governance_date
 from decimal import Decimal
 import hashlib
 import json
@@ -90,6 +91,10 @@ from .contracts import (
 
 
 def create_strategy(connection: Connection, tenant_id: UUID, actor_id: UUID, request: StrategyCreateRequest) -> StrategyView:
+    from security_master_schema.access_management import lock_tenant
+    from security_master_schema.strategy_creation_access import creation_groups,initialize_strategy_access
+    creation_groups(connection,tenant_id,actor_id)
+    lock_tenant(connection,tenant_id)
     from .booking_controls import booking_lock_key
     from .booking_errors import StrategyCodeConflict
     code=request.strategy_code.strip().upper()
@@ -107,11 +112,13 @@ def create_strategy(connection: Connection, tenant_id: UUID, actor_id: UUID, req
             raise ValueError("baseCurrencyCode is not an active currency")
     strategy_id = uuid4()
     connection.execute(insert(m.strategy).values(strategy_id=strategy_id, tenant_id=tenant_id, strategy_code=request.strategy_code.strip().upper(), display_name=request.display_name.strip(), strategy_type=request.strategy_type, operating_model_label=request.operating_model_label, base_currency_id=currency_id, status="ACTIVE", created_by_user_account_id=actor_id))
+    initialize_strategy_access(connection,tenant_id,actor_id,strategy_id,request.initial_access_group_ids)
     return StrategyView(strategyId=strategy_id, tenantId=tenant_id, strategyCode=request.strategy_code.strip().upper(), displayName=request.display_name.strip(), strategyType=request.strategy_type, baseCurrencyCode=currency_code, status="ACTIVE")
 
 
-def list_strategies(connection: Connection, tenant_id: UUID) -> StrategyListResponse:
-    rows = connection.execute(select(m.strategy.c.strategy_id, m.strategy.c.tenant_id, m.strategy.c.strategy_code, m.strategy.c.display_name, m.strategy.c.strategy_type, m.strategy.c.status, m.currency.c.currency_code).outerjoin(m.currency, m.currency.c.currency_id == m.strategy.c.base_currency_id).where(m.strategy.c.tenant_id == tenant_id).order_by(m.strategy.c.strategy_code)).mappings().all()
+def list_strategies(connection: Connection, tenant_id: UUID,*,action='STRATEGY_READ') -> StrategyListResponse:
+    from security_master_schema.strategy_access import request_strategy_predicate
+    rows = connection.execute(select(m.strategy.c.strategy_id, m.strategy.c.tenant_id, m.strategy.c.strategy_code, m.strategy.c.display_name, m.strategy.c.strategy_type, m.strategy.c.status, m.currency.c.currency_code).outerjoin(m.currency, m.currency.c.currency_id == m.strategy.c.base_currency_id).where(m.strategy.c.tenant_id == tenant_id,request_strategy_predicate(connection,tenant_id,action,m.strategy.c.strategy_id)).order_by(m.strategy.c.strategy_code)).mappings().all()
     return StrategyListResponse(data=[StrategyView(strategyId=row["strategy_id"], tenantId=row["tenant_id"], strategyCode=row["strategy_code"], displayName=row["display_name"], strategyType=row["strategy_type"], baseCurrencyCode=row["currency_code"], status=row["status"]) for row in rows])
 
 
@@ -180,19 +187,11 @@ def _decimal(value: Decimal | int | float | None) -> str:
     return str(value if value is not None else 0)
 
 
-def _visible_node_clause(tenant_id: UUID):
-    scope = m.reference_node_scope
-    return or_(
-        scope.c.reference_node_id.is_(None),
-        and_(scope.c.status == "ACTIVE", or_(
-            scope.c.scope_type == "SHARED_CANONICAL",
-            and_(scope.c.scope_type == "TENANT_PRIVATE", scope.c.owner_tenant_id == tenant_id),
-        )),
-    )
+from security_master_schema.reference_visibility import joined_scope_clause as _visible_node_clause
 
 
 def _base_instrument_select(tenant_id: UUID):
-    as_of = date.today()
+    as_of = governance_date()
     rn = m.financial_reference_node
     inst = m.instrument
     version = m.instrument_definition_version
@@ -270,8 +269,8 @@ def _search_predicate(tenant_id: UUID, query: str, rn, inst, typ):
                         listing_version.c.listing_node_id == listing.c.listing_node_id,
                         listing_version.c.status == "APPROVED",
                         listing_version.c.is_current.is_(True),
-                        listing_version.c.effective_from <= date.today(),
-                        or_(listing_version.c.effective_to.is_(None), listing_version.c.effective_to >= date.today()),
+                        listing_version.c.effective_from <= governance_date(),
+                        or_(listing_version.c.effective_to.is_(None), listing_version.c.effective_to >= governance_date()),
                     ),
                 ).join(venue, listing_version.c.market_venue_id == venue.c.market_venue_id)
             )
@@ -306,11 +305,11 @@ def _search_predicate(tenant_id: UUID, query: str, rn, inst, typ):
                 )
             )
             .where(or_(mapping.c.tenant_id.is_(None), mapping.c.tenant_id == tenant_id))
-            .where(mapping.c.valid_from <= date.today())
-            .where(or_(mapping.c.valid_to.is_(None), mapping.c.valid_to >= date.today()))
+            .where(mapping.c.valid_from <= governance_date())
+            .where(or_(mapping.c.valid_to.is_(None), mapping.c.valid_to >= governance_date()))
             .where(namespace.c.status == "ACTIVE")
-            .where(namespace.c.valid_from <= date.today())
-            .where(or_(namespace.c.valid_to.is_(None), namespace.c.valid_to >= date.today()))
+            .where(namespace.c.valid_from <= governance_date())
+            .where(or_(namespace.c.valid_to.is_(None), namespace.c.valid_to >= governance_date()))
         ),
         func.lower(cast(rn.c.reference_node_id, String)).contains(normalized),
     ]
@@ -320,7 +319,7 @@ def _search_predicate(tenant_id: UUID, query: str, rn, inst, typ):
 
 
 def _load_identifiers(connection: Connection, node_id: UUID) -> list[InstrumentIdentifierView]:
-    as_of = date.today()
+    as_of = governance_date()
     rows = connection.execute(
         select(m.identifier_scheme.c.scheme_code, m.identifier_scheme.c.scope, m.financial_reference_identifier.c.identifier_value)
         .select_from(
@@ -340,7 +339,7 @@ def _load_identifiers(connection: Connection, node_id: UUID) -> list[InstrumentI
 def _load_mappings(connection: Connection, tenant_id: UUID, instrument_id: UUID, listing_ids: list[UUID]) -> list[ExternalMappingView]:
     mapping = m.external_object_mapping
     namespace = m.external_id_namespace
-    as_of = date.today()
+    as_of = governance_date()
     targets = [mapping.c.target_object_id == instrument_id]
     if listing_ids:
         targets.append(mapping.c.target_object_id.in_(listing_ids))
@@ -373,7 +372,7 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
         return []
     series = m.market_data_series
     from market_data.rights import denied_display_datasets
-    denied_datasets = denied_display_datasets(connection, tenant_id, date.today())
+    denied_datasets = denied_display_datasets(connection, tenant_id, governance_date())
     series_currency = m.currency.alias("series_currency")
     series_rows = connection.execute(
         select(
@@ -397,12 +396,16 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
     vintage = m.market_data_vintage
     cut = m.valuation_cut
     entitlement = m.tenant_dataset_entitlement
-    as_of = date.today()
-    for series_row in series_rows:
-        row = connection.execute(
+    as_of = governance_date()
+    if not series_rows:return points
+    from sqlalchemy import values,column
+    population=values(column('series_id',series.c.market_data_series_id.type)).data(
+        [(row.market_data_series_id,) for row in series_rows]).alias('detail_series_population')
+    latest=(
             select(
                 observation.c.value,
                 observation.c.market_date,
+                observation.c.observed_at_utc,
                 observation.c.valuation_cut_id,
                 observation.c.received_at_utc,
                 observation.c.value_basis,
@@ -421,7 +424,7 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
                 .outerjoin(vintage, observation.c.market_data_vintage_id == vintage.c.market_data_vintage_id)
                 .outerjoin(cut, observation.c.valuation_cut_id == cut.c.valuation_cut_id)
             )
-            .where(observation.c.market_data_series_id == series_row.market_data_series_id)
+            .where(observation.c.market_data_series_id == population.c.series_id)
             .where(observation.c.quality_status == "ACCEPTED")
             .where(observation.c.dataset_id.not_in(denied_datasets))
             .where(_current_market_data_observation_clause(observation))
@@ -438,8 +441,16 @@ def _load_market_data(connection: Connection, tenant_id: UUID, node_ids: list[UU
                 )
             )
             .order_by(observation.c.market_date.desc().nullslast(), observation.c.observed_at_utc.desc(), observation.c.received_at_utc.desc())
-            .limit(3)
-        ).mappings().all()
+            .limit(3).lateral('detail_latest')
+        )
+    by_series={row.market_data_series_id:[] for row in series_rows}
+    for observation_row in connection.execute(select(population.c.series_id,latest)
+            .select_from(population.join(latest,true())).order_by(population.c.series_id,
+                latest.c.market_date.desc().nulls_last(),latest.c.observed_at_utc.desc(),
+                latest.c.received_at_utc.desc())).mappings():
+        by_series[observation_row['series_id']].append(observation_row)
+    for series_row in series_rows:
+        row=by_series[series_row.market_data_series_id]
         for observation_row in row:
             points.append(
                 MarketDataPointView(
@@ -815,7 +826,7 @@ def list_index_families(connection: Connection, tenant_id: UUID, api_version: st
 
 
 def _load_listing_views(connection: Connection, tenant_id: UUID, instrument_id: UUID) -> tuple[list[InstrumentListingView], list[UUID]]:
-    as_of = date.today()
+    as_of = governance_date()
     listing = m.listing
     version = m.listing_definition_version
     venue = m.market_venue
@@ -882,7 +893,7 @@ def _option_inspection_terms(connection: Connection, tenant_id: UUID, instrument
     """Current reference facts, not an assertion of booking eligibility."""
     from .contracts import OptionInstrumentTermsView
     terms = m.option_terms
-    today = date.today()
+    today = governance_date()
     rows = connection.execute(select(terms).where(
         terms.c.instrument_node_id == instrument_id, terms.c.is_current,
         terms.c.effective_from <= today,
@@ -1013,7 +1024,7 @@ def search_reference_nodes(
     reference_level = reference_level.strip().upper()
     if reference_level not in {"ANY", "ECONOMIC", "LISTING"}:
         raise InvalidCatalogueValue("reference_level must be ANY, ECONOMIC, or LISTING")
-    as_of = date.today()
+    as_of = governance_date()
     rn = m.financial_reference_node
     node_typ = m.reference_node_type
     inst = m.instrument
@@ -3494,6 +3505,9 @@ def _materialize_structured_product(
     action and does not invent a synthetic underlying or child option.
     """
 
+    from .structured_product_dependencies import validate_structured_dependencies
+    validate_structured_dependencies(connection, tenant_id, actor_id, request)
+
     node_type_rows = connection.execute(
         select(m.reference_node_type.c.type_code, m.reference_node_type.c.reference_node_type_id)
         .where(m.reference_node_type.c.type_code.in_(["INSTRUMENT"]))
@@ -4051,7 +4065,7 @@ def _materialize_structured_product(
                     # A range-accrual period carries the eligibility window,
                     # not a per-period coupon rate. Its annualised rate lives
                     # in secm.structured_product_range_accrual_terms.
-                    coupon_rate=None if is_range_accrual else request.coupon_rate,
+                    coupon_rate=None if is_range_accrual else period_rows[0].coupon_rate,
                     memory_eligible=request.memory_mode != "NONE",
                     status="VALIDATED",
                     source_payload_id=request.source_payload_id,
@@ -4110,6 +4124,8 @@ def submit_structured_product_proposal(
     require_reference_action(connection, tenant_id, actor_id, 'REFERENCE_PROPOSE')
 
     request = validate_autocall_draft(request)
+    from .structured_product_dependencies import validate_structured_dependencies
+    validate_structured_dependencies(connection, tenant_id, actor_id, request)
     if request.submission_mode == "AUTOMATED" and request.source_system_id is None:
         raise InvalidWorkflowState("Automated structured-product proposals require sourceSystemId")
     if request.idempotency_key:
@@ -4213,6 +4229,8 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
     # Filter before pagination/counts, not merely the visible page.
     include_reference = permission_codes is None or 'REFERENCE_READ' in permission_codes
     include_nav = permission_codes is None or 'VALUATION_READ' in permission_codes
+    from security_master_schema.strategy_access import request_strategy_predicate
+    nav_scope = request_strategy_predicate(connection, tenant_id, 'VALUATION_READ', m.nav_calculation_run.c.strategy_id)
     proposal_counts = connection.execute(select(m.reference_data_proposal.c.proposal_type, func.count()).where(
         m.reference_data_proposal.c.tenant_id == tenant_id,
         m.reference_data_proposal.c.status == 'PENDING', include_reference).group_by(m.reference_data_proposal.c.proposal_type)).all()
@@ -4354,6 +4372,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         .where(m.nav_calculation_run.c.tenant_id == tenant_id)
         .where(m.nav_calculation_run.c.status.in_(["DRAFT", "REVIEW", "PENDING_REVIEW"]))
         .where(include_nav)
+        .where(nav_scope)
         .order_by(m.nav_calculation_run.c.valuation_date, m.nav_calculation_run.c.nav_calculation_run_id)
         .limit(limit - len(items)).offset(max(0, offset - proposal_total))
     ).mappings().all()
@@ -4378,7 +4397,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
         counts[category] += count
     counts['NAV_REVIEW'] = connection.scalar(select(func.count()).select_from(m.nav_calculation_run).where(
         m.nav_calculation_run.c.tenant_id == tenant_id,
-        m.nav_calculation_run.c.status.in_(['DRAFT', 'REVIEW', 'PENDING_REVIEW']), include_nav))
+        m.nav_calculation_run.c.status.in_(['DRAFT', 'REVIEW', 'PENDING_REVIEW']), include_nav, nav_scope))
     return WorkQueueView(
         counts={key: counts.get(key, 0) for key in ["MAPPING_REVIEW", "REFERENCE_DATA_REVIEW", "NAV_REVIEW", "MARKET_DATA_EXCEPTION"]},
         items=items,
@@ -4404,18 +4423,27 @@ def _market_data_display_entitlement_clause(dataset_id, tenant_id, series_id=Non
         .correlate_except(m.dataset_access_profile))
     return exists(select(1).select_from(entitlement).where(
         entitlement.c.dataset_id == dataset_id, entitlement.c.tenant_id == tenant_id,
-        entitlement.c.status == 'ACTIVE', entitlement.c.valid_from <= date.today(),
-        or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= date.today()),
+        entitlement.c.status == 'ACTIVE', entitlement.c.valid_from <= governance_date(),
+        or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= governance_date()),
         or_(~profiled, entitlement.c.use_purpose == 'INTERNAL_REPORTING'),
         tenant_series_entitlement_clause(dataset_id, series_id, tenant_id, None,
-            date.today(), entitlement=entitlement)).correlate_except(entitlement))
+            governance_date(), entitlement=entitlement)).correlate_except(entitlement))
 
 
 def _market_data_visible_node_clause(reference_node_id, tenant_id):
+    # Policy validation supplies literal UUIDs; catalogue reads supply columns.
+    # Preserve both contracts while building the same parameterized predicate.
+    if not hasattr(reference_node_id,'in_'):
+        from sqlalchemy import literal
+        reference_node_id=literal(reference_node_id,type_=m.financial_reference_node.c.reference_node_id.type)
     def direct(node_id, suffix):
         scope = m.reference_node_scope.alias('market_data_scope_' + suffix)
         node = m.financial_reference_node.alias('market_data_node_' + suffix)
-        return and_(exists(select(1).select_from(node).where(node.c.reference_node_id == node_id, node.c.status == 'ACTIVE')),
+        # An uncorrelated ACTIVE-ID set avoids a master-table rescan for every
+        # series. Tenant scopes and the separate listing-parent check below are
+        # unchanged. Equivalence is checked across subject/parent scope variants.
+        active=select(node.c.reference_node_id).where(node.c.status=='ACTIVE').cte().prefix_with('MATERIALIZED')
+        return and_(node_id.in_(select(active.c.reference_node_id)),
             or_(~exists(select(1).select_from(scope).where(scope.c.reference_node_id == node_id)),
                 exists(select(1).select_from(scope).where(scope.c.reference_node_id == node_id,
                     scope.c.status == 'ACTIVE', or_(scope.c.scope_type == 'SHARED_CANONICAL',
@@ -4458,7 +4486,7 @@ def list_market_data_series(
     reference_node = m.financial_reference_node.alias("series_reference_node")
     expected_calendar = m.market_calendar.alias("series_expected_calendar")
     from market_data.rights import denied_display_datasets
-    denied_datasets = denied_display_datasets(connection, tenant_id, date.today())
+    denied_datasets = denied_display_datasets(connection, tenant_id, governance_date())
     filters = [series.c.status == "ACTIVE", reference_node.c.status == 'ACTIVE',
                _market_data_visible_node_clause(series.c.reference_node_id, tenant_id),
                or_(series.c.default_dataset_id.is_(None), series.c.default_dataset_id.not_in(denied_datasets)),
@@ -4526,8 +4554,8 @@ def list_market_data_series(
                     .where(entitlement.c.tenant_id == tenant_id)
                     .where(entitlement.c.dataset_id == series.c.default_dataset_id)
                     .where(entitlement.c.status == "ACTIVE")
-                    .where(entitlement.c.valid_from <= date.today())
-                    .where(or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= date.today())),
+                    .where(entitlement.c.valid_from <= governance_date())
+                    .where(or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= governance_date())),
                 ),
             )
         )
@@ -4588,8 +4616,8 @@ def list_market_data_series(
                     .where(entitlement.c.tenant_id == tenant_id)
                     .where(entitlement.c.dataset_id == observation.c.dataset_id)
                     .where(entitlement.c.status == "ACTIVE")
-                    .where(entitlement.c.valid_from <= date.today())
-                    .where(or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= date.today())),
+                    .where(entitlement.c.valid_from <= governance_date())
+                    .where(or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= governance_date())),
                 )
             )
             .order_by(observation.c.market_date, observation.c.observed_at_utc, observation.c.market_data_observation_id)
@@ -4698,7 +4726,9 @@ def list_booked_trades(
     reference_instrument = m.financial_reference_node.alias("trade_reference_instrument")
     # History is tenant-owned, not restricted to currently active strategies
     # or currently BOOKED trades. Archiving/cancelling must not erase evidence.
-    filters = [strategy.c.tenant_id == tenant_id]
+    from security_master_schema.strategy_access import request_strategy_predicate
+    read_action=connection.info.get('request_action') if trade_id and connection.info.get('request_action') in {'TRADE_WRITE','TRADE_CORRECT'} else 'TRADE_READ'
+    filters = [strategy.c.tenant_id == tenant_id,request_strategy_predicate(connection,tenant_id,read_action,trade.c.strategy_id)]
     if query and query.strip():
         term = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         filters.append(or_(
@@ -4997,7 +5027,7 @@ def book_listed_cash_trade(
 
     from .booking_controls import authorize_booking
     with connection.begin_nested():
-        authorize_booking(connection, tenant_id, actor_id)
+        authorize_booking(connection, tenant_id, actor_id,strategy_id=request.strategy_id)
         return _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotency_key, request_id)
 
 
@@ -5112,6 +5142,13 @@ def _market_data_snapshot_view(connection: Connection, tenant_id: UUID, snapshot
     header = connection.execute(select(m.market_data_resolution_snapshot).where(m.market_data_resolution_snapshot.c.market_data_resolution_snapshot_id == snapshot_id).where(m.market_data_resolution_snapshot.c.tenant_id == tenant_id)).mappings().first()
     if header is None:
         raise RepositoryNotFound("Market-data resolution snapshot does not exist")
+    actor=connection.info.get('request_actor')
+    if actor:
+        from security_master_schema.strategy_access import require_strategy_action,has_all_strategy_scope
+        if header['strategy_id']:
+            require_strategy_action(connection,tenant_id,actor,'STRATEGY_READ',header['strategy_id'])
+        elif header['context_scope']!='SHARED' and not has_all_strategy_scope(connection,tenant_id,actor,'STRATEGY_READ'):
+            raise PermissionError('Legacy snapshot strategy context cannot be established for restricted access')
     rows = connection.execute(select(m.market_data_resolution_snapshot_item).where(m.market_data_resolution_snapshot_item.c.market_data_resolution_snapshot_id == snapshot_id).order_by(m.market_data_resolution_snapshot_item.c.request_sequence)).mappings().all()
     from market_data.display_access import assert_dataset_display
     selected = [row for row in rows if row['selected_value'] is not None]
@@ -5147,10 +5184,12 @@ def get_market_data_resolution_snapshot(connection: Connection, tenant_id: UUID,
 
 def list_active_valuation_policies(connection: Connection, tenant_id: UUID, valuation_date: date) -> list[ActiveValuationPolicyView]:
     """Return only policies currently usable by the requesting tenant."""
+    from security_master_schema.strategy_access import request_strategy_predicate
     rows = connection.execute(
         select(m.valuation_policy, m.valuation_cut.c.cut_code, m.valuation_cut.c.display_name.label("cut_display_name"), m.valuation_cut.c.timezone_name, m.valuation_cut.c.local_time)
         .select_from(m.valuation_policy.join(m.valuation_cut, m.valuation_policy.c.valuation_cut_id == m.valuation_cut.c.valuation_cut_id))
         .where(m.valuation_policy.c.tenant_id == tenant_id)
+        .where(or_(m.valuation_policy.c.strategy_id.is_(None),request_strategy_predicate(connection,tenant_id,'STRATEGY_READ',m.valuation_policy.c.strategy_id)))
         .where(m.valuation_policy.c.status == "ACTIVE")
         .where(m.valuation_policy.c.valid_from <= valuation_date)
         .where(or_(m.valuation_policy.c.valid_to.is_(None), m.valuation_policy.c.valid_to >= valuation_date))

@@ -7,7 +7,7 @@ import sys
 import pytest
 
 
-@pytest.mark.parametrize('environment,database', [('production', 'fortem_secm'), ('local', 'elsewhere')])
+@pytest.mark.parametrize('environment,database', [('production', 'platform_secm'), ('local', 'elsewhere')])
 @pytest.mark.parametrize('entry', [('scripts/ingest_yahoo_market_data.py',), ('-m', 'apps.market_data_ingestor.yahoo')])
 def test_cli_rejects_nonlocal_personal_targets_before_network(environment, database, entry):
     result = subprocess.run([sys.executable, *entry, '--apply',
@@ -16,7 +16,7 @@ def test_cli_rejects_nonlocal_personal_targets_before_network(environment, datab
         env=dict(os.environ, APP_ENV=environment,
                  DATABASE_URL=f'postgresql+psycopg://unused:unused@localhost:54329/{database}'))
     assert result.returncode == 2
-    assert 'restricted to local fortem_secm' in result.stderr
+    assert 'restricted to local platform_secm' in result.stderr
 
 
 @pytest.mark.parametrize('arguments,message', [
@@ -36,6 +36,6 @@ def test_exception_and_history_guards_precede_database_or_network(arguments, mes
         '--declaration', 'Owner personal research approval', *arguments],
         cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
         env=dict(os.environ, APP_ENV='local',
-                 DATABASE_URL='postgresql+psycopg://unused:unused@localhost:54329/fortem_secm'))
+                 DATABASE_URL='postgresql+psycopg://unused:unused@localhost:54329/platform_secm'))
     assert result.returncode == 2
     assert message in result.stderr

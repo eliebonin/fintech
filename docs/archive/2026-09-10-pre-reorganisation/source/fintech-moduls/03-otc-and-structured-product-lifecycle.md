@@ -4,7 +4,7 @@
 
 Provide a canonical lifecycle and control hub for OTC derivatives, structured notes, and bespoke products. It gives operations, portfolio management, risk, and valuation teams one explainable economic record without forcing replacement of the existing OMS, administrator, or accounting system.
 
-This is Fortem's strongest differentiator because it combines product knowledge with operational control: swaps, FX forwards, options, futures, credit products, autocalls, Phoenix/Athena products, supertrackers, range accruals, AMCs, and composed options.
+This is Platform's strongest differentiator because it combines product knowledge with operational control: swaps, FX forwards, options, futures, credit products, autocalls, Phoenix/Athena products, supertrackers, range accruals, AMCs, and composed options.
 
 ## Design boundary
 
@@ -89,7 +89,7 @@ The economic-summary response should be an explicit API contract generated from 
 
 ## MVP
 
-Begin with three product families that reflect Fortem's credibility:
+Begin with three product families that reflect Platform's credibility:
 
 1. FX forwards;
 2. two-leg total-return/financing swaps; and
@@ -103,6 +103,6 @@ Price by active OTC/structured universe, product families enabled, and integrati
 
 ## Market evidence and positioning
 
-The market contains established derivatives specialists: OpenGamma, for example, provides derivatives analytics across trading, risk, treasury, and operations with API-based integration: [OpenGamma](https://opengamma.com/). This validates demand but makes a generic margin/risk product a poor initial target. Fortem's differentiation is the canonical economics, confirmation validation, barrier/schedule lifecycle, and valuation control of bespoke structured and OTC instruments. FpML remains the integration boundary for standardised messages and lifecycle events: [ISDA FpML](https://www.isda.org/isda-solutions-infohub/fpml/).
+The market contains established derivatives specialists: OpenGamma, for example, provides derivatives analytics across trading, risk, treasury, and operations with API-based integration: [OpenGamma](https://opengamma.com/). This validates demand but makes a generic margin/risk product a poor initial target. Platform's differentiation is the canonical economics, confirmation validation, barrier/schedule lifecycle, and valuation control of bespoke structured and OTC instruments. FpML remains the integration boundary for standardised messages and lifecycle events: [ISDA FpML](https://www.isda.org/isda-solutions-infohub/fpml/).
 
 See [market evidence and go-to-market](06-market-evidence-and-go-to-market.md) for pricing confidence and design-partner gates.

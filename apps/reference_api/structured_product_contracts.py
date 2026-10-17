@@ -148,7 +148,7 @@ class AutocallUnderlyingRequest(BaseModel):
     source_payload_id: UUID | None = Field(default=None, alias="sourcePayloadId")
     label: str | None = Field(default=None, max_length=500)
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid', allow_inf_nan=False)
 
 
 class AutocallScheduleRowRequest(BaseModel):
@@ -194,7 +194,7 @@ class AutocallScheduleRowRequest(BaseModel):
     action_code: Literal["PAY_COMPONENT", "REDEEM_PARENT", "PAY_CONSOLATION", "FINAL_REDEMPTION"] = Field(alias="actionCode")
     action_target: Literal["COMPOSITION", "PARENT"] = Field(alias="actionTarget")
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid', allow_inf_nan=False)
 
 
 class AutocallDraftRequest(BaseModel):
@@ -223,13 +223,15 @@ class AutocallDraftRequest(BaseModel):
     coupon_frequency: Literal["MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"] | None = Field(default=None, alias="couponFrequency")
     autocall_frequency: Literal["MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"] | None = Field(default=None, alias="autocallFrequency")
     payment_lag_business_days: int = Field(default=0, alias="paymentLagBusinessDays", ge=0, le=30)
-    coupon_rate: Decimal = Field(default=Decimal("0"), alias="couponRate", ge=0)
-    coupon_barrier: Decimal = Field(default=Decimal("0"), alias="couponBarrier", ge=0)
+    payment_date_convention: Literal['EXPLICIT', 'CALENDAR_LAG'] = Field(default='EXPLICIT', alias='paymentDateConvention')
+    explicit_schedule_reason: str | None = Field(default=None, alias='explicitScheduleReason', min_length=1, max_length=500)
+    coupon_rate: Decimal | None = Field(default=None, alias="couponRate", ge=0)
+    coupon_barrier: Decimal | None = Field(default=None, alias="couponBarrier", ge=0)
     coupon_barrier_follows_autocall: bool = Field(default=True, alias="couponBarrierFollowsAutocall")
-    autocall_barrier_start: Decimal = Field(default=Decimal("0"), alias="autocallBarrierStart", ge=0)
-    autocall_barrier_step: Decimal = Field(default=Decimal("0"), alias="autocallBarrierStep")
-    autocall_barrier_floor: Decimal = Field(default=Decimal("0"), alias="autocallBarrierFloor", ge=0)
-    kip_barrier: Decimal = Field(default=Decimal("0"), alias="kipBarrier", ge=0)
+    autocall_barrier_start: Decimal | None = Field(default=None, alias="autocallBarrierStart", ge=0)
+    autocall_barrier_step: Decimal | None = Field(default=None, alias="autocallBarrierStep")
+    autocall_barrier_floor: Decimal | None = Field(default=None, alias="autocallBarrierFloor", ge=0)
+    kip_barrier: Decimal | None = Field(default=None, alias="kipBarrier", ge=0)
     final_payoff_barrier: Decimal | None = Field(default=None, alias="finalPayoffBarrier", ge=0)
     consolation_lower_barrier: Decimal | None = Field(default=None, alias="consolationLowerBarrier", ge=0)
     include_kip: bool = Field(default=True, alias="includeKip")
@@ -252,7 +254,32 @@ class AutocallDraftRequest(BaseModel):
     idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=1, max_length=500)
     confidence_score: Decimal | None = Field(default=None, alias="confidenceScore", ge=0, le=1)
 
+    model_config = ConfigDict(populate_by_name=True, extra='forbid', allow_inf_nan=False)
+
+
+class ContractualPaymentRequest(BaseModel):
+    calendar_id: UUID = Field(alias='calendarId')
+    observation_dates: list[date] = Field(alias='observationDates', min_length=1, max_length=1000)
+    payment_lag_business_days: int = Field(alias='paymentLagBusinessDays', ge=0, le=30)
+    model_config = ConfigDict(populate_by_name=True, extra='forbid')
+
+
+class ContractualPaymentView(BaseModel):
+    calendar_id: UUID = Field(alias='calendarId')
+    payment_dates: dict[date, date] = Field(alias='paymentDates')
     model_config = ConfigDict(populate_by_name=True)
+
+
+class ContractualCalendarOption(BaseModel):
+    calendar_id: UUID = Field(alias='calendarId')
+    display_name: str = Field(alias='displayName')
+    version: int | None
+    timezone: str
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ContractualCalendarOptions(BaseModel):
+    data: list[ContractualCalendarOption]
 
 
 def validate_autocall_draft(request: AutocallDraftRequest | dict) -> AutocallDraftRequest:
@@ -273,7 +300,9 @@ def validate_autocall_draft(request: AutocallDraftRequest | dict) -> AutocallDra
     first_autocall_date = request.first_autocall_observation_date or request.start_date
     if first_autocall_date < request.start_date or first_autocall_date > request.maturity_date:
         raise StructuredProductDraftError("First autocall observation must fall between the start and maturity dates")
-    if request.autocall_barrier_step < 0 and request.autocall_barrier_floor > request.autocall_barrier_start:
+    if (request.autocall_barrier_step is not None and request.autocall_barrier_step < 0
+            and request.autocall_barrier_floor is not None and request.autocall_barrier_start is not None
+            and request.autocall_barrier_floor > request.autocall_barrier_start):
         raise StructuredProductDraftError("Autocall barrier floor cannot exceed the starting barrier")
 
     underlying_ids = [underlying.reference_node_id for underlying in request.underlyings]
@@ -370,6 +399,57 @@ def validate_autocall_draft(request: AutocallDraftRequest | dict) -> AutocallDra
 
         normalised_rows.append(row)
 
+    # Explicit coupon periods are authoritative. An omitted headline may be
+    # derived only when all periods actually have one flat rate, never as zero.
+    coupon_rows=[row for row in normalised_rows if row.condition_role=='COUPON_ELIGIBILITY']
+    coupon_rate=request.coupon_rate
+    payment_dates_by_period: dict[date, set[date]] = {}
+    for row in coupon_rows:
+        payment_dates_by_period.setdefault(row.observation_date, set()).add(row.payment_date)
+    if any(len(dates) != 1 for dates in payment_dates_by_period.values()):
+        raise StructuredProductDraftError('One coupon period must have one payment date')
+    if request.product_subtype!='RANGE_ACCRUAL' and coupon_rows:
+        rates_by_date:dict[date,set[Decimal]]={}
+        for row in coupon_rows:
+            rate=row.coupon_rate if row.coupon_rate is not None else row.payout_rate
+            if rate is None:
+                raise StructuredProductDraftError('Each coupon period requires an explicit coupon rate')
+            if row.payout_rate is not None and row.coupon_rate is not None and row.payout_rate!=row.coupon_rate:
+                raise StructuredProductDraftError('Coupon payout and coupon rate disagree')
+            rates_by_date.setdefault(row.observation_date,set()).add(rate)
+        if any(len(rates)!=1 for rates in rates_by_date.values()):
+            raise StructuredProductDraftError('One coupon period cannot have conflicting underlying coupon rates')
+        rates=set().union(*rates_by_date.values())
+        if coupon_rate is not None and rates!={coupon_rate}:
+            raise StructuredProductDraftError('A flat headline coupon must match every explicit coupon period; omit it for a variable schedule')
+        if coupon_rate is None and len(rates)==1:
+            coupon_rate=next(iter(rates))
+        normalised_rows=[row.model_copy(update={'coupon_rate':row.coupon_rate if row.coupon_rate is not None else row.payout_rate})
+                         if row.condition_role=='COUPON_ELIGIBILITY' else row for row in normalised_rows]
+
+    # Generator summaries, when supplied, must describe the actual graph.
+    # Omission leaves explicitly reviewed variable predicates authoritative.
+    if request.coupon_barrier is not None:
+        if any(row.condition_level_basis != 'PCT_OF_INITIAL' or row.condition_level != request.coupon_barrier
+               for row in coupon_rows):
+            raise StructuredProductDraftError('Coupon barrier headline must match every explicit coupon predicate')
+    autocall_rows = [row for row in normalised_rows if row.condition_role == 'AUTOCALL']
+    summary = (request.autocall_barrier_start, request.autocall_barrier_step, request.autocall_barrier_floor)
+    if all(value is not None for value in summary):
+        dates = sorted({row.observation_date for row in autocall_rows})
+        expected = {day: max(summary[2], summary[0] + summary[1] * index) for index, day in enumerate(dates)}
+        if any(row.condition_level_basis != 'PCT_OF_INITIAL' or row.condition_level != expected[row.observation_date]
+               for row in autocall_rows):
+            raise StructuredProductDraftError('Autocall barrier summary must match the explicit autocall sequence')
+    # The legacy flag defaults to True and is emitted by normalized serialization.
+    # It is a generator instruction, not proof that an explicit graph inherited
+    # barriers. Enforce it only on generated schedules, including at approval.
+    if request.coupon_barrier_follows_autocall is True and request.payment_date_convention == 'CALENDAR_LAG':
+        same_day = {row.observation_date: row.condition_level for row in autocall_rows}
+        if any(row.observation_date in same_day and row.condition_level != same_day[row.observation_date]
+               for row in coupon_rows):
+            raise StructuredProductDraftError('Coupon barrier inheritance disagrees with its same-day autocall predicate')
+
     kip_rows = [row for row in normalised_rows if row.condition_role == "CAPITAL_PROTECTION"]
     if request.include_kip:
         if len(kip_rows) != len(underlying_ids):
@@ -395,6 +475,15 @@ def validate_autocall_draft(request: AutocallDraftRequest | dict) -> AutocallDra
             )
     elif kip_rows:
         raise StructuredProductDraftError("CAPITAL_PROTECTION KIP rows require includeKip")
+
+    if kip_rows:
+        barriers = {row.condition_level for row in kip_rows}
+        if None in barriers or len(barriers) != 1:
+            raise StructuredProductDraftError('KIP barrier must be explicitly consistent across protection rows')
+        barrier = next(iter(barriers))
+        if request.kip_barrier is not None and request.kip_barrier != barrier:
+            raise StructuredProductDraftError('KIP barrier headline must match the explicit protection rows')
+        request = request.model_copy(update={'kip_barrier': barrier})
 
     # A MIN/MAX reduction is only well-defined for one shared predicate.  If
     # a user edits one underlying's barrier independently, silently persisting
@@ -567,6 +656,7 @@ def validate_autocall_draft(request: AutocallDraftRequest | dict) -> AutocallDra
     )
 
     return request.model_copy(update={
+        "coupon_rate": coupon_rate,
         "include_consolation": include_consolation,
         "underlyings": normalised_underlyings,
         "rows": normalised_rows,

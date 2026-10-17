@@ -1,5 +1,6 @@
 """Personal FX catalogue and immutable publishing; no network or API dependency."""
 from datetime import date,datetime,timezone
+from security_master_schema.governance_clock import governance_date
 from hashlib import sha256
 import json
 from sqlalchemy import select,exists
@@ -24,7 +25,7 @@ def configure_fx(c,tenant,actor):
     if original['permitted_tenant_id']!=tenant or original['usage_scope']!='PERSONAL' or original['status']!='ACTIVE':
         raise PermissionError('Existing personal Yahoo profile is not available')
     for activity in ('ACQUIRE','STORE','DISPLAY'):
-        if not load_rights(c,original['dataset_id'],activity,date.today()).allowed:raise PermissionError('Personal Yahoo access is not effective')
+        if not load_rights(c,original['dataset_id'],activity,governance_date()).allowed:raise PermissionError('Personal Yahoo access is not effective')
     dataset_id=c.scalar(select(m.dataset.c.dataset_id).where(m.dataset.c.dataset_code==DATASET_CODE))
     if not dataset_id:
         provider=c.scalar(select(m.provider_product.c.data_provider_id).where(m.provider_product.c.provider_product_id==original['provider_product_id']))
@@ -32,10 +33,10 @@ def configure_fx(c,tenant,actor):
         if not product:product=storage.insert_returning(c,m.provider_product,'provider_product_id',data_provider_id=provider,product_code='PUBLIC_CHART_FX',display_name='Public FX daily and intraday charts — personal research')
         dataset_id=storage.insert_returning(c,m.dataset,'dataset_id',provider_product_id=product,dataset_code=DATASET_CODE,
             display_name='Yahoo GBP FX daily closes and cutoff snapshots — personal research',data_domain='MARKET_DATA',
-            coverage_description='GBP per EUR/USD. Daily provider close; separate 5-minute/hourly samples ending at 16:00 London/New York. Not benchmark fixings.',delivery_channel='API',valid_from=date.today())
+            coverage_description='GBP per EUR/USD. Daily provider close; separate 5-minute/hourly samples ending at 16:00 London/New York. Not benchmark fixings.',delivery_channel='API',valid_from=governance_date())
         old_namespace=c.execute(select(m.external_id_namespace).where(m.external_id_namespace.c.external_id_namespace_id==original['external_id_namespace_id'])).mappings().one()
         namespace=storage.insert_returning(c,m.external_id_namespace,'external_id_namespace_id',integration_source_system_id=old_namespace['integration_source_system_id'],
-            namespace_code='YAHOO_PERSONAL_FX_GBP_SYMBOL',external_object_type='REFERENCE_NODE',valid_from=date.today(),description='FX_PAIR reference nodes; direct GBP per foreign-currency unit; not inverted or triangulated.')
+            namespace_code='YAHOO_PERSONAL_FX_GBP_SYMBOL',external_object_type='REFERENCE_NODE',valid_from=governance_date(),description='FX_PAIR reference nodes; direct GBP per foreign-currency unit; not inverted or triangulated.')
         c.execute(m.dataset_access_profile.insert().values(dataset_id=dataset_id,licensee_organisation_id=original['licensee_organisation_id'],permitted_tenant_id=tenant,
             external_id_namespace_id=namespace,usage_scope='PERSONAL',provider_enabled=True,status='ACTIVE',activation_reference='Owner requested personal GBP FX acquisition on 2026-10-08; existing personal research evidence reused, not provider permission.'))
         assignments={}
@@ -47,7 +48,7 @@ def configure_fx(c,tenant,actor):
                 c.execute(m.licence_activity_grant.insert().values(dataset_licence_assignment_id=aid,**{k:grant[k] for k in ('activity','usage_scope','evidence_basis','evidence_reference','valid_from','valid_to','status')}))
         for requirement in c.execute(select(m.dataset_right_requirement).where(m.dataset_right_requirement.c.dataset_id==original['dataset_id'],m.dataset_right_requirement.c.activity.in_(['ACQUIRE','STORE','DISPLAY']))).mappings():
             c.execute(m.dataset_right_requirement.insert().values(dataset_id=dataset_id,activity=requirement['activity'],requirement_code=requirement['requirement_code'],dataset_licence_assignment_id=assignments.get(requirement['dataset_licence_assignment_id'])))
-        c.execute(m.tenant_dataset_entitlement.insert().values(tenant_id=tenant,dataset_id=dataset_id,use_purpose='INTERNAL_REPORTING',valid_from=date.today()))
+        c.execute(m.tenant_dataset_entitlement.insert().values(tenant_id=tenant,dataset_id=dataset_id,use_purpose='INTERNAL_REPORTING',valid_from=governance_date()))
     # Update only our original catalogue text; preserve operator-edited metadata.
     c.execute(m.dataset.update().where(m.dataset.c.dataset_id==dataset_id,
         m.dataset.c.coverage_description=='GBP per EUR/USD. Daily provider close; 16:00 London/New York exact closed five-minute research samples. Not benchmark fixings.').values(
@@ -56,7 +57,7 @@ def configure_fx(c,tenant,actor):
     if profile['permitted_tenant_id']!=tenant or profile['usage_scope']!='PERSONAL' or profile['status']!='ACTIVE' or not profile['provider_enabled']:
         raise PermissionError('Existing FX profile is not active personal scope')
     for activity in ('ACQUIRE','STORE','DISPLAY'):
-        if not load_rights(c,dataset_id,activity,date.today()).allowed:raise PermissionError('FX personal access is not effective; refusing reactivation')
+        if not load_rights(c,dataset_id,activity,governance_date()).allowed:raise PermissionError('FX personal access is not effective; refusing reactivation')
     cuts={}
     for label,zone in CUTS.items():
         code=f'YAHOO_RESEARCH_{label}_1600'
@@ -78,7 +79,7 @@ def configure_fx(c,tenant,actor):
         if reference['status']!='ACTIVE' or reference['reference_node_type_id']!=node_type or scope['scope_type']!='SHARED_CANONICAL' or scope['status']!='ACTIVE':raise ValueError('Existing FX reference differs')
         mapping=c.execute(select(m.external_object_mapping).where(m.external_object_mapping.c.external_id_namespace_id==profile['external_id_namespace_id'],m.external_object_mapping.c.external_id_value==symbol)).mappings().one_or_none()
         if not mapping:
-            c.execute(m.external_object_mapping.insert().values(external_id_namespace_id=profile['external_id_namespace_id'],external_object_type='REFERENCE_NODE',external_id_value=symbol,target_object_type='REFERENCE_NODE',target_object_id=node,mapping_method='RULE',status='PROPOSED',valid_from=date.today()))
+            c.execute(m.external_object_mapping.insert().values(external_id_namespace_id=profile['external_id_namespace_id'],external_object_type='REFERENCE_NODE',external_id_value=symbol,target_object_type='REFERENCE_NODE',target_object_id=node,mapping_method='RULE',status='PROPOSED',valid_from=governance_date()))
         elif mapping['target_object_id']!=node or mapping['status'] not in {'PROPOSED','VERIFIED'}:raise ValueError('Existing FX mapping differs')
         pairs[symbol]=node
     return {'datasetId':dataset_id,'namespaceId':profile['external_id_namespace_id'],'tenantId':tenant,'pairs':pairs,'cuts':cuts}

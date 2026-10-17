@@ -1,5 +1,7 @@
 # Generic swap creation and booking
 
+2026-10-15 follow-up: [unit-based booking and local mock fixtures](mock-unit-swaps-20261015.md) adds explicit UNITS alongside the original nominal-only alpha. Nominal evidence below remains historical; swap valuation is still excluded.
+
 Date: 2026-10-05. Status: implemented and alpha acceptance verified in an isolated environment. Whole-feature review identified two Important defects; both were reproduced and corrected, with direct fix inspection and a fresh green full suite after the user switched to sequential execution. Operating activation has not occurred. This extends the [legacy autocall-reference booking alpha](swap-booking-alpha.md); it does not make arbitrary legacy SWAP records eligible.
 
 ## Creation and approval

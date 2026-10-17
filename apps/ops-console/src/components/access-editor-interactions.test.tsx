@@ -100,7 +100,7 @@ it('retains the group editor and reports a failed save',async()=>{
  find(render(),n=>n.type==='button'&&n.props.children==='Create group').props.onClick();
  await find(render(),n=>n.type===GroupForm).props.save({name:'Traders',code:'TRADERS',status:'ACTIVE',actions:[]});
  expect(find(render(),n=>n.type===GroupForm)).toBeDefined();
- expect(find(render(),n=>n.props?.role==='alert').props.children).toBe('Group code exists');
+ expect(find(render(),n=>n.props?.role==='alert').props.children[0]).toBe('Group code exists');
 });
 it('stages a role selection until explicit save and retains the editor after saving',async()=>{
  const change=vi.fn().mockResolvedValue(true),cancel=vi.fn();

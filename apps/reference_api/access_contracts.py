@@ -1,6 +1,7 @@
 """Validated management commands; unknown fields never become authority."""
 from typing import Literal
 from uuid import UUID
+from datetime import datetime,timezone,timedelta
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -10,6 +11,25 @@ class Command(BaseModel):
 
 class ModuleChange(Command):
     enabled: bool
+
+class PublicationPolicyChange(Command):
+    enabled: bool
+    validUntil: datetime|None=None
+    expectedRevision: int=Field(ge=0,strict=True)
+    reason: str=Field(min_length=1,max_length=2000)
+    confirmChange: Literal[True]
+
+    @field_validator('reason')
+    @classmethod
+    def reason_required(cls,value):
+        if not value.strip():raise ValueError('Reason must not be blank')
+        return value.strip()
+
+    @field_validator('validUntil')
+    @classmethod
+    def utc_expiry(cls,value):
+        if value and (value.tzinfo is None or value.utcoffset()!=timedelta(0)):raise ValueError('Timezone-aware UTC expiry required')
+        return value
 
 
 class TenantUpdate(Command):
@@ -54,8 +74,16 @@ class GroupSave(Command):
     description: str | None=Field(default=None,max_length=2000)
     actions: list[str]=Field(max_length=100)
     status: Literal['ACTIVE','SUSPENDED']='ACTIVE'
+    scopeMode: Literal['ALL','SELECTED']
+    strategyIds: list[UUID]=Field(default_factory=list,max_length=1000)
+    expectedVersion: int | None=Field(default=None,ge=1,strict=True)
+    expectedImpactHash: str | None=Field(default=None,pattern=r'^[0-9a-f]{64}$')
 
 
 class ContextSelect(Command):
     tenantId: UUID | None=None
     userId: UUID | None=None
+
+
+class GroupPreview(GroupSave):
+    groupId: UUID | None=None

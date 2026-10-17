@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { decideReferenceDataProposalFromBff, submitBookedTradeFromBff, submitStructuredProductProposalFromBff } from "./browser-api-client";
+it('does not treat a malformed successful proposal response as confirmation',async()=>{
+ const fetchImpl:typeof fetch=async()=>Response.json({});
+ await expect(submitStructuredProductProposalFromBff({},'retained-key',fetchImpl)).rejects.toThrow('could not be confirmed');
+});
 
 describe("browser API client structured-product workflow", () => {
   it("submits a structured-product draft through the same-origin BFF", async () => {

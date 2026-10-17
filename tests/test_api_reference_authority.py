@@ -51,13 +51,20 @@ def revoke_module(c, code):
         m.tenant_module_entitlement.c.platform_module_id == module))
 
 
+def revoke_reference_approval(c):
+    # Authority comes from active group grants, not the legacy membership label.
+    groups=select(m.access_group_member.c.group_id).where(m.access_group_member.c.tenant_id==ids['tenant'],
+        m.access_group_member.c.user_account_id==ids['demo_user_account'])
+    c.execute(delete(m.access_group_grant).where(m.access_group_grant.c.tenant_id==ids['tenant'],
+        m.access_group_grant.c.group_id.in_(groups),m.access_group_grant.c.action_code=='REFERENCE_APPROVE'))
+
+
 @pytest.mark.parametrize('kind', DECISIONS)
-@pytest.mark.parametrize('denial', ['READ_ONLY', 'NO_SECURITY_MASTER'])
+@pytest.mark.parametrize('denial', ['NO_REFERENCE_APPROVE', 'NO_SECURITY_MASTER'])
 def test_every_approval_alias_denies_unqualified_member(connection, kind, denial):
     c = connection
-    if denial == 'READ_ONLY':
-        c.execute(update(m.tenant_user_account).where(m.tenant_user_account.c.tenant_id == ids['tenant'],
-            m.tenant_user_account.c.user_account_id == ids['demo_user_account']).values(membership_role='READ_ONLY'))
+    if denial == 'NO_REFERENCE_APPROVE':
+        revoke_reference_approval(c)
     else:
         revoke_module(c, 'SECURITY_MASTER')
     before = c.scalar(select(func.count()).select_from(m.reference_data_approval))
@@ -89,7 +96,6 @@ def test_security_master_admin_can_propose_without_trading(connection):
     r.decide_crypto_asset_proposal, r.decide_index_proposal, r.decide_index_family_proposal,
     r.decide_structured_product_proposal, r.decide_reference_data_proposal])
 def test_direct_approval_service_requires_stewardship_authority(connection, service):
-    connection.execute(update(m.tenant_user_account).where(m.tenant_user_account.c.tenant_id == ids['tenant'],
-        m.tenant_user_account.c.user_account_id == ids['demo_user_account']).values(membership_role='READ_ONLY'))
+    revoke_reference_approval(connection)
     with pytest.raises(TenantActionForbidden):
         service(connection, ids['tenant'], ids['demo_user_account'], uuid4(), 'APPROVED', 'Direct authority test')

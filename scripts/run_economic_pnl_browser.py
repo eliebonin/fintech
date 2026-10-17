@@ -20,8 +20,9 @@ sys.path.insert(0,str(ROOT))
 
 
 def main():
-    name='fortem_isolated_tests_browser_'+uuid4().hex
-    url=make_url('postgresql+psycopg://fortem:fortem_local_only@localhost:54329/postgres')
+    name='platform_isolated_tests_browser_'+uuid4().hex
+    url=make_url(os.environ.get('TEST_DATABASE_ADMIN_URL',
+        'postgresql+psycopg://platform:platform_local_only@localhost:54329/postgres')).set(database='postgres')
     admin=create_engine(url,isolation_level='AUTOCOMMIT')
     with admin.connect() as c: c.execute(text(f'CREATE DATABASE "{name}"'))
     engine=None
@@ -66,7 +67,7 @@ def main():
         uvicorn.run(create_app(engine=engine),host='127.0.0.1',port=8008)
     finally:
         if engine: engine.dispose()
-        assert name.startswith('fortem_isolated_tests_browser_') and len(name.rsplit('_',1)[1])==32
+        assert name.startswith('platform_isolated_tests_browser_') and len(name.rsplit('_',1)[1])==32
         with admin.connect() as c: c.execute(text(f'DROP DATABASE "{name}"'))
         admin.dispose()
 

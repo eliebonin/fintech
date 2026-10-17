@@ -2,7 +2,7 @@
 
 ## Commercial proposition
 
-Externalise Fortem's investment-solution expertise as repeatable diagnostics for CIOs, portfolio-construction teams, wealth platforms, and distributors. Frame portfolios through the Fortem sleeves—Income, Beta, Diversifiers, and Protection—while retaining a transparent view of actual holdings, economic exposures, liquidity, derivatives, and scenarios.
+Externalise Platform's investment-solution expertise as repeatable diagnostics for CIOs, portfolio-construction teams, wealth platforms, and distributors. Frame portfolios through the Platform sleeves—Income, Beta, Diversifiers, and Protection—while retaining a transparent view of actual holdings, economic exposures, liquidity, derivatives, and scenarios.
 
 This should initially be a managed analytics service with reproducible reports and APIs. It should not promise an automated investment recommendation or replace a manager's investment decision process.
 
@@ -21,7 +21,7 @@ tenant position snapshot
 
 ## Functional scope
 
-* Exposure decomposition by asset class, issuer, geography, currency, rate, index, and Fortem sleeve.
+* Exposure decomposition by asset class, issuer, geography, currency, rate, index, and Platform sleeve.
 * Look-through of funds, ETFs, baskets, derivatives, structured products, and composed options where authorised data exists.
 * Net/gross, delta-adjusted, notional, and economic exposure views.
 * Factor, scenario, drawdown, volatility, concentration, liquidity, and stress diagnostics.
@@ -72,7 +72,7 @@ position snapshot
 + user/service actor and calculation timestamp
 ```
 
-This is essential when comparing a new cloud/API result against Fortem's existing Python calculations. Golden-master tests should compare outputs at agreed tolerances for a fixed set of historic portfolios and snapshots before each release.
+This is essential when comparing a new cloud/API result against Platform's existing Python calculations. Golden-master tests should compare outputs at agreed tolerances for a fixed set of historic portfolios and snapshots before each release.
 
 ## APIs
 
@@ -88,7 +88,7 @@ The response contract must expose methodology and snapshot IDs. A chart without 
 
 ## MVP
 
-Start with one Fortem-managed model portfolio or bespoke mandate. Produce a daily exposure and scenario pack using current Python calculations behind a stable API, reconcile it against existing Fortem outputs, and only then progressively externalise calculation components.
+Start with one Platform-managed model portfolio or bespoke mandate. Produce a daily exposure and scenario pack using current Python calculations behind a stable API, reconcile it against existing Platform outputs, and only then progressively externalise calculation components.
 
 Defer automated optimisation, order generation, suitability advice, personal recommendations, and opaque AI-generated allocation changes.
 
@@ -98,6 +98,6 @@ This module is a good entry point for CIO and distribution conversations, but sh
 
 ## Market evidence and positioning
 
-MSCI, Aladdin, and FactSet all offer institutional risk, attribution, scenario, and multi-asset analytics: [MSCI](https://www.msci.com/data-and-analytics/portfolio-management/barra-portfolio-manager), [Aladdin](https://www.blackrock.com/aladdin/platforms/products/aladdin-risk), and [FactSet](https://www.factset.com/solutions/portfolio-analytics). This validates demand while ruling out a credible “replace the whole risk stack” message. Fortem should lead with its Income/Beta/Diversifiers/Protection methodology, explainable outputs, and reconciliation to established Python analytics.
+MSCI, Aladdin, and FactSet all offer institutional risk, attribution, scenario, and multi-asset analytics: [MSCI](https://www.msci.com/data-and-analytics/portfolio-management/barra-portfolio-manager), [Aladdin](https://www.blackrock.com/aladdin/platforms/products/aladdin-risk), and [FactSet](https://www.factset.com/solutions/portfolio-analytics). This validates demand while ruling out a credible “replace the whole risk stack” message. Platform should lead with its Income/Beta/Diversifiers/Protection methodology, explainable outputs, and reconciliation to established Python analytics.
 
 See [market evidence and go-to-market](06-market-evidence-and-go-to-market.md) for commercial hypotheses and the proof required before platform investment.

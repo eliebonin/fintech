@@ -12,19 +12,19 @@ jobs:
   python:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_isolated_tests_ci
+      DATABASE_URL: postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_isolated_tests_ci
       APP_ENV: test
     services:
       postgres:
         image: postgres:18
         env:
-          POSTGRES_DB: fortem_isolated_tests_ci
-          POSTGRES_USER: fortem
-          POSTGRES_PASSWORD: fortem_local_only
+          POSTGRES_DB: platform_isolated_tests_ci
+          POSTGRES_USER: platform
+          POSTGRES_PASSWORD: platform_local_only
         ports:
           - 54329:5432
         options: >-
-          --health-cmd "pg_isready -U fortem -d fortem_isolated_tests_ci"
+          --health-cmd "pg_isready -U platform -d platform_isolated_tests_ci"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -36,6 +36,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.lock
       - run: python -m pip install --require-hashes -r requirements.lock
+      - run: python -m pytest tests/test_repository_neutrality.py -q
       - run: python -m compileall apps market_data positions valuation packages scripts tests
       - run: python scripts/export_openapi_contract.py --check
       - run: python -m alembic upgrade head
@@ -58,6 +59,8 @@ jobs:
       - run: pnpm --filter ops-console typecheck
       - run: pnpm --filter ops-console test
       - run: pnpm --filter ops-console build
+      - run: pnpm --filter ops-console exec playwright install --with-deps chromium
+      - run: pnpm --filter ops-console test:browser
 
   secrets:
     runs-on: ubuntu-latest

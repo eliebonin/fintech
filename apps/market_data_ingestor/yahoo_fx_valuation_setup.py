@@ -15,7 +15,7 @@ from apps.reference_api.valuation_policies import policy_view,create_policy
 from apps.reference_api.valuation_policy_contracts import PolicyCreate,PolicyRuleInput
 
 
-def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,reference):
+def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,reference,*,review_existing_classification=False):
     require_admin(c,tenant,actor)
     from security_master_schema.tenant_workspace import resolve_platform_role,resolve_tenant_workspace
     if 'VALUATION' not in resolve_tenant_workspace(c,tenant,actor,date.today()).module_codes:
@@ -25,7 +25,9 @@ def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,ref
     if not reference.strip() or not 0 <= (end-start).days <= 30 or end>date.today():
         raise ValueError('Explicit owner reference and bounded historical period required')
     old=policy_view(c,tenant,base_policy)
-    digest=sha256(f'{tenant}:{actor}:{platform_actor}:{base_policy}:{start}:{end}:{reference}'.encode()).hexdigest()
+    identity=f'{tenant}:{actor}:{platform_actor}:{base_policy}:{start}:{end}:{reference}'
+    if review_existing_classification: identity+=':EXPLICIT_CLASSIFICATION_REVIEW'
+    digest=sha256(identity.encode()).hexdigest()
     key='yahoo-fx-valuation:'+digest
     c.execute(select(func.pg_advisory_xact_lock(int.from_bytes(sha256(key.encode()).digest()[:8],'big',signed=True))))
     replay=c.scalar(select(m.valuation_policy.c.valuation_policy_id).where(m.valuation_policy.c.tenant_id==tenant,m.valuation_policy.c.submission_key==key))
@@ -53,6 +55,7 @@ def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,ref
     days=[start+timedelta(days=n) for n in range((end-start).days+1)]
     source_ids=[]
     for day in days:
+        if day.weekday()>4: continue  # Explicit research weekend convention, not a bank-holiday calendar.
         target=datetime.combine(day,time(16),ZoneInfo('Europe/London')).astimezone(timezone.utc)
         row=c.execute(select(m.market_data_observation).where(m.market_data_observation.c.market_data_series_id==series['market_data_series_id'],
             m.market_data_observation.c.dataset_id==dataset['dataset_id'],m.market_data_observation.c.market_date==day,
@@ -61,6 +64,19 @@ def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,ref
             .order_by(m.market_data_observation.c.received_at_utc.desc()).limit(1)).mappings().one_or_none()
         if not row: raise ValueError(f'Missing exact completed UK research sample on {day}')
         source_ids.append(str(row['market_data_observation_id']))
+    prior_classification=c.execute(select(m.dataset_coverage_package).join(m.market_data_series_coverage).where(
+        m.market_data_series_coverage.c.dataset_id==dataset['dataset_id'],
+        m.market_data_series_coverage.c.market_data_series_id==series['market_data_series_id'])).mappings().one_or_none()
+    if prior_classification:
+        if not review_existing_classification:
+            raise ValueError('Existing FX classification requires separate review')
+        if (not prior_classification['package_code'].startswith('EURGBP_UK_') or prior_classification['status']!='ACTIVE'
+            or prior_classification['valid_to'] is None):
+            raise ValueError('Only bounded existing EUR/GBP UK research classification can be reviewed')
+        if start<prior_classification['valid_from'] or end<=prior_classification['valid_to']:
+            raise ValueError('Explicit review must extend forward without widening earlier dates')
+    coverage_start=min(start,prior_classification['valid_from']) if prior_classification else start
+    coverage_end=max(end,prior_classification['valid_to']) if prior_classification else end
     stamp=datetime.now(timezone.utc)
     evidence=(f'Owner authorization recorded {stamp.isoformat()}, actor {actor}, tenant {tenant}: {reference.strip()}. '
         f'Current personal valuation using EUR/GBP UK completed samples for business dates {start} through {end}. '
@@ -78,24 +94,56 @@ def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,ref
     provider=c.scalar(select(m.provider_product.c.data_provider_id).where(m.provider_product.c.provider_product_id==dataset['provider_product_id']))
     package=insert_returning(c,m.dataset_coverage_package,'coverage_package_id',dataset_id=dataset['dataset_id'],package_code='EURGBP_UK_'+digest[:32],
         display_name=f'EUR/GBP UK research samples {start}–{end}',content_owner_provider_id=provider,information_timing='HISTORICAL',
-        evidence_reference=evidence,valid_from=start,valid_to=end)
-    # Never repurpose an existing reviewed classification.
-    if c.scalar(select(m.market_data_series_coverage.c.coverage_package_id).where(m.market_data_series_coverage.c.dataset_id==dataset['dataset_id'],
-        m.market_data_series_coverage.c.market_data_series_id==series['market_data_series_id'])):
-        raise ValueError('Existing FX classification requires separate review')
-    c.execute(m.market_data_series_coverage.insert().values(dataset_id=dataset['dataset_id'],market_data_series_id=series['market_data_series_id'],coverage_package_id=package))
-    entitlement=insert_returning(c,m.tenant_dataset_entitlement,'tenant_dataset_entitlement_id',tenant_id=tenant,dataset_id=dataset['dataset_id'],
-        dataset_licence_assignment_id=assignment,use_purpose='VALUATION',coverage_mode='SCOPED',valid_from=start,valid_to=end)
-    c.execute(m.tenant_dataset_coverage.insert().values(tenant_dataset_entitlement_id=entitlement,dataset_id=dataset['dataset_id'],coverage_package_id=package))
+        evidence_reference=evidence,valid_from=coverage_start,valid_to=coverage_end)
+    # Preserve old packages/grants; a separately authorized review replaces only
+    # the exact series' current classification and records before/after lineage.
+    if prior_classification:
+        c.execute(m.market_data_series_coverage.update().where(m.market_data_series_coverage.c.dataset_id==dataset['dataset_id'],
+            m.market_data_series_coverage.c.market_data_series_id==series['market_data_series_id']).values(coverage_package_id=package))
+        c.execute(m.access_audit_event.insert().values(actor_id=actor,tenant_id=tenant,action='FX_CLASSIFICATION_REVIEWED',
+            details=dict(seriesId=str(series['market_data_series_id']),previousPackageId=str(prior_classification['coverage_package_id']),
+                packageId=str(package),authorizationReference=reference,sourceObservationIds=source_ids)))
+        # The old grants keep their original dates and evidence. Add the new
+        # same-content package to those grants so current classification does
+        # not revoke their original, narrower interval.
+        old_grants=c.scalars(select(m.tenant_dataset_entitlement.c.tenant_dataset_entitlement_id)
+            .join(m.tenant_dataset_coverage).where(m.tenant_dataset_entitlement.c.tenant_id==tenant,
+                m.tenant_dataset_entitlement.c.dataset_id==dataset['dataset_id'],
+                m.tenant_dataset_entitlement.c.use_purpose=='VALUATION',
+                m.tenant_dataset_entitlement.c.status=='ACTIVE',
+                m.tenant_dataset_coverage.c.coverage_package_id==prior_classification['coverage_package_id'])).all()
+        for previous_entitlement in old_grants:
+            c.execute(m.tenant_dataset_coverage.insert().values(tenant_dataset_entitlement_id=previous_entitlement,
+                dataset_id=dataset['dataset_id'],coverage_package_id=package))
+    else:
+        c.execute(m.market_data_series_coverage.insert().values(dataset_id=dataset['dataset_id'],market_data_series_id=series['market_data_series_id'],coverage_package_id=package))
+    grant_start=prior_classification['valid_to']+timedelta(days=1) if prior_classification else coverage_start
+    existing_dataset_grant=c.scalar(select(m.tenant_dataset_entitlement.c.tenant_dataset_entitlement_id).where(
+        m.tenant_dataset_entitlement.c.tenant_id==tenant,m.tenant_dataset_entitlement.c.dataset_id==dataset['dataset_id'],
+        m.tenant_dataset_entitlement.c.use_purpose=='VALUATION',m.tenant_dataset_entitlement.c.coverage_mode=='DATASET',
+        m.tenant_dataset_entitlement.c.status=='ACTIVE',m.tenant_dataset_entitlement.c.valid_from<=grant_start,
+        (m.tenant_dataset_entitlement.c.valid_to.is_(None)) | (m.tenant_dataset_entitlement.c.valid_to>=coverage_end)))
+    if existing_dataset_grant:
+        entitlement=existing_dataset_grant  # Reuse reviewed rights, never widen or reactivate them.
+    else:
+        entitlement=insert_returning(c,m.tenant_dataset_entitlement,'tenant_dataset_entitlement_id',tenant_id=tenant,dataset_id=dataset['dataset_id'],
+            dataset_licence_assignment_id=assignment,use_purpose='VALUATION',coverage_mode='SCOPED',valid_from=grant_start,valid_to=coverage_end)
+        c.execute(m.tenant_dataset_coverage.insert().values(tenant_dataset_entitlement_id=entitlement,dataset_id=dataset['dataset_id'],coverage_package_id=package))
     if dataset['valid_from']>start:
         c.execute(m.dataset.update().where(m.dataset.c.dataset_id==dataset['dataset_id']).values(valid_from=start))
     draft=insert_returning(c,m.market_calendar,'market_calendar_id',calendar_code='YAHOO_FX_RESEARCH_'+digest[:32],
-        display_name=f'Yahoo UK research sample dates {start}–{end} (not exchange holidays)',timezone_name='Europe/London',calendar_kind='TRADING')
+        display_name=f'Yahoo UK research sample dates {start}–{end} (not exchange holidays)',timezone_name='Europe/London',calendar_kind='TRADING',
+        definition_json={'provenance':dict(sourceKind='OBSERVED_RESEARCH_FX_SAMPLES',sourceReference='Retained Yahoo chart deliveries',
+            exchangeCertified=False,reviewedOn=str(date.today()),sourceObservationIds=source_ids,authorizationReference=reference,
+            weekendConvention='Saturday/Sunday closed at the London 16:00 sample target; not settlement holidays')})
     for day in days:
-        c.execute(m.market_calendar_session.insert().values(market_calendar_id=draft,session_date=day,session_status='OPEN',
-            open_local_time=time(0),close_local_time=time(16),source_reference=f'Yahoo observed completed UK sample; declaration {licence}; observations {source_ids}'))
+        closed=day.weekday()>4
+        c.execute(m.market_calendar_session.insert().values(market_calendar_id=draft,session_date=day,session_status='CLOSED' if closed else 'OPEN',
+            open_local_time=None if closed else time(0),close_local_time=None if closed else time(16),
+            source_reference=f'Yahoo research declaration {licence}; '+('explicit weekend convention' if closed else 'validated exact completed UK sample')))
     calendar=publish_reference_calendar(c,draft,platform_actor,'Observed research sample dates only; not an authoritative FX holiday calendar')
-    rules=old.rules+[PolicyRuleInput(ruleSequence=max(r.rule_sequence for r in old.rules+old.defaultRules)+1,
+    retained_rules=[r for r in old.rules if not (review_existing_classification and r.market_data_series_id==series['market_data_series_id'])]
+    rules=retained_rules+[PolicyRuleInput(ruleSequence=max(r.rule_sequence for r in old.rules+old.defaultRules)+1,
         subjectType='FX_PAIR',subjectReferenceNodeId=series['reference_node_id'],marketDataSeriesId=series['market_data_series_id'],
         datasetId=dataset['dataset_id'],seriesType='FX_SPOT',valueBasis='RAW',pricingConvention='EXPLICIT_TIME',pricingCutId=series['valuation_cut_id'],
         marketCalendarId=calendar,selectionMethod='LAST_BEFORE_CUT',maxStalenessBusinessDays=0)]

@@ -35,7 +35,11 @@
     "**/*.tsx",
     ".next/dev/types/**/*.ts",
     ".next-access-build/types/**/*.ts",
-    ".next-access-build/dev/types/**/*.ts"
+    ".next-access-build/dev/types/**/*.ts",
+    ".next-production-preview/types/**/*.ts",
+    ".next-production-preview/dev/types/**/*.ts",
+    ".next-frontend-acceptance/types/**/*.ts",
+    ".next-frontend-acceptance/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

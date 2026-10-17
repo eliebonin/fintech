@@ -7,7 +7,7 @@ import { Empty, FieldRegister, Pager, Panel, Reason, SectionTabs, Status, TextFi
 
 type Event = { eventId: string; action: string; reason: string; actorId: string; recordedAtUtc: string };
 type Confirmation = { title: string; impact: string; reason: boolean; returnId: string; run: (reason: string) => Promise<void> };
-const roles = { COUNTERPARTY: "Counterparties", EXECUTING_BROKER: "Executing brokers", TRADER: "Traders" };
+const roles = { TRADER: "Traders" };
 type Role = keyof typeof roles;
 function data(form: HTMLFormElement) { return Object.fromEntries(new FormData(form).entries()) as Record<string, string>; }
 
@@ -23,7 +23,7 @@ export function TradeConfigurationConsole({ tenantId }: { tenantId: string }) {
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null), [catalogueEditor, setCatalogueEditor] = useState(false);
   const [records, setRecords] = useState<CatalogueRecord[]>([]), [recordOffset, setRecordOffset] = useState(0), [recordQuery, setRecordQuery] = useState(""), [recordSearch, setRecordSearch] = useState(""), [history, setHistory] = useState(false);
   const [recordEditor, setRecordEditor] = useState(false), [correction, setCorrection] = useState<CatalogueRecord | null>(null);
-  const [role, setRole] = useState<Role>("COUNTERPARTY"), [selection, setSelection] = useState<Selection | null>(null), [eligibilityEditor, setEligibilityEditor] = useState(false);
+  const [role, setRole] = useState<Role>("TRADER"), [selection, setSelection] = useState<Selection | null>(null), [eligibilityEditor, setEligibilityEditor] = useState(false);
   const [selected, setSelected] = useState<{ id: string; label: string }[]>([]), [candidates, setCandidates] = useState<{ id: string; label: string }[]>([]), [query, setQuery] = useState(""), [selectedQuery, setSelectedQuery] = useState(""), [searched, setSearched] = useState(false);
   const [events, setEvents] = useState<Event[]>([]), [eventOffset, setEventOffset] = useState(0), [auditLoading, setAuditLoading] = useState(false);
   const blocked = busy || !!confirmation;
@@ -143,6 +143,7 @@ export function TradeConfigurationConsole({ tenantId }: { tenantId: string }) {
     <Panel section="Standard fields" current={tab}><fieldset className="configuration-controls" disabled={blocked}>
       <div className="configuration-section-heading"><div><h2>Standard trade fields</h2><p className="muted">Choose which canonical records this tenant may select.</p></div></div>
       <p className="configuration-hint">Curating an eligible list does not grant login access or constitute credit approval.</p>
+      <p><Link href="/tenant-profile/organisations">Manage counterparties and executing brokers in Organisations →</Link></p>
       <div className="configuration-role-cards">{Object.entries(roles).map(([value, label]) => <button key={value} type="button" disabled={eligibilityEditor && role !== value} aria-pressed={role === value} onClick={() => { if (role === value) return; setRole(value as Role); setSelection(null); setSelected([]); setCandidates([]); setEligibilityEditor(false); setQuery(""); setSelectedQuery(""); setSearched(false); }}><strong>{label}</strong><small>{value === "TRADER" ? "Eligible tenant members" : "Canonical organisations"}</small></button>)}</div>
       {eligibilityEditor ? <p className="muted">Publish or discard this draft before switching standard fields.</p> : null}
       {selection ? <><div className="configuration-section-heading"><div><h3>{roles[role]}</h3><p>{selection.mode === "LEGACY" ? "Shared eligibility · no tenant-curated list published" : `Tenant-curated list · version ${selection.versionNo} · ${selection.records.length} records`}</p></div>{!eligibilityEditor ? <button className="configuration-primary" type="button" onClick={() => { setSelected(selection.records); setEligibilityEditor(true); }}>{selection.mode === "LEGACY" ? "Set up eligible list" : "Edit eligible list"}</button> : null}</div>

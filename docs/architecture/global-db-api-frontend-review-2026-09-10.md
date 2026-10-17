@@ -98,7 +98,7 @@ These decisions should be preserved while the controls are hardened:
 * **Tenant overlays:** the central/tenant split, tenant registry, membership,
   canonical-link evidence, dataset entitlement, and private-node promotion
   concepts are all present in the model and notebook.
-* **Trade identity:** keeping a Fortem UUID on `trd.trade` and storing imported
+* **Trade identity:** keeping a Platform UUID on `trd.trade` and storing imported
   IDs in `trd.trade_external_reference` is scalable and preserves source
   traceability. The same pattern should be used for positions and cash feeds.
 * **Cash and snapshots:** `trd.cash_balance`, position snapshots, market-data

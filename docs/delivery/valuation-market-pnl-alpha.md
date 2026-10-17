@@ -4,7 +4,7 @@
 
 Date: 2026-10-07. Status: implemented, verified and activated locally for the bounded market-only scope.
 
-2026-10-08 superseding implementation: [position reconstruction foundation](position-reconstruction-foundation.md). New calculations use position-owned v2 attribution rather than historical trade-owned lines. Revision 70 was tested on disposable databases and subsequently applied to operating database `fortem_secm` on explicit user instruction; current revision and ownership/lineage protections were verified. No operating calculation/publication was submitted. The verification/activation records below describe the original v1 release, not a current full-suite or v2 browser-signoff claim.
+2026-10-08 superseding implementation: [position reconstruction foundation](position-reconstruction-foundation.md). New calculations use position-owned v2 attribution rather than historical trade-owned lines. Revision 70 was tested on disposable databases and subsequently applied to operating database `platform_secm` on explicit user instruction; current revision and ownership/lineage protections were verified. No operating calculation/publication was submitted. The verification/activation records below describe the original v1 release, not a current full-suite or v2 browser-signoff claim.
 
 ## Delivered boundary
 
@@ -26,7 +26,7 @@ Attempt STARTED/FAILED evidence commits separately from financial work, retainin
 
 Staging is AUTHORITATIVE only: a complete candidate population, not an incremental partial refresh. It does not change official results. Identical inputs reuse immutable versions/batches. Publication requires a different authorized administrator, a reason, no blocking validation and an unchanged official population hash. It independently reconciles the selected immutable versions with the review summary and opening/closing/execution bridge. Previous published selections remain available as superseded history. External comparison is explicitly NOT_COMPARED, never assumed MATCHED.
 
-The `TRADE` subject uses a real foreign key. Broader subject types, income/cost allocation, controlled manual adjustment and external-comparison upload remain deferred. This implements the useful Fortem-core staged/official split, versioning and review principles without importing its float arithmetic or legacy integer-ID model.
+The `TRADE` subject uses a real foreign key. Broader subject types, income/cost allocation, controlled manual adjustment and external-comparison upload remain deferred. This implements the useful Platform-core staged/official split, versioning and review principles without importing its float arithmetic or legacy integer-ID model.
 
 ## Access and UI
 
@@ -54,4 +54,4 @@ Local activation: Alembic current verified `20261007_68` before upgrade and `202
 
 ## Research and implementation references
 
-See the [design and dated primary-source research](../superpowers/specs/2026-10-07-valuation-pnl-design.md), [execution plan](../superpowers/plans/2026-10-07-valuation-pnl.md) and [broader attribution ownership direction](../architecture/market-data-and-valuation/pnl-attribution-subjects.md). The reference implementation is Fortem-core `data/sources/ops/pnl_attributions`; its staged/official selection and immutable review history are inspiration, not a runtime dependency.
+See the [design and dated primary-source research](../superpowers/specs/2026-10-07-valuation-pnl-design.md), [execution plan](../superpowers/plans/2026-10-07-valuation-pnl.md) and [broader attribution ownership direction](../architecture/market-data-and-valuation/pnl-attribution-subjects.md). The reference implementation is Platform-core `data/sources/ops/pnl_attributions`; its staged/official selection and immutable review history are inspiration, not a runtime dependency.

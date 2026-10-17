@@ -16,6 +16,7 @@ import {
 } from "@/lib/market-data-series";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { MarketDataResolutionForm } from "@/components/market-data-resolution-form";
+import {describeSeriesBasis} from '@/lib/series-basis-description';
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,7 @@ function HistoryPanel({ series, pagination }: { series: MarketDataSeries; pagina
         <strong>{formatMarketDataValue(summary.last, series.valueType)}</strong>
       </header>
       <div className="history-provenance"><Provenance series={series} /></div>
+      {series.providerCode?.toUpperCase().includes('YAHOO')?<p className="muted">{describeSeriesBasis(series.observations.map(o=>o.valueBasis))}</p>:null}
       <div className="chart-wrap"><MarketDataHistoryChart key={`${series.seriesId}:${observations[0]?.marketDate}:${observations.at(-1)?.marketDate}:${observations.length}`} points={observations} currency={series.currency} valueType={series.valueType} seriesType={series.seriesType} /></div>
       <div className="history-range"><span>{observations[0]?.marketDate ?? "—"}</span><span>{observations.at(-1)?.marketDate ?? "—"}</span></div>
       {pagination}
@@ -139,11 +141,11 @@ export default async function MarketDataHistoryPage({ searchParams }: { searchPa
         {observationOffset + observationLimit < historyTotal ? <Link href={pageLink(offset,observationOffset+observationLimit)}>Next prices</Link> : null}
       </nav> : null;
   return (
-    <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes}><main className="mvp-page">
+    <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId}><main className="mvp-page">
       {moduleEnabled?<MarketDataNavigation active="explorer"/>:null}
       <header className="mvp-header"><div><p className="eyebrow">MARKET DATA CATALOGUE</p><h1>{selectedNodeId ? `${selectedName ?? "Instrument"} history` : "Series & provenance"}</h1><p className="muted">{selectedNodeId ? "Persisted observations, charted and chronologically sorted by market date." : "Precise observables with their provider, dataset, licence and named cut."}</p></div><span className={`synthetic-badge ${error ? "source-unavailable" : ""}`}>{sourceLabel}</span></header>
       <form className="date-form" method="get"><label>From <input type="date" name="fromDate" defaultValue={fromDate} /></label><label>To <input type="date" name="toDate" defaultValue={toDate} /></label>{selectedNodeId ? <input type="hidden" name="referenceNodeId" value={selectedNodeId} /> : null}{selectedSeriesId ? <input type="hidden" name="seriesId" value={selectedSeriesId} /> : null}<input type="hidden" name="observationLimit" value={observationLimit} /><button type="submit">Refresh window</button>{selectedNodeId ? <Link className="clear-link" href={`/market-data/explorer?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`}>Back to all series</Link> : null}</form>
-      {personal ? <p className="muted">Yahoo personal-project history: Close is split adjusted; adjusted close includes the provider’s distribution adjustments. Neither is an official raw-price tape. Observed timestamps identify daily bars, not certified session closes. Personal-use declaration; no commercial or redistribution rights.</p> : null}
+      {personal ? <p className="muted">Yahoo personal-project history contains separately labelled price bases. Inspect each series and its reconstruction evidence; a RAW label is not a claim of an official exchange tape. Observed timestamps identify daily bars, not certified session closes. Personal-use declaration; no commercial or redistribution rights.</p> : null}
       {!error && selectedNodeId && !personal ? <MarketDataResolutionForm subjectReferenceNodeId={selectedNodeId} /> : null}
 
       {!error && !selectedNodeId ? <nav aria-label="Series catalogue pages"><p>{total ? `${offset+1}–${Math.min(offset+series.length,total)} of ${total} visible series` : 'No visible observations in this window. Choose another date range or check dataset access.'}</p>{offset > 0 ? <Link href={pageLink(Math.max(0,offset-limit),0)}>Previous series page</Link> : null}{offset+limit < total ? <Link href={pageLink(offset+limit,0)}>Next series page</Link> : null}</nav> : null}

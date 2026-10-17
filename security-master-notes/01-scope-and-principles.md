@@ -19,7 +19,7 @@ It must be ready to support them later by providing stable IDs, explicit terms, 
 
 The platform has two deliberately separate data planes:
 
-* **Shared canonical data:** Fortem-governed instruments, listings, entities, identifiers, reference data, and market-data observations that may be used under the applicable licence.
+* **Shared canonical data:** Platform-governed instruments, listings, entities, identifiers, reference data, and market-data observations that may be used under the applicable licence.
 * **Tenant-scoped data:** client positions, cash, private instruments, aliases, classifications, valuation policies, approved overrides, Soft-NAV inputs and results.
 
 A tenant overlay may reference a shared UUID but never mutates the shared canonical record. A private tenant instrument may be promoted into the shared master only through an explicit validation and approval workflow that does not disclose confidential terms.

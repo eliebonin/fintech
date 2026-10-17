@@ -140,6 +140,6 @@ Licensing and entitlement are not implementation details. Data must not be inges
 
 ## Market evidence and positioning
 
-ESMA's valuation review supports the control need by identifying weaknesses in valuation policies, stressed-market valuation, independence, and error detection: [ESMA](https://www.esma.europa.eu/press-news/esma-news/esma-report-points-out-improvements-needed-supervision-asset-valuation). Rimes demonstrates that broad governed price/security/entity data management is an established enterprise market: [Rimes](https://www.rimes.com/). Fortem should therefore position this module as the independent **selection, exception, and evidence layer** across incumbent sources and administrators, not as a substitute for global data coverage.
+ESMA's valuation review supports the control need by identifying weaknesses in valuation policies, stressed-market valuation, independence, and error detection: [ESMA](https://www.esma.europa.eu/press-news/esma-news/esma-report-points-out-improvements-needed-supervision-asset-valuation). Rimes demonstrates that broad governed price/security/entity data management is an established enterprise market: [Rimes](https://www.rimes.com/). Platform should therefore position this module as the independent **selection, exception, and evidence layer** across incumbent sources and administrators, not as a substitute for global data coverage.
 
 See [market evidence and go-to-market](06-market-evidence-and-go-to-market.md) for the pricing-confidence assessment and discovery gates.

@@ -1,6 +1,7 @@
 """Read-only versioned session comparison, not an authoritative calendar feed."""
 from functools import lru_cache
 from datetime import date
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import select,exists
 from security_master_schema import models as m
 from .rights import load_rights
@@ -45,7 +46,7 @@ def audit_dataset(c,dataset_id,namespace_id,tenant_id,actor_id,start,end,symbols
     profile=c.execute(select(m.dataset_access_profile).where(m.dataset_access_profile.c.dataset_id==dataset_id,
         m.dataset_access_profile.c.external_id_namespace_id==namespace_id,
         m.dataset_access_profile.c.permitted_tenant_id==tenant_id)).mappings().one_or_none()
-    if not profile or not load_rights(c,dataset_id,'DISPLAY',date.today()).allowed:
+    if not profile or not load_rights(c,dataset_id,'DISPLAY',governance_date()).allowed:
         raise PermissionError('DISPLAY permission for this tenant dataset is required')
     mapping,listing,mic=m.external_object_mapping,m.listing,m.market_venue_identifier
     rows=c.execute(select(mapping.c.external_object_mapping_id,mapping.c.external_id_value,listing.c.listing_node_id,

@@ -1,4 +1,7 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
+import {WorkspaceSkipLink} from './workspace-navigation';
+import {PageHelp} from './page-help';
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -84,14 +87,16 @@ export function WorkspaceShell({ children, sourceLabel = "LIVE API", moduleCodes
   const writeAllowed=accessKnown&&(requiredModule==='TRADING'?canBookTrades(writeWorkspace):canManageInstruments(writeWorkspace));
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f3f6fb" }}>
+      <WorkspaceSkipLink/>
       <Box sx={{ display: { xs: "none", md: "block" }, position: "sticky", top: 0, alignSelf: "flex-start", flexShrink: 0, height: "100dvh" }}><Sidebar activeSection={activeSection} {...sidebarContext} /></Box>
       <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { xs: "block", md: "none" }, "& .MuiDrawer-paper": { bgcolor: "#101a2d" } }}><Sidebar activeSection={activeSection} {...sidebarContext} onNavigate={() => setMobileOpen(false)} /></Drawer>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Box id="workspace-content" tabIndex={-1} sx={{ flex: 1, minWidth: 0 }}>
         {(userName??inherited?.userName)?<div className="access-testing-banner"><span>Testing as <strong>{userName??inherited?.userName}</strong> · {sidebarContext.tenantName}</span><Link href="/select-context">Switch user / return to platform</Link></div>:null}
         <Box sx={{ height: 68, px: { xs: 2, md: 3.5 }, bgcolor: "white", borderBottom: "1px solid #e7ecf4", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Stack direction="row" spacing={1.2} sx={{ alignItems: "center" }}><IconButton onClick={() => setMobileOpen(true)} sx={{ display: { xs: "inline-flex", md: "none" }, color: "#1f5eff" }} aria-label="Open navigation">☰</IconButton><Box><Typography variant="caption" color="text.secondary">WORKSPACE / {activeItem?.label.toUpperCase()}</Typography><Typography variant="body2" sx={{ fontWeight: 750, mt: 0.25 }}>{activeItem?.label}</Typography></Box></Stack>
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}><Chip label={sourceLabel} size="small" sx={{ bgcolor: sourceLabel === "LIVE API" ? "#e5f7ed" : "#fff4dc", color: sourceLabel === "LIVE API" ? "#14753c" : "#9a6200", fontWeight: 800, fontSize: 10 }} /><Box sx={{ width: 30, height: 30, bgcolor: "#dce7ff", color: "#1f5eff", borderRadius: "50%", display: "grid", placeItems: "center", fontWeight: 800 }}>OA</Box></Stack>
         </Box>
+        {(!requiredModule||writeAllowed)?<PageHelp pathname={pathname}/>:null}
         {requiredModule&&!writeAllowed?<main className="mvp-page"><h1>{requiredModule==='TRADING'?'Trade booking access':'Instrument management access'}</h1><div className="error-panel" role="alert">{accessKnown?<>Your current user does not have the required action permission in the {requiredModule} module. Ask your tenant administrator to review group permissions.</>:<>Tenant permissions are being checked or could not be verified. No write form is available. Select your tenant or reload this page to retry.</>}</div><div className="ticket-actions"><Link href={requiredModule==='TRADING'?'/trades':'/instruments'}>{requiredModule==='TRADING'?'View trade history':'Explore instruments'}</Link><Link href="/select-context">Change context</Link></div></main>:children}
       </Box>
     </Box>

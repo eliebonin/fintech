@@ -1,5 +1,6 @@
 """Current display authority for frozen inputs; never grants calculation rights."""
 from datetime import date
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import select, or_
 from security_master_schema import models as m
 from .rights import denied_display_datasets
@@ -10,10 +11,18 @@ class EvidenceDisplayDenied(PermissionError):
 
 
 def assert_dataset_display(c, tenant, datasets, *, series_contexts=None):
+    from .read_scope import cached_read
+    datasets = frozenset(datasets)
+    contexts = frozenset(series_contexts) if series_contexts is not None else None
+    return cached_read(c, ('display', tenant, datasets, contexts, governance_date()),
+        lambda: _assert_dataset_display(c, tenant, datasets, series_contexts=contexts))
+
+
+def _assert_dataset_display(c, tenant, datasets, *, series_contexts=None):
     datasets=set(datasets)
     if not datasets:
         return
-    today=date.today()
+    today=governance_date()
     profiles=set(c.execute(select(m.dataset_access_profile.c.dataset_id).where(
         m.dataset_access_profile.c.dataset_id.in_(datasets))).scalars())
     ent=m.tenant_dataset_entitlement
@@ -23,7 +32,7 @@ def assert_dataset_display(c, tenant, datasets, *, series_contexts=None):
         m.dataset.c.status=='ACTIVE', m.dataset.c.valid_from<=today,
         or_(m.dataset.c.valid_to.is_(None),m.dataset.c.valid_to>=today),
         or_(ent.c.dataset_id.not_in(profiles),ent.c.use_purpose=='INTERNAL_REPORTING'))).scalars())
-    denied=set(denied_display_datasets(c,tenant,today)) & datasets
+    denied=set(denied_display_datasets(c,tenant,today,datasets=datasets))
     if datasets-allowed or denied:
         raise EvidenceDisplayDenied('Current dataset display rights and tenant reporting entitlement are required to inspect these inputs.')
     from .entitlements import tenant_series_entitlement_clause

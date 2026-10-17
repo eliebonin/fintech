@@ -1,4 +1,9 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
+import {submitRetained,type RetainedIntent} from '@/lib/retained-mutation';
+import {useRetainedNavigation} from '@/lib/use-retained-navigation';
+import {UncertainRequest} from '@/components/uncertain-request';
+import {WorkspaceOutline} from '@/components/workspace-navigation';
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -30,6 +35,9 @@ import {
   searchReferenceNodesFromBff,
   submitStructuredProductProposalFromBff,
   BffApiError,
+  contractualCalendarsFromBff,
+  contractualPaymentDatesFromBff,
+  type ContractualCalendarChoice,
   type Currency,
   type OrganisationOption,
   type ReferenceNodeOption,
@@ -85,13 +93,7 @@ const PRODUCT_TYPES = [
   ["SUPERTRACKER", "Supertracker"],
 ] as const;
 
-const CALENDAR_OPTIONS = [
-  ["00000000-0000-7000-8000-000000000128", "London / Europe", "Europe/London"],
-  ["00000000-0000-7000-8000-000000000129", "New York", "America/New_York"],
-  ["00000000-0000-7000-8000-000000000130", "European composite", "Europe/Paris"],
-  ["00000000-0000-7000-8000-000000000131", "FX global", "UTC"],
-] as const;
-const DEFAULT_CALENDAR_ID = CALENDAR_OPTIONS[0][0];
+const DEFAULT_CALENDAR_ID = '';
 
 const FREQUENCIES: [ScheduleFrequency, string][] = [
   ["MONTHLY", "12 / year · Monthly"],
@@ -226,6 +228,10 @@ export default function AutocallForm() {
   const [couponFrequency, setCouponFrequency] = useState<ScheduleFrequency>("ANNUAL");
   const [paymentLagBusinessDays, setPaymentLagBusinessDays] = useState("2");
   const [calendarId, setCalendarId] = useState<string>(DEFAULT_CALENDAR_ID);
+  const [calendarOptions,setCalendarOptions]=useState<ContractualCalendarChoice[]>([]);
+  const [calendarError,setCalendarError]=useState<string|null>(null);
+  const [paymentAssessment,setPaymentAssessment]=useState<{key:string;dates:Record<string,string>;error?:string}|null>(null);
+  const [explicitScheduleReason,setExplicitScheduleReason]=useState('');
   const [couponRate, setCouponRate] = useState("6.5");
   const [couponBarrier, setCouponBarrier] = useState("100");
   const [couponBarrierFollowsAutocall, setCouponBarrierFollowsAutocall] = useState(true);
@@ -264,7 +270,8 @@ export default function AutocallForm() {
   const [submissionState, setSubmissionState] = useState<"idle" | "submitting" | "submitted" | "error">("idle");
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(null);
   const [submittedProposalId, setSubmittedProposalId] = useState<string | null>(null);
-  const idempotencyKey = useRef<string | null>(null);
+  const retainedIntent = useRef<RetainedIntent | null>(null);
+  useRetainedNavigation(retainedIntent);
 
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [organisations, setOrganisations] = useState<OrganisationOption[]>([]);
@@ -441,7 +448,7 @@ export default function AutocallForm() {
     underlyings,
   }), [includeKip, kipBarrier, kipObservationStyle, maturityDate, paymentLagBusinessDays, scope, startDate, supertrackerCapReturn, supertrackerIncludeCap, supertrackerParticipationRate, underlyings]);
 
-  const generated = useMemo(
+  const provisional = useMemo(
     () => composedOption
       ? generateComposedOptionSchedule(composedScheduleInput)
       : rangeAccrual
@@ -451,6 +458,31 @@ export default function AutocallForm() {
           : generateAutocallSchedule(scheduleInput),
     [composedOption, composedScheduleInput, rangeAccrual, rangeScheduleInput, scheduleInput, supertracker, supertrackerScheduleInput],
   );
+  const paymentRequest=useMemo(()=>({calendarId,paymentLagBusinessDays:asNumber(paymentLagBusinessDays,0),
+    observationDates:[...new Set(provisional.rows.map(row=>row.observationDate))]}),[calendarId,paymentLagBusinessDays,provisional.rows]);
+  const paymentKey=JSON.stringify(paymentRequest);
+  useEffect(()=>{
+    let active=true;
+    contractualCalendarsFromBff().then(result=>{if(active){setCalendarOptions(result.data);setCalendarError(null);}})
+      .catch(error=>{if(active)setCalendarError(error instanceof Error?error.message:'Calendar catalogue unavailable.');});
+    return()=>{active=false;};
+  },[catalogueRefresh]);
+  useEffect(()=>{
+    let active=true;
+    if(!paymentRequest.calendarId||!paymentRequest.observationDates.length)return;
+    contractualPaymentDatesFromBff(paymentRequest).then(result=>{
+      if(result.calendarId!==paymentRequest.calendarId||paymentRequest.observationDates.some(day=>!result.paymentDates?.[day]))
+        throw new Error('Payment-date assessment is incomplete. Refresh the calendar and retry.');
+      if(active)setPaymentAssessment({key:paymentKey,dates:result.paymentDates});
+    })
+      .catch(error=>{if(active)setPaymentAssessment({key:paymentKey,dates:{},error:error instanceof Error?error.message:'Payment calendar unavailable.'});});
+    return()=>{active=false;};
+  },[paymentKey,paymentRequest]);
+  const generated=useMemo(()=>{
+    const assessed=paymentAssessment?.key===paymentKey?paymentAssessment:null;
+    return {...provisional,rows:provisional.rows.map(row=>({...row,paymentDate:assessed?.dates[row.observationDate]??row.paymentDate})),
+      warnings:[...provisional.warnings,...(!calendarId?['Select a published contractual calendar.']:!assessed?['Assessing payment dates against the published calendar…']:assessed.error?[assessed.error]:[])]};
+  },[calendarId,paymentAssessment,paymentKey,provisional]);
   const generatedFingerprint = useMemo(() => JSON.stringify(generated.rows), [generated.rows]);
   const displayRows: ScheduleDraftRow[] = useMemo(() => draftRows.length ? draftRows : createScheduleDraft(generated.rows), [draftRows, generated.rows]);
   const observationGroups = useMemo(() => groupRowsByObservation(displayRows), [displayRows]);
@@ -484,6 +516,7 @@ export default function AutocallForm() {
       && !generated.warnings.length
       && !draftValidationIssues.length
       && !baselineChanged
+      && (!draftDirty||explicitScheduleReason.trim().length>0)
       && catalogueState === "ready"
       && submissionState !== "submitting"
       && submissionState !== "submitted",
@@ -624,6 +657,7 @@ export default function AutocallForm() {
   }
 
   function reset() {
+    if(retainedIntent.current){setSubmissionMessage('An outcome is unknown. Retry unchanged or reconcile the proposal in Operations before resetting.');return;}
     setProductType("AUTOCALL");
     setProductName("");
     setInternalCode("");
@@ -634,6 +668,7 @@ export default function AutocallForm() {
     setNotional("");
     setScope("WORST_OF");
     setCalendarId(DEFAULT_CALENDAR_ID);
+    setExplicitScheduleReason('');
     const defaultStartDate = isoYearsFromToday(1);
     setEffectiveDate(isoYearsFromToday(0));
     setStartDate(defaultStartDate);
@@ -676,7 +711,7 @@ export default function AutocallForm() {
     setSubmissionState("idle");
     setSubmissionMessage(null);
     setSubmittedProposalId(null);
-    idempotencyKey.current = null;
+    retainedIntent.current = null;
   }
 
   function updateDraftCell(draftRowId: string, field: DraftEditableField, rawValue: string) {
@@ -704,12 +739,12 @@ export default function AutocallForm() {
     setEditSchedule(false);
   }
 
-  async function submitDraft() {
-    if (!canSubmit) return;
+  async function submitDraft(retryOriginal=false) {
+    if (!canSubmit&&!retryOriginal) return;
     setSubmissionState("submitting");
     setSubmissionMessage(null);
     try {
-      const payload = buildAutocallDraftPayload({
+      const payload = retryOriginal?JSON.parse(retainedIntent.current!.signature):buildAutocallDraftPayload({
         productName,
         internalCode,
         productType,
@@ -723,6 +758,8 @@ export default function AutocallForm() {
          memoryMode: memoryMode as "NONE" | "CONDITIONAL_CATCH_UP" | "ACCUMULATE_TO_REDEMPTION",
          finalPaymentTreatment,
          calendarId,
+        paymentDateConvention:draftDirty?'EXPLICIT':'CALENDAR_LAG',
+        explicitScheduleReason:draftDirty?explicitScheduleReason:undefined,
          effectiveDate,
          startDate,
          maturityDate,
@@ -754,21 +791,21 @@ export default function AutocallForm() {
         underlyings,
         rows: displayRows,
       });
-      const response = await submitStructuredProductProposalFromBff(payload, idempotencyKey.current ?? (idempotencyKey.current = createIdempotencyKey()));
+      const response = await submitRetained(payload, retainedIntent, submitStructuredProductProposalFromBff);
       setSubmittedProposalId(response.data.proposalId);
       setSubmissionState("submitted");
       setSubmissionMessage("Draft proposal submitted for steward review. No canonical records are approved yet.");
     } catch (error: unknown) {
       setSubmissionState("error");
-      setSubmissionMessage(error instanceof BffApiError ? error.message : "The structured-product proposal could not be submitted.");
+      setSubmissionMessage(error instanceof Error ? error.message : "The structured-product proposal could not be submitted.");
     }
   }
 
   return (
-    <Box sx={{ bgcolor: "#f3f6fb", minHeight: "100vh", p: { xs: 2, md: 4 } }}>
+    <Box sx={{ bgcolor: "#f3f6fb", minHeight: "100vh", p: { xs: 2, md: 3.5 } }}>
       <Box sx={{ maxWidth: 1500, mx: "auto" }}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} sx={{ mb: 2, alignItems: { md: "center" } }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, flex: 1 }}>New structured product</Typography>
+          <Typography component="h1" variant="h5" sx={{ fontWeight: 800, flex: 1 }}>New structured product</Typography>
           <Button size="small" onClick={reset}>↻ Reset</Button>
           <Button size="small" onClick={() => setCatalogueRefresh((value) => value + 1)}>↻ Refresh dropdowns</Button>
           <Button variant="contained" onClick={() => setShowSchedule(true)} disabled={!underlyings.length}>Generate schedule</Button>
@@ -785,10 +822,16 @@ export default function AutocallForm() {
         {catalogueState === "error" && <Alert severity="warning" sx={{ mb: 2 }}>Currency and organisation catalogues could not be loaded. Refresh the dropdowns or continue with provider enrichment later.</Alert>}
         {!!dateWarnings.length && <Stack spacing={1} sx={{ mb: 2 }}>{dateWarnings.map((warning) => <Alert severity="warning" key={warning}>{warning}</Alert>)}</Stack>}
 
+        <WorkspaceOutline items={[
+          {id:'product-identity',label:'Identity and parties'},
+          {id:'product-references',label:'Underlying references'},
+          {id:'product-terms',label:'Schedule and payoff'},
+          ...(showSchedule?[{id:'product-events',label:'Events and submission'}]:[]),
+        ]}/>
         <Stack spacing={2.5}>
           <Card sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="overline" color="primary.main" sx={{ letterSpacing: "0.1em", fontWeight: 800 }}>1 · ECONOMIC IDENTITY AND PARTIES</Typography>
-            <Typography variant="h6">What is the parent product?</Typography>
+            <Typography component="h2" variant="h6" id="product-identity" tabIndex={-1}>What is the parent product?</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>These fields describe the structured-product instrument. Issuer, guarantor, and counterparty are separate party relationships.</Typography>
             <Stack spacing={2} sx={{ mt: 2 }}>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
@@ -824,7 +867,7 @@ export default function AutocallForm() {
 
           <Card sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="overline" color="primary.main" sx={{ letterSpacing: "0.1em", fontWeight: 800 }}>2 · UNDERLYING REFERENCES</Typography>
-            <Typography variant="h6">Which references drive the payoff?</Typography>
+            <Typography component="h2" variant="h6" id="product-references" tabIndex={-1}>Which references drive the payoff?</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{composedOption ? "The stored value is the canonical reference-node UUID. Add the economic underlyings here; the signed option legs are configured separately and become fresh child instruments on approval." : "The stored value is the canonical reference-node UUID. Initial fixings are product-specific terms; standard autocall component sides are generated by the payoff template."}</Typography>
             <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mt: 2, alignItems: "flex-start" }}>
               <TextField select label="Reference category" value={assetType} onChange={(event) => setAssetType(event.target.value)} sx={{ minWidth: { md: 190 } }} slotProps={nativeSelect} helperText="Determines which active reference nodes are offered.">
@@ -879,7 +922,7 @@ export default function AutocallForm() {
 
           <Card sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="overline" color="primary.main" sx={{ letterSpacing: "0.1em", fontWeight: 800 }}>3 · SCHEDULE AND PAYOFF PARAMETERS</Typography>
-            <Typography variant="h6">How should the contract observe and pay?</Typography>
+            <Typography component="h2" variant="h6" id="product-terms" tabIndex={-1}>How should the contract observe and pay?</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>These inputs generate explicit schedule events, component terms, condition groups, and parent actions. The generated grid is a review projection of that graph.</Typography>
             <Stack spacing={2} sx={{ mt: 2 }}>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
@@ -916,7 +959,7 @@ export default function AutocallForm() {
               </Card>}
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 {!maturityOnly && !rangeAccrual && <TextField label="First autocall observation" type="date" value={firstAutocallObservationDate} onChange={(event) => setFirstAutocallObservationDate(event.target.value)} fullWidth slotProps={nativeSelect} helperText="Earliest date on which the parent may redeem early. Coupons before this date can still be observed; defaults to the observation start." />}
-                <TextField label="Payment lag (business days)" type="number" value={paymentLagBusinessDays} onChange={(event) => setPaymentLagBusinessDays(event.target.value)} fullWidth slotProps={floatedInput} helperText="Preview skips weekends; production uses the governed calendar." />
+                <TextField label="Payment lag (business days)" type="number" value={paymentLagBusinessDays} onChange={(event) => setPaymentLagBusinessDays(event.target.value)} fullWidth slotProps={floatedInput} helperText="Counts OPEN dates in the selected published calendar; unknown coverage blocks generation." />
                 {!composedOption && !rangeAccrual && !supertracker && memoryMode !== "NONE" && <Tooltip
                   arrow
                   placement="top"
@@ -939,8 +982,10 @@ export default function AutocallForm() {
               </Stack>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 <TextField select label="Schedule calendar" value={calendarId} onChange={(event) => setCalendarId(event.target.value)} fullWidth slotProps={nativeSelect} helperText="Governed calendar used for business-day payment lag and session rules.">
-                  {CALENDAR_OPTIONS.map(([value, label, timezone]) => <option key={value} value={value}>{label} · {timezone}</option>)}
+                  <option value="">Select a published calendar</option>
+                  {calendarOptions.map(item=><option key={item.calendarId} value={item.calendarId}>{item.displayName} · v{item.version??'legacy'} · {item.timezone}</option>)}
                 </TextField>
+                {calendarError&&<Alert severity="error">{calendarError}</Alert>}
               </Stack>
               {!composedOption && !rangeAccrual && !supertracker && <>
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
@@ -969,7 +1014,7 @@ export default function AutocallForm() {
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} sx={{ alignItems: { md: "center" } }}>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="overline" color="primary.main" sx={{ letterSpacing: "0.1em", fontWeight: 800 }}>4 · CONTRACT EVENTS</Typography>
-                <Typography variant="h6">Observation schedule</Typography>
+                <Typography component="h2" variant="h6" id="product-events" tabIndex={-1}>Observation schedule</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{composedOption ? "The maturity preview separates each option payoff component from the KIP barrier component. Continuous KIP remains a condition group without a scheduled observation event." : rangeAccrual ? "The preview shows one range condition per coupon period. The detailed daily/weekly/monthly fixing convention is stored separately and evaluated by the lifecycle service." : supertracker ? "The maturity preview separates the leveraged call, optional cap call, optional KIP/downside component, and parent redemption action." : "Each observation is an event. Component rows describe contractual composition; parent actions are shown once and are never repeated per underlying."}</Typography>
               </Box>
               <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
@@ -980,7 +1025,8 @@ export default function AutocallForm() {
             </Stack>
             <Divider sx={{ my: 2 }} />
              {!!generated.warnings.length && <Stack spacing={1} sx={{ mb: 2 }}>{generated.warnings.map((warning) => <Alert severity="warning" key={warning}>{warning}</Alert>)}</Stack>}
-             {!!generated.rows.length && <Alert severity="info" sx={{ mb: 2 }}>Payment dates shown here are provisional weekend-only previews. The governed calendar and holiday resolver will recalculate them during approval.</Alert>}
+             {!!generated.rows.length && <Alert severity="info" sx={{ mb: 2 }}>Generated payment dates use the selected published calendar and are checked again at submission and approval. Explicit reviewed exceptions are retained, not silently recalculated.</Alert>}
+             {draftDirty&&<TextField label="Reason for explicit schedule changes" value={explicitScheduleReason} onChange={event=>setExplicitScheduleReason(event.target.value)} required fullWidth helperText="Retained with the proposal. Edited dates override calendar generation only when explicitly reviewed."/>}
             {draftDirty && <Alert severity="info" sx={{ mb: 2 }}>Local schedule edits are marked and will be included in the submitted draft proposal.</Alert>}
             {baselineChanged && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={discardDraftChanges}>Discard manual changes</Button>}>High-level schedule inputs changed while this draft had manual edits. Review the current draft or discard it to use the regenerated baseline.</Alert>}
             {!!draftValidationIssues.length && <Alert severity="error" sx={{ mb: 2 }}>{draftValidationIssues.length} draft validation issue{draftValidationIssues.length === 1 ? "" : "s"} must be resolved before submission.</Alert>}
@@ -1097,7 +1143,8 @@ export default function AutocallForm() {
             </Stack>}
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} sx={{ mt: 2 }}>
               <Button variant="outlined" onClick={() => setShowSchedule(false)}>Hide schedule</Button>
-              <Button variant="contained" onClick={submitDraft} disabled={!canSubmit}>{submissionState === "submitting" ? "Submitting…" : submissionState === "submitted" ? "Proposal submitted" : "Submit draft proposal"}</Button>
+              {retainedIntent.current&&submissionState!=='submitting'?<UncertainRequest busy={false} onRetry={()=>void submitDraft(true)}/>:null}
+              <Button variant="contained" onClick={()=>void submitDraft()} disabled={!canSubmit}>{submissionState === "submitting" ? "Submitting…" : submissionState === "submitted" ? "Proposal submitted" : "Submit draft proposal"}</Button>
               <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>Approval materializes the versioned terms graph; submission alone creates no approved security.</Typography>
             </Stack>
           </Card>}

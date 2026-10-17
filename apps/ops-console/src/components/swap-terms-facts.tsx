@@ -7,7 +7,7 @@ export function SwapTermsFacts({terms,labels={}}:{terms:Terms;labels?:Record<str
   return <section className="detail-card"><h2>Performance swap terms</h2><dl className="futures-facts">
     {terms.tenantIdentifier?<><dt>Tenant identifier</dt><dd>{terms.tenantIdentifier}</dd></>:null}
     <dt>Performance reference</dt><dd>{reference(terms.performanceReferenceId,'INSTRUMENT,INDEX')}</dd>
-    <dt>Contractual notional</dt><dd>{String(terms.contractualNotional)} {named(terms.notionalCurrencyId)}</dd>
+    {terms.quantityUnit==='UNITS'?<><dt>Contractual units</dt><dd>{String(terms.contractualUnits)}</dd><dt>Reference notional per unit (before leverage)</dt><dd>{String(terms.notionalPerUnit)} {named(terms.notionalCurrencyId)}</dd></>:null}<dt>Contractual notional</dt><dd>{String(terms.contractualNotional)} {named(terms.notionalCurrencyId)}</dd>
     <dt>Effective / maturity dates</dt><dd>{terms.effectiveDate} / {terms.maturityDate}</dd>
     <dt>Performance direction</dt><dd>{terms.performanceDirection} from the contract holder perspective</dd>
     <dt>Return basis / governed profile</dt><dd>{terms.returnBasis} / {named(terms.returnProfileId)}</dd>
@@ -29,7 +29,7 @@ export function SwapTermsFacts({terms,labels={}}:{terms:Terms;labels?:Record<str
       {terms.additionalFundingAcknowledged?<><dt>Additional funding acknowledged</dt><dd>Yes — {terms.additionalFundingEvidence}</dd></>:null}
     </>:null}
     <dt>Reference redemption rule</dt><dd>{terms.redemptionRule==='TERMINATE'?'Terminate economic exposure at reference maturity / autocall':terms.continuationDescription}</dd>
-    <dt>Whole-swap quote convention</dt><dd>SWAP_VALUE_PER_NOTIONAL · {named(terms.quoteCurrencyId)} · divisor {String(terms.quoteFactor)}</dd>
+    <dt>Whole-swap quote convention</dt><dd>{terms.quantityUnit==='UNITS'?'SWAP_VALUE_PER_UNIT':'SWAP_VALUE_PER_NOTIONAL'} · {named(terms.quoteCurrencyId)} · divisor {String(terms.quoteFactor)}</dd>
     <dt>Source / confirmation evidence</dt><dd>{terms.sourceReference}</dd>
-  </dl><p>Booked nominal is editable per trade and may differ from contractual notional. The whole-swap quote includes contractual leverage and funding effects: signed booked nominal × execution quote ÷ quote divisor. Leverage is not applied again.</p><p>Frequency and redemption terms record the contract. No event schedules, cashflows, termination processing or valuation are generated. Final payment may follow exposure termination.</p></section>;
+  </dl>{terms.quantityUnit==='UNITS'?<p>Booked units × whole-swap quote ÷ quote divisor gives the entry reference value. Funding reference notional is units × reference notional per unit, before leverage. Leverage and funding are already included in the quote and are not applied again.</p>:<p>Booked nominal is editable per trade and may differ from contractual notional. The whole-swap quote includes contractual leverage and funding effects: signed booked nominal × execution quote ÷ quote divisor. Leverage is not applied again.</p>}<p>Frequency and redemption terms record the contract. No event schedules, cashflows, termination processing or valuation are generated. Final payment may follow exposure termination.</p></section>;
 }

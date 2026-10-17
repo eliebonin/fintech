@@ -1,5 +1,6 @@
 """Governed historical source continuity is not inferred from today's ticker."""
 from datetime import date
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import select,exists
 from security_master_schema import models as m
 from security_master_schema.tenant_workspace import resolve_tenant_workspace
@@ -7,7 +8,7 @@ from .storage import insert_returning
 
 
 def require_admin(c,tenant_id,actor_id):
-    workspace=resolve_tenant_workspace(c,tenant_id,actor_id,date.today())
+    workspace=resolve_tenant_workspace(c,tenant_id,actor_id,governance_date())
     if 'MARKET_DATA_MANAGE' not in workspace.permission_codes:
         raise PermissionError('An active MARKET_DATA management permission is required')
 

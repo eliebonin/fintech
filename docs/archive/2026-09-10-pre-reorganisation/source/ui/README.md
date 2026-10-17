@@ -1,6 +1,6 @@
 # UI / Frontend Workstream
 
-This folder is the working specification area for the Fortem MVP user
+This folder is the working specification area for the Platform MVP user
 interface. It is intentionally separate from the PostgreSQL schema and
 backend implementation folders.
 
@@ -14,7 +14,7 @@ they affect an operational decision.
 - Operations users can search, review, propose, and approve canonical records.
 - Tenant users see their own overlay, overrides, private records, trades,
   positions, and Soft-NAV evidence only.
-- Every external identifier resolves to a Fortem UUID with a visible mapping
+- Every external identifier resolves to a Platform UUID with a visible mapping
   status and source namespace.
 - Market-data results always show series, valuation cut, market date,
   information cutoff, provider/dataset, and source-vintage lineage.

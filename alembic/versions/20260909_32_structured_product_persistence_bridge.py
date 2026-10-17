@@ -45,7 +45,7 @@ def upgrade() -> None:
         sa.Column("source_payload_id", sa.UUID(), nullable=True, comment="Retained raw payload evidencing the fixing when available."),
         sa.Column("status", sa.String(length=30), server_default=sa.text("'ACCEPTED'"), nullable=False, comment="Fixing lifecycle state: ACCEPTED, SUPERSEDED, or REJECTED."),
         sa.Column("supersedes_fixing_id", sa.UUID(), nullable=True, comment="Prior fixing superseded by this corrected value without mutating the original record."),
-        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False, comment="UTC timestamp at which Fortem recorded this fixing record."),
+        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False, comment="UTC timestamp at which Platform recorded this fixing record."),
         sa.ForeignKeyConstraint(["structured_product_terms_id"], ["secm.structured_product_terms.structured_product_terms_id"], name="fk_sp_initial_fixing_terms"),
         sa.ForeignKeyConstraint(["underlying_reference_node_id"], ["secm.financial_reference_node.reference_node_id"], name="fk_sp_initial_fixing_underlying"),
         sa.ForeignKeyConstraint(["market_data_observation_id"], ["md.market_data_observation.market_data_observation_id"], name="fk_sp_initial_fixing_observation"),

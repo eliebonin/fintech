@@ -163,3 +163,34 @@ this implementation does not bypass that boundary. A flexible policy therefore d
 not by itself make an otherwise unlicensed valuation run succeed.
 
 Plan and rulings: [implementation plan](../superpowers/plans/2026-10-08-flexible-pricing-policy.md).
+
+## Local policy date simplification — 2026-10-15
+
+At the user's request, retain the existing schema and effective-date checks but
+remove arbitrary economic start/end restrictions from the current tenant-wide
+policy choices. In the local `platform_secm` database, tenant one now has these
+ACTIVE successors, all effective from `0001-01-01` with `valid_to = NULL`:
+
+| Policy code | New version |
+| --- | --- |
+| DEFAULT_EOD | 4 |
+| DEMO_EOD | 2 |
+| FLEXIBLE_EOD | 4 |
+| UK_FUND_CUTOFF_DEMO | 2 |
+| US_FUND_CUTOFF_DEMO | 2 |
+
+Normal authenticated policy-creation API calls created these versions. Read-back
+checks confirmed unchanged names, cuts, scopes, selection modes and every explicit
+and default rule. Original versions were read back unchanged: the database's
+immutability protection was not disabled. Select the new version in a new request;
+an unchanged retry retains its originally selected policy ID.
+
+The strategy-specific MOCK_BOND_PRICES_20261015 v2 remains effective from
+2026-09-01, already covering that mock strategy's entire supported lifetime.
+Use it for the [September mock bond case](mock-bond-valuation-inputs-20261015.md),
+not a general equity/FX policy. Earlier policy versions remain retained and retain
+their original effective dates. No schema, application validation, policy-creation
+defaults, source rights, observations or published results were changed. Historical
+information-cutoff checks still apply: creating an all-dates policy today does not
+pretend it was known in the past. This was a verified configuration operation, not
+a new calculation, publication or full regression run; no restart was required.

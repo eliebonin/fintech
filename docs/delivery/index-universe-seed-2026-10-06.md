@@ -40,13 +40,13 @@ From the repository root:
 .venv\Scripts\python.exe scripts\seed_index_universe.py --apply
 ```
 
-The first command previews with transaction rollback. The second commits atomically. Both are restricted to local `fortem_secm` on port 54329; an active recorded actor can be supplied with `--actor UUID`. This privileged offline operator workflow is not exposed as a tenant API or a self-service shared-data permission. Defaults use the existing demo operator for the local alpha.
+The first command previews with transaction rollback. The second commits atomically. Both are restricted to local `platform_secm` on port 54329; an active recorded actor can be supplied with `--actor UUID`. This privileged offline operator workflow is not exposed as a tenant API or a self-service shared-data permission. Defaults use the existing demo operator for the local alpha.
 
 The dataset is an opt-in maintained seed bundle, not an automatic expansion of every synthetic test/demo fixture. A newly built operating DB must first run the standard migrations/catalogue setup, then this command. Run isolated tests with `scripts/run_isolated_python_tests.py`; do not run DB integration tests against operating data.
 
 ## Verification and activation
 
-The dated universe was committed atomically to local operating `fortem_secm` on October 6. Activation created **543 canonical equity instruments and 543 listings**, with 503 S&P 500 securities and 40 CAC 40 securities. All 1,086 instrument/listing scopes are active and shared, with no tenant owner.
+The dated universe was committed atomically to local operating `platform_secm` on October 6. Activation created **543 canonical equity instruments and 543 listings**, with 503 S&P 500 securities and 40 CAC 40 securities. All 1,086 instrument/listing scopes are active and shared, with no tenant owner.
 
 Completed verification:
 
@@ -69,13 +69,13 @@ Activation provenance:
 
 ## Local environment alignment
 
-Docker Desktop and PostgreSQL were stopped at resumption. Only the existing `fortem-security-master-postgres` container was started, reusing `techv2_fortem_security_master_postgres`; no new volume was created and unrelated containers remained stopped.
+Docker Desktop and PostgreSQL were stopped at resumption. Only the existing `platform-security-master-postgres` container was started, reusing `techv2_platform_security_master_postgres`; no new volume was created and unrelated containers remained stopped.
 
 The first post-activation catalogue search exposed pre-existing schema drift: operating revision `20261002_58` lacked `secm.swap_definition_version`, which the current generic search references. Reviewed, already-tested revisions `20261002_59`, `20261002_60` and `20261005_61` were applied, bringing the operating DB to head. They add the versioned swap table and adjust constraints; they do not backfill legacy swaps or rewrite existing trades/instruments. The same catalogue search checks then passed. No application-code workaround was added.
 
 The previously used UI on port 3007 uses a separate isolated preview DB and was not seeded. This delivery verifies the operating DB and application repository/readiness functions, not a running browser UI. No operating trades were booked, no browser onboarding was performed, and no changes were committed or pushed to GitHub.
 
-Three older inactive disposable-test databases remain untouched because their ownership was not sufficiently established: `fortem_isolated_tests_daf2424fe3fe4c4e90080b795b1f6fb4`, `fortem_isolated_tests_0cda8bfe548847709bf1b7756d6ca8f3`, and `fortem_isolated_tests_e896667a8c3142b4afcf79c7e2ca9c28`. Verify ownership before any later cleanup; never remove test databases by wildcard. The completed full-suite database from this delivery was verified absent.
+Three older inactive disposable-test databases remain untouched because their ownership was not sufficiently established: `platform_isolated_tests_daf2424fe3fe4c4e90080b795b1f6fb4`, `platform_isolated_tests_0cda8bfe548847709bf1b7756d6ca8f3`, and `platform_isolated_tests_e896667a8c3142b4afcf79c7e2ca9c28`. Verify ownership before any later cleanup; never remove test databases by wildcard. The completed full-suite database from this delivery was verified absent.
 
 ## Remaining scope
 

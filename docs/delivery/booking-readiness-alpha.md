@@ -47,7 +47,7 @@ Sequential work in the user-selected feature checkout; earlier integrity changes
 
 ### Isolated browser acceptance
 
-Preview only: UI port 3004, API port 8004, disposable databases named `fortem_readiness_browser_<random UUID>`. Synthetic seed data and test-only draft listings; no trade submission, approval or operating-data edits.
+Preview only: UI port 3004, API port 8004, disposable databases named `platform_readiness_browser_<random UUID>`. Synthetic seed data and test-only draft listings; no trade submission, approval or operating-data edits.
 
 Verified through the real browser:
 

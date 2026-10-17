@@ -18,11 +18,11 @@ def test_route_is_selected_from_registry_not_client_database_input() -> None:
     route = select_tenant_route(
         tenant_id=TENANT_ID,
         registry=(
-            TenantRoute(TENANT_ID, "tenant_fortem", "cluster-a", "ACTIVE", 12),
+            TenantRoute(TENANT_ID, "tenant_platform", "cluster-a", "ACTIVE", 12),
         ),
         requested_database=None,
     )
-    assert route.database_name == "tenant_fortem"
+    assert route.database_name == "tenant_platform"
 
 
 def test_client_cannot_override_registry_database_or_use_inactive_route() -> None:
@@ -30,7 +30,7 @@ def test_client_cannot_override_registry_database_or_use_inactive_route() -> Non
         select_tenant_route(
             tenant_id=TENANT_ID,
             registry=(
-                TenantRoute(TENANT_ID, "tenant_fortem", "cluster-a", "SUSPENDED", 12),
+                TenantRoute(TENANT_ID, "tenant_platform", "cluster-a", "SUSPENDED", 12),
             ),
             requested_database="another_client_database",
         )

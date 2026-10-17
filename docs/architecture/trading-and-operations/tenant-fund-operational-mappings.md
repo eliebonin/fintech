@@ -86,8 +86,8 @@ silently reinterpret a previously processed historic file.
 
 | Profile | Incoming ID | Scope | Canonical outcome |
 | --- | --- | --- | --- |
-| `ABC_DAILY_ACCOUNTING` | `ACCT-1042` | `FUND` | Fortem Demo Income Fund |
-| `ABC_DAILY_VALUATION` | `NAV-I-GBP` | `FUND_SHARE_CLASS` | Fortem Demo Income Fund I Acc GBP |
+| `ABC_DAILY_ACCOUNTING` | `ACCT-1042` | `FUND` | Platform Demo Income Fund |
+| `ABC_DAILY_VALUATION` | `NAV-I-GBP` | `FUND_SHARE_CLASS` | Platform Demo Income Fund I Acc GBP |
 
 The synthetic fixture retains the valuation source value as `" NAV-I-GBP "`
 while resolving through `NAV-I-GBP`, proving raw source evidence and lookup

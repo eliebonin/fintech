@@ -109,7 +109,7 @@ def test_migration_preserves_observations_and_immutable_rules():
     with get_engine().connect() as c:
         tx=c.begin()
         try:
-            assert c.scalar(text('SELECT current_database()')).startswith('fortem_isolated_tests_'), 'Migration test requires the disposable database runner'
+            assert c.scalar(text('SELECT current_database()')).startswith('platform_isolated_tests_'), 'Migration test requires the disposable database runner'
             before=c.execute(text('SELECT market_data_observation_id,value,value_basis FROM md.market_data_observation ORDER BY market_data_observation_id')).all()
             rules=c.execute(text('SELECT valuation_policy_rule_id,series_type FROM ten.valuation_policy_rule ORDER BY valuation_policy_rule_id')).all()
             c.execute(text('DROP TRIGGER normalize_closing_series ON md.market_data_series'))

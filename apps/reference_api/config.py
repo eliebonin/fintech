@@ -5,7 +5,7 @@ import os
 from uuid import UUID
 
 
-DEFAULT_DATABASE_URL = "postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm"
+DEFAULT_DATABASE_URL = "postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm"
 DEFAULT_DEMO_TENANT_ID = UUID("00000000-0000-7000-8000-000000000011")
 
 

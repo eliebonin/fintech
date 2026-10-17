@@ -61,6 +61,12 @@ def evaluate_rights(profile, requirements, grants, activity: str, on_date: date,
 
 
 def load_rights(connection, dataset_id, activity: str, on_date: date, scope: str | None = None):
+    from .read_scope import cached_read
+    return cached_read(connection, ('rights', dataset_id, activity, on_date, scope),
+        lambda: _load_rights(connection, dataset_id, activity, on_date, scope))
+
+
+def _load_rights(connection, dataset_id, activity, on_date, scope):
     from sqlalchemy import select
     from security_master_schema import models as m
     dataset = connection.execute(select(m.dataset).where(m.dataset.c.dataset_id == dataset_id)).mappings().one_or_none()
@@ -84,16 +90,62 @@ def load_rights(connection, dataset_id, activity: str, on_date: date, scope: str
                            scope or (profile['usage_scope'] if profile else 'PERSONAL'))
 
 
-def denied_display_datasets(connection, tenant_id, on_date: date):
+def denied_display_datasets(connection, tenant_id, on_date: date, *, datasets=None):
     """Legacy fixtures keep their current model; all profiled datasets are strict."""
-    return denied_activity_datasets(connection, tenant_id, on_date, ('DISPLAY',))
+    return denied_activity_datasets(connection, tenant_id, on_date, ('DISPLAY',), datasets=datasets)
 
 
-def denied_activity_datasets(connection, tenant_id, on_date: date, activities):
+def denied_activity_datasets(connection, tenant_id, on_date: date, activities, *, datasets=None):
+    from .read_scope import cached_read
+    activities = tuple(activities)
+    datasets = frozenset(datasets) if datasets is not None else None
+    return cached_read(connection, ('denied_activity', tenant_id, on_date, activities, datasets),
+        lambda: _denied_activity_datasets(connection, tenant_id, on_date, activities, datasets))
+
+
+def _denied_activity_datasets(connection, tenant_id, on_date, activities, datasets=None):
+    """Read layered rights once per population, not four times per activity.
+
+    This is a fresh read unless the caller established an explicit, stable
+    resolution scope. Unprofiled legacy datasets retain their existing behavior.
+    """
+    from collections import defaultdict
     from sqlalchemy import select
     from security_master_schema import models as m
-    profiles = connection.execute(select(m.dataset_access_profile)).mappings().all()
-    return [p['dataset_id'] for p in profiles
-            if (p['permitted_tenant_id'] is not None and p['permitted_tenant_id'] != tenant_id)
-            or any(not load_rights(connection, p['dataset_id'], activity, on_date).allowed
-                   for activity in activities)]
+    query = select(m.dataset_access_profile)
+    if datasets is not None:
+        if not datasets: return []
+        query = query.where(m.dataset_access_profile.c.dataset_id.in_(datasets))
+    profiles = connection.execute(query).mappings().all()
+    ids = [p['dataset_id'] for p in profiles]
+    if not ids: return []
+    sources = {r['dataset_id']: r for r in connection.execute(select(m.dataset).where(
+        m.dataset.c.dataset_id.in_(ids))).mappings()}
+    requirements = defaultdict(list)
+    for row in connection.execute(select(m.dataset_right_requirement).where(
+            m.dataset_right_requirement.c.dataset_id.in_(ids),
+            m.dataset_right_requirement.c.activity.in_(activities))).mappings():
+        requirements[(row['dataset_id'], row['activity'])].append(row)
+    g, a, l = m.licence_activity_grant, m.dataset_licence_assignment, m.data_licence
+    grants = defaultdict(list)
+    for row in connection.execute(select(g, a.c.dataset_id, l.c.licensee_organisation_id,
+            a.c.status.label('assignment_status'), l.c.status.label('licence_status'),
+            a.c.valid_from.label('assignment_valid_from'), a.c.valid_to.label('assignment_valid_to'),
+            l.c.valid_from.label('licence_valid_from'), l.c.valid_to.label('licence_valid_to'))
+            .select_from(g.join(a).join(l)).where(a.c.dataset_id.in_(ids),g.c.activity.in_(activities))).mappings():
+        grants[(row['dataset_id'], row['activity'])].append(row)
+    denied = []
+    for profile in profiles:
+        identity = profile['dataset_id']
+        source = sources.get(identity)
+        if (profile['permitted_tenant_id'] is not None and profile['permitted_tenant_id'] != tenant_id
+                or not source or source['status'] != 'ACTIVE' or source['valid_from'] > on_date
+                or source['valid_to'] is not None and source['valid_to'] < on_date):
+            # With no requested activities the old API only checked ownership.
+            if activities or profile['permitted_tenant_id'] not in (None,tenant_id): denied.append(identity)
+            continue
+        enriched = dict(profile,dataset_code=source['dataset_code'])
+        if any(not evaluate_rights(enriched,requirements[(identity,activity)],grants[(identity,activity)],
+                activity,on_date,profile['usage_scope']).allowed for activity in activities):
+            denied.append(identity)
+    return denied

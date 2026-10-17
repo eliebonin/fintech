@@ -18,7 +18,7 @@ def upgrade() -> None:
         sa.Column("data_provider_id", sa.UUID(), sa.ForeignKey("md.data_provider.data_provider_id"), nullable=False, comment="Provider responsible for publishing this source vintage."),
         sa.Column("source_vintage_key", sa.String(length=250), nullable=True, comment="Provider revision, file, batch, run, or other stable source-vintage identifier when supplied."),
         sa.Column("source_published_at_utc", sa.DateTime(timezone=True), nullable=True, comment="UTC time at which the provider published this vintage; null only when the provider supplies no publication timestamp."),
-        sa.Column("received_at_utc", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP"), comment="UTC time at which Fortem received or accepted this source vintage."),
+        sa.Column("received_at_utc", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP"), comment="UTC time at which Platform received or accepted this source vintage."),
         sa.Column("value_basis", sa.String(length=40), nullable=False, server_default=sa.text("'RAW'"), comment="Lineage basis of values in this vintage such as RAW, VENDOR_ADJUSTED, or RESTATED."),
         sa.Column("vintage_status", sa.String(length=30), nullable=False, server_default=sa.text("'CURRENT'"), comment="Lifecycle state such as CURRENT, CORRECTED, RESTATED, SUPERSEDED, or REJECTED."),
         sa.Column("content_hash", sa.String(length=128), nullable=True, comment="Hash of the retained source extract or normalized vintage content for duplicate and integrity detection."),

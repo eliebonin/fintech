@@ -1,6 +1,8 @@
 'use client';
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {useRef,useState,type FormEvent} from 'react';
-import {withProposalRetry,type ProposalRetry} from '@/lib/proposal-retry';
+import {withProposalRetry,confirmProposalRetry,rejectProposalRetry,type ProposalRetry} from '@/lib/proposal-retry';
+import {useRetainedNavigation} from '@/lib/use-retained-navigation';
 import Link from 'next/link';
 import type {components} from 'api-contracts';
 import {bffPost,searchReferenceNodesFromBff,type CurrencyGroup,type ReferenceNodeOption} from '@/lib/browser-api-client';
@@ -10,6 +12,7 @@ import {FUTURE_MONTHS,deliveryMonths} from './future-form-model';
 type FamilyRequest=components['schemas']['FutureFamilyProposalRequest'];
 export function FutureFamilyForm({tenantId,currencies,browse=false}:{tenantId:string;currencies:CurrencyGroup[];browse?:boolean}) {
   const proposalRetry=useRef<ProposalRetry|null>(null);
+  useRetainedNavigation(proposalRetry);
   const [mode,setMode]=useState<'CREATE'|'BROWSE'>(browse?'BROWSE':'CREATE');
   const [kind,setKind]=useState<'INDEX'|'CRYPTOASSET'>('INDEX'),[cycle,setCycle]=useState(''),[months,setMonths]=useState<number[]>([]);
   const [query,setQuery]=useState(''),[rows,setRows]=useState<ReferenceNodeOption[]>([]),[underlying,setUnderlying]=useState<ReferenceNodeOption>(),[busy,setBusy]=useState(false);
@@ -26,7 +29,7 @@ export function FutureFamilyForm({tenantId,currencies,browse=false}:{tenantId:st
         contractSize:kind==='CRYPTOASSET'?value('contractSize'):null,contractSizeCurrencyId:kind==='CRYPTOASSET'?value('contractSizeCurrencyId'):null,
         monetaryMultiplier:kind==='CRYPTOASSET'?value('contractSize'):value('monetaryMultiplier'),quoteFactor:value('quoteFactor'),tickSize:value('tickSize'),allowNegativePrice:data.has('allowNegativePrice')}});
   }
-  async function submit(){if(flight.current||!review)return;flight.current=true;setSaving(true);setError('');try{const result=await bffPost<components['schemas']['ReferenceDataProposalResponse']>('/api/instruments/future-families',withProposalRetry(review,proposalRetry),undefined,fetch,{'X-Expected-Tenant-Id':tenantId});setProposal(result.data.proposalId);}catch(e){setError(e instanceof Error?e.message:'Family request failed.');}finally{flight.current=false;setSaving(false);}}
+  async function submit(){if(flight.current||!review)return;flight.current=true;setSaving(true);setError('');try{const result=await bffPost<components['schemas']['ReferenceDataProposalResponse']>('/api/instruments/future-families',withProposalRetry(review,proposalRetry),undefined,fetch,{'X-Expected-Tenant-Id':tenantId});setProposal(confirmProposalRetry(proposalRetry,result));}catch(e){rejectProposalRetry(proposalRetry,e);setError(e instanceof Error?e.message:'Family request failed.');}finally{flight.current=false;setSaving(false);}}
   const input=(name:string,label:string,hint:string,numeric=false)=><label>{label}<input name={name} aria-label={label} aria-describedby={`${name}-hint`} required maxLength={name==='familyCode'?80:numeric?40:250} defaultValue={draft[name]??''} inputMode={numeric?'decimal':undefined} pattern={name==='familyCode'?'[A-Z0-9_]+':numeric?'[0-9]+(\\.[0-9]+)?':undefined}/><small id={`${name}-hint`}>{hint}</small></label>;
   const currencySelect=(name:string,label:string,cryptoOnly=false)=><label>{label}<select name={name} aria-label={label} aria-describedby={`${name}-hint`} required defaultValue={draft[name]??''}><option value="">Select currency</option>{currencies.filter(g=>!cryptoOnly||g.groupCode==='CRYPTO').map(g=><optgroup key={g.groupCode} label={g.label}>{g.items.map(c=><option key={c.currencyId} value={c.currencyId}>{c.currencyCode} · {c.displayName}</option>)}</optgroup>)}</select><small id={`${name}-hint`}>{cryptoOnly?'Must match the selected underlying asset.':'The currency used to quote prices; this is not the deliverable asset.'}</small></label>;
   if(proposal)return <section className="configuration-page detail-card"><h2>Family submitted for approval</h2><p>Request {proposal}. No tradable expiry or listing was created.</p><div className="configuration-form-actions"><Link href="/operations">Review in Operations</Link><Link href="/instruments/futures/new">Create an expiry after approval</Link></div></section>;

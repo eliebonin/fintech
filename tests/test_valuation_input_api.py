@@ -27,4 +27,4 @@ def test_input_api_rejects_bad_balance_and_unavailable_strategy():
     data=payload();data['closingBalance']='1'
     assert call('POST','/v1/valuation/accrual-inputs',data).status_code==422
     data=payload();data['strategyId']=str(uuid4())
-    assert call('POST','/v1/valuation/accrual-inputs',data).status_code==404
+    assert call('POST','/v1/valuation/accrual-inputs',data).status_code==403

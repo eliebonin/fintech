@@ -1,4 +1,6 @@
 import {afterEach,expect,it,vi} from 'vitest';
+// DOM navigation is exercised by the real-browser shared-guard journey.
+vi.mock('@/lib/use-retained-navigation',()=>({useRetainedNavigation:()=>{}}));
 const h=vi.hoisted(()=>({slots:[] as any[],cursor:0,send:vi.fn()}));
 vi.mock('react',async original=>({...await original<typeof import('react')>(),useState:(initial:any)=>{const i=h.cursor++;if(!(i in h.slots))h.slots[i]=initial;return [h.slots[i],(v:any)=>{h.slots[i]=typeof v==='function'?v(h.slots[i]):v;}];},useRef:(initial:any)=>{const i=h.cursor++;if(!(i in h.slots))h.slots[i]={current:initial};return h.slots[i];}}));
 vi.mock('@/lib/browser-api-client',()=>({bffPost:h.send}));

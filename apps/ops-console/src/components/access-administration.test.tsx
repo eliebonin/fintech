@@ -24,10 +24,12 @@ it('shows tenant-local groups and action permissions instead of role-name assump
   actions:[{code:'TRADE_READ',moduleCodes:['TRADING']},{code:'TRADE_WRITE',moduleCodes:['TRADING']}]}}/>);
  expect(html).toContain('Trader Alice');expect(html).toContain('Traders');expect(html).toContain('2 actions');
  expect(html).toContain('Groups');expect(html).toContain('Add user');
+ expect(html).toContain('/tenant-profile/effective-access?userId=u');
 });
 it('allows removing an existing suspended group assignment',()=>{
  const html=renderToStaticMarkup(<UserAccessEditor user={{userId:'u',name:'Alice',role:'MEMBER',status:'ACTIVE',accountStatus:'ACTIVE',groupIds:['g'],permissions:[]}}
   groups={[{groupId:'g',code:'OLD',name:'Old group',description:null,status:'SUSPENDED',actions:[]}]} busy={false} cancel={()=>{}} save={async()=>true} change={async()=>true}/>);
  const checked=html.match(/<input[^>]*type="checkbox"[^>]*>/g)?.find(input=>input.includes('checked'));
  expect(checked).toBeDefined();expect(checked).not.toContain('disabled');
+ expect(html).toContain('Operational actions require group permissions');
 });

@@ -162,6 +162,19 @@ trade_selection_member = Table("trade_selection_member", metadata,
     UniqueConstraint("tenant_id", "role", "person_id", name="uq_trade_selection_person"),
     CheckConstraint("(role = 'TRADER' AND person_id IS NOT NULL AND organisation_id IS NULL) OR (role IN ('COUNTERPARTY','EXECUTING_BROKER') AND organisation_id IS NOT NULL AND person_id IS NULL)", name="ck_trade_selection_target"), schema="trd")
 
+# Tenant presentation only. Role membership remains in trade_selection_member;
+# metadata must never silently enable a trading role or modify shared legal facts.
+tenant_organisation_profile = Table("tenant_organisation_profile", metadata,
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), primary_key=True),
+    Column("organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), primary_key=True),
+    Column("label", String(250)), Column("internal_code", String(100)), Column("notes", Text),
+    Column("version_no", Integer, nullable=False),
+    Column("updated_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+    Column("updated_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW),
+    CheckConstraint("version_no > 0", name="ck_tenant_organisation_version"),
+    CheckConstraint("notes IS NULL OR length(notes) <= 2000", name="ck_tenant_organisation_notes"),
+    UniqueConstraint("tenant_id", "internal_code", name="uq_tenant_organisation_code"), schema="trd")
+
 trade_configuration_event = Table("trade_configuration_event", metadata,
     Column("event_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
     Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False),
@@ -729,6 +742,7 @@ strategy = Table(
     Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=True, comment="Authenticated account that created this tenant strategy."),
     Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which this strategy was created."),
     UniqueConstraint("tenant_id", "strategy_code", name="uq_strategy_tenant_code"),
+    UniqueConstraint("tenant_id", "strategy_id", name="uq_strategy_scope_identity"),
     CheckConstraint("strategy_type IN ('AMC_MANDATE', 'FUND', 'MANAGED_ACCOUNT', 'PROP_SLEEVE', 'MODEL_PORTFOLIO', 'OTHER')", name="ck_strategy_type"),
     CheckConstraint("(strategy_type = 'OTHER' AND NULLIF(BTRIM(operating_model_label), '') IS NOT NULL) OR (strategy_type <> 'OTHER' AND operating_model_label IS NULL)", name="ck_strategy_operating_model_label"),
     CheckConstraint("effective_to IS NULL OR effective_to >= effective_from", name="ck_strategy_effective_period"),
@@ -744,6 +758,7 @@ cash_account = Table(
     Column("custodian_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=True, comment="Custodian, bank, or counterparty maintaining the account."),
     Column("external_account_reference", String(250), nullable=True, comment="External account number or reference, protected and masked in application views as required."),
     Column("account_type", String(40), nullable=False, comment="Cash account kind such as CUSTODY, MARGIN, SETTLEMENT, or INTERNAL_LEDGER."),
+    Column("display_label", String(100), nullable=True, comment="Tenant-facing account label; not a sensitive external account number."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the cash account."),
     schema="trd",
 )
@@ -801,7 +816,7 @@ trade_lifecycle_event = Table(
     Column("supersedes_event_id", UUID_V7, ForeignKey("trd.trade_lifecycle_event.trade_lifecycle_event_id"), nullable=True, comment="Prior lifecycle event superseded by this correction or replacement."),
     Column("event_payload", Text, nullable=True, comment="Serialized normalized correction details; the original trade and source payload remain separately retained."),
     Column("recorded_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Authenticated internal account or service that recorded this lifecycle event."),
-    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Fortem recorded the lifecycle event."),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Platform recorded the lifecycle event."),
     UniqueConstraint("trade_id", "sequence_no", name="uq_trade_lifecycle_event_sequence"),
     UniqueConstraint("source_system_id", "source_event_id", name="uq_trade_lifecycle_event_source_id"),
     schema="trd",
@@ -940,6 +955,12 @@ cash_balance = Table(
     Column("amount", Numeric(30, 12), nullable=False, comment="Full signed currency balance at the stated as-of time, not a cash movement."),
     Column("source_system_id", String(100), nullable=True, comment="Custodian, administrator, accounting, or internal source supplying the balance."),
     Column("source_reference", String(500), nullable=True, comment="External statement, file, or message reference for the balance snapshot."),
+    Column("revision", Integer, nullable=False, server_default=text('1'), comment="Append-only revision of an exact-date EoD snapshot."),
+    Column("supersedes_balance_id", UUID_V7, ForeignKey("trd.cash_balance.cash_balance_id"), nullable=True),
+    Column("note", String(2000), nullable=True, comment="Non-economic operations note, retained per revision."),
+    Column("correction_reason", String(2000), nullable=True),
+    Column("submission_key", String(255), nullable=True),
+    Column("request_hash", String(64), nullable=True),
     Column("received_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which the balance snapshot was received or recorded."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Snapshot status such as ACTIVE, SUPERSEDED, or REJECTED."),
     Column("created_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Authenticated internal user or service account that created the snapshot record."),
@@ -951,7 +972,7 @@ cash_balance = Table(
 tenant = Table(
     "tenant",
     metadata,
-    Column("tenant_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a subscribing client, Fortem business context, or isolated tenant workspace."),
+    Column("tenant_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a subscribing client, Platform business context, or isolated tenant workspace."),
     Column("owning_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Organisation legally or commercially responsible for the tenant context."),
     Column("tenant_code", String(100), nullable=False, unique=True, comment="Stable unique internal code used to identify the tenant in operations and integrations."),
     Column("display_name", String(250), nullable=False, comment="Human-readable tenant name used in operations and client-facing administration."),
@@ -1137,7 +1158,7 @@ integration_source_system = Table(
     metadata,
     Column("integration_source_system_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for an external or internal system participating in an integration."),
     Column("owning_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=True, comment="Organisation operating or owning the source system, provider feed, bank platform, or client application."),
-    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Tenant scope when the source system is client-specific; null for shared provider or Fortem systems."),
+    Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Tenant scope when the source system is client-specific; null for shared provider or Platform systems."),
     Column("system_code", String(100), nullable=False, unique=True, comment="Stable unique code for the source system, for example CUSTODIAN_B_ASSET_PROD or LSEG_DSS_PROD."),
     Column("display_name", String(250), nullable=False, comment="Human-readable name of the source system or integration endpoint."),
     Column("source_kind", String(40), nullable=False, comment="Source category such as BANK, CUSTODIAN, CLIENT_PMS, ADMINISTRATOR, VENDOR, EXCHANGE, or INTERNAL."),
@@ -1172,7 +1193,7 @@ source_payload = Table(
     Column("payload_locator", String(1000), nullable=False, comment="Immutable object-store locator or secure external location of the retained raw payload."),
     Column("payload_sha256", String(64), nullable=False, comment="SHA-256 checksum used to establish payload identity and idempotency."),
     Column("source_published_at_utc", DateTime(timezone=True), nullable=True, comment="UTC timestamp at which the source published the payload when supplied."),
-    Column("received_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Fortem received the payload."),
+    Column("received_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Platform received the payload."),
     Column("processing_status", String(30), nullable=False, server_default=text("'RECEIVED'"), comment="Payload processing status such as RECEIVED, VALIDATED, MAPPED, REJECTED, or SUPERSEDED."),
     schema="ing",
 )
@@ -1180,13 +1201,13 @@ source_payload = Table(
 external_object_mapping = Table(
     "external_object_mapping",
     metadata,
-    Column("external_object_mapping_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a time-bound mapping from an external source code to a Fortem UUID."),
+    Column("external_object_mapping_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a time-bound mapping from an external source code to a Platform UUID."),
     Column("external_id_namespace_id", UUID_V7, ForeignKey("ing.external_id_namespace.external_id_namespace_id"), nullable=False, comment="Namespace in which the external object identifier is meaningful."),
     Column("external_object_type", String(50), nullable=False, comment="Controlled type of the external object such as LISTING, REFERENCE_NODE, STRATEGY, TRADE, ORGANISATION, or PERSON."),
     Column("external_id_value", String(500), nullable=False, comment="External object identifier exactly as supplied by the governing source namespace."),
     Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Tenant owning this mapping when it is a tenant-local alias; null means the mapping is shared canonical data."),
-    Column("target_object_type", String(50), nullable=False, comment="Controlled Fortem target type corresponding to target_object_id; enforced by mapping-service validation and later database trigger."),
-    Column("target_object_id", UUID_V7, nullable=False, comment="Fortem immutable UUID resolved from the external identifier; polymorphic target validation is intentionally deferred to controlled service and trigger logic."),
+    Column("target_object_type", String(50), nullable=False, comment="Controlled Platform target type corresponding to target_object_id; enforced by mapping-service validation and later database trigger."),
+    Column("target_object_id", UUID_V7, nullable=False, comment="Platform immutable UUID resolved from the external identifier; polymorphic target validation is intentionally deferred to controlled service and trigger logic."),
     Column("context_market_venue_id", UUID_V7, ForeignKey("secm.market_venue.market_venue_id"), nullable=True, comment="Venue context required when an external identifier refers to a specific listing or market representation."),
     Column("mapping_role", String(30), nullable=False, server_default=text("'PRIMARY'"), comment="Mapping role such as PRIMARY, TRADING_ROUTE, ALIAS, LEGACY, or SOURCE_REFERENCE."),
     Column("mapping_method", String(30), nullable=False, comment="How the mapping was established, for example MANUAL, PROVIDER_MATCH, CLIENT_CONFIRMED, or RULE."),
@@ -1194,9 +1215,9 @@ external_object_mapping = Table(
     Column("confidence", Numeric(5, 4), nullable=True, comment="Optional confidence score from zero to one for an automated or provider-supplied mapping."),
     Column("verified_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=True, comment="Internal authenticated user or service account that verified the mapping."),
     Column("verified_at_utc", DateTime(timezone=True), nullable=True, comment="UTC timestamp at which the mapping was verified."),
-    Column("valid_from", Date, nullable=False, comment="First business date on which the external-to-Fortem mapping is valid."),
-    Column("valid_to", Date, nullable=True, comment="Last business date on which the external-to-Fortem mapping is valid."),
-    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which this mapping version was recorded by Fortem."),
+    Column("valid_from", Date, nullable=False, comment="First business date on which the external-to-Platform mapping is valid."),
+    Column("valid_to", Date, nullable=True, comment="Last business date on which the external-to-Platform mapping is valid."),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which this mapping version was recorded by Platform."),
     Column("source_payload_id", UUID_V7, ForeignKey("ing.source_payload.source_payload_id"), nullable=True, comment="Retained source payload that evidenced or proposed the mapping when applicable."),
     Column("supersedes_mapping_id", UUID_V7, ForeignKey("ing.external_object_mapping.external_object_mapping_id"), nullable=True, comment="Prior mapping version superseded by this mapping when a source code is reassigned or corrected."),
     UniqueConstraint("external_id_namespace_id", "external_object_type", "external_id_value", "context_market_venue_id", "tenant_id", "valid_from", name="uq_external_object_mapping_business_key"),
@@ -1304,7 +1325,7 @@ data_provider = Table(
     metadata,
     Column("data_provider_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a governed provider delivery identity."),
     Column("organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Organisation commercially or operationally providing the data service."),
-    Column("provider_code", String(100), nullable=False, unique=True, comment="Stable unique code for the provider delivery identity, such as BLOOMBERG, LSEG_DSS, FACTSET, or INTERNAL_FORTEM."),
+    Column("provider_code", String(100), nullable=False, unique=True, comment="Stable unique code for the provider delivery identity, such as BLOOMBERG, LSEG_DSS, FACTSET, or INTERNAL_PLATFORM."),
     Column("display_name", String(250), nullable=False, comment="Human-readable name of the provider delivery identity."),
     Column("owner_tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Tenant-private delivery identity for tenant-supplied series; null for shared providers. Uploading does not change upstream ownership or licensing rights."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the data provider record."),
@@ -1316,7 +1337,7 @@ provider_product = Table(
     metadata,
     Column("provider_product_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a provider commercial product family."),
     Column("data_provider_id", UUID_V7, ForeignKey("md.data_provider.data_provider_id"), nullable=False, comment="Provider offering the commercial product family."),
-    Column("product_code", String(150), nullable=False, comment="Provider-controlled or Fortem-governed code for the product family, such as DATA_LICENSE or DATASCOPE_SELECT."),
+    Column("product_code", String(150), nullable=False, comment="Provider-controlled or Platform-governed code for the product family, such as DATA_LICENSE or DATASCOPE_SELECT."),
     Column("display_name", String(250), nullable=False, comment="Human-readable name of the provider product family."),
     Column("description", Text, nullable=True, comment="Commercial and operational description of the provider product family."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the provider product family."),
@@ -1346,7 +1367,7 @@ data_licence = Table(
     metadata,
     Column("data_licence_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a versioned contractual data-use right or licence."),
     Column("licensor_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Organisation granting or controlling the contractual data-use right."),
-    Column("licensee_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Fortem or client organisation holding the contractual data-use right."),
+    Column("licensee_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Platform or client organisation holding the contractual data-use right."),
     Column("licence_code", String(150), nullable=False, unique=True, comment="Stable internal code for the specific licence or contractual right."),
     Column("display_name", String(250), nullable=False, comment="Human-readable licence name."),
     Column("licence_reference", String(500), nullable=True, comment="External agreement, order-form, or contractual reference where retention is permitted."),
@@ -1609,7 +1630,7 @@ market_data_vintage = Table(
     Column("data_provider_id", UUID_V7, ForeignKey("md.data_provider.data_provider_id"), nullable=False, comment="Provider responsible for publishing this source vintage."),
     Column("source_vintage_key", String(250), nullable=True, comment="Provider revision, file, batch, run, or other stable source-vintage identifier when supplied."),
     Column("source_published_at_utc", DateTime(timezone=True), nullable=True, comment="UTC time at which the provider published this vintage; null only when the provider supplies no publication timestamp."),
-    Column("received_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC time at which Fortem received or accepted this source vintage."),
+    Column("received_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC time at which Platform received or accepted this source vintage."),
     Column("value_basis", String(40), nullable=False, server_default=text("'RAW'"), comment="Lineage basis of values in this vintage such as RAW, VENDOR_ADJUSTED, or RESTATED."),
     Column("vintage_status", String(30), nullable=False, server_default=text("'CURRENT'"), comment="Lifecycle state such as CURRENT, CORRECTED, RESTATED, SUPERSEDED, or REJECTED."),
     Column("content_hash", String(128), nullable=True, comment="Hash of the retained source extract or normalized vintage content for duplicate and integrity detection."),
@@ -1626,7 +1647,7 @@ market_data_observation = Table(
     Column("market_data_series_id", UUID_V7, ForeignKey("md.market_data_series.market_data_series_id"), nullable=False, comment="Series to which this observation belongs."),
     Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=False, comment="Actual governed dataset from which this observation was sourced; mandatory immutable provenance even when the series has a default dataset."),
     Column("market_data_vintage_id", UUID_V7, ForeignKey("md.market_data_vintage.market_data_vintage_id"), nullable=True, comment="Provider source vintage containing this observation; nullable only for legacy rows pending lineage backfill."),
-    Column("acquisition_licence_id", UUID_V7, ForeignKey("md.data_licence.data_licence_id"), nullable=True, comment="Specific licence or right under which Fortem acquired or retained this observation when known; tenant access is evaluated separately."),
+    Column("acquisition_licence_id", UUID_V7, ForeignKey("md.data_licence.data_licence_id"), nullable=True, comment="Specific licence or right under which Platform acquired or retained this observation when known; tenant access is evaluated separately."),
     Column("source_payload_id", UUID_V7, ForeignKey("ing.source_payload.source_payload_id"), nullable=True, comment="Retained raw payload or message containing the observation when source-level evidence is available."),
     Column("market_date", Date, nullable=True, comment="Business date for which the value is economically applicable; separate from source, observation, and receipt timestamps and mandatory for newly onboarded end-of-day or fund-NAV observations."),
     Column("valuation_cut_id", UUID_V7, ForeignKey("md.valuation_cut.valuation_cut_id"), nullable=True, comment="Named valuation cut represented by this particular observation when more precise than the series-level cut."),
@@ -1692,7 +1713,9 @@ Index("ix_tenant_user_account_lookup", tenant_user_account.c.tenant_id, tenant_u
 Index("ix_market_data_series_dimension_lookup", market_data_series_dimension.c.dimension_code, market_data_series_dimension.c.dimension_value, market_data_series_dimension.c.market_data_series_id)
 Index("uq_market_data_observation_source_key", market_data_observation.c.market_data_series_id, market_data_observation.c.dataset_id, text("COALESCE(market_data_vintage_id, '00000000-0000-0000-0000-000000000000'::uuid)"), market_data_observation.c.source_observation_key, unique=True, postgresql_where=text("source_observation_key IS NOT NULL"))
 Index("uq_trade_external_reference_source_value", trade_external_reference.c.source_system_id, trade_external_reference.c.reference_type, trade_external_reference.c.reference_value, unique=True, postgresql_where=text("source_system_id IS NOT NULL"))
-Index("uq_cash_balance_snapshot_source", cash_balance.c.strategy_id, text("COALESCE(cash_account_id, '00000000-0000-0000-0000-000000000000'::uuid)"), cash_balance.c.currency_id, cash_balance.c.balance_as_of_datetime_utc, cash_balance.c.balance_type, text("COALESCE(source_system_id, '')"), unique=True)
+Index("uq_cash_balance_snapshot_source", cash_balance.c.strategy_id, text("COALESCE(cash_account_id, '00000000-0000-0000-0000-000000000000'::uuid)"), cash_balance.c.currency_id, cash_balance.c.balance_as_of_datetime_utc, cash_balance.c.balance_type, text("COALESCE(source_system_id, '')"), cash_balance.c.revision, unique=True)
+Index('uq_cash_account_label',cash_account.c.strategy_id,cash_account.c.display_label,unique=True)
+Index('uq_cash_balance_submission',cash_balance.c.strategy_id,cash_balance.c.submission_key,unique=True,postgresql_where=cash_balance.c.submission_key.is_not(None))
 
 
 # Second-draft reference lifecycle, economic terms, valuation, and Soft-NAV models.
@@ -2070,7 +2093,7 @@ option_strike_fixing = Table(
     Column("market_data_resolution_snapshot_id", UUID_V7, ForeignKey("md.market_data_resolution_snapshot.market_data_resolution_snapshot_id"), nullable=True, comment="Resolution snapshot proving the entitled market-data inputs used for this fixing."),
     Column("status", String(30), nullable=False, server_default=text("'ACCEPTED'"), comment="Fixing lifecycle state: ACCEPTED, SUPERSEDED, or REJECTED."),
     Column("supersedes_fixing_id", UUID_V7, ForeignKey("secm.option_strike_fixing.option_strike_fixing_id"), nullable=True, comment="Prior fixing superseded by this corrected fixing, without mutating the original fact."),
-    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Fortem recorded the fixing."),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Platform recorded the fixing."),
     CheckConstraint("resolved_strike_value > 0", name="ck_option_strike_fixing_positive"),
     CheckConstraint("status IN ('ACCEPTED', 'SUPERSEDED', 'REJECTED')", name="ck_option_strike_fixing_status"),
     schema="secm",
@@ -2163,7 +2186,7 @@ structured_product_initial_fixing = Table(
     Column("source_payload_id", UUID_V7, ForeignKey("ing.source_payload.source_payload_id"), nullable=True, comment="Retained raw payload evidencing the fixing when available."),
     Column("status", String(30), nullable=False, server_default=text("'ACCEPTED'"), comment="Fixing lifecycle state: ACCEPTED, SUPERSEDED, or REJECTED."),
     Column("supersedes_fixing_id", UUID_V7, ForeignKey("secm.structured_product_initial_fixing.structured_product_initial_fixing_id"), nullable=True, comment="Prior fixing superseded by this corrected value without mutating the original record."),
-    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Fortem recorded this fixing record."),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Platform recorded this fixing record."),
     UniqueConstraint("structured_product_terms_id", "underlying_reference_node_id", "fixing_date", "fixing_source", name="uq_structured_product_initial_fixing_record"),
     CheckConstraint("fixing_value > 0", name="ck_structured_product_initial_fixing_positive"),
     CheckConstraint("fixing_basis IN ('LEVEL', 'INDEX_POINTS', 'FX_RATE', 'PERCENT_OF_INITIAL')", name="ck_structured_product_initial_fixing_basis"),
@@ -2394,7 +2417,7 @@ corporate_action = Table(
     Column("sequence_no", Integer, nullable=False, server_default=text("1"), comment="Monotonically increasing event version sequence for announcement changes or corrections."),
     Column("source_payload_id", UUID_V7, ForeignKey("ing.source_payload.source_payload_id"), nullable=True, comment="Retained source payload evidencing this corporate-action version."),
     Column("announced_at_utc", DateTime(timezone=True), nullable=True, comment="UTC timestamp at which the event was announced when known."),
-    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Fortem recorded this event version."), schema="secm",
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Platform recorded this event version."), schema="secm",
 )
 
 corporate_action_date = Table(
@@ -2417,6 +2440,19 @@ corporate_action_effect = Table(
     Column("cash_amount", Numeric(30, 12), nullable=True, comment="Cash amount per entitled unit when applicable."),
     Column("currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Currency of the cash amount when applicable."),
     Column("rounding_rule", String(100), nullable=True, comment="Source or contractual rounding rule for the economic effect."), schema="secm",
+)
+
+corporate_action_replay_decision = Table(
+    "corporate_action_replay_decision", metadata,
+    Column("replay_decision_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("corporate_action_id", UUID_V7, ForeignKey("secm.corporate_action.corporate_action_id"), nullable=False),
+    Column("reviewed_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False),
+    Column("status", String(20), nullable=False),
+    Column("decision_payload", JSONB, nullable=False, comment="Frozen reviewed source, unit-change boundary, exact ratio and scope."),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=text("clock_timestamp()")),
+    CheckConstraint("status IN ('APPROVED','REVOKED')", name="ck_corporate_replay_decision_status"),
+    Index("ix_corporate_replay_decision_cutoff", "corporate_action_id", "recorded_at_utc"),
+    schema="secm",
 )
 
 market_data_adjustment_factor = Table(
@@ -2446,7 +2482,7 @@ option_strike_adjustment = Table(
     Column("status", String(30), nullable=False, server_default=text("'PROPOSED'"), comment="Lifecycle state: PROPOSED, ACCEPTED, SUPERSEDED, or REJECTED."),
     Column("supersedes_adjustment_id", UUID_V7, ForeignKey("secm.option_strike_adjustment.option_strike_adjustment_id"), nullable=True, comment="Prior adjustment superseded by this corrected factor or result without mutating the original record."),
     Column("source_payload_id", UUID_V7, ForeignKey("ing.source_payload.source_payload_id"), nullable=True, comment="Retained source payload evidencing the adjustment calculation or issuer notice."),
-    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Fortem recorded this adjustment record."),
+    Column("recorded_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Platform recorded this adjustment record."),
     UniqueConstraint("option_terms_id", "corporate_action_id", "effective_date", "revision_no", name="uq_option_strike_adjustment_revision"),
     CheckConstraint("adjustment_kind IN ('STOCK_SPLIT', 'REVERSE_SPLIT', 'BONUS_ISSUE', 'SPECIAL_DIVIDEND', 'OTHER')", name="ck_option_strike_adjustment_kind"),
     CheckConstraint("pre_adjustment_strike_value > 0 AND post_adjustment_strike_value > 0", name="ck_option_strike_adjustment_values"),
@@ -2606,6 +2642,10 @@ market_data_resolution_snapshot = Table(
     "market_data_resolution_snapshot", metadata,
     Column("market_data_resolution_snapshot_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for a resolved set of entitled market-data inputs."),
     Column("tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=False, comment="Tenant for whose entitlement and policy context values were resolved."),
+    Column('strategy_id',UUID_V7,ForeignKey('trd.strategy.strategy_id'),comment='Frozen strategy context, when present; not inferred from current policy.'),
+    Column('context_scope',String(20),nullable=False,server_default=text("'LEGACY_UNKNOWN'"),comment='SHARED, STRATEGY or LEGACY_UNKNOWN; unknown legacy context is not unrestricted.'),
+    CheckConstraint("context_scope IN ('SHARED','STRATEGY','LEGACY_UNKNOWN')",name='ck_resolution_context_scope'),
+    CheckConstraint("(strategy_id IS NOT NULL AND context_scope='STRATEGY') OR (strategy_id IS NULL AND context_scope IN ('SHARED','LEGACY_UNKNOWN'))",name='ck_resolution_context_identity'),
     Column("valuation_policy_id", UUID_V7, ForeignKey("ten.valuation_policy.valuation_policy_id"), nullable=False, comment="Exact tenant valuation-policy version applied to select inputs."),
     Column("valuation_date", Date, nullable=False, comment="Business valuation date for the resolution snapshot."),
     Column("valuation_cut_id", UUID_V7, ForeignKey("md.valuation_cut.valuation_cut_id"), nullable=False, comment="Named valuation cut at which data eligibility was evaluated."),
@@ -2627,7 +2667,7 @@ market_data_resolution_snapshot_item = Table(
     Column("market_data_observation_id", UUID_V7, ForeignKey("md.market_data_observation.market_data_observation_id"), nullable=True, comment="Raw observation selected by the resolver; null for a policy override or missing-data result."),
     Column("market_data_vintage_id", UUID_V7, ForeignKey("md.market_data_vintage.market_data_vintage_id"), nullable=True, comment="Immutable source vintage selected at the historic information cut."),
     Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=True, comment="Dataset of the selected observation or override when applicable."),
-    Column("acquisition_licence_id", UUID_V7, ForeignKey("md.data_licence.data_licence_id"), nullable=True, comment="Licence under which Fortem acquired the frozen observation when known."),
+    Column("acquisition_licence_id", UUID_V7, ForeignKey("md.data_licence.data_licence_id"), nullable=True, comment="Licence under which Platform acquired the frozen observation when known."),
     Column("source_published_at_utc", DateTime(timezone=True), nullable=True, comment="Provider publication timestamp frozen from the selected observation or vintage."),
     Column("received_at_utc", DateTime(timezone=True), nullable=True, comment="Platform receipt timestamp frozen from the selected observation or vintage."),
     Column("selected_value", Numeric(30, 12), nullable=True, comment="Resolved scalar value; null only when the item records an explicit unresolved exception."),
@@ -2685,7 +2725,7 @@ nav_calculation_run = Table(
     Column("valuation_cut_id", UUID_V7, ForeignKey("md.valuation_cut.valuation_cut_id"), nullable=False, comment="Named business valuation cut for the run."),
     Column("valuation_policy_id", UUID_V7, ForeignKey("ten.valuation_policy.valuation_policy_id"), nullable=False, comment="Exact tenant valuation-policy version applied to the run."),
     Column("market_data_resolution_snapshot_id", UUID_V7, ForeignKey("md.market_data_resolution_snapshot.market_data_resolution_snapshot_id"), nullable=False, comment="Immutable resolved market-data input set used by the Soft NAV."),
-    Column("calculation_version", String(100), nullable=False, comment="Version of the Fortem calculation implementation used by the run."),
+    Column("calculation_version", String(100), nullable=False, comment="Version of the Platform calculation implementation used by the run."),
     Column("status", String(30), nullable=False, server_default=text("'DRAFT'"), comment="Run review status such as DRAFT, REVIEWED, APPROVED, REJECTED, or SUPERSEDED."),
     Column("created_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which the calculation run was created."), schema="nav",
 )
@@ -2709,7 +2749,7 @@ nav_input_snapshot_item = Table(
     Column("market_data_resolution_snapshot_item_id", UUID_V7, ForeignKey("md.market_data_resolution_snapshot_item.market_data_resolution_snapshot_item_id"), nullable=True, comment="Resolved market-data snapshot item supplying this frozen input when the Soft-NAV input came from the shared resolver."),
     Column("policy_rule_id", UUID_V7, ForeignKey("ten.valuation_policy_rule.valuation_policy_rule_id"), nullable=True, comment="Exact frozen valuation-policy rule responsible for selecting, rejecting, or requiring override of the input."),
     Column("dataset_id", UUID_V7, ForeignKey("md.dataset.dataset_id"), nullable=True, comment="Dataset provenance for the selected market-data input."),
-    Column("acquisition_licence_id", UUID_V7, ForeignKey("md.data_licence.data_licence_id"), nullable=True, comment="Licence under which Fortem acquired the selected market-data input when known."),
+    Column("acquisition_licence_id", UUID_V7, ForeignKey("md.data_licence.data_licence_id"), nullable=True, comment="Licence under which Platform acquired the selected market-data input when known."),
     Column("selected_value", Numeric(30, 12), nullable=False, comment="Exact scalar value frozen for use by the Soft-NAV calculation."),
     Column("currency_id", UUID_V7, ForeignKey("secm.currency.currency_id"), nullable=True, comment="Currency of the selected input value when applicable."),
     Column("pricing_date_requested", Date, nullable=True, comment="Business date requested by the policy for this input, retained even when it differs from the NAV valuation date."),
@@ -2796,7 +2836,7 @@ position_snapshot = Table(
     Column("source_payload_id", UUID_V7, ForeignKey("ing.source_payload.source_payload_id"), nullable=True, comment="Retained client, custodian, administrator, or internal payload supplying the positions."),
     Column("content_hash", String(64), nullable=False, comment="Deterministic hash of the ordered position lines for idempotency and audit."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Snapshot status such as ACTIVE, SUPERSEDED, REJECTED, or PARTIAL."),
-    Column("received_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Fortem received or created the snapshot."),
+    Column("received_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="UTC timestamp at which Platform received or created the snapshot."),
     UniqueConstraint("tenant_id", "strategy_id", "as_of_datetime_utc", "content_hash", name="uq_position_snapshot_idempotency"), schema="trd",
 )
 
@@ -2804,7 +2844,7 @@ position_snapshot_line = Table(
     "position_snapshot_line", metadata,
     Column("position_snapshot_line_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable UUIDv7 identifier for one holding line in a full position snapshot."),
     Column("position_snapshot_id", UUID_V7, ForeignKey("trd.position_snapshot.position_snapshot_id"), nullable=False, comment="Full position snapshot containing the holding line."),
-    Column("reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=False, comment="Resolved Fortem instrument, listing, cash currency, or other reference node held by the strategy."),
+    Column("reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id"), nullable=False, comment="Resolved Platform instrument, listing, cash currency, or other reference node held by the strategy."),
     Column("external_object_mapping_id", UUID_V7, ForeignKey("ing.external_object_mapping.external_object_mapping_id"), nullable=True, comment="External-ID mapping used to resolve the inbound holding identifier when applicable."),
     Column("quantity", Numeric(30, 12), nullable=False, comment="Signed quantity held in the stated quantity unit."),
     Column("quantity_unit", String(40), nullable=False, comment="Quantity unit such as SHARE, CONTRACT, NOMINAL, UNIT, or CURRENCY_AMOUNT."),
@@ -2848,13 +2888,13 @@ Index(
 )
 
 # Valuation owns its result/review schema; shared metadata keeps FK resolution
-# and synthetic bootstrap consistent without a runtime dependency on Fortem-core.
+# and synthetic bootstrap consistent without a runtime dependency on Platform-core.
 from valuation.tables import register_valuation_tables
 register_valuation_tables(metadata)
 
 # Access management has its own bounded metadata module.
 from .access_tables import register_access_tables
-access_group, access_group_member, access_group_grant, access_audit_event, local_access_session = register_access_tables(metadata)
+access_group, access_group_member, access_group_grant, access_audit_event, local_access_session, access_group_strategy = register_access_tables(metadata)
 
 # Explicit documentation for the governed provider-selection/evidence additions.
 _provider_evidence_comments={
@@ -2892,3 +2932,87 @@ for _provider_table in (source_priority_version,source_priority_entry,dataset_co
     for _provider_column in _provider_table.c:
         if not _provider_column.comment:
             _provider_column.comment=_provider_evidence_comments[_provider_column.name]
+
+
+preference_share_terms = Table('preference_share_terms', metadata,
+    Column('preference_share_terms_id',UUID_V7,primary_key=True,server_default=UUID_V7_DEFAULT),
+    Column('structured_product_terms_id',UUID_V7,ForeignKey('secm.structured_product_terms.structured_product_terms_id'),nullable=False,unique=True),
+    Column('instrument_node_id',UUID_V7,ForeignKey('secm.instrument.instrument_node_id'),nullable=False,unique=True),
+    Column('tenant_id',UUID_V7,ForeignKey('ten.tenant.tenant_id'),nullable=False),
+    Column('issuer_organisation_id',UUID_V7,ForeignKey('secm.organisation.organisation_id'),nullable=False),
+    Column('identity_key',String(250),nullable=False),
+    Column('denomination',Numeric(30,12),nullable=False),
+    Column('inputs_json',JSONB,nullable=False),
+    Column('source_payload_id',UUID_V7,ForeignKey('ing.source_payload.source_payload_id'),nullable=True),
+    CheckConstraint('denomination > 0',name='ck_pref_share_denomination'),
+    UniqueConstraint('tenant_id','issuer_organisation_id','identity_key',name='uq_pref_share_identity'),schema='secm')
+
+preference_share_redemption_period = Table('preference_share_redemption_period',metadata,
+    Column('preference_share_redemption_period_id',UUID_V7,primary_key=True,server_default=UUID_V7_DEFAULT),
+    Column('preference_share_terms_id',UUID_V7,ForeignKey('secm.preference_share_terms.preference_share_terms_id'),nullable=False),
+    Column('sequence_no',Integer,nullable=False),Column('observation_date',Date,nullable=False),Column('payment_date',Date,nullable=False),
+    Column('trigger_level',Numeric(30,12),nullable=False),Column('comparison_operator',String(2),nullable=False),
+    Column('redemption_rate',Numeric(30,12),nullable=False),
+    CheckConstraint("comparison_operator IN ('GE','GT') AND trigger_level >= 0 AND redemption_rate > 0 AND sequence_no > 0 AND payment_date >= observation_date",name='ck_pref_share_call'),
+    UniqueConstraint('preference_share_terms_id','observation_date',name='uq_pref_share_call'),schema='secm')
+
+preference_share_terminal_branch = Table('preference_share_terminal_branch',metadata,
+    Column('preference_share_terminal_branch_id',UUID_V7,primary_key=True,server_default=UUID_V7_DEFAULT),
+    Column('preference_share_terms_id',UUID_V7,ForeignKey('secm.preference_share_terms.preference_share_terms_id'),nullable=False),
+    Column('sequence_no',Integer,nullable=False),Column('lower_bound',Numeric(30,12)),Column('upper_bound',Numeric(30,12)),
+    Column('lower_inclusive',Boolean,nullable=False),Column('upper_inclusive',Boolean,nullable=False),
+    Column('formula',String(60),nullable=False),Column('payout_rate',Numeric(30,12)),
+    CheckConstraint("sequence_no > 0 AND ((formula IN ('FIXED_PERCENT_OF_PAR','FIXED_PERCENT_OF_BASE') AND payout_rate >= 0) OR (formula IN ('WORST_PERFORMANCE_PERCENT_OF_PAR','WORST_PERFORMANCE_PERCENT_OF_BASE') AND payout_rate IS NULL))",name='ck_pref_share_terminal'),
+    UniqueConstraint('preference_share_terms_id','sequence_no',name='uq_pref_share_terminal'),schema='secm')
+
+structured_product_wrapper_terms = Table('structured_product_wrapper_terms',metadata,
+    Column('wrapper_terms_id',UUID_V7,primary_key=True,server_default=UUID_V7_DEFAULT),
+    Column('structured_product_terms_id',UUID_V7,ForeignKey('secm.structured_product_terms.structured_product_terms_id'),nullable=False,unique=True),
+    Column('preference_share_instrument_id',UUID_V7,ForeignKey('secm.instrument.instrument_node_id'),nullable=False),
+    Column('denomination',Numeric(30,12),nullable=False),Column('aggregate_issue_amount',Numeric(30,12)),
+    Column('transfer_terms_json',JSONB,nullable=False),Column('note_inputs_json',JSONB,nullable=False),
+    Column('source_payload_id',UUID_V7,ForeignKey('ing.source_payload.source_payload_id'),nullable=True),
+    CheckConstraint('denomination > 0 AND (aggregate_issue_amount IS NULL OR aggregate_issue_amount > 0)',name='ck_wrapper_amounts'),schema='secm')
+
+# Creation versions are immutable; comments document the units and dependency graph.
+_wrapper_column_comments = {
+    'preference_share_terms_id':'Immutable preference-share economic terms version identifier.',
+    'preference_share_redemption_period_id':'Identifier of one explicit preference-share autocall observation.',
+    'preference_share_terminal_branch_id':'Identifier of one disjoint terminal redemption outcome.',
+    'wrapper_terms_id':'Immutable outer-note linkage and transfer terms identifier.',
+    'structured_product_terms_id':'Structured-product terms version owning this layer.',
+    'instrument_node_id':'Canonical economic preference-share instrument.',
+    'tenant_id':'Tenant owning the governed preference-share identity.',
+    'issuer_organisation_id':'Legal issuer used with tenant and class identity for safe dependency reuse.',
+    'identity_key':'Verified ISIN or issuer-scoped class identity; placeholders cannot be approved.',
+    'denomination':'Nominal amount per unit in the layer issue currency; distinct from payout base.',
+    'inputs_json':'Canonical immutable preference-share inputs including payout basis and reference fixings.',
+    'source_payload_id':'Retained original source evidence for this contractual version.',
+    'sequence_no':'One-based contractual order within this terms version.',
+    'observation_date':'Explicit date on which the share autocall trigger is tested.',
+    'payment_date':'Resolved contractual share redemption payment date.',
+    'trigger_level':'Autocall threshold in percent of initial underlying level.',
+    'comparison_operator':'GE or GT preserves inclusive versus strict autocall comparison.',
+    'redemption_rate':'Total share redemption in percent of the explicit payout base, including premium.',
+    'lower_bound':'Lower terminal performance threshold in percent of initial level; null is unbounded.',
+    'upper_bound':'Upper terminal performance threshold in percent of initial level; null is unbounded.',
+    'lower_inclusive':'Whether the terminal outcome includes its lower threshold.',
+    'upper_inclusive':'Whether the terminal outcome includes its upper threshold.',
+    'formula':'Fixed or worst-performance percentage formula with explicit par or payout-base units.',
+    'payout_rate':'Fixed terminal payment percentage; null for performance-dependent outcomes.',
+    'preference_share_instrument_id':'Distinct governed preference-share dependency of the outer note.',
+    'aggregate_issue_amount':'Total contractual outer-note issuance amount, distinct from per-note denomination.',
+    'transfer_terms_json':'Explicit share-to-note unit conversion and outer early-redemption treatment.',
+    'note_inputs_json':'Canonical immutable outer-note identity, parties and independently resolved dates.',
+}
+for _wrapper_table in (preference_share_terms,preference_share_redemption_period,
+        preference_share_terminal_branch,structured_product_wrapper_terms):
+    for _wrapper_column in _wrapper_table.columns:
+        _wrapper_column.comment = _wrapper_column_comments[_wrapper_column.name]
+
+from .lifecycle_tables import register as _register_lifecycle_tables
+bond_redemption_policy,bond_redemption_proposal,bond_redemption_posting=_register_lifecycle_tables(metadata)
+fx_maturity_policy,fx_maturity_proposal,fx_maturity_posting=_register_lifecycle_tables(metadata,'fx_maturity')
+
+from lifecycle.coupon_tables import register as _register_coupon_tables
+_register_coupon_tables(metadata)

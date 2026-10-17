@@ -4,6 +4,8 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from uuid import uuid4
+import pytest
 
 from sqlalchemy import create_engine, text
 
@@ -13,7 +15,7 @@ ADMIN_DATABASE_URL = os.environ.get(
     "DATABASE_URL",
     os.environ["DATABASE_URL"],
 ).rsplit("/", 1)[0] + "/postgres"
-TEST_DATABASE_NAME = "fortem_secm_migration_test"
+TEST_DATABASE_NAME = "platform_isolated_tests_" + uuid4().hex
 TEST_DATABASE_URL = ADMIN_DATABASE_URL.rsplit("/", 1)[0] + f"/{TEST_DATABASE_NAME}"
 
 
@@ -32,8 +34,18 @@ def _run_alembic(*arguments: str) -> subprocess.CompletedProcess[str]:
 def _recreate_test_database() -> None:
     engine = create_engine(ADMIN_DATABASE_URL, isolation_level="AUTOCOMMIT")
     with engine.connect() as connection:
-        connection.execute(text(f"DROP DATABASE IF EXISTS {TEST_DATABASE_NAME}"))
         connection.execute(text(f"CREATE DATABASE {TEST_DATABASE_NAME}"))
+    engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def cleanup_owned_database():
+    yield
+    assert TEST_DATABASE_NAME.startswith('platform_isolated_tests_') and len(TEST_DATABASE_NAME.rsplit('_', 1)[1]) == 32
+    engine = create_engine(ADMIN_DATABASE_URL, isolation_level='AUTOCOMMIT')
+    with engine.connect() as connection:
+        connection.execute(text(f'DROP DATABASE IF EXISTS "{TEST_DATABASE_NAME}"'))
+    engine.dispose()
 
 
 def test_migrations_create_schemas_and_preserve_forward_only_history() -> None:
@@ -168,3 +180,4 @@ def test_migrations_create_schemas_and_preserve_forward_only_history() -> None:
         remaining_schema_names = set(connection.scalars(text("SELECT schema_name FROM information_schema.schemata")))
         assert {"secm", "ten", "ing", "md", "trd", "nav", "cal", "fee"}.issubset(remaining_schema_names)
         assert connection.scalar(text('SELECT version_num FROM public.alembic_version')) == revision_before
+    engine.dispose()

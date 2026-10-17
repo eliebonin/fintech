@@ -1,4 +1,8 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
+import {submitRetained,type RetainedIntent} from '@/lib/retained-mutation';
+import {useRetainedNavigation} from '@/lib/use-retained-navigation';
+import {UncertainRequest} from '@/components/uncertain-request';
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -59,7 +63,8 @@ export default function NewEquityListingPage({ initialInstrument }: { initialIns
   const [primary, setPrimary] = useState(false);
   const [message, setMessage] = useState<{ severity: "success" | "error" | "info"; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const idempotencyKey = useRef<string | undefined>(undefined);
+  const retainedIntent = useRef<RetainedIntent | null>(null);
+  useRetainedNavigation(retainedIntent);
   const floatedLabel = { inputLabel: { shrink: true } } as const;
   // Use native selects for venue/currency catalogues. This keeps the control
   // reliable in embedded browser surfaces and still renders the DB-backed
@@ -116,14 +121,14 @@ export default function NewEquityListingPage({ initialInstrument }: { initialIns
     }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) return;
+  async function submit(event?: FormEvent<HTMLFormElement>,retryOriginal=false) {
+    event?.preventDefault();
+    if (!selected&&!retryOriginal) return;
     setSubmitting(true);
     setMessage(null);
     try {
-      const body = await submitEquityListingProposalFromBff({
-        instrumentId: selected.instrumentId,
+      const body = await submitRetained(retryOriginal?JSON.parse(retainedIntent.current!.signature):{
+        instrumentId: selected!.instrumentId,
         listing: {
           marketVenueId: venue,
           tradingSymbol: symbol,
@@ -137,10 +142,10 @@ export default function NewEquityListingPage({ initialInstrument }: { initialIns
           effectiveFrom,
         },
         submissionMode: "MANUAL",
-      }, idempotencyKey.current ?? (idempotencyKey.current = createIdempotencyKey()));
+      }, retainedIntent, submitEquityListingProposalFromBff);
       setMessage({
         severity: "info",
-        text: `${body.data?.status ?? "PENDING"} · listing proposal ${body.data?.proposalId} for ${selected.canonicalName}. It is queued for operations approval; it will appear as a canonical listing only after approval.`,
+        text: `${body.data?.status ?? "PENDING"} · listing proposal ${body.data?.proposalId} for ${selected?.canonicalName??'the original instrument'}. It is queued for operations approval; it will appear as a canonical listing only after approval.`,
       });
     } catch (error) {
       setMessage({ severity: "error", text: error instanceof Error ? error.message : "Listing proposal could not be submitted" });
@@ -168,6 +173,7 @@ export default function NewEquityListingPage({ initialInstrument }: { initialIns
         </Alert>
 
         {message && <Alert severity={message.severity} sx={{ mb: 2 }}>{message.text}</Alert>}
+        {retainedIntent.current&&!submitting?<UncertainRequest busy={submitting} onRetry={()=>void submit(undefined,true)}/>:null}
 
         <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, mb: 2.5, bgcolor: "white" }}>
           <Typography variant="overline" color="primary.main" sx={{ letterSpacing: "0.1em", fontWeight: 800 }}>{selected ? "1 · PARENT ECONOMIC INSTRUMENT" : "1 · SELECT ECONOMIC INSTRUMENT"}</Typography>

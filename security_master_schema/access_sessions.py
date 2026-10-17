@@ -1,5 +1,6 @@
 """Opaque, expiring local test sessions; never a production authentication seam."""
 from datetime import datetime, timedelta, timezone
+from security_master_schema.governance_clock import governance_date
 from hashlib import sha256
 from secrets import token_urlsafe
 from uuid import uuid4
@@ -20,7 +21,7 @@ def start(c, actor, tenant, subject, *, environment):
     if (tenant is None)!=(subject is None):
         raise ValueError('Select both tenant and user, or platform mode')
     if tenant:
-        resolve_tenant_workspace(c,tenant,subject,datetime.now(timezone.utc).date())
+        resolve_tenant_workspace(c,tenant,subject,governance_date())
     token=token_urlsafe(48)
     c.execute(m.local_access_session.insert().values(session_id=uuid4(),token_hash=sha256(token.encode()).hexdigest(),
         actor_id=actor,tenant_id=tenant,subject_id=subject,expires_at_utc=datetime.now(timezone.utc)+timedelta(hours=4)))
@@ -42,7 +43,7 @@ def resolve(c, token, *, environment):
         tenantId=str(row['tenant_id']) if row['tenant_id'] else None,
         platformRole='PLATFORM_ADMIN' if row['tenant_id'] is None else None,expiresAt=row['expires_at_utc'].isoformat())
     if row['tenant_id']:
-        workspace=resolve_tenant_workspace(c,row['tenant_id'],user,datetime.now(timezone.utc).date())
+        workspace=resolve_tenant_workspace(c,row['tenant_id'],user,governance_date())
         result.update(tenantName=workspace.tenant_name,tenantCode=workspace.tenant_code,
             membershipRole=workspace.membership_role,moduleCodes=sorted(workspace.module_codes),
             tenantModuleCodes=sorted(workspace.tenant_module_codes),permissionCodes=sorted(workspace.permission_codes))

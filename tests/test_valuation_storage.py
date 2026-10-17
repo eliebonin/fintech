@@ -18,6 +18,38 @@ def test_population_identity_is_order_independent_and_version_sensitive():
     assert k.population_hash([{'trade_id':'a','attribution_id':'1'},{'trade_id':'b','attribution_id':'2'}]) == k.population_hash([{'trade_id':'b','attribution_id':'2'},{'trade_id':'a','attribution_id':'1'}])
     assert k.population_hash([{'trade_id':'a','attribution_id':'1'}]) != k.population_hash([{'trade_id':'a','attribution_id':'2'}])
 
+
+def test_high_precision_fx_result_stages_and_publishes_with_exact_evidence(valued):
+    from dataclasses import replace
+    from valuation.economics import evidence_hash
+    c,request,_=valued;k=store();result=service().calculate(c,request)
+    original=result.period.lines[0]
+    attribution=replace(original.attribution,price=D('0.0000000000006'),fx=D('0.0000000000006'),
+        cross=D('0'),market_pnl=D('0.0000000000012'),opening_value=D('0'),closing_value=D('0.0000000000012'))
+    line=replace(original,attribution=attribution,execution_value=D('0'))
+    period=replace(result.period,lines=(line,),market_pnl=attribution.market_pnl,
+        opening_value=D('0'),closing_value=attribution.closing_value,execution_value=D('0'))
+    result=replace(result,period=period,input_hash=evidence_hash({'syntheticPrecision':str(attribution.market_pnl)}))
+    run=k.begin_attempt(get_engine(),request,ids['demo_user_account'],str(uuid4()))
+    batch=k.stage(c,run,ids['demo_user_account'],result)
+    view=k.batch_view(c,request.tenant_id,batch);item=view['items'][0]
+    assert item['market_pnl']==D('0.000000000002')
+    assert item['evidence']['storageRounding']['exact']['market']=='0.0000000000012'
+    assert view['summary']['marketRoundingAdjustment']=='0.0000000000008'
+    reviewer=uuid4();c.execute(m.user_account.insert().values(user_account_id=reviewer,account_type='HUMAN'))
+    from valuation import tables as t
+    summary=view['summary']
+    c.execute(t.batch.update().where(t.batch.c.batch_id==batch).values(summary=dict(summary,marketRoundingAdjustment='0')))
+    with pytest.raises(ValueError,match='rounding'):
+        k.publish(c,request.tenant_id,batch,reviewer,'Tampered precision bridge')
+    c.execute(t.batch.update().where(t.batch.c.batch_id==batch).values(summary=summary))
+    from valuation.amendments import request_component_change,approve_component_change
+    change=request_component_change(c,request.tenant_id,batch,item['attribution_id'],ids['demo_user_account'],
+        dict(component='ADJUSTMENT',amount=D('-0.000000000001'),reason='Synthetic fee',sourceReference='TEST'),str(uuid4()))
+    revised=approve_component_change(c,request.tenant_id,change,reviewer,'Synthetic fee reviewed')
+    k.publish(c,request.tenant_id,revised,reviewer,'Synthetic precision bridge reviewed')
+    assert k.published(c,request.tenant_id,request.strategy_id,request.closing_cutoff.date())[0]['net_pnl']==D('0.000000000001')
+
 def test_identical_staging_is_idempotent_and_not_official(valued):
     c,request,_=valued;k=store();result=service().calculate(c,request)
     run=k.begin_attempt(get_engine(),request,ids['demo_user_account'],str(uuid4()))

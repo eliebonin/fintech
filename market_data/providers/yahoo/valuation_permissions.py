@@ -4,6 +4,7 @@ This records owner intent, not a Yahoo licence or commercial clearance. It does
 not relax price-basis, calendar, currency, acquisition or tenant-boundary checks.
 """
 from datetime import date,datetime,timezone
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import select
 from security_master_schema import models as m
 from security_master_schema.tenant_workspace import resolve_tenant_workspace
@@ -18,7 +19,7 @@ def enable_personal_valuation(c,tenant_id,actor_id,dataset_id,reference:str)->di
     if not reference.strip():
         raise ValueError('An explicit owner authorization reference is required')
     require_admin(c,tenant_id,actor_id)
-    if 'VALUATION' not in resolve_tenant_workspace(c,tenant_id,actor_id,date.today()).module_codes:
+    if 'VALUATION' not in resolve_tenant_workspace(c,tenant_id,actor_id,governance_date()).module_codes:
         raise PermissionError('An active VALUATION module is required')
     dataset=c.execute(select(m.dataset).where(m.dataset.c.dataset_id==dataset_id).with_for_update()).mappings().one_or_none()
     if not dataset or dataset['dataset_code'] not in DATASETS:
@@ -27,21 +28,21 @@ def enable_personal_valuation(c,tenant_id,actor_id,dataset_id,reference:str)->di
     if not profile or profile['permitted_tenant_id']!=tenant_id or profile['usage_scope']!='PERSONAL':
         raise PermissionError('Dataset is outside this tenant personal scope')
     for activity in ('ACQUIRE','STORE','DISPLAY'):
-        if not load_rights(c,dataset_id,activity,date.today(),'PERSONAL').allowed:
+        if not load_rights(c,dataset_id,activity,governance_date(),'PERSONAL').allowed:
             raise ValueError('Existing personal access is not effective; refusing reactivation')
     ent=m.tenant_dataset_entitlement
     existing=c.execute(select(ent).where(ent.c.dataset_id==dataset_id,ent.c.tenant_id==tenant_id,
         ent.c.use_purpose=='VALUATION')).mappings().all()
     if existing:
-        if len(existing)!=1 or existing[0]['status']!='ACTIVE' or existing[0]['coverage_mode']!='DATASET' or existing[0]['valid_from']>date.today() or existing[0]['valid_to'] is not None and existing[0]['valid_to']<date.today():
+        if len(existing)!=1 or existing[0]['status']!='ACTIVE' or existing[0]['coverage_mode']!='DATASET' or existing[0]['valid_from']>governance_date() or existing[0]['valid_to'] is not None and existing[0]['valid_to']<governance_date():
             raise ValueError('Existing valuation entitlement needs review; refusing reactivation or broadening')
-        if not load_rights(c,dataset_id,'NON_DISPLAY',date.today(),'PERSONAL').allowed:
+        if not load_rights(c,dataset_id,'NON_DISPLAY',governance_date(),'PERSONAL').allowed:
             raise ValueError('Existing non-display permission needs review; refusing reactivation')
         return dict(datasetId=str(dataset_id),entitlementId=str(existing[0]['tenant_dataset_entitlement_id']))
     requirements=c.execute(select(m.dataset_right_requirement).where(
         m.dataset_right_requirement.c.dataset_id==dataset_id,m.dataset_right_requirement.c.activity=='NON_DISPLAY')).mappings().all()
     if requirements:
-        if not load_rights(c,dataset_id,'NON_DISPLAY',date.today(),'PERSONAL').allowed:
+        if not load_rights(c,dataset_id,'NON_DISPLAY',governance_date(),'PERSONAL').allowed:
             raise ValueError('Existing non-display requirements are unresolved; refusing replacement')
         assignment=requirements[0]['dataset_licence_assignment_id']
     else:
@@ -56,12 +57,12 @@ def enable_personal_valuation(c,tenant_id,actor_id,dataset_id,reference:str)->di
         licence=insert_returning(c,m.data_licence,'data_licence_id',
             licensor_organisation_id=profile['licensee_organisation_id'],licensee_organisation_id=profile['licensee_organisation_id'],
             licence_code=code,display_name='Owner personal valuation declaration — not provider permission',
-            licence_reference=reference.strip()[:500],permitted_use_description=evidence,valid_from=date.today())
+            licence_reference=reference.strip()[:500],permitted_use_description=evidence,valid_from=governance_date())
         assignment=insert_returning(c,m.dataset_licence_assignment,'dataset_licence_assignment_id',
-            dataset_id=dataset_id,data_licence_id=licence,licence_role='INTERNAL_USE',valid_from=date.today())
+            dataset_id=dataset_id,data_licence_id=licence,licence_role='INTERNAL_USE',valid_from=governance_date())
         c.execute(m.licence_activity_grant.insert().values(dataset_licence_assignment_id=assignment,
             activity='NON_DISPLAY',usage_scope='PERSONAL',evidence_basis='PERSONAL_DECLARATION',
-            evidence_reference=evidence,valid_from=date.today()))
+            evidence_reference=evidence,valid_from=governance_date()))
         c.execute(m.dataset_right_requirement.insert().values(dataset_id=dataset_id,activity='NON_DISPLAY',
             requirement_code='OWNER_PERSONAL_VALUATION_DECLARATION',dataset_licence_assignment_id=assignment))
     entitlement=insert_returning(c,ent,'tenant_dataset_entitlement_id',tenant_id=tenant_id,dataset_id=dataset_id,

@@ -16,7 +16,7 @@ def service():
 @pytest.fixture
 def valued():
     engine=get_engine()
-    assert engine.url.database.startswith('fortem_isolated_tests_')
+    assert engine.url.database.startswith('platform_isolated_tests_')
     strategy=uuid4()
     # Earlier integration tests legitimately book other product families in the
     # demo strategy. Own a fresh population instead of weakening product guards.

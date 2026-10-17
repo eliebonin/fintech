@@ -2,7 +2,7 @@
 
 ## Adopted topology
 
-Fortem will use one central generic PostgreSQL database for shared canonical
+Platform will use one central generic PostgreSQL database for shared canonical
 reference data and shared market-data content, plus one tenant-specific logical
 database for each client's confidential operating overlay.
 
@@ -20,7 +20,7 @@ tenant overlay database (one per client)
 
 The tenant database contains the client's delta and operational records. It
 does not copy the canonical master or the full market-data store. A tenant
-record stores Fortem UUIDs from the core database; UUIDs remain stable even
+record stores Platform UUIDs from the core database; UUIDs remain stable even
 though the physical databases are separate.
 
 ## Cross-database reference rule

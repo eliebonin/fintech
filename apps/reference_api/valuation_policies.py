@@ -12,6 +12,7 @@ from .repository import IdempotencyKeyConflict, RepositoryNotFound, _market_data
 from .valuation_policy_contracts import PolicyView,PolicyRuleInput,PolicyOptions,ResolutionPreview
 from .contracts import MarketDataResolutionSnapshotItemView
 from .resource_limits import governance_date
+from security_master_schema.strategy_access import request_strategy_predicate,require_strategy_action
 from market_data.closing_prices import close_type
 
 
@@ -27,6 +28,9 @@ def policy_view(c,tenant,policy_id):
         m.valuation_policy.c.valuation_policy_id==policy_id)).mappings().one_or_none()
     if not row:
         raise RepositoryNotFound('Policy not found')
+    if row['strategy_id'] and c.info.get('request_actor'):
+        require_strategy_action(c,tenant,c.info['request_actor'],
+            'STRATEGY_WRITE' if c.info.get('request_action')=='MARKET_DATA_MANAGE' else 'STRATEGY_READ',row['strategy_id'])
     rules=c.execute(select(m.valuation_policy_rule).where(m.valuation_policy_rule.c.valuation_policy_id==policy_id).order_by(
         m.valuation_policy_rule.c.rule_sequence)).mappings().all()
     return PolicyView(valuationPolicyId=policy_id,policyCode=row['policy_code'],displayName=row['display_name'],
@@ -48,7 +52,7 @@ def options(c,tenant,actor):
         venues=picks(m.market_venue,m.market_venue.c.market_venue_id,m.market_venue.c.display_name,[m.market_venue.c.status=='ACTIVE']),
         instrumentTypes=picks(m.instrument_type,m.instrument_type.c.instrument_type_id,m.instrument_type.c.type_code,[]),
         calendars=picks(m.market_calendar,m.market_calendar.c.market_calendar_id,m.market_calendar.c.display_name,[m.market_calendar.c.status=='ACTIVE',or_(m.market_calendar.c.tenant_id.is_(None),m.market_calendar.c.tenant_id==tenant)]),
-        strategies=picks(m.strategy,m.strategy.c.strategy_id,m.strategy.c.display_name,[m.strategy.c.tenant_id==tenant,m.strategy.c.status=='ACTIVE']),
+        strategies=picks(m.strategy,m.strategy.c.strategy_id,m.strategy.c.display_name,[m.strategy.c.tenant_id==tenant,m.strategy.c.status=='ACTIVE',request_strategy_predicate(c,tenant,'STRATEGY_READ',m.strategy.c.strategy_id)]),
         datasets=picks(m.dataset,m.dataset.c.dataset_id,m.dataset.c.display_name,[m.dataset.c.dataset_id.in_(select(ent.c.dataset_id).where(
             ent.c.tenant_id==tenant,ent.c.status=='ACTIVE',ent.c.valid_from<=governance_date(),or_(ent.c.valid_to.is_(None),ent.c.valid_to>=governance_date())))]))
 

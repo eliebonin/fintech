@@ -11,5 +11,5 @@ class IngestorSettings:
     @classmethod
     def from_environment(cls):
         return cls(database_url=os.environ.get('DATABASE_URL',
-            'postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm'),
+            'postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm'),
             environment=os.environ.get('APP_ENV', 'local'))

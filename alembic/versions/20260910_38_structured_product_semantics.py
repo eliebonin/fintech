@@ -105,7 +105,7 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=30), server_default=sa.text("'PROPOSED'"), nullable=False, comment="Lifecycle state: PROPOSED, ACCEPTED, SUPERSEDED, or REJECTED."),
         sa.Column("supersedes_adjustment_id", sa.UUID(), nullable=True, comment="Prior adjustment superseded by this corrected factor or result without mutating the original record."),
         sa.Column("source_payload_id", sa.UUID(), nullable=True, comment="Retained source payload evidencing the adjustment calculation or issuer notice."),
-        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False, comment="UTC timestamp at which Fortem recorded this adjustment record."),
+        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False, comment="UTC timestamp at which Platform recorded this adjustment record."),
         sa.PrimaryKeyConstraint("option_strike_adjustment_id"),
         sa.ForeignKeyConstraint(["option_terms_id"], ["secm.option_terms.option_terms_id"], name="fk_option_strike_adjustment_terms"),
         sa.ForeignKeyConstraint(["corporate_action_id"], ["secm.corporate_action.corporate_action_id"], name="fk_option_strike_adjustment_corporate_action"),

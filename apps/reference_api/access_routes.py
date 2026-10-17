@@ -1,12 +1,14 @@
 """Platform registry and tenant-local delegated access management."""
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header
+from fastapi import Depends, Header, Query,Request
+from .request_audit import AuditRouter as APIRouter
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from security_master_schema import access_management as service, access_sessions as sessions, models as m
 from .tenant_context import get_actor_context, get_tenant_context
 from .problem_details import ApiProblem
-from .access_contracts import ModuleChange,UserCreate,UserChange,UserGroups,GroupSave,ContextSelect,TenantUpdate
+from .access_contracts import ModuleChange,UserCreate,UserChange,UserGroups,GroupSave,GroupPreview,ContextSelect,TenantUpdate
+from .access_contracts import PublicationPolicyChange
 
 
 def access_router(connection_dependency, environment):
@@ -19,6 +21,8 @@ def access_router(connection_dependency, environment):
             raise ApiProblem(403,'access.forbidden','Access denied',str(exc)) from exc
         except service.TenantProfileConflict as exc:
             raise ApiProblem(409,'tenant.profile_conflict','Tenant details changed',str(exc)) from exc
+        except service.AccessVersionConflict as exc:
+            raise ApiProblem(409,'access.version_conflict','Access configuration changed',str(exc)) from exc
         except service.TenantNotFound as exc:
             raise ApiProblem(404,'tenant.not_found','Tenant not found',str(exc)) from exc
         except ValueError as exc:
@@ -47,6 +51,25 @@ def access_router(connection_dependency, environment):
     def access(context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         return run(lambda: service.tenant_access_view(c,context.tenant_id,context.user_account_id))
 
+    @router.get('/v1/access/valuation-publication-policy')
+    def publication_policy(context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
+        from valuation.self_publication import policy_view
+        def view():
+            service.require_admin(c,context.tenant_id,context.user_account_id)
+            return policy_view(c,context.tenant_id)
+        return run(view)
+
+    @router.put('/v1/access/valuation-publication-policy')
+    def publication_policy_change(payload:PublicationPolicyChange,http_request:Request,context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
+        from valuation.self_publication import change_policy
+        return run(lambda:change_policy(c,context.tenant_id,context.user_account_id,payload,getattr(http_request.state,'real_actor_id',context.user_account_id)))
+
+    @router.get('/v1/tenant-workspace/effective-access')
+    def effective_access(user_id:UUID|None=Query(default=None,alias='userId'),
+            context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
+        from security_master_schema.access_explanations import effective_access_view
+        return run(lambda: effective_access_view(c,context.tenant_id,context.user_account_id,user_id))
+
     @router.post('/v1/access/users',status_code=201)
     def user_add(payload:UserCreate,context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         return run(lambda: {'userId':str(service.add_user(c,context.tenant_id,context.user_account_id,name=payload.name,role=payload.role))})
@@ -66,12 +89,28 @@ def access_router(connection_dependency, environment):
         return run(command)
 
     def save_group(c,context,payload,group_id=None):
+        if group_id and payload.expectedVersion is None:
+            raise ApiProblem(422,'access.version_required','Revision required','Refresh group configuration before saving.')
         return run(lambda: {'groupId':str(service.save_group(c,context.tenant_id,context.user_account_id,
-            code=payload.code,name=payload.name,actions=payload.actions,status=payload.status,description=payload.description,group_id=group_id))})
+            code=payload.code,name=payload.name,actions=payload.actions,status=payload.status,description=payload.description,group_id=group_id,
+            scope_mode=payload.scopeMode,strategy_ids=payload.strategyIds,expected_version=payload.expectedVersion,impact_hash=payload.expectedImpactHash))})
 
     @router.post('/v1/access/groups',status_code=201)
     def group_create(payload:GroupSave,context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         return save_group(c,context,payload)
+
+    @router.post('/v1/access/groups/preview')
+    def group_preview(payload:GroupPreview,context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
+        from security_master_schema.strategy_access_admin import preview
+        if payload.groupId and payload.expectedVersion is None:
+            raise ApiProblem(422,'access.version_required','Revision required','Refresh before previewing.')
+        return run(lambda: preview(c,context.tenant_id,context.user_account_id,payload))
+
+    @router.get('/v1/access/strategy-matrix')
+    def strategy_matrix(strategy_id:UUID|None=Query(default=None,alias='strategyId'),
+            context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
+        from security_master_schema.strategy_access_admin import matrix
+        return run(lambda: matrix(c,context.tenant_id,context.user_account_id,strategy_id))
 
     @router.put('/v1/access/groups/{group_id}')
     def group_change(group_id:UUID,payload:GroupSave,context=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):

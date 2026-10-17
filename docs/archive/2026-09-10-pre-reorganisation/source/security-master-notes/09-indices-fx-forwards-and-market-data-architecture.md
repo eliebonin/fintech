@@ -196,7 +196,7 @@ The application asks for a valuation context (subject, measure, tenor where appl
 
 `md.market_data_vintage` identifies the provider revision, file, batch, or
 extract that delivered one or more observations. It records the dataset and
-provider, source publication time, Fortem receipt time, value basis
+provider, source publication time, Platform receipt time, value basis
 (`RAW`, `VENDOR_ADJUSTED`, `RESTATED`, etc.), lifecycle status, content hash,
 and retained raw payload link. Observations optionally point to that vintage
 and also retain the source publication timestamp directly for efficient
@@ -215,7 +215,7 @@ data quality metadata.
 
 The resolver must additionally receive the tenant and dataset-use entitlement. Recommended precedence is: approved tenant override; tenant-entitled provider value; platform-entitled approved value; approved public value; explicit missing-data exception. Physical retention of a shared observation never implies that it may be returned to every tenant.
 
-`acquisition_licence_id` on an observation is provenance: it says which Fortem right enabled receipt/retention where known. Tenant access is a separate, effective-dated `tenant + dataset + intended-use` entitlement and is evaluated at read time. Do not store a tenant entitlement ID on each observation, since the same source fact may be usable by multiple tenants under different rights.
+`acquisition_licence_id` on an observation is provenance: it says which Platform right enabled receipt/retention where known. Tenant access is a separate, effective-dated `tenant + dataset + intended-use` entitlement and is evaluated at read time. Do not store a tenant entitlement ID on each observation, since the same source fact may be usable by multiple tenants under different rights.
 
 ## Valuation cuts
 

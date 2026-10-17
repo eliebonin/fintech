@@ -32,7 +32,7 @@ issuer / legal entity
 
 ```text
 financial_reference_node
-  immutable Fortem ID, structural type, status
+  immutable Platform ID, structural type, status
 
 instrument
   economic contract and governed instrument type
@@ -65,7 +65,7 @@ Identifiers are mappings, not identities. ISIN will often identify an issued ins
 
 Corporate actions are versioned events with one or more effects: split, consolidation, cash dividend, stock dividend, rights issue, merger, spin-off, tender, redemption, or delisting.
 
-Raw market observations remain immutable. A separate adjustment model records the transformation basis, method, version, and source vintage used to derive adjusted history. Never infer whether vendor history is adjusted from the date Fortem received it.
+Raw market observations remain immutable. A separate adjustment model records the transformation basis, method, version, and source vintage used to derive adjusted history. Never infer whether vendor history is adjusted from the date Platform received it.
 
 ## Private instruments and promotion
 
@@ -96,6 +96,6 @@ Sell as a managed operational control service and API. The value is reduced setu
 
 ## Market evidence and positioning
 
-Rimes markets mastered security, pricing, entity, benchmark, and portfolio data from a large partner ecosystem: [Rimes](https://www.rimes.com/). NeoXam similarly positions DataHub as configurable enterprise data management spanning vendors, internal systems, counterparties, corporate actions, and regulatory data: [NeoXam](https://www.neoxam.com/datahub/). The standalone market is therefore competitive. Fortem should sell a curated operational workflow for the liquid-alternatives/OTC universe and bundle it with valuation or lifecycle control, not promise vendor-scale reference-data coverage.
+Rimes markets mastered security, pricing, entity, benchmark, and portfolio data from a large partner ecosystem: [Rimes](https://www.rimes.com/). NeoXam similarly positions DataHub as configurable enterprise data management spanning vendors, internal systems, counterparties, corporate actions, and regulatory data: [NeoXam](https://www.neoxam.com/datahub/). The standalone market is therefore competitive. Platform should sell a curated operational workflow for the liquid-alternatives/OTC universe and bundle it with valuation or lifecycle control, not promise vendor-scale reference-data coverage.
 
 See [market evidence and go-to-market](06-market-evidence-and-go-to-market.md) for pricing confidence and customer-discovery requirements.

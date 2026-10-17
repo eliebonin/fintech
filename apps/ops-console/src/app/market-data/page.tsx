@@ -17,7 +17,7 @@ export default async function MarketDataPage({searchParams}:{searchParams:Promis
  const {workspace}=access, enabled=workspace.moduleCodes.includes('MARKET_DATA');
  let sources:SourceCatalogue|null=null;
  if(enabled)try{sources=(await(await pricingPolicyClient()).GET('/v1/market-data/sources')).data??null;}catch{/* Explicit metadata unavailability. */}
- return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes}><main className="mvp-page">
+ return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId}><main className="mvp-page">
   {enabled?<MarketDataNavigation active="overview"/>:null}
   <header className="mvp-header"><div><p className="eyebrow">MARKET DATA OPERATIONS</p><h1>Market data overview</h1><p>Find required inputs, investigate gaps and manage the sources and rules used to select prices.</p></div></header>
   {!enabled?<p className="error-panel">ACCESS RESTRICTED: Market data is not enabled. Contact your tenant administrator.</p>:<div className={styles.content}>

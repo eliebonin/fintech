@@ -74,9 +74,12 @@ def test_published_reference_copy_is_immutable_and_not_backdated(composite):
     c, request, _ = composite
     source = c.scalar(select(m.valuation_policy_rule.c.market_calendar_id).where(
         m.valuation_policy_rule.c.valuation_policy_rule_id == ids['valuation_policy_rule']))
+    c.execute(m.market_calendar.update().where(m.market_calendar.c.market_calendar_id==source).values(
+        definition_json={'provenance':{'sourceKind':'SYNTHETIC_TEST','sourceReference':'fixture'}}))
     published = publish_reference_calendar(c, source, ids['platform_admin_user_account'], 'Synthetic publication')
     row = c.execute(select(m.market_calendar).where(m.market_calendar.c.market_calendar_id == published)).mappings().one()
     assert row['sealed'] and row['created_at_utc'] > request.market_data_as_of_utc
+    assert row['definition_json']['provenance']['sourceReference']=='fixture'
     with pytest.raises(Exception, match='immutable'):
         with c.begin_nested():
             c.execute(m.market_calendar_session.update().where(m.market_calendar_session.c.market_calendar_id == published).values(close_local_time=time(12)))
@@ -134,7 +137,7 @@ def test_input_reads_do_not_mix_concurrent_database_versions():
     from valuation.runner import calculation_transaction
     from apps.reference_api.db import get_engine
     engine=get_engine()
-    assert engine.url.database.startswith('fortem_isolated_tests_')
+    assert engine.url.database.startswith('platform_isolated_tests_')
     actor=uuid4()
     with engine.begin() as c:
         c.execute(m.user_account.insert().values(user_account_id=actor,account_type='HUMAN',status='ACTIVE'))

@@ -12,7 +12,7 @@ from security_master_schema.demo_data import DEMO_IDS as ids
 from valuation import storage
 
 
-def add_bond(c,r,trade):
+def add_bond(c,r,trade,maturity='2030-01-01'):
     original=dict(c.execute(select(m.trade).where(m.trade.c.trade_id==trade)).mappings().one())
     listing=uuid4();node=dict(c.execute(select(m.financial_reference_node).where(m.financial_reference_node.c.reference_node_id==ids['hsbc_xlon_listing_node'])).mappings().one())
     c.execute(m.financial_reference_node.insert().values(**(node|dict(reference_node_id=listing,canonical_name='Synthetic bond listing',internal_code='BOND_'+listing.hex))))
@@ -23,7 +23,7 @@ def add_bond(c,r,trade):
     c.execute(m.trade.insert().values(**(original|dict(trade_id=identity,trade_subject_reference_node_id=listing,reference_instrument_node_id=ids['bond_instrument_node'],
         quantity=D('100000'),quantity_unit='NOMINAL',execution_price=D('99.75'),price_basis='PCT_OF_PAR'))))
     conventions=dict(instrumentDefinitionId=str(definition),instrumentId=str(ids['bond_instrument_node']),priceCurrencyId=str(ids['gbp_currency']),
-        unitMultiplier='1',quoteFactor='100',productBasis='BOND',cleanExecutionAmount='98500',maturityDate='2030-01-01')
+        unitMultiplier='1',quoteFactor='100',productBasis='BOND',cleanExecutionAmount='98500',maturityDate=maturity)
     details=dict(priceType='DIRTY',cleanAmount='98500',dirtyAmount='99750',accruedInterestAmount='1250',settlementEvidence='SYNTHETIC')
     snapshot=dict(schemaVersion=1,kind='PRODUCT_BOOKING',economics=dict(terms=dict(kind='BOND'),bondDetails=details),valuationConventions=conventions)
     c.execute(m.trade_lifecycle_event.insert().values(trade_id=identity,sequence_no=1,event_type='BOOKED',event_datetime_utc=original['trade_datetime_utc'],

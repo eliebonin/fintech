@@ -1,5 +1,6 @@
 """Safe catalogue reads and administrator-only source preference commands."""
-from fastapi import APIRouter, Depends, Header
+from fastapi import Depends, Header
+from .request_audit import AuditRouter as APIRouter
 from .tenant_context import TenantContext, get_tenant_context
 from .problem_details import ApiProblem
 from .repository import IdempotencyKeyConflict

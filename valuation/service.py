@@ -63,10 +63,10 @@ class Calculation:
 
 
 
-def _selection(c, request, subject, economic_cutoff,product='EQUITY'):
+def _selection(c, request, subject, economic_cutoff,product='EQUITY',*,dimension_filters=()):
     day=economic_cutoff.date()
     selection_request=ResolutionRequest(request.tenant_id,subject,request.policy_id,day,request.cut_id,
-        request.information_cutoff,'VALUATION',request.strategy_id)
+        request.information_cutoff,'VALUATION',request.strategy_id,dimension_filters)
     selected=resolve_market_data(c,selection_request)
     if selected.status!='SELECTED':
         from market_data.policy_compatibility import missing_input_message
@@ -77,13 +77,19 @@ def _selection(c, request, subject, economic_cutoff,product='EQUITY'):
     normalized = (rule.get('price_requirement')=='AS_TRADED' and selected.valuation_basis=='AS_TRADED'
         and selected.valuation_value is not None and (selected.pricing_evidence or {}).get('priceBasis'))
     permitted=('OFFICIAL_NAV','NAV') if product=='FUND' else ('CLOSE','OFFICIAL_CLOSE')
-    if series['value_type']!='PRICE' or rule['series_type'] not in permitted or not (normalized or rule['value_basis']=='RAW'):
+    if product=='FUTURE':
+        permitted=(*permitted,'SETTLEMENT')
+        if rule['value_basis']!='RAW' or rule.get('price_requirement'):
+            raise ValuationBlocked('Exact-contract native RAW futures prices required; share-price normalization is not applicable')
+    index_level=(product=='INDEX' and series['series_type']=='INDEX_LEVEL' and series['value_type']=='INDEX_LEVEL'
+        and rule['series_type']=='INDEX_LEVEL' and rule['value_basis']=='INDEX_LEVEL')
+    if not index_level and (series['value_type']!='PRICE' or rule['series_type'] not in permitted or not (normalized or rule['value_basis']=='RAW')):
         raise ValuationBlocked('As-traded price with verified proof or explicit native RAW basis required')
     evidence=selected.pricing_evidence or {}
     convention='NAV_DATE' if product=='FUND' else rule['pricing_convention']
     sources=('TENANT_PUBLISHED_SCHEDULE','GOVERNED_SESSIONS') if product=='FUND' else ('GOVERNED_SESSIONS',)
     if (rule['pricing_convention']!=convention or (product!='FUND' and convention not in ('SESSION_CLOSE','EXPLICIT_TIME'))
-        or (convention=='EXPLICIT_TIME' and product!='BOND') or evidence.get('calendarEvidence',{}).get('source') not in sources):
+        or (convention=='EXPLICIT_TIME' and product not in ('BOND','SWAP','INDEX','FUTURE')) or evidence.get('calendarEvidence',{}).get('source') not in sources):
         raise ValuationBlocked('Explicit governed session calendar required; legacy weekday fallback is not valuation-ready')
     if not (evidence['calendarEvidence'].get('sealed') or evidence['calendarEvidence'].get('source')=='TENANT_PUBLISHED_SCHEDULE'):
         raise ValuationBlocked('A sealed reference calendar version is required for reproducible valuation')
@@ -108,7 +114,7 @@ def _selection(c, request, subject, economic_cutoff,product='EQUITY'):
         raise ValuationBlocked('Current price or explicit bounded freshness allowance required')
     measure=c.scalar(select(m.series_measure_definition.c.measure_code).where(
         m.series_measure_definition.c.series_measure_definition_id==series['measure_definition_id']))
-    if measure!='PRICE': raise ValuationBlocked('Governed PRICE measurement semantics required')
+    if measure!=('INDEX_LEVEL' if index_level else 'PRICE'): raise ValuationBlocked('Governed PRICE or native INDEX_LEVEL measurement semantics required')
     return selection_request,selected
 
 
@@ -121,6 +127,7 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
     from positions.reconstruction import reconstruct
     from .position_calculation import required_marks,attribute_projection
     from .corporate_actions import assert_projection_actions
+    from market_data.split_replay import load_reviewed_splits
     for cutoff in (request.opening_cutoff,request.closing_cutoff,request.information_cutoff):
         aware(cutoff)
         if cutoff.utcoffset()!=timedelta(0): raise ValuationBlocked('UTC cutoffs required')
@@ -139,6 +146,8 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
             raise ValuationBlocked('Corrected-input predecessor period differs from requested period')
     projection_request=ProjectionRequest(request.tenant_id,request.strategy_id,request.closing_cutoff,
         request.information_cutoff,request.opening_cutoff,'PERIOD',request.daily)
+    from .ledger_impacts import capture_ledger_state
+    ledger_source=capture_ledger_state(c,request)
     # A zero/no-mark result does not bypass request governance. Resolver checks
     # still govern actual price inputs; this validates the unpriced request too.
     policy=c.execute(select(m.valuation_policy).where(m.valuation_policy.c.valuation_policy_id==request.policy_id,
@@ -152,9 +161,12 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
         raise ValuationBlocked('Known valuation cut required')
     if not c.scalar(select(m.currency.c.currency_id).where(m.currency.c.currency_id==request.reporting_currency_id,m.currency.c.status=='ACTIVE')):
         raise ValuationBlocked('Active reporting currency required')
-    try: projection=reconstruct(iter_ledger_facts(c,projection_request),projection_request)
+    try:
+        facts=tuple(iter_ledger_facts(c,projection_request))
+        splits=load_reviewed_splits(c,{f.booking.subject_id for f in facts if f.booking},request.information_cutoff,tenant_id=request.tenant_id)
+        projection=reconstruct(facts,projection_request,splits=splits)
     except PositionError as exc: raise ValuationBlocked(str(exc)) from exc
-    assert_projection_actions(c,projection,ValuationBlocked)
+    assert_projection_actions(c,projection,ValuationBlocked,reviewed_events=splits)
     marks={}; selected_evidence=[]; snapshot_ids=[]; conversions={};fx_inputs={}
     # Foreign multi-day calculations aggregate daily bridges so each execution
     # is translated at its own economic day's end-rate, not the period end.
@@ -164,7 +176,9 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
         daily_projections=[];boundary=request.opening_cutoff
         while boundary<request.closing_cutoff:
             end=min(boundary+timedelta(days=1),request.closing_cutoff)
-            daily_projections.append(reconstruct(projection.facts,replace(projection_request,opening_cutoff=boundary,closing_cutoff=end)))
+            try:
+                daily_projections.append(reconstruct(projection.facts,replace(projection_request,opening_cutoff=boundary,closing_cutoff=end),splits=splits))
+            except PositionError as exc: raise ValuationBlocked(str(exc)) from exc
             boundary=end
     requirements=tuple({r.key:r for p in daily_projections for r in required_marks(p)}.values())
     for cutoff in sorted({r.key.cutoff for r in requirements}):
@@ -184,7 +198,21 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
                     try: prepare_product_inputs(c,request,bucket,{})
                     except ValueError as exc: raise ValuationBlocked(str(exc)) from exc
             cached=selections.get(subject)
-            selection_request,selected=cached if cached else _selection(c,request,subject,cutoff,product)
+            if product=='FX_FORWARD':
+                conventions=[f.booking.product_evidence for f in projection.facts if f.booking and f.booking.subject_id==subject]
+                if not conventions:raise ValuationBlocked('Frozen forward conventions required')
+                from decimal import Decimal
+                if any((Decimal(p['agreedRate']),p['maturityDate'],p['baseCurrencyId'],p['priceCurrencyId'])!=(Decimal(conventions[0]['agreedRate']),conventions[0]['maturityDate'],conventions[0]['baseCurrencyId'],conventions[0]['priceCurrencyId']) for p in conventions):
+                    raise ValuationBlocked('Incompatible frozen forward terms on the same contract')
+                if cutoff.date()>datetime.fromisoformat(conventions[0]['maturityDate']).date():raise ValuationBlocked('Unclosed forward exposure after maturity requires Ops closure')
+                from .forward_inputs import select_forward_rate
+                try:selection_request,selected=cached if cached else select_forward_rate(c,request,subject,cutoff,conventions[0])
+                except ValueError as exc:raise ValuationBlocked(str(exc)) from exc
+            else:selection_request,selected=cached if cached else _selection(c,request,subject,cutoff,product)
+            from .corporate_actions import assert_native_mark_units
+            try:
+                assert_native_mark_units(projection.split_events,subject,cutoff,selected.pricing_date_used,daily=request.daily)
+            except ValueError as exc: raise ValuationBlocked(str(exc)) from exc
             if product=='BOND':
                 dims=m.market_data_series_dimension
                 quote_types=set(c.scalars(select(dims.c.dimension_value).where(dims.c.market_data_series_id==selected.market_data_series_id,
@@ -199,9 +227,16 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
                 raise ValuationBlocked('Selected market price currency differs from frozen trade currency; explicit normalization required')
             marks[requirement.key]=selected.valuation_value if selected.valuation_value is not None else selected.selected_value
             selected_evidence.append(dict(asdict(selected),valuation_date=cutoff.date(),
-                valuation_position_subject_id=requirement.key.subject_id))
+                valuation_position_subject_id=requirement.key.subject_id,**({'input_role':'FORWARD_RATE'} if product=='FX_FORWARD' else {})))
         snapshot_ids.append(persist_resolution_snapshot(c,first,tuple(s[1] for s in selections.values())))
     from .fx import resolve_fx
+    for fact in projection.facts:
+        if not fact.booking or fact.booking.product_basis!='FX_FORWARD':continue
+        closing=(fact.booking.product_evidence or {}).get('maturityEvidence')
+        proof=(closing or {}).get('fxEvidence') or {}
+        if proof.get('selection'):
+            selected_evidence.append(proof['selection']|dict(valuation_date=closing['valueDate'],input_role='FX_MATURITY_SUGGESTION',
+                valuation_position_subject_id=fact.booking.subject_id,bookedClosingRate=closing['price']))
     try:
         for p in daily_projections:
             for bucket in p.buckets:
@@ -251,7 +286,15 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
         economicFlows=[f.evidence for f in flows],
         dailyAccrualInputs=[dict(inputId=a.input_id,revision=a.revision,payload=a.payload) for a in accruals],
         executionFxConvention='ECONOMIC_DAY_END',dailyBridgeCount=len(periods),requiredMarkCount=len(requirements),scope=scope,limitations=['UNBOOKED_INCOME_NOT_INCLUDED',
-        'CORPORATE_ACTIONS_NOT_REPLAYED','CASH_NOT_VALUED','NOT_FULL_NAV'],externalComparison='NOT_COMPARED'))
+        'ONLY_REVIEWED_BASIC_SHARE_RATIOS_REPLAYED','CASH_NOT_VALUED','NOT_FULL_NAV']+
+        (['FX_FORWARD_UNDISCOUNTED_RATE_DIFFERENCE_NOT_MODEL_MTM'] if any(b.key.product_basis=='FX_FORWARD' for b in projection.buckets) else [])+
+        (['ACCRUED_BALANCE_NOT_ASSESSED'] if any(a.payload.get('balanceReconciliation')=='NOT_PROVIDED' for a in accruals) else []),externalComparison='NOT_COMPARED'))
+    from .decisions import applied_decisions
+    evidence['appliedRules']=applied_decisions(evidence | dict(
+        executionInputs=[asdict(e) for e in projection.executions],
+        splitAdjustments=[asdict(a) for a in projection.split_adjustments],
+        economicInputs=[item for line in period.lines for item in line.economic_evidence]))
+    evidence['ledgerSource']=ledger_source
     return Calculation(request,period,tuple(snapshot_ids),evidence,evidence_hash(evidence),
         projection=projection,method=POSITION_METHOD,scope=scope)
 

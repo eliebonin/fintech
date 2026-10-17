@@ -3,17 +3,56 @@
 Tables live beside existing valuation evidence in nav. Financial payloads are
 immutable; official selection belongs to review batches, not mutable results.
 """
-from sqlalchemy import Table,Column,String,DateTime,Date,Integer,Numeric,ForeignKey,ForeignKeyConstraint,UniqueConstraint,CheckConstraint,Index,text
+from sqlalchemy import Table,Column,String,DateTime,Date,Integer,Numeric,ForeignKey,ForeignKeyConstraint,UniqueConstraint,CheckConstraint,Index,text,Boolean
 from sqlalchemy.dialects.postgresql import UUID,JSONB
 
 def register_valuation_tables(metadata):
     global attempt, run_event, attribution, batch, item, review_event, lineage, accrual_input, amendment
+    global publication_policy, ledger_revision, ledger_change, reassessment_request
     uid=UUID(as_uuid=True)
     # Wall-clock evidence time, not the start of a long financial transaction.
     now=text('clock_timestamp()')
     def key(name): return Column(name,uid,primary_key=True,server_default=text('uuidv7()'))
     def actor(name): return Column(name,uid,ForeignKey('secm.user_account.user_account_id'),nullable=False)
     def scope(): return [Column('tenant_id',uid,ForeignKey('ten.tenant.tenant_id'),nullable=False),Column('strategy_id',uid,ForeignKey('trd.strategy.strategy_id'),nullable=False)]
+    reassessment_request=Table('valuation_reassessment_request',metadata,key('request_id'),
+        Column('tenant_id',uid,ForeignKey('ten.tenant.tenant_id'),nullable=False),actor('actor_id'),
+        Column('request_key',String(255),nullable=False),Column('request_hash',String(64),nullable=False),
+        Column('payload',JSONB,nullable=False),Column('information_cutoff',DateTime(timezone=True),nullable=False,server_default=now),
+        UniqueConstraint('tenant_id','request_key',name='uq_reassessment_key'),schema='nav')
+    ledger_revision=Table('strategy_ledger_revision',metadata,
+        Column('tenant_id',uid,primary_key=True),Column('strategy_id',uid,ForeignKey('trd.strategy.strategy_id'),primary_key=True),
+        Column('revision',Integer,nullable=False),schema='nav')
+    ledger_change=Table('strategy_ledger_change',metadata,key('change_id'),*scope(),
+        Column('revision',Integer,nullable=False),Column('change_key',String(255),nullable=False),
+        Column('trade_id',uid,ForeignKey('trd.trade.trade_id'),nullable=False),
+        Column('economic_from',Date,nullable=False),Column('reason',String(2000),nullable=False),
+        actor('actor_id'),Column('recorded_at',DateTime(timezone=True),nullable=False,server_default=now),
+        UniqueConstraint('tenant_id','strategy_id','revision',name='uq_ledger_change_revision'),
+        UniqueConstraint('tenant_id','strategy_id','change_key',name='uq_ledger_change_key'),schema='nav')
+    Index('ix_ledger_change_scope_date',ledger_change.c.tenant_id,ledger_change.c.strategy_id,ledger_change.c.economic_from,ledger_change.c.revision)
+    ledger_docs={'tenant_id':'Owning tenant; never inferred from a source label.',
+        'strategy_id':'Owning strategy and serialization boundary.', 'revision':'Monotonic transactional strategy ledger revision.',
+        'change_id':'Immutable UUIDv7 change-evidence identifier.', 'change_key':'Unique originating trade/event change identity.',
+        'trade_id':'Original affected ledger booking; no financial rewrite.', 'economic_from':'Earliest affected valuation-recognition date.',
+        'reason':'Recorded event type and correction explanation, or financial mutation classification.',
+        'actor_id':'Authenticated recording account, retained separately from publication review.',
+        'recorded_at':'Wall-clock recording time, not economic effective time.',
+        'request_id':'Immutable UUIDv7 explicit recalculation request identifier.',
+        'request_key':'Caller retry key; scoped to tenant.', 'request_hash':'Exact actor/operator/selection/reason identity hash.',
+        'payload':'Retained explicit selection and reason; never publication authority.',
+        'information_cutoff':'Frozen new knowledge cutoff reused across all child attempts and retries.'}
+    for table in (ledger_revision,ledger_change,reassessment_request):
+        table.comment='Trade-ledger source revision and explicit reassessment evidence; never mutable published financial values.'
+        for column in table.columns: column.comment=ledger_docs[column.name]
+    publication_policy=Table('valuation_publication_policy',metadata,
+        Column('tenant_id',uid,ForeignKey('ten.tenant.tenant_id'),primary_key=True),
+        Column('revision',Integer,primary_key=True),Column('enabled',Boolean,nullable=False),
+        Column('valid_until',DateTime(timezone=True)),Column('reason',String(2000),nullable=False),
+        actor('updated_by'),Column('recorded_at',DateTime(timezone=True),nullable=False,server_default=now),
+        CheckConstraint('revision>0',name='ck_publication_policy_revision'),CheckConstraint('length(trim(reason))>0',name='ck_publication_policy_reason'),schema='nav',
+        comment='Append-only tenant opt-in revisions for explicitly scoped self-publication; missing policy denies.')
+    for column in publication_policy.columns:column.comment='Retained tenant self-publication governance revision; never an implicit operational grant.'
     attempt=Table('valuation_attempt',metadata,key('attempt_id'),*scope(),actor('initiated_by'),
         Column('request_key',String(255),nullable=False),Column('request_hash',String(64),nullable=False),
         Column('request_payload',JSONB,nullable=False),Column('correlation_id',String(100),nullable=False),
@@ -70,13 +109,17 @@ def register_valuation_tables(metadata):
     accrual_input=Table('daily_accrual_input',metadata,key('input_id'),*scope(),actor('recorded_by'),
         Column('instrument_id',uid,ForeignKey('secm.instrument.instrument_node_id'),nullable=False),
         Column('value_date',Date,nullable=False),Column('input_type',String(30),nullable=False),
+        Column('daily_earned_interest',Numeric(30,12),nullable=False,comment='Interest earned on value_date in currency_id; not accumulated balance.'),
+        Column('currency_id',uid,ForeignKey('secm.currency.currency_id'),nullable=False,comment='Currency of daily_earned_interest.'),
         Column('revision',Integer,nullable=False),Column('supersedes_input_id',uid,ForeignKey('nav.daily_accrual_input.input_id')),
         Column('submission_key',String(255),nullable=False),Column('input_hash',String(64),nullable=False),
         Column('request_hash',String(64),nullable=False),
         Column('payload',JSONB,nullable=False),Column('recorded_at',DateTime(timezone=True),nullable=False,server_default=now),
         UniqueConstraint('tenant_id','submission_key',name='uq_accrual_submission'),
         UniqueConstraint('tenant_id','strategy_id','instrument_id','value_date','input_type','revision',name='uq_accrual_revision'),
-        CheckConstraint("input_type='DAILY_INTEREST' AND revision>0",name='ck_accrual_type_revision'),schema='nav')
+        CheckConstraint("input_type='DAILY_INTEREST' AND revision>0",name='ck_accrual_type_revision'),
+        CheckConstraint('daily_earned_interest > -1000000000000000000 AND daily_earned_interest < 1000000000000000000',name='ck_accrual_daily_finite'),
+        CheckConstraint("(payload->>'currencyId')::uuid IS NOT DISTINCT FROM currency_id AND (coalesce(payload->>'dailyEarned',payload#>>'{amounts,dailyLocal}'))::numeric IS NOT DISTINCT FROM daily_earned_interest",name='ck_accrual_core_payload'),schema='nav')
     amendment=Table('pnl_amendment_request',metadata,key('request_id'),*scope(),actor('requested_by'),
         Column('base_batch_id',uid,nullable=False),Column('base_attribution_id',uid,nullable=False),
         Column('population_hash',String(64),nullable=False),Column('submission_key',String(255),nullable=False),
@@ -153,7 +196,7 @@ def register_valuation_tables(metadata):
     for table in (attempt,run_event,attribution,batch,item,lineage,review_event,accrual_input,amendment):
         table.comment='Valuation/P&L evidence and review domain; operational attempts remain distinct from official financial selection.'
         for column in table.columns:
-            column.comment=documentation.get(column.name) or ('Immutable UUIDv7 identity of this record.' if column.primary_key else
+            column.comment=column.comment or documentation.get(column.name) or ('Immutable UUIDv7 identity of this record.' if column.primary_key else
                 {'attempt_id':'Parent calculation attempt, retaining independently recorded operational lineage.',
                  'batch_id':'Parent tenant/strategy/date review batch selecting candidate or official attribution versions.',
                  'attribution_id':'Exact immutable attribution version selected by this review item.'}[column.name])

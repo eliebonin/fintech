@@ -10,6 +10,7 @@ import httpx
 from sqlalchemy import create_engine, select, or_, func, exists
 from sqlalchemy.engine import make_url
 
+from security_master_schema.database_config import local_workspace_database
 from .config import IngestorSettings
 from market_data.providers.yahoo.adapter import YAHOO_DAILY_EQUITY, YAHOO_EQUITY_HISTORY, fetch_chart, parse_delivery
 from security_master_schema.demo_data import DEMO_IDS
@@ -112,8 +113,8 @@ def main():
     settings = IngestorSettings.from_environment()
     url = make_url(settings.database_url)
     if (settings.environment != 'local' or url.host not in {'localhost', '127.0.0.1'}
-            or url.port != 54329 or url.database != 'fortem_secm'):
-        parser.error('Yahoo personal ingestion is restricted to local fortem_secm on port 54329.')
+            or url.port != 54329 or url.database != local_workspace_database()):
+        parser.error('Yahoo personal ingestion is restricted to local platform_secm on port 54329.')
     if not 1 <= args.limit <= 543 or not 1 <= args.days <= 365 or args.through >= date.today():
         parser.error('Use limit 1..543, days 1..365, and a completed prior market date.')
     start = args.start or args.through - timedelta(days=args.days - 1)

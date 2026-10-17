@@ -65,7 +65,7 @@ committed independently, including failure/partial results.
 ```
 
 Without --apply catalogue changes roll back and no Yahoo requests are made.
-The command is restricted to the local personal fortem_secm database on port 54329.
+The command is restricted to the local personal platform_secm database on port 54329.
 Requests are serial, spaced five seconds by default. Partial source coverage has
 a nonzero exit code and must not be described as complete valuation-ready data.
 

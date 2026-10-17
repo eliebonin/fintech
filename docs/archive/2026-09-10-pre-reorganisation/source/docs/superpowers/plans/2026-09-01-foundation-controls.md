@@ -20,7 +20,7 @@ explicit follow-on work.
 ## Global Constraints
 
 - PostgreSQL schema evolution is migration-only; do not use `metadata.create_all` in production/bootstrap paths.
-- Fortem-generated UUIDv7 values are immutable identity; provider, client, custodian and bank identifiers are mappings.
+- Platform-generated UUIDv7 values are immutable identity; provider, client, custodian and bank identifiers are mappings.
 - Raw market-data observations, original trades and historical snapshots are never overwritten.
 - Tenant overlays never mutate canonical facts and private terms are not promoted without approval.
 - Every valuation price and FX input is selected under an explicit policy, entitlement, named cut and information cutoff.

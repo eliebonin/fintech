@@ -1,4 +1,6 @@
 import {afterEach,expect,it,vi} from 'vitest';
+// This hook-state driver has no DOM; browser acceptance covers navigation guards.
+vi.mock('@/lib/use-retained-navigation',()=>({useRetainedNavigation:()=>{}}));
 const h=vi.hoisted(()=>({slots:[] as any[],cursor:0,effects:[] as (()=>void)[],get:vi.fn(),send:vi.fn(),search:vi.fn()}));
 vi.mock('react',async original=>({...await original<typeof import('react')>(),
   useState:(initial:any)=>{const i=h.cursor++;if(!(i in h.slots))h.slots[i]=typeof initial==='function'?initial():initial;return [h.slots[i],(v:any)=>{h.slots[i]=typeof v==='function'?v(h.slots[i]):v;}];},
@@ -66,7 +68,7 @@ it('shows upstream field errors while retaining an editable review',async()=>{
   await setup();review();h.send.mockRejectedValue(new BffApiError(422,'Terms invalid','VALIDATION_ERROR',undefined,{'terms.quoteFactor':['Source divisor required']}));await button('Submit swap for approval').props.onClick();
   expect(JSON.stringify(find(render(),n=>n.props?.role==='alert'))).toContain('Source divisor required');button('Back to edit').props.onClick();expect(find(render(),n=>n.props?.name==='quoteFactor').props.value).toBe('100');
 });
-it('retains an uncertain-response key across retries and replaces it after editing',async()=>{
+it('retains an uncertain-response key across retries and blocks changed intent',async()=>{
   await setup();review();h.send.mockRejectedValue(new Error('Unknown write outcome'));
   await button('Submit swap for approval').props.onClick();
   const original=h.send.mock.calls[0][1].idempotencyKey;
@@ -75,7 +77,8 @@ it('retains an uncertain-response key across retries and replaces it after editi
   expect(h.send.mock.calls[1][1].idempotencyKey).toBe(original);
   button('Back to edit').props.onClick();change('canonicalName','Edited intent');review();
   await button('Submit swap for approval').props.onClick();
-  expect(h.send.mock.calls[2][1].idempotencyKey).not.toBe(original);
+  expect(h.send.mock.calls).toHaveLength(2);
+  expect(find(render(),n=>typeof n.props?.children==='string'&&n.props.children.includes('Retry unchanged'))).toBeDefined();
 });
 it('blocks stale forms when tenant props change',async()=>{
   await setup();review();render('other');const tree=render('other');expect(JSON.stringify(tree)).toContain('tenant changed');expect(find(tree,n=>n.type==='button'&&n.props.children==='Submit swap for approval')).toBeUndefined();expect(h.send).not.toHaveBeenCalled();
@@ -95,4 +98,8 @@ it('requires separate custom reset and payment sources and discards sources when
 });
 it('does not require a funding-only day-count catalogue for a swap without funding',async()=>{
   await setup(true);expect((await submit()).terms.fundingReferenceId).toBeNull();
+});
+it('submits unit quantity and a separate monetary funding reference',async()=>{
+  await setup();change('quantityUnit','UNITS');change('contractualUnits','25000');change('notionalPerUnit','8250');change('contractualNotional','206250000');change('quoteFactor','1');
+  const payload=await submit();expect(payload.terms.quantityUnit).toBe('UNITS');expect(payload.terms.contractualUnits).toBe('25000');expect(payload.terms.notionalPerUnit).toBe('8250');expect(payload.terms.contractualNotional).toBe('206250000');
 });

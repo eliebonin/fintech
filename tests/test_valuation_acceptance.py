@@ -16,8 +16,8 @@ from security_master_schema.demo_data import DEMO_IDS as ids,load_demo_data
 
 def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
     base=make_url(os.environ['DATABASE_URL'])
-    assert base.database.startswith('fortem_isolated_tests_')
-    name='fortem_isolated_tests_'+uuid4().hex
+    assert base.database.startswith('platform_isolated_tests_')
+    name='platform_isolated_tests_'+uuid4().hex
     admin=create_engine(base.set(database='postgres'),isolation_level='AUTOCOMMIT')
     with admin.connect() as c: c.execute(text(f'CREATE DATABASE "{name}"'))
     target=base.set(database=name);engine=create_engine(target)
@@ -130,6 +130,6 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
         asyncio.run(acceptance())
     finally:
         engine.dispose()
-        assert name.startswith('fortem_isolated_tests_') and len(name.rsplit('_',1)[1])==32
+        assert name.startswith('platform_isolated_tests_') and len(name.rsplit('_',1)[1])==32
         with admin.connect() as c: c.execute(text(f'DROP DATABASE "{name}"'))
         admin.dispose()

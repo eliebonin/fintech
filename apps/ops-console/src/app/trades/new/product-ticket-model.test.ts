@@ -1,9 +1,15 @@
 import {describe,it,expect} from 'vitest';
-import {productAmount,buildProductPayload,type ProductTerms,type ProductDraft} from './product-ticket-model';
+import {productAmount,swapBookingQuantity,buildProductPayload,type ProductTerms,type ProductDraft} from './product-ticket-model';
 const common={effectiveFrom:'2026-09-01',priceCurrencyId:'currency',quoteFactor:'100',sourceReference:'Terms'};
 const note:ProductTerms={instrumentId:'note',name:'Note',kind:'STRUCTURED_PRODUCT',executionRoute:'OTC',bookingEligible:true,convention:{...common,kind:'STRUCTURED_PRODUCT',funding:'FULLY_FUNDED',quantityUnit:'NOMINAL',priceBasis:'PCT_OF_PAR',quantityMinimum:'1000',quantityIncrement:'1000',accrual:'NONE',otcAllowed:true}};
 const future:ProductTerms={instrumentId:'future',name:'Future',kind:'FUTURE',executionRoute:'LISTED',listingId:'listing',bookingEligible:true,convention:{...common,kind:'FUTURE',quoteFactor:'1',quantityUnit:'CONTRACTS',priceBasis:'INDEX_POINTS',settlementMethod:'CASH',monetaryMultiplier:'5',tickSize:'.25',allowNegativePrice:true,lastTradingAtUtc:'2027-03-19T13:30:00Z',finalSettlementDate:'2027-03-19'}};
 describe('exact product preview',()=>{
+  it('prefills units, not the funding notional, and does not multiply leverage again',()=>{
+    const swap={kind:'SWAP',convention:{kind:'SWAP',quantityUnit:'UNITS',priceBasis:'SWAP_VALUE_PER_UNIT',quoteFactor:'1'},swapDetails:{genericTerms:{quantityUnit:'UNITS',contractualUnits:'25000',contractualNotional:'206250000',notionalPerUnit:'8250',leverage:'1.5'}}} as ProductTerms;
+    expect(swapBookingQuantity(swap)).toBe('25000');
+    expect(productAmount(swap,'25000','2')).toBe('50000');
+    expect(swapBookingQuantity({...swap,swapDetails:{...swap.swapDetails!,genericTerms:{...swap.swapDetails!.genericTerms!,contractualUnits:null}}})).toBe('');
+  });
   it('sends platform recognition independently of product terms and custom properties',()=>{
     const draft={strategyId:'s',side:'BUY',quantity:'2',executionPrice:'6000',tradeDatetime:'2026-10-01T10:00:00Z',settlementDate:'',positionEffect:'OPEN',tradePurpose:'INVESTMENT',properties:{},tagIds:[],externalReferences:[],valuationEffectiveDate:'2026-10-02',valuationOverrideReason:'Deferred'} as ProductDraft;
     for(const terms of [note,future]){

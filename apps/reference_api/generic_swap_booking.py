@@ -84,7 +84,9 @@ def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lo
     stored = max(conventions, key=lambda row: (row['effective_from'], row['version_no']))
     convention = CONVENTION.validate_json(stored['convention_payload'])
     if (convention.kind != 'SWAP' or convention.price_currency_id != terms.quote_currency_id
-            or convention.quote_factor != terms.quote_factor or not convention.otc_allowed):
+            or convention.quote_factor != terms.quote_factor or not convention.otc_allowed
+            or convention.quantity_unit!=terms.quantity_unit
+            or convention.price_basis!=('SWAP_VALUE_PER_UNIT' if terms.quantity_unit=='UNITS' else 'SWAP_VALUE_PER_NOTIONAL')):
         raise ValueError('Booking quote convention differs from approved generic terms.')
     facts.update(genericDefinition=generic[0], approvedDefinition=definition, instrument=instruments[0],
         swapReference=node, dates=dates, swapTerms=swap_terms, legs=legs, bookingConvention=stored)

@@ -1,4 +1,5 @@
 'use client';
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {useRef,useState} from 'react';
 import {Alert,Box,Button,Chip,FormControl,InputLabel,MenuItem,Paper,Select,Stack,Tab,Tabs,Typography} from '@mui/material';
 import {initialOrder,moveSource,type SourceCatalogue,type SourceCommand,type SourcePriority} from '@/lib/market-data-sources';

@@ -14,7 +14,7 @@ Final evidence: `.superpowers/sdd/2026-10-01-deliverable-fx-forward-booking/sign
 
 ## Browser acceptance
 
-The previous browser blocker was resolved by starting a fresh isolated app on ports 3001/8001. Browser controls exercised the real frontend/BFF/API against synthetic database `fortem_fx_signoff_87ef934b18574808a6b655199926c7b4`, not the operator's app/database.
+The previous browser blocker was resolved by starting a fresh isolated app on ports 3001/8001. Browser controls exercised the real frontend/BFF/API against synthetic database `platform_fx_signoff_87ef934b18574808a6b655199926c7b4`, not the operator's app/database.
 
 1. Selected the demo tenant and searched an approved EUR/USD economic contract without a listing.
 2. BUY 1,000,000 EUR at 1.10: review and saved detail show receipt of 1,000,000 EUR and payment of 1,100,000 USD. Rate and 2026-12-15 settlement are inherited.

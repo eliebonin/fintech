@@ -3,15 +3,12 @@ from starlette.requests import Request
 from .problem_details import _problem_response
 from datetime import datetime,timezone
 from sqlalchemy import select,func
+from security_master_schema.governance_clock import governance_date
 
 
 def configure_transaction_budget(connection,settings):
     for name,value in [('statement_timeout',settings.statement_timeout_ms),('lock_timeout',settings.lock_timeout_ms)]:
         connection.execute(select(func.set_config(name,str(value),True)))
-
-
-def governance_date(now=None):
-    return (now or datetime.now(timezone.utc)).astimezone(timezone.utc).date()
 
 
 class RequestBodyBudget:

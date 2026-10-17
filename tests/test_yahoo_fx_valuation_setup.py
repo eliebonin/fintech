@@ -21,7 +21,7 @@ def test_setup_resolves_both_dates_without_changing_source_or_prior_policy():
     from valuation.service import ValuationRequest
     from market_data.rights import load_rights
     engine=get_engine()
-    assert engine.url.database.startswith('fortem_isolated_tests_')
+    assert engine.url.database.startswith('platform_isolated_tests_')
     with engine.connect() as c:
         tx=c.begin()
         try:
@@ -52,6 +52,25 @@ def test_setup_resolves_both_dates_without_changing_source_or_prior_policy():
             historical=c.execute(select(entitlement).where(entitlement.c.dataset_id==config['datasetId'],
                 entitlement.c.use_purpose=='VALUATION',entitlement.c.coverage_mode=='SCOPED')).mappings().one()
             assert historical['valid_from']==date(2026,10,6) and historical['valid_to']==date(2026,10,7)
+            old_policy=dict(c.execute(select(m.valuation_policy).where(m.valuation_policy.c.valuation_policy_id==report['policyId'])).mappings().one())
+            old_package=dict(c.execute(select(m.dataset_coverage_package).join(m.market_data_series_coverage).where(
+                m.market_data_series_coverage.c.dataset_id==config['datasetId'])).mappings().one())
+            extended=chart(['2026-10-08T14:55:00+00:00'],[.87])
+            ingest_fx(c,config=config,symbol='EURGBP=X',raw_payload=json.dumps(extended),start=date(2026,10,8),end=date(2026,10,8),
+                received_at=datetime.now(timezone.utc),interval='5m')
+            with pytest.raises(ValueError,match='classification'):
+                with c.begin_nested():
+                    prepare_fx_valuation(c,ids['tenant'],ids['demo_user_account'],ids['platform_admin_user_account'],report['policyId'],date(2026,10,6),date(2026,10,8),'Requires explicit scope review')
+            # Operating configuration already has a current DATASET grant from
+            # October 8. Reuse it, never duplicate its unique business key.
+            c.execute(m.tenant_dataset_entitlement.update().where(m.tenant_dataset_entitlement.c.dataset_id==config['datasetId'],
+                m.tenant_dataset_entitlement.c.use_purpose=='VALUATION',m.tenant_dataset_entitlement.c.coverage_mode=='DATASET').values(valid_from=date(2026,10,8)))
+            upgraded=prepare_fx_valuation(c,ids['tenant'],ids['demo_user_account'],ids['platform_admin_user_account'],report['policyId'],date(2026,10,6),date(2026,10,8),'Explicit research scope review',review_existing_classification=True)
+            assert dict(c.execute(select(m.valuation_policy).where(m.valuation_policy.c.valuation_policy_id==report['policyId'])).mappings().one())==old_policy
+            assert dict(c.execute(select(m.dataset_coverage_package).where(m.dataset_coverage_package.c.coverage_package_id==old_package['coverage_package_id'])).mappings().one())==old_package
+            from dataclasses import replace
+            upgraded_request=replace(request,policy_id=upgraded['policyId'],closing_cutoff=datetime(2026,10,8,23,tzinfo=timezone.utc),information_cutoff=datetime.now(timezone.utc))
+            assert resolve_fx(c,upgraded_request,ids['eur_currency'],ids['gbp_currency'],date(2026,10,8)).rate==Decimal('.87')
             # A historical grant alone must never bypass today's revocation.
             c.execute(entitlement.update().where(entitlement.c.dataset_id==config['datasetId'],
                 entitlement.c.use_purpose=='VALUATION',entitlement.c.coverage_mode=='DATASET').values(status='SUSPENDED'))

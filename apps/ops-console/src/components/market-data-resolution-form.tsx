@@ -1,4 +1,5 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

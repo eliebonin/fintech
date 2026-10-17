@@ -129,7 +129,7 @@ def book(connection,tenant_id,actor,request,key,request_id):
     from .repository import _trade_booking_fingerprint,IdempotencyKeyConflict,RepositoryNotFound,get_booked_trade_detail,persist_trade_annotations
     from .trade_properties import validate_trade_annotations
     with connection.begin_nested():
-        authorize_booking(connection, tenant_id, actor)
+        authorize_booking(connection, tenant_id, actor,strategy_id=request.strategy_id)
         normalized=request.model_copy(update={'quantity':request.quantity.normalize(),'execution_price':request.execution_price.normalize(),'trade_datetime':request.trade_datetime.astimezone(timezone.utc)})
         fingerprint=_trade_booking_fingerprint(normalized,connection,tenant_id)
         existing=find_booking_replay(connection,tenant_id,ENDPOINT,key,fingerprint)
@@ -171,7 +171,8 @@ def load_economics(connection,trade_ids):
 
 
 def option_router(connection_dependency,assert_membership):
-    from fastapi import APIRouter,Depends,Header,Query,HTTPException,Response
+    from fastapi import Depends,Header,Query,HTTPException,Response
+    from .request_audit import AuditRouter as APIRouter
     from .tenant_context import TenantContext,get_tenant_context
     from .contracts import ApiMeta,OptionBookingListingSearchResponse,OptionBookingListingResponse,TradeDetailResponse,OptionProposalRequest,ReferenceDataProposalResponse
     from .problem_details import ApiProblem,ValidationIssue,current_request_id

@@ -1,0 +1,20 @@
+{
+  "mic": "XPAR",
+  "calendarName": "XPAR",
+  "timezone": "Europe/Paris",
+  "year": 2026,
+  "reviewedOn": "2026-10-13",
+  "sourceReference": "https://www.euronext.com/en/trading/trading-hours-holidays",
+  "reviewScope": "2026 Paris full closures and half-day dates checked against the Euronext publication. Times use the pinned library convention, not exchange-certified auction timestamps. Future exceptional closures require a new version.",
+  "normalOpen": "09:00:00",
+  "normalClose": "17:30:00",
+  "halfDayClose": "14:05:00",
+  "closedWeekdays": {
+    "2026-01-01": "New Year",
+    "2026-04-03": "Good Friday",
+    "2026-04-06": "Easter Monday",
+    "2026-05-01": "Labour Day",
+    "2026-12-25": "Christmas"
+  },
+  "halfDays": ["2026-12-24", "2026-12-31"]
+}

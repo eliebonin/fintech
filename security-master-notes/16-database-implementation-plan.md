@@ -86,11 +86,11 @@ listing aggregate only after a manual or governed automated approval.
 
 ## Slice 0: external-ID mapping foundation
 
-This slice is first because every external position, cash balance, trade, administrator NAV, reference-data feed, and client report needs to identify the same Fortem object despite different upstream codes.
+This slice is first because every external position, cash balance, trade, administrator NAV, reference-data feed, and client report needs to identify the same Platform object despite different upstream codes.
 
 ```text
 HSBC shares on XLON
-  Fortem listing UUID: 019...XYZ
+  Platform listing UUID: 019...XYZ
   Bank A code: ABC
   Custodian B code: FOO
   Client C code: HSBC-LONDON
@@ -121,7 +121,7 @@ ing.external_object_mapping
   external_object_type                        -- LISTING / REFERENCE_NODE / STRATEGY / TRADE / ORGANISATION / PERSON
   external_id_value
   target_object_type                          -- controlled counterpart
-  target_object_id UUIDv7                     -- Fortem internal UUID
+  target_object_id UUIDv7                     -- Platform internal UUID
   context_market_venue_id nullable FK secm.market_venue
   mapping_role                                -- PRIMARY / ALIAS / LEGACY / SOURCE_REFERENCE
   mapping_method                              -- MANUAL / PROVIDER_MATCH / CLIENT_CONFIRMED / RULE
@@ -152,7 +152,7 @@ ing.external_object_mapping
 
 ### Acceptance proof
 
-1. Resolve `BANK_A_STATIC_PROD / LISTING / ABC` to the Fortem HSBC XLON listing UUID.
+1. Resolve `BANK_A_STATIC_PROD / LISTING / ABC` to the Platform HSBC XLON listing UUID.
 2. Resolve `CUSTODIAN_B_ASSET_PROD / LISTING / FOO` to that same UUID.
 3. Resolve a client portfolio code to its strategy UUID.
 4. Reject the same external ID in an unknown namespace and a listing mapping with an incompatible venue context.
@@ -185,7 +185,7 @@ md.data_licence
 
 `dataset` is the governed content universe and entitlement scope, such as `BLOOMBERG_COMMODITY_INDICES_EOD` or `FACTSET_US_EQUITIES_EOD`, rather than merely a delivery file or the provider's entire product. `provider_product` is the commercial product family; file/API/streaming delivery details remain separate.
 
-Extend every `md.market_data_observation` with mandatory `dataset_id`, nullable `acquisition_licence_id`, and source-payload link, in addition to observed, published and received times, value basis, and revision/supersession. `acquisition_licence_id` records the right under which Fortem received the exact observation where known. This is immutable provenance.
+Extend every `md.market_data_observation` with mandatory `dataset_id`, nullable `acquisition_licence_id`, and source-payload link, in addition to observed, published and received times, value basis, and revision/supersession. `acquisition_licence_id` records the right under which Platform received the exact observation where known. This is immutable provenance.
 
 Do not put a tenant's entitlement ID directly on an observation: access is many-to-many and depends on tenant, intended use and effective date. `ten.tenant_dataset_entitlement` evaluates `tenant + dataset + use purpose + as-of date` at read/resolution time. A completed resolver or NAV snapshot records the resulting entitlement/policy decision as audit evidence.
 
@@ -323,7 +323,7 @@ The first SQLAlchemy increment adds the core tables and provenance foreign keys,
 1. **Polymorphic mapping target enforcement.** `ing.external_object_mapping` supports multiple UUID-backed target types. The mapping service validates the type/UUID pair initially; introduce a PostgreSQL trigger after the supported target set and migration path are fixed. Do not pretend a generic SQL foreign key can enforce several target tables.
 2. **Tenant data isolation mechanism.** `ten.reference_node_scope` is the foundation for scope. Define and test PostgreSQL RLS policies together with authenticated API database roles; do not enable partial RLS policies before all tenant-scoped child access paths are covered.
 3. **Fine-grained licence clauses.** `md.data_licence.permitted_use_description` and the dataset/tenant assignment tables provide the V1 governed boundary. Add normalized restrictions for geography, user population, redistribution channel, retention, and derived-data rules only when actual contracts require machine enforcement beyond `use_purpose`.
-4. **Business calculation logic.** The schema freezes input/output evidence but intentionally does not implement pricing, accrual, corporate-action position transformations, NAV calculation, or reconciliation tolerance logic. Those services require golden-master comparison with Fortem's established Python capability.
+4. **Business calculation logic.** The schema freezes input/output evidence but intentionally does not implement pricing, accrual, corporate-action position transformations, NAV calculation, or reconciliation tolerance logic. Those services require golden-master comparison with Platform's established Python capability.
 
 5. **Calendar population and resolution.** The `cal` tables are the governed
 storage boundary, but production holiday/session ingestion and local-time to

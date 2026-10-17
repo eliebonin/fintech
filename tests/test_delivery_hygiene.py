@@ -12,7 +12,7 @@ def test_gitignore_excludes_logs_and_keeps_env_example_visible():
 def test_example_environment_uses_only_placeholders():
     example = Path(".env.example").read_text(encoding="utf-8")
 
-    assert "fortem_local_only" not in example
+    assert "platform_local_only" not in example
     assert "<local-password>" in example
 
 

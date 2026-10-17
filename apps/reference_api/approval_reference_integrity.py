@@ -1,5 +1,6 @@
 """Approval-time dependency validation for the older FX, bond and ETP paths."""
 from datetime import date
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import select, or_
 from security_master_schema import models as m
 from .booking_errors import RepositoryNotFound, InvalidWorkflowState
@@ -26,7 +27,7 @@ def _etp_reference(connection, tenant, reference_id):
     if instrument:
         definitions = _rows(connection, m.instrument_definition_version, m.instrument_definition_version.c.instrument_node_id, reference_id)
         current = [row for row in definitions if row.status == 'APPROVED' and row.is_current]
-        today = date.today()
+        today = governance_date()
         if not instrument[0].is_current or len(current) != 1 or current[0].effective_from > today or (current[0].effective_to and current[0].effective_to < today):
             raise InvalidWorkflowState('ETP reference requires a current effective approved instrument definition')
         for key in ('instrument_type_id', 'base_currency_id', 'issuer_organisation_id', 'asset_class', 'effective_to', 'sequence_no'):

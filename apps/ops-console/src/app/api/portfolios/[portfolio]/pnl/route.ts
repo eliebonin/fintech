@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 /** A non-financial tombstone only: do not forward aliases to the retired API. */
 export async function GET(request: NextRequest, _context: { params: Promise<{ portfolio: string }> }) {
   return NextResponse.json({
-    type: "https://api.fortem.local/problems/valuation-demo-retired",
+    type: "https://api.platform.local/problems/valuation-demo-retired",
     title: "Legacy P&L demonstration retired",
     status: 410,
     code: "valuation.demo_retired",

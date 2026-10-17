@@ -46,7 +46,7 @@ def test_migration_preserves_old_values_and_replay_and_blocks_new_choices():
     from apps.reference_api.repository import _trade_booking_fingerprint, _TRADE_BOOKING_ENDPOINT, book_listed_cash_trade
 
     base = os.environ.get("DATABASE_URL", os.environ["DATABASE_URL"]).rsplit("/",1)[0]
-    name = "fortem_choice_cleanup_test_" + uuid4().hex
+    name = "platform_choice_cleanup_test_" + uuid4().hex
     admin = create_engine(base + "/postgres", isolation_level="AUTOCOMMIT")
     engine = create_engine(base + "/" + name)
     root = Path(__file__).resolve().parents[1]
@@ -110,7 +110,7 @@ def test_migration_preserves_old_values_and_replay_and_blocks_new_choices():
     finally:
         engine.dispose()
         # Exact generated test name; never target the application database.
-        assert name.startswith("fortem_choice_cleanup_test_") and len(name.rsplit("_",1)[1]) == 32
+        assert name.startswith("platform_choice_cleanup_test_") and len(name.rsplit("_",1)[1]) == 32
         with admin.connect() as connection:
             connection.execute(text(f'DROP DATABASE "{name}"'))
         admin.dispose()

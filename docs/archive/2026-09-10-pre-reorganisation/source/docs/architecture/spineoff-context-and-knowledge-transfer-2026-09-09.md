@@ -25,13 +25,13 @@ work, not a replacement for the detailed architecture notebook.
 
 ## Product and delivery context
 
-Fortem is an institutional liquid-alternatives manager and investment-solutions
-firm. Structured products are important, but are one capability within a wider
+The original design-partner context was an institutional liquid-alternatives
+manager and investment-solutions firm. Structured products are important, but are one capability within a wider
 operating model that includes funds, bespoke mandates, portfolio construction,
 risk, valuation, reporting, market data, and OTC operations.
 
 The product strategy is to externalise selected workflows around proven Python
-engines. It is not a wholesale rewrite of `fortem_core`. Productisation requires
+engines. It is not a wholesale rewrite of `legacy_core`. Productisation requires
 new boundaries for tenancy, identity, entitlements, configuration, deployment,
 audit, external APIs, and reproducible valuation.
 
@@ -42,7 +42,7 @@ explicit data and market-data rights. It should be built contract-first:
 versioned API and engine contracts
   -> fixtures and generated client/mock server
   -> parallel core, data-quality, and front-end delivery
-  -> reconciliation against trusted Fortem outputs
+  -> reconciliation against trusted Platform outputs
   -> controlled feature-flag release
 ```
 
@@ -61,7 +61,7 @@ and audit history and excludes confidential terms.
 
 Identity follows these rules:
 
-- Fortem-generated immutable UUIDs identify internal records.
+- Platform-generated immutable UUIDs identify internal records.
 - An economic instrument, a venue listing, an issuer, a fund, and a share class
   are distinct concepts.
 - Provider, bank, custodian, client, ISIN, FIGI, ticker, and similar values are

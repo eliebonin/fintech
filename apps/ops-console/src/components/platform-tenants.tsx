@@ -3,9 +3,10 @@ import {useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {accessLabel,type Registry,type RegistryTenant} from '@/lib/access-administration';
 import {useAccessData} from './access-loader';
+import {PageHelp} from './page-help';
 
 export function PlatformTenants({initial}:{initial?:Registry}) {
- const {data,error,busy,reload,command}=useAccessData<Registry>('/api/platform/tenants',initial);
+ const {data,error,busy,stale,reload,command}=useAccessData<Registry>('/api/platform/tenants',initial);
  const [editor,setEditor]=useState<{tenant:RegistryTenant;mode:'profile'|'status'}>();
  const [notice,setNotice]=useState('');
  async function save(tenant:RegistryTenant,body:unknown) {
@@ -14,11 +15,11 @@ export function PlatformTenants({initial}:{initial?:Registry}) {
    setEditor(undefined);setNotice('Tenant update saved. Refresh the list if it could not be reloaded.');
   }
  }
- return <main className="mvp-page access-admin-page"><header className="mvp-header"><div><p className="eyebrow">SERVICE OPERATOR · OUTSIDE TENANTS</p><h1>Tenant administration</h1><p className="muted">Manage tenant details, operational status and module subscriptions. Suspension never deletes tenant data.</p></div><Link className="access-secondary" href="/select-context">Switch context</Link></header>
-  {error?<div className="error-panel" role="alert">{error} <Link href="/select-context">Select platform context</Link></div>:null}
+ return <main className="mvp-page access-admin-page"><PageHelp pathname="/platform/tenants" embedded/><header className="mvp-header"><div><p className="eyebrow">SERVICE OPERATOR · OUTSIDE TENANTS</p><h1>Tenant administration</h1><p className="muted">Manage tenant details, operational status and module subscriptions. Suspension never deletes tenant data.</p></div><Link className="access-secondary" href="/select-context">Switch context</Link></header>
+  {error?<div className="error-panel" role="alert">{error} <Link href="/select-context">Select platform context</Link>{stale?<button disabled={busy} onClick={()=>void reload()}>Refresh current state</button>:null}</div>:null}
   <p role="status" className="access-feedback">{busy?'Saving tenant changes…':notice}</p>
   <div className="access-toolbar"><p className="access-hint">{data?data.tenants.length+' tenants':'Loading tenants…'} · Contact details do not grant access or create accounts.</p><button className="access-secondary" disabled={busy||!!editor} onClick={()=>{setNotice('');void reload();}}>Refresh tenants</button></div>
-  <section className="access-tenant-cards">{data?.tenants.map(tenant=><article key={tenant.tenantId} className="tenant-profile-card"><p className="eyebrow">{tenant.code}</p><h2>{tenant.name}</h2><p><span className={tenant.status==='ACTIVE'?'access-status':'muted'}>{accessLabel(tenant.status)}</span> · {tenant.users.length} active memberships</p>
+  <section className="access-tenant-cards" inert={stale||undefined}>{data?.tenants.map(tenant=><article key={tenant.tenantId} className="tenant-profile-card"><p className="eyebrow">{tenant.code}</p><h2>{tenant.name}</h2><p><span className={tenant.status==='ACTIVE'?'access-status':'muted'}>{accessLabel(tenant.status)}</span> · {tenant.users.length} active memberships</p>
    <p className="access-hint">{tenant.contactName??'No operational contact'}{tenant.contactEmail?<><br/>{tenant.contactEmail}</>:null}</p>
    <div className="access-actions"><button className="access-secondary" disabled={busy||!!editor||tenant.profileVersion===undefined||!['ACTIVE','SUSPENDED'].includes(tenant.status)} onClick={()=>setEditor({tenant,mode:'profile'})}>Edit tenant</button>
     {['ACTIVE','SUSPENDED'].includes(tenant.status)?<button className="access-secondary" disabled={busy||!!editor||tenant.profileVersion===undefined} onClick={()=>setEditor({tenant,mode:'status'})}>{tenant.status==='ACTIVE'?'Suspend tenant':'Reactivate tenant'}</button>:null}</div>

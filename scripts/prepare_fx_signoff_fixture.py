@@ -6,17 +6,19 @@ import sys
 from uuid import uuid4
 import json
 from sqlalchemy import create_engine,text
+from sqlalchemy.engine import make_url
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 
 
 def main():
-    name="fortem_fx_signoff_"+uuid4().hex
-    prefix="postgresql+psycopg://fortem:fortem_local_only@localhost:54329/"
-    admin=create_engine(prefix+"postgres",isolation_level="AUTOCOMMIT")
+    name="platform_fx_signoff_"+uuid4().hex
+    base=make_url(os.environ.get('TEST_DATABASE_ADMIN_URL',
+        'postgresql+psycopg://platform:platform_local_only@localhost:54329/postgres'))
+    admin=create_engine(base.set(database='postgres'),isolation_level="AUTOCOMMIT")
     with admin.connect() as c:c.execute(text(f'CREATE DATABASE "{name}"'))
-    os.environ["DATABASE_URL"]=prefix+name
+    os.environ["DATABASE_URL"]=base.set(database=name).render_as_string(hide_password=False)
     subprocess.run([sys.executable,"-m","alembic","upgrade","head"],cwd=ROOT,check=True)
     from apps.reference_api.db import get_engine
     from security_master_schema.demo_data import load_demo_data,DEMO_IDS

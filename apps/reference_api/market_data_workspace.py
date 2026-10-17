@@ -1,7 +1,9 @@
 """Bounded discovery projection: metadata and one permitted mark, never history."""
 from datetime import date, datetime
+from security_master_schema.governance_clock import governance_date
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query
+from fastapi import Depends, Query
+from .request_audit import AuditRouter as APIRouter
 from pydantic import BaseModel
 from sqlalchemy import select, func, or_, true, String
 from security_master_schema import models as m
@@ -35,35 +37,43 @@ class MarketDataCatalogueResponse(BaseModel):
 
 def market_data_catalogue(c, tenant, query, as_of, limit, offset, api_version):
     series, node, dataset = m.market_data_series, m.financial_reference_node, m.dataset
-    denied = denied_display_datasets(c, tenant, date.today())
-    filters = [series.c.status=='ACTIVE', node.c.status=='ACTIVE',
-        _market_data_visible_node_clause(series.c.reference_node_id, tenant),
-        or_(series.c.default_dataset_id.is_(None),
-            (series.c.default_dataset_id.not_in(denied) &
-             _market_data_display_entitlement_clause(series.c.default_dataset_id,tenant,series.c.market_data_series_id) &
-             (dataset.c.status=='ACTIVE') & (dataset.c.valid_from<=date.today()) &
-             or_(dataset.c.valid_to.is_(None),dataset.c.valid_to>=date.today())))]
+    denied = denied_display_datasets(c, tenant, governance_date())
+    # Resolve metadata/visibility before the selective licensing predicates.
+    # Otherwise low entitlement estimates drive repeated master-table scans.
+    # This is a statement-local projection, not cached rights or a result cap.
     base = select(series.c.market_data_series_id.label('seriesId'),
         series.c.reference_node_id.label('referenceNodeId'), node.c.canonical_name.label('referenceNodeName'),
         series.c.series_type.label('seriesType'), series.c.closing_method.label('closingMethod'),
         series.c.value_type.label('valueType'), m.currency.c.currency_code.label('currency'),
-        dataset.c.display_name.label('datasetName'),series.c.expected_frequency_code.label('expectedFrequency'))        .select_from(series.join(node,node.c.reference_node_id==series.c.reference_node_id)
+        dataset.c.display_name.label('datasetName'),series.c.expected_frequency_code.label('expectedFrequency'),
+        series.c.default_dataset_id.label('defaultDatasetId'),dataset.c.status.label('datasetStatus'),
+        dataset.c.valid_from.label('datasetFrom'),dataset.c.valid_to.label('datasetTo'))        .select_from(series.join(node,node.c.reference_node_id==series.c.reference_node_id)
             .outerjoin(dataset,dataset.c.dataset_id==series.c.default_dataset_id)
-            .outerjoin(m.currency,m.currency.c.currency_id==series.c.currency_id)).where(*filters)
+            .outerjoin(m.currency,m.currency.c.currency_id==series.c.currency_id)).where(
+                series.c.status=='ACTIVE',node.c.status=='ACTIVE')
     if query:
         base=base.where(or_(node.c.canonical_name.icontains(query,autoescape=True),
             func.cast(node.c.reference_node_id, String).icontains(query,autoescape=True),
             dataset.c.display_name.icontains(query,autoescape=True),series.c.series_type.icontains(query,autoescape=True)))
+    population=base.cte('catalogue_population').prefix_with('MATERIALIZED')
+    fields=('seriesId','referenceNodeId','referenceNodeName','seriesType','closingMethod',
+        'valueType','currency','datasetName','expectedFrequency')
+    base=select(*(population.c[name] for name in fields)).where(
+        _market_data_visible_node_clause(population.c.referenceNodeId,tenant),or_(population.c.defaultDatasetId.is_(None),
+        (population.c.defaultDatasetId.not_in(denied) &
+         _market_data_display_entitlement_clause(population.c.defaultDatasetId,tenant,population.c.seriesId) &
+         (population.c.datasetStatus=='ACTIVE') & (population.c.datasetFrom<=governance_date()) &
+         or_(population.c.datasetTo.is_(None),population.c.datasetTo>=governance_date()))))
     total=int(c.scalar(select(func.count()).select_from(base.subquery())))
-    page=base.order_by(node.c.canonical_name,series.c.series_type,series.c.market_data_series_id).limit(limit).offset(offset).subquery('catalogue_page')
+    page=base.order_by(population.c.referenceNodeName,population.c.seriesType,population.c.seriesId).limit(limit).offset(offset).subquery('catalogue_page')
     observation=m.market_data_observation
     actual=m.dataset.alias('catalogue_actual_dataset')
     latest=select(observation.c.market_date.label('latestMarketDate'),observation.c.value.label('latestValue'),
         observation.c.received_at_utc.label('latestReceivedAt'),actual.c.display_name.label('latestDatasetName'),
         observation.c.value_basis.label('latestValueBasis')).select_from(observation.join(actual,actual.c.dataset_id==observation.c.dataset_id))        .where(observation.c.market_data_series_id==page.c.seriesId,
             observation.c.quality_status=='ACCEPTED',observation.c.market_date<=as_of,
-            observation.c.dataset_id.not_in(denied),actual.c.status=='ACTIVE',actual.c.valid_from<=date.today(),
-            or_(actual.c.valid_to.is_(None),actual.c.valid_to>=date.today()),
+            observation.c.dataset_id.not_in(denied),actual.c.status=='ACTIVE',actual.c.valid_from<=governance_date(),
+            or_(actual.c.valid_to.is_(None),actual.c.valid_to>=governance_date()),
             _current_market_data_observation_clause(observation),
             _market_data_display_entitlement_clause(observation.c.dataset_id,tenant,observation.c.market_data_series_id))        .order_by(observation.c.market_date.desc().nulls_last(),observation.c.observed_at_utc.desc(),
             observation.c.received_at_utc.desc(),observation.c.market_data_observation_id.desc()).limit(1).lateral('catalogue_latest')
@@ -85,5 +95,5 @@ def market_data_workspace_router(connection_dependency, authority, api_version):
         limit:int=Query(default=25,ge=1,le=100),offset:int=Query(default=0,ge=0,le=100000),
         context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         authority(c,context)
-        return market_data_catalogue(c,context.tenant_id,q.strip(),as_of or date.today(),limit,offset,api_version)
+        return market_data_catalogue(c,context.tenant_id,q.strip(),as_of or governance_date(),limit,offset,api_version)
     return router

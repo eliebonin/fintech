@@ -16,3 +16,9 @@ it('published and read-only results expose no mutation forms',()=>{
   expect(html).not.toContain('Request component change');expect(html).toContain('Market P&amp;L');
  }
 });
+
+it('uses optional governed reference labels without changing authoritative position IDs',()=>{
+ const html=renderToStaticMarkup(<ReviewWorkspace batch={batch} actorId="maker" canRequest canReview compact positionLabels={{bond:'Reviewed Bond'}} onApproved={()=>{}}/>);
+ expect(html).toContain('value="a"');expect(html).toContain('Reviewed Bond');
+ expect(html).toContain('name="sourceReference"');expect(html).not.toContain('>PRICE</option>');
+});

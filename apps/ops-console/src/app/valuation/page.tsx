@@ -20,13 +20,13 @@ export default async function ValuationPage() {
   const enabled = workspace.moduleCodes.includes("MARKET_DATA") && workspace.moduleCodes.includes("VALUATION");
 
   return (
-    <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} sourceLabel={enabled ? "ECONOMIC P&L ALPHA" : "ACCESS RESTRICTED"}>
-      <main className="mvp-page">
-        <header className="mvp-header">
+    <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId} sourceLabel={enabled ? "ECONOMIC P&L ALPHA" : "ACCESS RESTRICTED"}>
+      <main className="mvp-page pnl-page">
+        <header className="pnl-page-heading">
           <div>
-            <p className="eyebrow">VALUATION AND P&amp;L</p>
-            <h1>Valuation &amp; P&amp;L</h1>
-            <p className="muted">Replayed booking evidence, frozen market inputs and staged attribution review.</p>
+            <h1>P&amp;L validation</h1>
+            <p className="muted">Inspect positions, review changes and publish with recorded review authority.</p>
+            <p><Link href="/valuation/cash-balances">Manage dated cash balances</Link></p>
           </div>
           <span className="synthetic-badge">{enabled ? "ECONOMIC P&L ALPHA" : "ACCESS RESTRICTED"}</span>
         </header>

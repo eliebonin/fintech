@@ -6,7 +6,7 @@ from .economics import finite_decimal
 
 def supported_product(product,unit):
     from positions.contracts import POSITION_UNITS
-    expected={'EQUITY':'PRICE','ETF':'PRICE','FUND':'NAV','BOND':'CLEAN_PLUS_ACCRUAL','CASH':'FX_ONLY'}
+    expected={'EQUITY':'PRICE','ETF':'PRICE','FUND':'NAV','BOND':'CLEAN_PLUS_ACCRUAL','CASH':'FX_ONLY','FX_FORWARD':'FORWARD_RATE_DIFFERENCE'}
     if product not in expected or unit not in POSITION_UNITS.get(product,()):
         raise ValueError(f'{product}/{unit} is not valuation-ready: explicit unit economics and final marks required')
     return expected[product]

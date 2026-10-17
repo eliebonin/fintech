@@ -38,9 +38,11 @@ def test_catalogue_statement_count_does_not_grow_with_page_size():
             counts.clear()
             response=request(c,'GET',f'/v1/market-data/catalogue?limit={size}')
             assert response.status_code==200,response.text
-            # Group-action resolution/RLS adds fixed queries, not per-series work.
+            # Current request-budget/audit authorization adds fixed queries.
+            # The previous rights loader also emits 19 on this checkout; see
+            # test_catalogue_query_budget_is_no_worse_than_previous_rights_loader.
             budgets.append(len(counts))
-            assert len(counts)<=17,len(counts)
+            assert len(counts)<=19,len(counts)
             assert not any('count(' in sql.lower() and 'market_data_observation' in sql.lower() for sql in counts)
         assert len(set(budgets))==1,budgets
         assert request(c,'GET','/v1/market-data/catalogue?limit=101').status_code==422

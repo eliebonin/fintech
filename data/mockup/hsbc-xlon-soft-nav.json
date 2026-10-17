@@ -16,7 +16,7 @@
   "external_identifiers": [
     {"namespace": "BANK_A_STATIC_PROD", "object_type": "LISTING", "external_id": "ABC"},
     {"namespace": "CUSTODIAN_B_ASSET_PROD", "object_type": "LISTING", "external_id": "FOO"},
-    {"namespace": "FORTEM_LEGACY", "object_type": "LISTING", "external_id": "XYZ"}
+    {"namespace": "PLATFORM_LEGACY", "object_type": "LISTING", "external_id": "XYZ"}
   ],
   "market_data": {
     "provider": "LSEG_DEMO",

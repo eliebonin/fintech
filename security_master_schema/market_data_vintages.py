@@ -2,7 +2,7 @@
 
 The current value a vendor displays and the value that was knowable at a
 historic information cut are different questions.  A vintage records the
-source publication and Fortem receipt facts needed to answer the latter.
+source publication and Platform receipt facts needed to answer the latter.
 """
 
 from dataclasses import dataclass

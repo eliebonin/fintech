@@ -14,7 +14,7 @@ def test_personal_valuation_is_explicit_scoped_repeatable_and_not_reactivated():
     from market_data.rights import load_rights
     from security_master_schema.index_universe_seed import seed
     engine=get_engine()
-    assert engine.url.database.startswith('fortem_isolated_tests_')
+    assert engine.url.database.startswith('platform_isolated_tests_')
     with engine.connect() as c:
         tx=c.begin()
         try:

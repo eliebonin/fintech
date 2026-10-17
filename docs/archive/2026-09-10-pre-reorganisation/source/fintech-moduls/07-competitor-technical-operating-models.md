@@ -22,19 +22,19 @@ The recurring pattern is clear: institutional competitors are managed, integrati
 
 FundApps documents a tenant-specific API surface, accepts structured position uploads, and exposes processing as an asynchronous workflow. Its position-upload endpoint returns `202 Accepted`; its earlier API documentation describes a result resource that can be polled after daily position upload. It also documents separate composite/constituent uploads, including SFTP options. [FundApps data specification](https://techdocs.fundapps.co/docs/data-specification), [positions upload](https://techdocs.fundapps.co/docs/positions-upload-v3), [bring-your-own-data](https://techdocs.fundapps.co/docs/bring-your-own-data-guide-byod), [API versioning/deprecation guidance](https://github.com/fundapps/TechDocs)
 
-Technically, this is a strong pattern for Fortem: accept a strict, versioned position snapshot contract; store the raw upload; return an immutable job; run controls asynchronously; and expose results through a stable API. The important distinction is that FundApps sells maintained legal/regulatory content. Fortem should not try to replicate that content operation without a legal-content operating model.
+Technically, this is a strong pattern for Platform: accept a strict, versioned position snapshot contract; store the raw upload; return an immutable job; run controls asynchronously; and expose results through a stable API. The important distinction is that FundApps sells maintained legal/regulatory content. Platform should not try to replicate that content operation without a legal-content operating model.
 
 ### NeoXam DataHub: enterprise data management as configurable workflow
 
 NeoXam publicly describes a broad ingestion perimeter—files, APIs, queues, email, database access and vendor connectors—then a configurable golden-copy lifecycle with visual mapping, ranking/survivorship, workflows, data-quality checks, exception management, entitlements, and bi-temporal views. It exposes REST/GraphQL APIs and positions deployment as cloud, private-cloud, or hybrid. [NeoXam DataHub](https://www.neoxam.com/datahub/), [NeoXam MDM](https://www.neoxam.com/datahub/mdm/)
 
-Fortem should copy the **boundary discipline**, not the breadth: raw source payload → mapping/proposal → approved canonical fact → distributed API. A universal visual ETL/MDM builder is not an initial Fortem product. The better niche is well-modelled financial objects and operations workflows around derivatives, valuation provenance, and UCITS evidence.
+Platform should copy the **boundary discipline**, not the breadth: raw source payload → mapping/proposal → approved canonical fact → distributed API. A universal visual ETL/MDM builder is not an initial Platform product. The better niche is well-modelled financial objects and operations workflows around derivatives, valuation provenance, and UCITS evidence.
 
 ### OpenGamma: narrow compute APIs with explicit method/data boundaries
 
 OpenGamma's API is the most concrete reference for calculation-service design. It uses OAuth 2.0, entitlement-aware discovery of available methods, JSON request/response contracts, a Java SDK, asynchronous calculation resources, polling, granular error objects, and named valuation dates/currencies. It accepts standard and CCP-specific portfolio formats, while OpenGamma itself supplies the licensed market/CCP scenario inputs needed for its calculation service. [OpenGamma API documentation](https://docs.opengamma.com/)
 
-Fortem should adopt this pattern for valuation snapshots, liquidity runs, and risk/control runs:
+Platform should adopt this pattern for valuation snapshots, liquidity runs, and risk/control runs:
 
 ```text
 POST input snapshot / calculation request
@@ -43,19 +43,19 @@ POST input snapshot / calculation request
   -> GET completed result, errors, explanation, and snapshot lineage
 ```
 
-One important difference: OpenGamma says completed calculation results automatically expire after a short period. Fortem's valuation, UCITS-control, and client-reporting results require durable, reproducible retention with policy/version/source lineage.
+One important difference: OpenGamma says completed calculation results automatically expire after a short period. Platform's valuation, UCITS-control, and client-reporting results require durable, reproducible retention with policy/version/source lineage.
 
 ### Aladdin: platform-plus-ecosystem rather than a monolith
 
 Aladdin publicly describes a cloud-hosted/API-first platform, REST APIs with read/write access to operational services, an API/data dictionary/developer-guide surface, a Snowflake-backed managed data cloud, bulk file loaders, and SFTP/IBM MQ integration. It also explicitly presents implementation as business-process review, data interfaces, training, UAT, and go-live—not a software download. [Aladdin APIs](https://www.blackrock.com/aladdin/platforms/products/apis), [Aladdin Data eXchange](https://www.blackrock.com/aladdin/platforms/products/aladdin-data-exchange), [Aladdin Data Cloud](https://www.blackrock.com/aladdin/platforms/products/aladdin-data-cloud), [Aladdin implementation](https://www.blackrock.com/aladdin/discover/resources/implementations)
 
-The strategic lesson is not to imitate its whole-portfolio scope. It is to make Fortem's platform **open at the boundary**: stable APIs, generated clients, data dictionaries, bulk import/export, supported integration patterns, and room for client-specific calculations without contaminating canonical shared data.
+The strategic lesson is not to imitate its whole-portfolio scope. It is to make Platform's platform **open at the boundary**: stable APIs, generated clients, data dictionaries, bulk import/export, supported integration patterns, and room for client-specific calculations without contaminating canonical shared data.
 
 ### MSCI: models and analytics delivered programmatically
 
 MSCI exposes API/toolkit access to portfolio analysis, stress testing, and granular risk results, including a Python wrapper for Barra PortfolioManager/BarraOne interfaces. [MSCI developer library](https://developer.msci.com/code-libraries/msci-bdt-package), [MSCI APIs](https://developer.msci.com/apis)
 
-This reinforces that Fortem should preserve its existing Python models behind explicit versioned service contracts. The external API should carry input snapshot, model/version, scenario/policy, output, and explanation—not require clients to absorb Fortem's internal Python implementation.
+This reinforces that Platform should preserve its existing Python models behind explicit versioned service contracts. The external API should carry input snapshot, model/version, scenario/policy, output, and explanation—not require clients to absorb Platform's internal Python implementation.
 
 ## Shared design patterns to adopt
 
@@ -109,7 +109,7 @@ data inventory and rights review
 -> production cutover with parallel run
 ```
 
-Publish connector contracts, supported formats, rate/size limits, API versioning, and deprecation policy. Fortem should generate Pydantic/OpenAPI contracts and TypeScript/Python clients from the same source.
+Publish connector contracts, supported formats, rate/size limits, API versioning, and deprecation policy. Platform should generate Pydantic/OpenAPI contracts and TypeScript/Python clients from the same source.
 
 ## What not to copy
 
@@ -119,16 +119,16 @@ Publish connector contracts, supported formats, rate/size limits, API versioning
 * Do not treat a generic data lake or BI dashboard as a canonical control plane.
 * Do not expose raw vendor data through APIs without explicit licensing and entitlement controls.
 
-## Technical differentiation for Fortem
+## Technical differentiation for Platform
 
-Fortem should be opinionated where generic platforms are necessarily broad:
+Platform should be opinionated where generic platforms are necessarily broad:
 
 ```text
 canonical economic terms for OTC and structured products
 + versioned barriers, schedules, legs, composition, and lifecycle events
 + valuation-source and override provenance
 + UCITS/liquidity evidence tied to actual economic look-through
-+ stable APIs around existing Fortem Python analytics
++ stable APIs around existing Platform Python analytics
 ```
 
 That combination is technically credible, commercially narrow enough to deploy, and difficult to achieve through generic EDM or generic compliance configuration alone.

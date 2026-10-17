@@ -3,7 +3,7 @@ import {pricingEvidenceLabel} from '@/lib/pricing-policy';
 type Selection={input_role?:string;conversion?:{method?:string;rate?:string};valuation_date:string;selected_value:string|null;pricing_date_requested:string|null;pricing_date_used:string|null;
  dataset_id:string|null;policy_rule_id:string|null;staleness_status:string;staleness_business_days:number|null;pricing_evidence:Record<string,unknown>|null};
 type Execution={event_id:string;effective_at:string;booking:{trade_id:string;price:string;quantity:string;quote_factor:string;unit_multiplier:string}};
-type Evidence={identity?:{openingCutoff?:string;closingCutoff?:string};selections?:Selection[];executionInputs?:Execution[]};
+type Evidence={identity?:{openingCutoff?:string;closingCutoff?:string};selections?:Selection[];executionInputs?:Execution[];appliedRules?:{code:string;version:number;explanation:string;evidenceRefs:string[]}[]};
 
 /** Read frozen evidence only: no recomputation or monetary allocation in UI. */
 export function ValuationPriceEvidence({evidence}:{evidence:unknown}) {
@@ -11,11 +11,14 @@ export function ValuationPriceEvidence({evidence}:{evidence:unknown}) {
  const data=evidence as Evidence;
  const selections=Array.isArray(data.selections)?data.selections:[];
  const executions=Array.isArray(data.executionInputs)?data.executionInputs:[];
- if(!selections.length&&!executions.length)return null;
+ const rules=Array.isArray(data.appliedRules)?data.appliedRules:[];
+ if(!selections.length&&!executions.length&&!rules.length)return null;
  return <section><h4>Price inputs used</h4><p>Market marks are shared by the position. Period executions use their booked price; no artificial prior-day price is created for a new trade.</p>
+  {rules.length?<section aria-label="Applied valuation rules"><h4>Applied rules</h4><ul>{rules.map((rule,index)=><li key={`${rule.code}-${index}`}><p>{rule.explanation}</p><small>{rule.code} · v{rule.version}</small><details><summary>Evidence references</summary>{rule.evidenceRefs.length?rule.evidenceRefs.join(' · '):'Recorded calculation convention'}</details></li>)}</ul></section>:null}
   {selections.map((s,index)=>{
    const basis=s.pricing_evidence?.priceBasis as Record<string,unknown>|undefined;
-   const role=s.input_role==='FX'?'FX conversion':s.valuation_date===data.identity?.closingCutoff?.slice(0,10)?'Closing market mark':
+   const role=s.input_role==='FX'?'FX conversion':s.input_role==='FX_MATURITY_SUGGESTION'?'Maturity spot suggestion — not the booked closing rate':s.input_role==='FORWARD_RATE'?
+    (s.valuation_date===data.identity?.closingCutoff?.slice(0,10)?'Closing contract rate':'Opening contract rate'):s.valuation_date===data.identity?.closingCutoff?.slice(0,10)?'Closing market mark':
     s.valuation_date===data.identity?.openingCutoff?.slice(0,10)?'Opening market mark':'Market mark';
    return <article key={`${s.policy_rule_id}-${index}`}><h5>{role} · valuation date {s.valuation_date}</h5><dl>
     <dt>{s.input_role==='FX'?'Source FX rate':'Source price'}</dt><dd>{s.selected_value??'No eligible price'}{basis?` · ${String(basis.sourceBasis)}`:''}</dd>

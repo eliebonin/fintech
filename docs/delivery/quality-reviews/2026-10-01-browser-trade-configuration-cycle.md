@@ -6,7 +6,7 @@ production frontend build; not an automated end-to-end suite or production sign-
 ## Isolation and fixtures
 
 The live app on port 3000 and its database were not changed. A new database,
-`fortem_browser_review_c3b17aa3e76e41159d97e2e9dab8feb2`, was migrated to head
+`platform_browser_review_c3b17aa3e76e41159d97e2e9dab8feb2`, was migrated to head
 and loaded with deterministic synthetic demo data. A separate API on port 8001
 and frontend on port 3001 used that database. Neither test booking sends an order.
 
@@ -25,7 +25,7 @@ inside this database only; no real account's permissions were changed.
 | Governed catalogue | Draft `ACCEPTANCE_BUCKETS` created; CORE and HEDGE entries added; catalogue published with a reason and acknowledgement. |
 | Dropdown binding | `ACCEPTANCE_BUCKET` published against that catalogue using Use for a trade field; Manage values opened its source directly. |
 | Required boolean | Required `ACCEPTANCE_CROSS` published with impact acknowledgement. Unspecified blocked review; error-summary link focused its input. No satisfied validation. |
-| Representative booking | BUY 12 HSBC demo shares at GBP 8.125, Demo Income Strategy, counterparty HSBC Demo plc, broker Fortem Demo Management Ltd, trader MVP Operations Booker, Acceptance test tag, allocation 0, cross false, CORE — Core original. Review matched the intended values; saved detail and history showed the booking. |
+| Representative booking | BUY 12 HSBC demo shares at GBP 8.125, Demo Income Strategy, counterparty HSBC Demo plc, broker Platform Demo Management Ltd, trader MVP Operations Booker, Acceptance test tag, allocation 0, cross false, CORE — Core original. Review matched the intended values; saved detail and history showed the booking. |
 | Immutable correction | CORE label corrected to Core corrected, record v2. Fresh ticket search showed v2's label; the existing booking retained Core original, v1. |
 | Entry retirement | CORE v2 retired with reason/acknowledgement. Fresh search returned Hedge only; old booking retained Core original. |
 | Field retirement | Test allocation retired. Fresh ticket no longer requested it; old booking still displayed numeric zero. |

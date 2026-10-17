@@ -19,6 +19,12 @@ def listing_venue(c, subject):
 
 
 def calendar_context(c, calendar_id, venue, end, tenant=None, asof=None, fund_nav=False):
+    from .read_scope import cached_read
+    return cached_read(c, ('calendar', calendar_id, venue['market_venue_id'] if venue else None, end, tenant, asof, fund_nav),
+        lambda: _calendar_context(c, calendar_id, venue, end, tenant, asof, fund_nav))
+
+
+def _calendar_context(c, calendar_id, venue, end, tenant=None, asof=None, fund_nav=False):
     start = end - timedelta(days=1100)
     calendar = c.execute(select(m.market_calendar).where(
         m.market_calendar.c.market_calendar_id == calendar_id,
@@ -65,6 +71,7 @@ def calendar_context(c, calendar_id, venue, end, tenant=None, asof=None, fund_na
             'source': 'GOVERNED_SESSIONS', 'calendarId': str(calendar_id),
             'sealed': calendar['sealed'], 'versionNo': calendar['version_no'],
             'recordedAtUtc': calendar['created_at_utc'].isoformat(),
+            'provenance':(calendar['definition_json'] or {}).get('provenance'),
             'holidays':[dict(date=h['holiday_date'].isoformat(),name=h['holiday_name'],sourceReference=h['source_reference'],recordedAtUtc=h['created_at_utc'].isoformat()) for h in holidays],
             'sessions': [{'date': r['session_date'].isoformat(), 'status': r['session_status'],
                           'closeLocalTime': r['close_local_time'].isoformat() if r['close_local_time'] else None,

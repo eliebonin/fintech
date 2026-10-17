@@ -362,7 +362,7 @@ git commit -m "feat: add tenant workspace strategy console"
 - Modify: `tests/test_migrations.py` only if it needs the CI service database URL explicitly
 
 **Interfaces:**
-- The `python` job exposes `DATABASE_URL=postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm` to compile/contract/test steps.
+- The `python` job exposes `DATABASE_URL=postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm` to compile/contract/test steps.
 - GitHub Actions provisions PostgreSQL 18 with matching credentials and a readiness health check.
 
 - [ ] **Step 1: Write/adjust an executable CI-environment regression check**
@@ -371,7 +371,7 @@ Add a test or documented smoke command that reads only `DATABASE_URL` and confir
 
 - [ ] **Step 2: Run it locally with an explicit CI-style database URL**
 
-Run: `$env:DATABASE_URL='postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm'; .venv\\Scripts\\python.exe -m pytest tests/test_migrations.py -v`
+Run: `$env:DATABASE_URL='postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm'; .venv\\Scripts\\python.exe -m pytest tests/test_migrations.py -v`
 
 Expected: PASS.
 

@@ -1,4 +1,5 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import type {ReferenceNodeOption} from 'api-contracts';

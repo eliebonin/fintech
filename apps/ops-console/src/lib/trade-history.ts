@@ -20,7 +20,7 @@ export function swapContextLabels(context:components['schemas']['ProductBookingC
 export function bookedSwapFacts(trade:BookedTrade) {
   const economics=trade.productEconomics,terms=economics?.terms.swapDetails?.genericTerms;
   if(economics?.terms.kind!=='SWAP'||!terms)return undefined;
-  return {terms,bookedNotional:economics.bookedNotional??trade.quantity.replace(/^-/,''),labels:swapContextLabels(economics.terms)};
+  return {terms,bookedUnits:terms.quantityUnit==='UNITS'?(economics.bookedUnits??trade.quantity.replace(/^-/,'')):undefined,bookedNotional:economics.bookedNotional??trade.quantity.replace(/^-/,''),labels:swapContextLabels(economics.terms)};
 }
 
 export type HistorySearchParams = Record<string, string | string[] | undefined>;

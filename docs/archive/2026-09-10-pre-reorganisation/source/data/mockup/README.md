@@ -2,7 +2,7 @@
 
 This folder contains deliberately synthetic, non-licensed fixtures for local PostgreSQL development, integration tests, API examples, and demos.
 
-The initial HSBC XLON scenario proves that three external identifiers (`ABC`, `FOO`, and `XYZ`) resolve through different namespaces to one Fortem listing UUID, then flow through a licensed dataset, position snapshot, market-data resolution snapshot, and Soft NAV.
+The initial HSBC XLON scenario proves that three external identifiers (`ABC`, `FOO`, and `XYZ`) resolve through different namespaces to one Platform listing UUID, then flow through a licensed dataset, position snapshot, market-data resolution snapshot, and Soft NAV.
 
 The executable loader is `scripts/load_demo_scenarios.py`. It uses fixed UUIDs from `security_master_schema/demo_data.py` and is idempotent. Do not place real client data, vendor data, credentials, or production extracts in this folder.
 

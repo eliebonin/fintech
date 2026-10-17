@@ -1,0 +1,1 @@
+export default function LoadingStrategy(){return <main className="mvp-page"><p role="status">Loading strategy… A governed monetary-measures preview may take a little longer while prices and FX are checked.</p></main>;}

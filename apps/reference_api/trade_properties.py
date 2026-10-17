@@ -1,5 +1,6 @@
 """Tenant trade catalogue, typed annotation validation and eligible people."""
 from datetime import date, datetime, timezone
+from security_master_schema.governance_clock import governance_date
 from decimal import Decimal, InvalidOperation
 import re
 import hashlib
@@ -8,10 +9,7 @@ from sqlalchemy import select, insert, func, or_
 from security_master_schema import models as m
 from security_master_schema.tenant_workspace import require_tenant_action, resolve_tenant_workspace
 
-class TradeFieldError(ValueError):
-    def __init__(self, field: str, message: str):
-        super().__init__(message)
-        self.field = field
+from security_master_schema.errors import TradeFieldError
 
 def normalize_property_value(value, kind, choices):
     if kind == "BOOLEAN":
@@ -97,7 +95,7 @@ def provision_trade_catalogue(connection, tenant_id, actor_id, definitions, tags
 
 def list_trade_traders(connection, tenant_id, query="", limit=100, curated=True):
     person, account, member = m.person, m.user_account, m.tenant_user_account
-    today = date.today()
+    today = governance_date()
     statement = select(person.c.person_id, person.c.display_name).select_from(person.join(account, account.c.person_id == person.c.person_id).join(member, member.c.user_account_id == account.c.user_account_id)).where(person.c.status == "ACTIVE", account.c.status == "ACTIVE", member.c.tenant_id == tenant_id, member.c.status == "ACTIVE", member.c.valid_from <= today, or_(member.c.valid_to.is_(None), member.c.valid_to >= today)).distinct()
     if query: statement = statement.where(func.lower(person.c.display_name).contains(query.lower(), autoescape=True))
     from .governed_trade_configuration import restrict_selection
@@ -148,7 +146,7 @@ def validate_trade_annotations(connection, tenant_id, request):
             assert_selection(connection, tenant_id, "COUNTERPARTY" if field == "counterpartyOrganisationId" else "EXECUTING_BROKER", organisation_id, field)
     if request.trader_person_id:
         person, account, member = m.person, m.user_account, m.tenant_user_account
-        today = date.today()
+        today = governance_date()
         eligible = connection.scalar(select(person.c.person_id).select_from(person.join(account, account.c.person_id == person.c.person_id).join(member, member.c.user_account_id == account.c.user_account_id)).where(person.c.person_id == request.trader_person_id, person.c.status == "ACTIVE", account.c.status == "ACTIVE", member.c.tenant_id == tenant_id, member.c.status == "ACTIVE", member.c.valid_from <= today, or_(member.c.valid_to.is_(None), member.c.valid_to >= today)).limit(1).with_for_update())
         if eligible is None: raise TradeFieldError("traderPersonId", "Select an active person linked to this tenant's membership.")
         from .governed_trade_configuration import assert_selection

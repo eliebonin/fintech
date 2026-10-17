@@ -1,14 +1,10 @@
 /* Shared presentation for native console pages. Material UI owns its controls.
    Imported once after globals.css so navigation cannot change the cascade. */
 .mvp-page {
-  --workspace-ink: #172238;
-  --workspace-muted: #52627a;
-  --workspace-border: #dbe3ef;
-  --workspace-primary: #1f5eff;
   min-height: calc(100dvh - 68px);
   padding: 24px 28px 48px;
-  background: #f3f6fb;
-  color: var(--workspace-ink);
+  background: var(--workspace-background, #f3f6fb);
+  color: var(--workspace-ink, #172238);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -40,6 +36,18 @@
 :where(.mvp-page) :where(.history-panel, .detail-card, .workspace-panel) > h2:first-child { margin-top: 0; }
 :where(.mvp-page) :where(.history-panel, .workspace-panel) > p { color: #52627a; }
 /* Native form primitives: exclude MUI inputs, labels and buttons explicitly. */
+/* Zero specificity keeps feature-level action and compact variants authoritative. */
+:where(.mvp-page button:not([class*="Mui"])) {
+  min-height: var(--workspace-action-height, 40px);
+  padding: 9px 15px;
+  border: 1px solid #b9c6d9;
+  border-radius: var(--workspace-control-radius, 8px);
+  background: white;
+  color: #194fca;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
 :where(.mvp-page) label:not([class*="Mui"]) {
   color: #344054;
   font-size: 13px;
@@ -159,6 +167,38 @@
   color: #344054;
   font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+.workspace-tabs {display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid #dbe3ef;margin:20px 0}
+.workspace-tabs [role="tab"] {border:0;border-bottom:3px solid transparent;border-radius:8px 8px 0 0;background:transparent;color:#52627a;padding:10px 16px;min-height:44px;font:inherit;font-weight:600;cursor:pointer}
+.workspace-tabs [role="tab"][aria-selected="true"] {border-bottom-color:#1f5eff;color:#194fca;background:#edf3ff}
+.workspace-tab-panel[hidden] {display:none}
+.workspace-tab-panel {min-width:0}
+.workspace-outline {display:flex;align-items:center;flex-wrap:wrap;gap:8px 20px;margin:20px 0;padding:14px 16px;border:1px solid #dbe3ef;border-radius:12px;background:white;font-size:14px;line-height:1.6}
+.workspace-outline span {font-weight:700;color:#172238}
+.workspace-outline a {color:#194fca;text-underline-offset:3px}
+.workspace-outline~* [id] {scroll-margin-top:20px}
+.workspace-skip-link {position:fixed;top:8px;left:8px;z-index:1600;transform:translateY(-200%);padding:12px 18px;border:2px solid #1f5eff;border-radius:8px;background:white;color:#194fca;font-weight:700}
+.workspace-skip-link:focus {transform:translateY(0)}
+:where(.workspace-tabs,.workspace-outline,.workspace-tab-panel) :focus-visible,.workspace-tab-panel:focus-visible,.workspace-skip-link:focus-visible {outline:3px solid #1f5eff;outline-offset:3px}
+#workspace-content {min-width:0}
+.page-help {margin:20px 28px 0;border:1px solid var(--workspace-border,#dbe3ef);border-radius:12px;background:white;color:var(--workspace-ink,#172238);font:14px/1.6 var(--font-inter,Arial),sans-serif;overflow-wrap:anywhere}
+.page-help-embedded {margin:0 0 20px}
+.page-help>summary {padding:12px 16px;cursor:pointer;font-weight:600;color:#194fca;border-radius:12px}
+.page-help>summary::marker {color:#1f5eff}
+.page-help>summary:focus-visible {outline:3px solid #1f5eff;outline-offset:3px}
+.page-help-topic {display:inline-block;margin-left:14px;font-size:12px;font-weight:400;color:#52627a}
+.page-help-content {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 28px;padding:20px;border-top:1px solid #e7ecf4}
+.page-help-content h2 {font-size:16px;line-height:1.4;margin:0 0 8px}
+.page-help-content h2:not(:first-child) {margin-top:18px}
+.page-help-content p {margin:0 0 12px}
+.page-help-content :is(ol,ul) {margin:0;padding-left:22px}
+.page-help-content li+li {margin-top:8px}
+.page-help-content dl {margin:0}
+.page-help-content dl>div+div {margin-top:12px}
+.page-help-content dt {font-weight:600}
+.page-help-content dd {margin:3px 0 0;color:#52627a}
+.page-help-impact {grid-column:1/-1;padding:16px;border-radius:8px;background:#f3f6fb}
+.page-help-content .page-help-note {margin:12px 0 0;font-size:12px;color:#52627a}
+@media(max-width:760px){.page-help{margin:16px 16px 0}.page-help-embedded{margin:0 0 16px}.page-help-content{grid-template-columns:1fr;padding:16px}.page-help-topic{display:block;margin-left:0}}
 @media (max-width: 760px) {
   .mvp-page { padding: 22px 16px 40px; }
   .mvp-header { display: flex; flex-direction: column; }

@@ -14,7 +14,7 @@ export default async function MarketDataSourcesPage(){
  const {workspace}=access, enabled=workspace.moduleCodes.includes('MARKET_DATA');
  let catalogue=null;
  try{if(enabled)catalogue=(await(await pricingPolicyClient()).GET('/v1/market-data/sources')).data??null;}catch{/* No synthetic fallback or cross-tenant data. */}
- return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes}>
+ return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId}>
   <main className="mvp-page">{enabled?<MarketDataNavigation active="sources"/>:null}<header className="mvp-header"><div><p className="eyebrow">GOVERNED MARKET DATA</p><h1>Data sources</h1><p>Inspect providers, licensed coverage and source selection priorities for this tenant.</p><Link href="/market-data">Market data</Link> · <Link href="/market-data/policies">Pricing policies</Link></div></header>
    {!enabled?<p className="error-panel">MARKET_DATA is not enabled. Contact your tenant administrator.</p>:catalogue?<MarketDataSourcesConsole initial={catalogue}/>:<p className="error-panel">Source configuration is unavailable. Reload to retry; no fallback configuration is shown.</p>}
   </main>

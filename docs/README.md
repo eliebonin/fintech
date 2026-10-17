@@ -9,7 +9,7 @@ This is the maintained entry point for the project. Historical material is prese
 
 ## Start here
 
-- **What do we want, what works, and what is missing?** [Feature register](product/feature-register.md): 50 stable capability IDs, status, trade-offs, weaknesses and remaining work. Its [implementation and test map](product/feature-implementation-map.md) links each ID to concrete backend symbols, frontend surfaces and focused tests (or records their absence).
+- **What do we want, what works, and what is missing?** [Feature register](product/feature-register.md): stable capability IDs, status, trade-offs, weaknesses and remaining work. Its [implementation and test map](product/feature-implementation-map.md) links each ID to concrete backend symbols, frontend surfaces and focused tests (or records their absence).
 - **How is the current implementation organised?** [System overview](architecture/system-overview.md) and the domain indexes below. These describe the alpha, not a deployed production target.
 - **Which document should I trust?** [Documentation map and precedence](governance/documentation-map.md).
 - **What changed in the reconciliation?** [October 12 documentation review](delivery/quality-reviews/2026-10-12-documentation-reconciliation.md).
@@ -26,6 +26,9 @@ No “implemented” label implies commercial data rights, universal instrument 
 
 ## Code-adjacent documentation
 
+October 14 root-document follow-up adds [supported valuation methodology assurance](delivery/valuation-methodology-assurance-20261014.md) to the earlier scoped reviews; it is not an exhaustive whole-repository audit.
+
+- [Repository guidance](../AGENTS.md), [reviewed knowledge](../KNOWLEDGE.md), and [open scoped findings](../FIX.md): October 13 review focused on structured-product creation and termsheet-ingestion readiness; not an exhaustive source audit.
 - [Operations Console](../apps/ops-console/README.md)
 - [Reference Data API](../apps/reference_api/README.md)
 - [API contracts](../packages/api-contracts/README.md)
@@ -35,5 +38,9 @@ No “implemented” label implies commercial data rights, universal instrument 
 - [Mock-up data](../data/mockup/README.md)
 
 ## Documentation governance
+
+The [provider-neutral repository update](delivery/provider-neutral-repository-20261017.md)
+includes editorial anonymisation of archived operator names. Historical dates,
+evidence limitations and delivery status are retained; Git history is unchanged.
 
 Read [documentation governance](governance/documentation-governance.md) before adding or materially changing a canonical page. Shared vocabulary is in the [glossary](governance/glossary.md).

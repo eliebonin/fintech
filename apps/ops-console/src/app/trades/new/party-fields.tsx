@@ -1,4 +1,5 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import { useRef, useState } from "react";
 import { listOrganisationsFromBff, searchTradeTradersFromBff } from "@/lib/browser-api-client";
 import type { EnrichedTicketDraft, TicketError } from "./ticket-model";

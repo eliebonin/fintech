@@ -4,7 +4,7 @@ Status: implemented and targeted-tested on 2026-10-08; operating schema upgraded
 
 ## Intent
 
-Replace valuation's historical-booking population with one reusable, price-independent position reconstruction foundation. Preserve the immutable booking ledger, historical knowledge cutoffs, frozen conventions, tenant isolation, corporate-action safety, and reviewed financial evidence. The legacy fortem_core open-position/holding-episode implementation informs requirements; its queries and pandas trimming are not the new architecture.
+Replace valuation's historical-booking population with one reusable, price-independent position reconstruction foundation. Preserve the immutable booking ledger, historical knowledge cutoffs, frozen conventions, tenant isolation, corporate-action safety, and reviewed financial evidence. The legacy legacy_core open-position/holding-episode implementation informs requirements; its queries and pandas trimming are not the new architecture.
 
 ## Decision and alternatives
 

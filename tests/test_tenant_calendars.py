@@ -177,7 +177,7 @@ def test_snapshot_calendar_evidence_remains_pinned_after_reassignment():
 def test_foreign_calendar_is_hidden_from_all_configuration_paths():
     tenant=uuid4()
     with get_engine().begin() as c:
-        c.execute(m.tenant.insert().values(tenant_id=tenant,owning_organisation_id=DEMO_IDS['fortem_organisation'],tenant_code='CAL_'+uuid4().hex,display_name='Other calendar tenant',status='ACTIVE'))
+        c.execute(m.tenant.insert().values(tenant_id=tenant,owning_organisation_id=DEMO_IDS['platform_organisation'],tenant_code='CAL_'+uuid4().hex,display_name='Other calendar tenant',status='ACTIVE'))
         cid=c.execute(m.market_calendar.insert().values(calendar_code='FOREIGN_'+uuid4().hex,display_name='Foreign calendar',timezone_name='UTC',calendar_kind='VALUATION',tenant_id=tenant).returning(m.market_calendar.c.market_calendar_id)).scalar_one()
     assert call('GET',ROOT+'/'+str(cid)).status_code==404
     assert str(cid) not in [str(row['calendarId']) for row in call('GET',ROOT+'/options').json()['calendars']]

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError
 from . import storage as store, tables as t
 from .service import calculate,ValuationBlocked
+from .rounding import StorageAmountError
 
 
 class ValuationInProgress(RuntimeError):
@@ -78,7 +79,11 @@ def execute(engine, request, actor, key, correlation_id, *, configure_transactio
                     attempt=c.execute(select(t.attempt).where(t.attempt.c.attempt_id==attempt_id)).mappings().one()
                     if attempt['status']=='FAILED': raise ValuationBlocked('Failed attempt retained; use a new key after correcting inputs')
                     if attempt['status']=='COMPLETED': return attempt_id
-                    result=calculate(c,request)
+                    from market_data.read_scope import resolution_read_scope
+                    with resolution_read_scope(c,tenant=request.tenant_id,actor=actor,strategy=request.strategy_id,
+                            policy=request.policy_id,information_cutoff=request.information_cutoff,
+                            economic_date=request.closing_cutoff.date()):
+                        result=calculate(c,request)
                     calculated_ms=int((perf_counter()-started)*1000)
                     store._event(c,attempt_id,'VALIDATED','CALCULATION',{'elapsedMs':calculated_ms,'lineCount':len(result.period.lines),
                         'scope':result.scope,'externalComparison':'NOT_COMPARED','serializationRetries':retry,
@@ -96,7 +101,7 @@ def execute(engine, request, actor, key, correlation_id, *, configure_transactio
     except (ValuationBlocked,ValueError,PermissionError) as exc:
         # Only our deliberately safe domain error is suitable for an Ops log.
         # Database exceptions and arbitrary provider messages never enter it.
-        reason=str(exc).replace('\r',' ').replace('\n',' ')[:500] if isinstance(exc,ValuationBlocked) else 'Required calculation scope or inputs are unavailable.'
+        reason=str(exc).replace('\r',' ').replace('\n',' ')[:500] if isinstance(exc,(ValuationBlocked,StorageAmountError)) else 'Required calculation scope or inputs are unavailable.'
         if owns_attempt:
             store.fail_attempt(engine,request.tenant_id,attempt_id,'VALUATION_BLOCKED',reason=reason,configure_transaction=configure_transaction)
         raise ValuationBlocked(f'Attempt {attempt_id} blocked. Inspect its operational log and correct the required inputs.') from exc

@@ -37,8 +37,8 @@ def test_memberships_are_available_before_a_tenant_is_selected() -> None:
 
     assert response.status_code == 200
     assert [item["tenantCode"] for item in response.json()["data"]] == [
-        "FORTEM_DEMO_TENANT",
-        "FORTEM_SECOND_TENANT",
+        "PLATFORM_DEMO_TENANT",
+        "PLATFORM_SECOND_TENANT",
     ]
 
 

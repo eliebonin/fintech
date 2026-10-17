@@ -7,6 +7,7 @@ tenant policy and can persist the resulting evidence in a resolution snapshot.
 
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
+from security_master_schema.governance_clock import governance_date
 from decimal import Decimal
 from uuid import UUID
 
@@ -42,6 +43,8 @@ class ResolutionRequest:
     market_data_as_of_utc: datetime
     use_purpose: str
     strategy_id: UUID | None = None
+    # Additional semantic restriction, never an alternative policy or entitlement.
+    series_dimension_filters: tuple[tuple[str,str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -195,6 +198,20 @@ def _matching_rules(
     return [dict(row) for row in connection.execute(statement).mappings()]
 
 
+def _candidate_market_date(connection, request, rule):
+    """SAME_DAY has one governed target; do not transfer years of other dates.
+
+    Reuse the actual selector's calendar arithmetic rather than duplicating
+    holiday/lag conventions. Prior-available rules retain their diagnostic range.
+    """
+    if rule.get('pricing_convention', 'LEGACY') == 'LEGACY' or rule['pricing_date_rule'] != 'SAME_DAY':
+        return None
+    from market_data.policy_selection import select_composite
+    from market_data.read_scope import cached_read
+    return cached_read(connection, ('candidate_date', request, rule['valuation_policy_rule_id']),
+        lambda: select_composite(connection, request, rule, [])['requested'])
+
+
 def _entitled_observations(
     connection: Connection,
     request: ResolutionRequest,
@@ -210,7 +227,7 @@ def _entitled_observations(
         activities.append('CLIENT_REPORTING')
     if request.use_purpose == 'REDISTRIBUTION':
         activities.append('REDISTRIBUTE')
-    denied_datasets = denied_activity_datasets(connection, request.tenant_id, date.today(), activities)
+    denied_datasets = denied_activity_datasets(connection, request.tenant_id, governance_date(), activities)
     from market_data.entitlements import tenant_series_entitlement_clause
 
     vintage = m.market_data_vintage.alias("vintage")
@@ -254,7 +271,7 @@ def _entitled_observations(
             # Historical and current access can be separately effective-dated
             # grants. Both must cover this same dataset/series and purpose;
             # requiring the same joined row rejects legitimate bounded history.
-            request.use_purpose, date.today()),
+            request.use_purpose, governance_date()),
         m.market_data_series.c.reference_node_id == request.subject_reference_node_id,
         m.market_data_series.c.status == "ACTIVE",
         series_filter(m.market_data_series, rule),
@@ -286,6 +303,10 @@ def _entitled_observations(
             m.tenant_dataset_entitlement.c.valid_to >= request.valuation_date,
         ),
     ]
+    for code,value in request.series_dimension_filters:
+        dimension=m.market_data_series_dimension
+        conditions.append(exists(select(1).where(dimension.c.market_data_series_id==m.market_data_series.c.market_data_series_id,
+            dimension.c.dimension_code==code,dimension.c.dimension_value==value)))
     if rule["market_data_series_id"] is not None:
         conditions.append(m.market_data_series.c.market_data_series_id == rule["market_data_series_id"])
     if rule["dataset_id"] is not None:
@@ -293,6 +314,31 @@ def _entitled_observations(
 
     if rule.get('pricing_convention', 'LEGACY') != 'LEGACY':
         conditions.append(m.market_data_observation.c.market_date.between(request.valuation_date-timedelta(days=1100), request.valuation_date))
+    candidate_date = _candidate_market_date(connection, request, rule)
+    if candidate_date is not None:
+        conditions.append(m.market_data_observation.c.market_date == candidate_date)
+
+    # Resolve the small subject population before joining its observations. A
+    # broad dataset join lets the planner scan millions of unrelated prices and
+    # only then test the subject. Explicit series IDs use the existing series/
+    # market-date index, without hints, truncation or changing ranking semantics.
+    from market_data.read_scope import cached_read
+    def matching_series():
+        query = select(m.market_data_series.c.market_data_series_id).where(
+            m.market_data_series.c.reference_node_id == request.subject_reference_node_id,
+            m.market_data_series.c.status == 'ACTIVE',series_filter(m.market_data_series,rule))
+        if rule['market_data_series_id'] is not None:
+            query = query.where(m.market_data_series.c.market_data_series_id == rule['market_data_series_id'])
+        for code,value in request.series_dimension_filters:
+            dimension=m.market_data_series_dimension
+            query=query.where(exists(select(1).where(
+                dimension.c.market_data_series_id==m.market_data_series.c.market_data_series_id,
+                dimension.c.dimension_code==code,dimension.c.dimension_value==value)))
+        return list(connection.scalars(query))
+    rule_key=tuple((key,repr(value)) for key,value in sorted(rule.items()))
+    series_ids = cached_read(connection,('candidate_series',request,rule_key),matching_series)
+    if not series_ids: return []
+    conditions.append(m.market_data_observation.c.market_data_series_id.in_(series_ids))
 
     statement = (
         select(
@@ -355,6 +401,7 @@ def _entitled_observations(
 def _matching_observation_exists(connection: Connection, request: ResolutionRequest, rule: dict) -> bool:
     """Return whether matching data exists before tenant entitlement is applied."""
 
+    candidate_date = _candidate_market_date(connection, request, rule)
     vintage = m.market_data_vintage.alias("vintage")
     correction = m.market_data_observation.alias("correction")
     correction_vintage = m.market_data_vintage.alias("correction_vintage")
@@ -389,6 +436,7 @@ def _matching_observation_exists(connection: Connection, request: ResolutionRequ
     )
     conditions = [
         m.market_data_series.c.reference_node_id == request.subject_reference_node_id,
+        m.market_data_observation.c.market_date == candidate_date if candidate_date is not None else True,
         m.market_data_series.c.status == "ACTIVE",
         series_filter(m.market_data_series, rule),
         m.market_data_observation.c.quality_status == "ACCEPTED",
@@ -414,6 +462,10 @@ def _matching_observation_exists(connection: Connection, request: ResolutionRequ
         conditions.append(m.market_data_series.c.market_data_series_id == rule["market_data_series_id"])
     if rule["dataset_id"] is not None:
         conditions.append(m.market_data_observation.c.dataset_id == rule["dataset_id"])
+    for code,value in request.series_dimension_filters:
+        dimension=m.market_data_series_dimension
+        conditions.append(exists(select(1).where(dimension.c.market_data_series_id==m.market_data_series.c.market_data_series_id,
+            dimension.c.dimension_code==code,dimension.c.dimension_value==value)))
     return connection.scalar(
         select(m.market_data_observation.c.market_data_observation_id)
         .select_from(
@@ -484,7 +536,7 @@ def resolve_market_data(connection: Connection, request: ResolutionRequest) -> R
     candidates_and_rows = [(candidate, row) for candidate, row in candidates_and_rows
         if rank(priority, row['dataset_id']) is not None]
     priority_excluded = eligible_before_priority and not candidates_and_rows
-    matching_observation_exists = _matching_observation_exists(connection, request, rule)
+    matching_observation_exists = _matching_observation_exists(connection, request, rule) if not candidates_and_rows else False
     if rule['pricing_convention'] != 'LEGACY':
         from market_data.policy_selection import select_composite
         selection = select_composite(connection, request, rule, [row for _, row in candidates_and_rows], priority)
@@ -590,6 +642,8 @@ def persist_resolution_snapshot(
         insert(m.market_data_resolution_snapshot)
         .values(
             tenant_id=request.tenant_id,
+            strategy_id=request.strategy_id,
+            context_scope='STRATEGY' if request.strategy_id else 'SHARED',
             valuation_policy_id=request.valuation_policy_id,
             valuation_date=request.valuation_date,
             valuation_cut_id=request.valuation_cut_id,

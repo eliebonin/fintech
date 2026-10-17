@@ -92,7 +92,7 @@ All HTTP errors from `apps/reference_api` use the RFC 9457
 
 ```json
 {
-  "type": "https://api.fortem.local/problems/request-validation",
+  "type": "https://api.platform.local/problems/request-validation",
   "title": "Request validation failed",
   "status": 422,
   "detail": "One or more request fields are invalid.",

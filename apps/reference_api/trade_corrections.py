@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import select, update
 from security_master_schema import models as m
-from .booking_controls import authorize_booking, find_booking_replay, record_booking_replay
+from .booking_controls import authorize_booking, authorize_trade_action, find_booking_replay, record_booking_replay
 from .booking_errors import RepositoryNotFound
 from .trade_properties import TradeFieldError
 
@@ -65,7 +65,7 @@ def _chain(connection, original, expected_sequence, *, allow_legacy_cancel=False
 def prepare_correction(connection, tenant, request, kind, *, actor):
     correction=request.correction
     if correction is None: return
-    authorize_booking(connection,tenant,actor,action='TRADE_CORRECT')
+    authorize_trade_action(connection,tenant,actor,correction.trade_id,'TRADE_CORRECT')
     original=_original(connection,tenant,correction.trade_id)
     _,original_kind=_chain(connection,original,correction.expected_sequence_no)
     if original.strategy_id!=request.strategy_id or original_kind!=kind:
@@ -98,7 +98,7 @@ def complete_correction(connection, tenant, actor, request, new_trade_id):
 def cancel_booking(connection, tenant, actor, trade_id, request, key, request_id):
     from .repository import get_booked_trade_detail
     with connection.begin_nested():
-        authorize_booking(connection,tenant,actor,action='TRADE_CORRECT')
+        authorize_trade_action(connection,tenant,actor,trade_id,'TRADE_CORRECT')
         normalized=request.model_dump(mode='json',by_alias=True)|dict(tradeId=str(trade_id))
         fingerprint=sha256(json.dumps(normalized,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         replay=find_booking_replay(connection,tenant,CANCEL_ENDPOINT,key,fingerprint)
@@ -109,7 +109,7 @@ def cancel_booking(connection, tenant, actor, trade_id, request, key, request_id
         original=_original(connection,tenant,trade_id)
         events,_=_chain(connection,original,request.expected_sequence_no,allow_legacy_cancel=True)
         payload=dict(schemaVersion=1,kind='BOOKING_CORRECTION',action='CANCEL_BOOKING',reason=request.reason,originalTradeId=str(trade_id))
-        _append(connection,actor,original,events,'CANCELLED',payload,source_system=f'fortem:booking-cancel:{tenant}',source_event=key,fingerprint=fingerprint)
+        _append(connection,actor,original,events,'CANCELLED',payload,source_system=f'platform:booking-cancel:{tenant}',source_event=key,fingerprint=fingerprint)
         connection.execute(update(m.trade).where(m.trade.c.trade_id==trade_id).values(lifecycle_status='CANCELLED'))
         record_booking_replay(connection,tenant,CANCEL_ENDPOINT,key,fingerprint,trade_id)
         return get_booked_trade_detail(connection,tenant,trade_id,current_api_version(),request_id)
@@ -117,7 +117,8 @@ def cancel_booking(connection, tenant, actor, trade_id, request, key, request_id
 
 def correction_router(connection_dependency, assert_membership):
     from uuid import UUID
-    from fastapi import APIRouter, Depends, Header, HTTPException
+    from fastapi import Depends, Header, HTTPException
+    from .request_audit import AuditRouter as APIRouter
     from .contracts import CancelBookingRequest, TradeDetailResponse
     from .tenant_context import TenantContext,get_tenant_context
     from .problem_details import ApiProblem,ValidationIssue,current_request_id

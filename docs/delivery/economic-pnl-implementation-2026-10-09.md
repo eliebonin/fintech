@@ -134,7 +134,7 @@ Usability still requires compatible policy, current rights and calendar evidence
 ## Local activation — owner approved, 2026-10-09
 
 After explicit approval, the local operating DB was backed up to
-`logs/fortem-secm-before-economic-pnl-20261009-114809.dump` (71,856,281 bytes).
+`logs/platform-secm-before-economic-pnl-20261009-114809.dump` (71,856,281 bytes).
 Alembic upgrade completed at `20261009_81 (head)`. The API and frontend were
 restarted on ports 8000 and 3000. Fresh checks: API `/health` returned `ok`,
 OpenAPI exposed accrual-input, economic-flow and amendment-approval endpoints,

@@ -41,7 +41,7 @@ The earlier lifecycle implementation entries below describe preserved work, not 
 
 ## Evidence
 
-- Isolated UI/API ports 3006/8006; database `fortem_fx_signoff_722336f2caf94ffca0fd6f9ca3f08701`. Copied UI source/build under ignored `logs/booking-signoff-20261006/app`; operating build/database untouched.
+- Isolated UI/API ports 3006/8006; database `platform_fx_signoff_722336f2caf94ffca0fd6f9ca3f08701`. Copied UI source/build under ignored `logs/booking-signoff-20261006/app`; operating build/database untouched.
 - Browser cash booking: HSBC demo listing, BUY 10 at GBP 12.50, governed HEDGE catalogue value, decimal 7.25 and tag saved and visible in detail. Original `33e58776-4231-46b9-be2b-9f7b813e86ca`.
 - Acceptance defect: replacement reason confirmation crashed because `cloneElement` attempted to clone a server-supplied rendered slot. Changed the gate to accept serializable context/strategies and construct the appropriate ticket inside its client module graph. Seven new branch regressions failed first, then the gate/page tests passed 15 cases; TypeScript exit 0. Existing plain-element tests did not model the RSC boundary.
 - Browser retest: replacement quantity 20 saved as `ca139a6b-c996-4920-b2d6-5b215581bb20`; BOOKED/CORRECTED lineage and reason displayed. Explicit cancellation appended CANCELLED, preserved economics and removed correction actions. Following the original link showed SUPERSEDED with original quantity 10 and all original properties/tags retained. Optional annotations were deliberately not copied to replacement.

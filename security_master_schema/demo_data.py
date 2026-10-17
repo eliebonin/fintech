@@ -12,8 +12,8 @@ from .seed_data import seed_defaults
 
 
 DEMO_IDS = {
-    "fortem_entity": UUID("00000000-0000-7000-8000-000000000001"),
-    "fortem_organisation": UUID("00000000-0000-7000-8000-000000000002"),
+    "platform_entity": UUID("00000000-0000-7000-8000-000000000001"),
+    "platform_organisation": UUID("00000000-0000-7000-8000-000000000002"),
     "hsbc_entity": UUID("00000000-0000-7000-8000-000000000003"),
     "hsbc_organisation": UUID("00000000-0000-7000-8000-000000000004"),
     "lseg_entity": UUID("00000000-0000-7000-8000-000000000005"),
@@ -36,10 +36,10 @@ DEMO_IDS = {
     "source_payload": UUID("00000000-0000-7000-8000-000000000022"),
     "bank_a_namespace": UUID("00000000-0000-7000-8000-000000000023"),
     "custodian_b_namespace": UUID("00000000-0000-7000-8000-000000000024"),
-    "fortem_legacy_namespace": UUID("00000000-0000-7000-8000-000000000025"),
+    "platform_legacy_namespace": UUID("00000000-0000-7000-8000-000000000025"),
     "bank_a_hsbc_mapping": UUID("00000000-0000-7000-8000-000000000026"),
     "custodian_b_hsbc_mapping": UUID("00000000-0000-7000-8000-000000000027"),
-    "fortem_hsbc_mapping": UUID("00000000-0000-7000-8000-000000000028"),
+    "platform_hsbc_mapping": UUID("00000000-0000-7000-8000-000000000028"),
     "valuation_cut": UUID("00000000-0000-7000-8000-000000000029"),
     "market_data_series": UUID("00000000-0000-7000-8000-000000000030"),
     "market_data_observation": UUID("00000000-0000-7000-8000-000000000031"),
@@ -343,7 +343,7 @@ def load_demo_data(engine: Engine) -> None:
         }
 
         for entity_id, code, name in (
-            (DEMO_IDS["fortem_entity"], "FORTEM_DEMO", "Fortem Demo Group"),
+            (DEMO_IDS["platform_entity"], "PLATFORM_DEMO", "Platform Demo Group"),
             (DEMO_IDS["hsbc_entity"], "HSBC_DEMO", "HSBC Demo Group"),
             (DEMO_IDS["lseg_entity"], "LSEG_DEMO", "LSEG Demo Group"),
             (DEMO_IDS["bank_a_entity"], "BANK_A_DEMO", "Bank A Demo Group"),
@@ -352,7 +352,7 @@ def load_demo_data(engine: Engine) -> None:
             _insert_once(connection, m.entity, {"entity_id": entity_id, "entity_code": code, "display_name": name, "legal_name": name, "status": "ACTIVE"})
 
         for organisation_id, entity_id, kind, name in (
-            (DEMO_IDS["fortem_organisation"], DEMO_IDS["fortem_entity"], "LEGAL_ENTITY", "Fortem Demo Management Ltd"),
+            (DEMO_IDS["platform_organisation"], DEMO_IDS["platform_entity"], "LEGAL_ENTITY", "Platform Demo Management Ltd"),
             (DEMO_IDS["hsbc_organisation"], DEMO_IDS["hsbc_entity"], "LEGAL_ENTITY", "HSBC Demo plc"),
             (DEMO_IDS["lseg_organisation"], DEMO_IDS["lseg_entity"], "VENDOR", "LSEG Demo Data Ltd"),
             (DEMO_IDS["bank_a_organisation"], DEMO_IDS["bank_a_entity"], "CUSTODIAN", "Bank A Demo plc"),
@@ -360,11 +360,11 @@ def load_demo_data(engine: Engine) -> None:
         ):
             _insert_once(connection, m.organisation, {"organisation_id": organisation_id, "entity_id": entity_id, "organisation_type": kind, "display_name": name, "legal_name": name, "status": "ACTIVE"})
 
-        _insert_once(connection, m.tenant, {"tenant_id": DEMO_IDS["tenant"], "owning_organisation_id": DEMO_IDS["fortem_organisation"], "tenant_code": "FORTEM_DEMO_TENANT", "display_name": "Fortem Demo Tenant", "status": "ACTIVE"})
-        _insert_once(connection, m.tenant, {"tenant_id": DEMO_IDS["second_tenant"], "owning_organisation_id": DEMO_IDS["fortem_organisation"], "tenant_code": "FORTEM_SECOND_TENANT", "display_name": "Fortem Second Tenant", "status": "ACTIVE"})
+        _insert_once(connection, m.tenant, {"tenant_id": DEMO_IDS["tenant"], "owning_organisation_id": DEMO_IDS["platform_organisation"], "tenant_code": "PLATFORM_DEMO_TENANT", "display_name": "Platform Demo Tenant", "status": "ACTIVE"})
+        _insert_once(connection, m.tenant, {"tenant_id": DEMO_IDS["second_tenant"], "owning_organisation_id": DEMO_IDS["platform_organisation"], "tenant_code": "PLATFORM_SECOND_TENANT", "display_name": "Platform Second Tenant", "status": "ACTIVE"})
         _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["gbp_currency_node"], "reference_node_type_id": node_currency, "canonical_name": "Pound sterling", "internal_code": "GBP_DEMO", "status": "ACTIVE", "is_tradable": False})
         _insert_once(connection, m.currency, {"currency_id": DEMO_IDS["gbp_currency"], "reference_node_id": DEMO_IDS["gbp_currency_node"], "currency_code": "GBP", "display_name": "Pound sterling", "numeric_code": "826", "minor_unit": 2, "currency_kind": "FIAT", "status": "ACTIVE"})
-        _insert_once(connection, m.market_venue, {"market_venue_id": DEMO_IDS["xlon_venue"], "operating_organisation_id": DEMO_IDS["fortem_organisation"], "venue_type": "EXCHANGE", "display_name": "London Stock Exchange (synthetic)", "country_code": "GBR", "city": "London", "timezone_name": "Europe/London", "status": "ACTIVE"})
+        _insert_once(connection, m.market_venue, {"market_venue_id": DEMO_IDS["xlon_venue"], "operating_organisation_id": DEMO_IDS["platform_organisation"], "venue_type": "EXCHANGE", "display_name": "London Stock Exchange (synthetic)", "country_code": "GBR", "city": "London", "timezone_name": "Europe/London", "status": "ACTIVE"})
         _insert_once(connection, m.market_venue_identifier, {"market_venue_identifier_id": DEMO_IDS["xlon_venue_mic"], "market_venue_id": DEMO_IDS["xlon_venue"], "identifier_scheme": "ISO_10383_MIC", "identifier_value": "XLON", "is_primary": True})
         connection.execute(
             update(m.market_venue)
@@ -420,16 +420,16 @@ def load_demo_data(engine: Engine) -> None:
         _insert_once(connection, m.data_provider, {"data_provider_id": DEMO_IDS["data_provider"], "organisation_id": DEMO_IDS["lseg_organisation"], "provider_code": "LSEG_DEMO", "display_name": "LSEG Demo", "status": "ACTIVE"})
         _insert_once(connection, m.provider_product, {"provider_product_id": DEMO_IDS["provider_product"], "data_provider_id": DEMO_IDS["data_provider"], "product_code": "EOD_PRICES", "display_name": "Demo EOD prices", "status": "ACTIVE"})
         _insert_once(connection, m.dataset, {"dataset_id": DEMO_IDS["dataset"], "provider_product_id": DEMO_IDS["provider_product"], "dataset_code": "UK_EQUITIES_EOD", "display_name": "UK equities EOD (synthetic)", "data_domain": "MARKET_DATA", "coverage_description": "Synthetic London-listed equity EOD prices for tests.", "delivery_channel": "FILE", "status": "ACTIVE", "valid_from": today})
-        _insert_once(connection, m.data_licence, {"data_licence_id": DEMO_IDS["data_licence"], "licensor_organisation_id": DEMO_IDS["lseg_organisation"], "licensee_organisation_id": DEMO_IDS["fortem_organisation"], "licence_code": "FORTEM_DEMO_EOD_INTERNAL", "display_name": "Synthetic internal EOD licence", "permitted_use_description": "Synthetic testing only; internal valuation and risk.", "status": "ACTIVE", "valid_from": today})
+        _insert_once(connection, m.data_licence, {"data_licence_id": DEMO_IDS["data_licence"], "licensor_organisation_id": DEMO_IDS["lseg_organisation"], "licensee_organisation_id": DEMO_IDS["platform_organisation"], "licence_code": "PLATFORM_DEMO_EOD_INTERNAL", "display_name": "Synthetic internal EOD licence", "permitted_use_description": "Synthetic testing only; internal valuation and risk.", "status": "ACTIVE", "valid_from": today})
         _insert_once(connection, m.dataset_licence_assignment, {"dataset_id": DEMO_IDS["dataset"], "data_licence_id": DEMO_IDS["data_licence"], "licence_role": "ACQUISITION", "valid_from": today, "status": "ACTIVE"})
         _insert_once(connection, m.tenant_dataset_entitlement, {"tenant_id": DEMO_IDS["tenant"], "dataset_id": DEMO_IDS["dataset"], "use_purpose": "VALUATION", "status": "ACTIVE", "valid_from": today})
 
         _insert_once(connection, m.integration_source_system, {"integration_source_system_id": DEMO_IDS["source_system"], "owning_organisation_id": DEMO_IDS["bank_a_organisation"], "tenant_id": DEMO_IDS["tenant"], "system_code": "BANK_A_STATIC_PROD", "display_name": "Bank A static data production", "source_kind": "BANK", "environment": "PROD", "status": "ACTIVE"})
         _insert_once(connection, m.reference_data_automation_policy, {"reference_data_automation_policy_id": DEMO_IDS["equity_automation_policy"], "policy_code": "BANK_A_EQUITY_CREATE", "display_name": "Bank A equity create policy", "source_system_id": DEMO_IDS["source_system"], "target_object_type": "EQUITY", "operation_type": "CREATE", "min_confidence": 0.95, "required_identifier_schemes": ["ISIN", "FIGI"], "criteria_json": {"requireIssuer": True, "requirePrimaryListing": True}, "auto_approve": True, "tenant_id": DEMO_IDS["tenant"], "valid_from": date(2024, 1, 1), "version_no": 1, "status": "ACTIVE", "approved_by_user_account_id": DEMO_IDS["demo_user_account"], "approved_at_utc": now})
         _insert_once(connection, m.source_payload, {"source_payload_id": DEMO_IDS["source_payload"], "integration_source_system_id": DEMO_IDS["source_system"], "tenant_id": DEMO_IDS["tenant"], "payload_format": "CSV", "external_message_reference": "demo-eod-20260828", "payload_locator": "synthetic://demo/eod-20260828.csv", "payload_sha256": "0" * 64, "source_published_at_utc": now, "received_at_utc": now, "processing_status": "MAPPED"})
-        for namespace_id, code in ((DEMO_IDS["bank_a_namespace"], "BANK_A_STATIC_PROD"), (DEMO_IDS["custodian_b_namespace"], "CUSTODIAN_B_ASSET_PROD"), (DEMO_IDS["fortem_legacy_namespace"], "FORTEM_LEGACY")):
+        for namespace_id, code in ((DEMO_IDS["bank_a_namespace"], "BANK_A_STATIC_PROD"), (DEMO_IDS["custodian_b_namespace"], "CUSTODIAN_B_ASSET_PROD"), (DEMO_IDS["platform_legacy_namespace"], "PLATFORM_LEGACY")):
             _insert_once(connection, m.external_id_namespace, {"external_id_namespace_id": namespace_id, "integration_source_system_id": DEMO_IDS["source_system"], "namespace_code": code, "external_object_type": "LISTING", "status": "ACTIVE", "valid_from": today})
-        for mapping_id, namespace_id, external_id in ((DEMO_IDS["bank_a_hsbc_mapping"], DEMO_IDS["bank_a_namespace"], "ABC"), (DEMO_IDS["custodian_b_hsbc_mapping"], DEMO_IDS["custodian_b_namespace"], "FOO"), (DEMO_IDS["fortem_hsbc_mapping"], DEMO_IDS["fortem_legacy_namespace"], "XYZ")):
+        for mapping_id, namespace_id, external_id in ((DEMO_IDS["bank_a_hsbc_mapping"], DEMO_IDS["bank_a_namespace"], "ABC"), (DEMO_IDS["custodian_b_hsbc_mapping"], DEMO_IDS["custodian_b_namespace"], "FOO"), (DEMO_IDS["platform_hsbc_mapping"], DEMO_IDS["platform_legacy_namespace"], "XYZ")):
             _insert_once(connection, m.external_object_mapping, {"external_object_mapping_id": mapping_id, "external_id_namespace_id": namespace_id, "external_object_type": "LISTING", "external_id_value": external_id, "tenant_id": DEMO_IDS["tenant"], "target_object_type": "LISTING", "target_object_id": DEMO_IDS["hsbc_xlon_listing_node"], "context_market_venue_id": DEMO_IDS["xlon_venue"], "mapping_role": "PRIMARY", "mapping_method": "MANUAL", "status": "VERIFIED", "valid_from": today, "source_payload_id": DEMO_IDS["source_payload"]})
         _insert_once(connection, m.reference_data_proposal, {"reference_data_proposal_id": DEMO_IDS["pending_mapping_proposal"], "reference_node_id": DEMO_IDS["hsbc_xlon_listing_node"], "tenant_id": DEMO_IDS["tenant"], "proposal_type": "IDENTIFIER_MAPPING", "proposed_payload": json.dumps({"namespace": "CUSTODIAN_B_ASSET_PROD", "externalObjectType": "LISTING", "externalId": "PENDING-HSBC-XLON", "targetObjectType": "LISTING", "targetObjectId": str(DEMO_IDS["hsbc_xlon_listing_node"]), "contextMarketVenueId": str(DEMO_IDS["xlon_venue"]), "validFrom": today.isoformat(), "reason": "Synthetic pending mapping for operations queue"}, sort_keys=True), "source_payload_id": DEMO_IDS["source_payload"], "status": "PENDING", "proposed_at_utc": now})
 
@@ -440,19 +440,19 @@ def load_demo_data(engine: Engine) -> None:
         _insert_once(connection, m.market_data_observation, {"market_data_observation_id": DEMO_IDS["listing_observation_20260827"], "market_data_series_id": DEMO_IDS["market_data_series"], "dataset_id": DEMO_IDS["dataset"], "acquisition_licence_id": DEMO_IDS["data_licence"], "source_payload_id": DEMO_IDS["source_payload"], "market_date": date(2026, 8, 27), "valuation_cut_id": DEMO_IDS["valuation_cut"], "observed_at_utc": datetime(2026, 8, 27, 15, 30, tzinfo=timezone.utc), "received_at_utc": datetime(2026, 8, 27, 15, 31, tzinfo=timezone.utc), "value": 1015.0, "value_basis": "RAW", "source_timestamp_utc": datetime(2026, 8, 27, 15, 30, tzinfo=timezone.utc), "source_observation_key": "LSEG_DEMO:HSBC_XLON:2026-08-27:CLOSE", "quality_status": "ACCEPTED"})
 
         fund_share_class_type = _catalogue_id(connection, m.instrument_type, m.instrument_type.c.type_code, "FUND_SHARE_CLASS")
-        _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["demo_fund_node"], "reference_node_type_id": node_fund, "canonical_name": "Fortem Demo Income Fund", "internal_code": "FUND_DEMO_INCOME", "status": "ACTIVE", "is_tradable": False})
-        _insert_once(connection, m.fund, {"fund_reference_node_id": DEMO_IDS["demo_fund_node"], "fund_kind": "STANDALONE", "fund_manager_organisation_id": DEMO_IDS["fortem_organisation"], "domicile_country_code": "GBR", "legal_form": "OEIC", "status": "ACTIVE"})
-        _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["demo_share_class_instrument_node"], "reference_node_type_id": node_instrument, "canonical_name": "Fortem Demo Income Fund I Acc GBP", "internal_code": "FUND_DEMO_I_ACC_GBP", "status": "ACTIVE", "is_tradable": True})
+        _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["demo_fund_node"], "reference_node_type_id": node_fund, "canonical_name": "Platform Demo Income Fund", "internal_code": "FUND_DEMO_INCOME", "status": "ACTIVE", "is_tradable": False})
+        _insert_once(connection, m.fund, {"fund_reference_node_id": DEMO_IDS["demo_fund_node"], "fund_kind": "STANDALONE", "fund_manager_organisation_id": DEMO_IDS["platform_organisation"], "domicile_country_code": "GBR", "legal_form": "OEIC", "status": "ACTIVE"})
+        _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["demo_share_class_instrument_node"], "reference_node_type_id": node_instrument, "canonical_name": "Platform Demo Income Fund I Acc GBP", "internal_code": "FUND_DEMO_I_ACC_GBP", "status": "ACTIVE", "is_tradable": True})
         _insert_once(connection, m.instrument, {"instrument_node_id": DEMO_IDS["demo_share_class_instrument_node"], "instrument_type_id": fund_share_class_type, "asset_class": "FUND", "base_currency_id": DEMO_IDS["gbp_currency"], "effective_from": today, "is_current": True, "sequence_no": 1})
         _insert_once(connection, m.fund_share_class_terms, {"fund_share_class_terms_id": DEMO_IDS["demo_fund_share_class_terms"], "instrument_node_id": DEMO_IDS["demo_share_class_instrument_node"], "fund_reference_node_id": DEMO_IDS["demo_fund_node"], "share_class_code": "I_ACC_GBP", "share_currency_id": DEMO_IDS["gbp_currency"], "income_treatment": "ACCUMULATION", "dealing_frequency": "DAILY", "nav_frequency": "DAILY", "nav_publication_lag_business_days": 1, "effective_from": today, "is_current": True, "sequence_no": 1})
         _insert_once(connection, m.external_data_mapping_profile, {"external_data_mapping_profile_id": DEMO_IDS["abc_daily_valuation_profile"], "tenant_id": DEMO_IDS["tenant"], "provider_organisation_id": DEMO_IDS["bank_a_organisation"], "integration_source_system_id": DEMO_IDS["source_system"], "profile_code": "ABC_DAILY_VALUATION", "display_name": "ABC daily fund valuation", "operational_context": "VALUATION", "allowed_source_scope": "BOTH", "normalization_mode": "TRIM_UPPER", "parser_contract_version": "v1", "status": "ACTIVE", "valid_from": today})
         _insert_once(connection, m.external_data_mapping_profile, {"external_data_mapping_profile_id": DEMO_IDS["abc_daily_accounting_profile"], "tenant_id": DEMO_IDS["tenant"], "provider_organisation_id": DEMO_IDS["bank_a_organisation"], "integration_source_system_id": DEMO_IDS["source_system"], "profile_code": "ABC_DAILY_ACCOUNTING", "display_name": "ABC daily fund accounting", "operational_context": "ACCOUNTING", "allowed_source_scope": "FUND", "normalization_mode": "TRIM_UPPER", "parser_contract_version": "v1", "status": "ACTIVE", "valid_from": today})
         _insert_once(connection, m.external_data_object_mapping, {"external_data_object_mapping_id": DEMO_IDS["abc_share_class_valuation_mapping"], "external_data_mapping_profile_id": DEMO_IDS["abc_daily_valuation_profile"], "source_object_scope": "FUND_SHARE_CLASS", "target_object_type": "FUND_SHARE_CLASS", "target_object_id": DEMO_IDS["demo_share_class_instrument_node"], "external_id_raw": " NAV-I-GBP ", "external_id_normalized": "NAV-I-GBP", "mapping_role": "PRIMARY", "mapping_method": "MANUAL", "status": "APPROVED", "approved_by_user_account_id": DEMO_IDS["demo_user_account"], "approved_at_utc": now, "valid_from": today, "source_payload_id": DEMO_IDS["source_payload"]})
         _insert_once(connection, m.external_data_object_mapping, {"external_data_object_mapping_id": DEMO_IDS["abc_fund_accounting_mapping"], "external_data_mapping_profile_id": DEMO_IDS["abc_daily_accounting_profile"], "source_object_scope": "FUND", "target_object_type": "FUND", "target_object_id": DEMO_IDS["demo_fund_node"], "external_id_raw": " ACCT-1042 ", "external_id_normalized": "ACCT-1042", "mapping_role": "PRIMARY", "mapping_method": "MANUAL", "status": "APPROVED", "approved_by_user_account_id": DEMO_IDS["demo_user_account"], "approved_at_utc": now, "valid_from": today, "source_payload_id": DEMO_IDS["source_payload"]})
-        _insert_once(connection, m.market_data_series, {"market_data_series_id": DEMO_IDS["demo_fund_nav_series"], "reference_node_id": DEMO_IDS["demo_share_class_instrument_node"], "series_type": "OFFICIAL_NAV", "value_type": "PRICE", "currency_id": DEMO_IDS["gbp_currency"], "default_dataset_id": DEMO_IDS["dataset"], "valuation_cut_id": DEMO_IDS["valuation_cut"], "source_system_id": "FORTEM_FUND_ADMIN_DEMO", "status": "ACTIVE", "is_official": True})
+        _insert_once(connection, m.market_data_series, {"market_data_series_id": DEMO_IDS["demo_fund_nav_series"], "reference_node_id": DEMO_IDS["demo_share_class_instrument_node"], "series_type": "OFFICIAL_NAV", "value_type": "PRICE", "currency_id": DEMO_IDS["gbp_currency"], "default_dataset_id": DEMO_IDS["dataset"], "valuation_cut_id": DEMO_IDS["valuation_cut"], "source_system_id": "PLATFORM_FUND_ADMIN_DEMO", "status": "ACTIVE", "is_official": True})
         _insert_once(connection, m.market_data_observation, {"market_data_observation_id": DEMO_IDS["demo_fund_nav_observation"], "market_data_series_id": DEMO_IDS["demo_fund_nav_series"], "dataset_id": DEMO_IDS["dataset"], "acquisition_licence_id": DEMO_IDS["data_licence"], "source_payload_id": DEMO_IDS["source_payload"], "market_date": date(2026, 8, 27), "valuation_cut_id": DEMO_IDS["valuation_cut"], "observed_at_utc": datetime(2026, 8, 27, 16, 30, tzinfo=timezone.utc), "received_at_utc": datetime(2026, 8, 28, 9, 0, tzinfo=timezone.utc), "value": 101.25, "value_basis": "RAW", "source_timestamp_utc": datetime(2026, 8, 28, 8, 45, tzinfo=timezone.utc), "quality_status": "ACCEPTED"})
 
-        _insert_once(connection, m.strategy, {"strategy_id": DEMO_IDS["strategy"], "tenant_id": DEMO_IDS["tenant"], "strategy_code": "DEMO_INCOME", "display_name": "Demo Income Strategy", "strategy_type": "FUND", "base_currency_id": DEMO_IDS["gbp_currency"], "legal_owner_organisation_id": DEMO_IDS["fortem_organisation"], "status": "ACTIVE"})
+        _insert_once(connection, m.strategy, {"strategy_id": DEMO_IDS["strategy"], "tenant_id": DEMO_IDS["tenant"], "strategy_code": "DEMO_INCOME", "display_name": "Demo Income Strategy", "strategy_type": "FUND", "base_currency_id": DEMO_IDS["gbp_currency"], "legal_owner_organisation_id": DEMO_IDS["platform_organisation"], "status": "ACTIVE"})
         connection.execute(
             m.strategy.update()
             .where(m.strategy.c.strategy_id == DEMO_IDS["strategy"])
@@ -501,7 +501,7 @@ def load_demo_data(engine: Engine) -> None:
         _insert_once(connection, m.valuation_cut, {"valuation_cut_id": DEMO_IDS["uk_fx_cut"], "cut_code": "UK_FUND_FX_1600_DEMO", "display_name": "UK fund FX cut at 16:00 London (synthetic)", "timezone_name": "Europe/London", "local_time": "16:00:00", "status": "ACTIVE"})
         _insert_once(connection, m.valuation_cut, {"valuation_cut_id": DEMO_IDS["us_fx_cut"], "cut_code": "US_FUND_FX_1600_DEMO", "display_name": "US fund FX cut at 16:00 New York (synthetic)", "timezone_name": "America/New_York", "local_time": "16:00:00", "status": "ACTIVE"})
 
-        _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["bond_instrument_node"], "reference_node_type_id": node_instrument, "canonical_name": "Fortem Demo 3.25% 2031 Note", "internal_code": "BOND_DEMO_2031", "status": "ACTIVE", "is_tradable": True})
+        _insert_once(connection, m.financial_reference_node, {"reference_node_id": DEMO_IDS["bond_instrument_node"], "reference_node_type_id": node_instrument, "canonical_name": "Platform Demo 3.25% 2031 Note", "internal_code": "BOND_DEMO_2031", "status": "ACTIVE", "is_tradable": True})
         _insert_once(connection, m.instrument, {"instrument_node_id": DEMO_IDS["bond_instrument_node"], "instrument_type_id": bond_type, "asset_class": "FIXED_INCOME", "issuer_organisation_id": DEMO_IDS["hsbc_organisation"], "base_currency_id": DEMO_IDS["gbp_currency"], "effective_from": today, "is_current": True, "sequence_no": 1})
         _insert_once(connection, m.instrument_dates, {"instrument_dates_id": DEMO_IDS["bond_dates"], "instrument_node_id": DEMO_IDS["bond_instrument_node"], "issue_date": date(2026, 1, 15), "maturity_date": date(2031, 1, 15), "final_settlement_date": date(2031, 1, 17)})
         _insert_once(connection, m.bond_terms, {"bond_terms_id": DEMO_IDS["demo_bond_terms"], "instrument_node_id": DEMO_IDS["bond_instrument_node"], "issue_currency_id": DEMO_IDS["gbp_currency"], "par_amount": 100, "coupon_type": "FIXED", "coupon_rate": 0.0325, "coupon_frequency_per_year": 2, "day_count_convention_id": day_count_convention_id, "day_count_convention": "ACT_ACT_ICMA", "redemption_amount_per_par": 100, "quotation_basis": "PCT_OF_PAR", "effective_from": today, "is_current": True, "sequence_no": 1})
@@ -537,8 +537,8 @@ def load_demo_data(engine: Engine) -> None:
         _insert_once(connection, m.market_data_observation, {"market_data_observation_id": DEMO_IDS["us_fx_observation_before_cut"], "market_data_series_id": DEMO_IDS["us_gbpusd_series"], "dataset_id": DEMO_IDS["multi_asset_dataset"], "market_date": today, "valuation_cut_id": DEMO_IDS["us_fx_cut"], "observed_at_utc": datetime(2026, 8, 28, 19, 59, tzinfo=timezone.utc), "received_at_utc": datetime(2026, 8, 28, 19, 59, 30, tzinfo=timezone.utc), "value": 1.3588, "value_basis": "RAW", "source_timestamp_utc": datetime(2026, 8, 28, 19, 59, tzinfo=timezone.utc), "source_observation_key": "LSEG_DEMO:GBPUSD:US_FUND_FX_1600:2026-08-28:BEFORE", "quality_status": "ACCEPTED"})
         _insert_once(connection, m.market_data_observation, {"market_data_observation_id": DEMO_IDS["us_fx_observation_after_cut"], "market_data_series_id": DEMO_IDS["us_gbpusd_series"], "dataset_id": DEMO_IDS["multi_asset_dataset"], "market_date": today, "valuation_cut_id": DEMO_IDS["us_fx_cut"], "observed_at_utc": datetime(2026, 8, 28, 20, 5, tzinfo=timezone.utc), "received_at_utc": datetime(2026, 8, 28, 20, 5, 30, tzinfo=timezone.utc), "value": 1.3601, "value_basis": "RAW", "source_timestamp_utc": datetime(2026, 8, 28, 20, 5, tzinfo=timezone.utc), "source_observation_key": "LSEG_DEMO:GBPUSD:US_FUND_FX_1600:2026-08-28:AFTER", "quality_status": "ACCEPTED"})
 
-        _insert_once(connection, m.strategy, {"strategy_id": DEMO_IDS["uk_fund_strategy"], "tenant_id": DEMO_IDS["tenant"], "strategy_code": "UK_FUND_CUTOFF_DEMO", "display_name": "UK fund cutoff demo", "strategy_type": "FUND", "base_currency_id": DEMO_IDS["gbp_currency"], "legal_owner_organisation_id": DEMO_IDS["fortem_organisation"], "status": "ACTIVE"})
-        _insert_once(connection, m.strategy, {"strategy_id": DEMO_IDS["us_fund_strategy"], "tenant_id": DEMO_IDS["tenant"], "strategy_code": "US_FUND_CUTOFF_DEMO", "display_name": "US fund cutoff demo", "strategy_type": "FUND", "base_currency_id": DEMO_IDS["usd_currency"], "legal_owner_organisation_id": DEMO_IDS["fortem_organisation"], "status": "ACTIVE"})
+        _insert_once(connection, m.strategy, {"strategy_id": DEMO_IDS["uk_fund_strategy"], "tenant_id": DEMO_IDS["tenant"], "strategy_code": "UK_FUND_CUTOFF_DEMO", "display_name": "UK fund cutoff demo", "strategy_type": "FUND", "base_currency_id": DEMO_IDS["gbp_currency"], "legal_owner_organisation_id": DEMO_IDS["platform_organisation"], "status": "ACTIVE"})
+        _insert_once(connection, m.strategy, {"strategy_id": DEMO_IDS["us_fund_strategy"], "tenant_id": DEMO_IDS["tenant"], "strategy_code": "US_FUND_CUTOFF_DEMO", "display_name": "US fund cutoff demo", "strategy_type": "FUND", "base_currency_id": DEMO_IDS["usd_currency"], "legal_owner_organisation_id": DEMO_IDS["platform_organisation"], "status": "ACTIVE"})
         _insert_once(connection, m.valuation_policy, {"valuation_policy_id": DEMO_IDS["uk_fund_policy"], "tenant_id": DEMO_IDS["tenant"], "policy_code": "UK_FUND_CUTOFF_DEMO", "display_name": "UK fund valuation with London FX cut", "valuation_cut_id": DEMO_IDS["uk_fx_cut"], "version_no": 1, "status": "ACTIVE", "valid_from": today})
         _insert_once(connection, m.valuation_policy, {"valuation_policy_id": DEMO_IDS["us_fund_policy"], "tenant_id": DEMO_IDS["tenant"], "policy_code": "US_FUND_CUTOFF_DEMO", "display_name": "US fund valuation with New York FX cut", "valuation_cut_id": DEMO_IDS["us_fx_cut"], "version_no": 1, "status": "ACTIVE", "valid_from": today})
         _insert_once(connection, m.valuation_policy_rule, {"valuation_policy_rule_id": DEMO_IDS["uk_fund_fx_policy_rule"], "valuation_policy_id": DEMO_IDS["uk_fund_policy"], "rule_sequence": 1, "subject_type": "FX_PAIR", "subject_reference_node_id": DEMO_IDS["gbpusd_fx_pair_node"], "market_data_series_id": DEMO_IDS["uk_gbpusd_series"], "series_type": "FX_SPOT", "selection_method": "OFFICIAL", "pricing_date_rule": "SAME_DAY", "lag_business_days": 0, "max_staleness_business_days": 0, "missing_data_action": "FAIL", "dataset_id": DEMO_IDS["multi_asset_dataset"], "status": "ACTIVE"})
@@ -1062,6 +1062,10 @@ def load_demo_data(engine: Engine) -> None:
 
         load_mvp_demo_data(connection)
         _ensure_demo_definition_versions(connection)
+        # Migrations run before fixture accounts exist in an empty database.
+        # Only this loader-owned synthetic admin receives explicit operations.
+        from .access_bootstrap import bootstrap_admin_operations
+        bootstrap_admin_operations(connection, DEMO_IDS['tenant'], DEMO_IDS['demo_user_account'], DEMO_IDS['demo_user_account'])
 
 
 def _ensure_demo_definition_versions(connection: Connection) -> None:
@@ -1085,7 +1089,7 @@ def _ensure_demo_definition_versions(connection: Connection) -> None:
             # Original synthetic projections predate effective-dated definitions.
             # Their documented scenario date supplies only this loader-owned fixture.
             values["effective_from"] = values["effective_from"] or date(2026, 8, 28)
-            values.update({key: row[key], version_key: uuid5(NAMESPACE_URL, f"fortem-demo:{version.name}:{row[key]}"),
+            values.update({key: row[key], version_key: uuid5(NAMESPACE_URL, f"platform-demo:{version.name}:{row[key]}"),
                            "sequence_no": 1, "is_current": True, "status": "APPROVED",
                            "approved_by_user_account_id": DEMO_IDS["demo_user_account"],
                            "approved_at_utc": datetime.now(timezone.utc)})

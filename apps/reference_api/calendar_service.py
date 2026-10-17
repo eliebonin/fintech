@@ -45,11 +45,13 @@ def assignment_view(row):
 
 def options(c,tenant,actor):
     manage=authority(c,tenant,actor)
+    from security_master_schema.strategy_access import request_strategy_predicate
     ids=c.scalars(select(m.market_calendar.c.market_calendar_id).where(m.market_calendar.c.status=='ACTIVE',
         or_(m.market_calendar.c.tenant_id.is_(None),m.market_calendar.c.tenant_id==tenant)).order_by(m.market_calendar.c.display_name,m.market_calendar.c.version_no.desc()).limit(500)).all()
     return CalendarOptions(canManage=manage,calendars=[calendar_view(c,tenant,cid,False) for cid in ids],
-        strategies=[dict(id=sid,label=name) for sid,name in c.execute(select(m.strategy.c.strategy_id,m.strategy.c.display_name).where(m.strategy.c.tenant_id==tenant,m.strategy.c.status=='ACTIVE').limit(500))],
-        assignments=[assignment_view(row) for row in c.execute(select(m.calendar_assignment).where(m.calendar_assignment.c.tenant_id==tenant).order_by(
+        strategies=[dict(id=sid,label=name) for sid,name in c.execute(select(m.strategy.c.strategy_id,m.strategy.c.display_name).where(m.strategy.c.tenant_id==tenant,m.strategy.c.status=='ACTIVE',request_strategy_predicate(c,tenant,'CALENDAR_READ',m.strategy.c.strategy_id)).limit(500))],
+        assignments=[assignment_view(row) for row in c.execute(select(m.calendar_assignment).where(m.calendar_assignment.c.tenant_id==tenant,
+            or_(m.calendar_assignment.c.target_kind!='STRATEGY',request_strategy_predicate(c,tenant,'CALENDAR_READ',m.calendar_assignment.c.target_id))).order_by(
             m.calendar_assignment.c.created_at_utc.desc(),m.calendar_assignment.c.calendar_assignment_id.desc()).limit(500)).mappings()])
 
 def publish_calendar(c,tenant,actor,payload,key):

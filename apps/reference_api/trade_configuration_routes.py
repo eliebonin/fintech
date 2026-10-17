@@ -2,7 +2,8 @@
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query
+from fastapi import Depends, Query
+from .request_audit import AuditRouter as APIRouter
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from .tenant_context import TenantContext, get_tenant_context, require_actor
 from .problem_details import ApiProblem
@@ -127,6 +128,8 @@ class PropertyResponse(BaseModel):
 
 def configuration_router(connection_dependency):
     router=APIRouter(prefix="/v1/trade-configuration",tags=["Trade configuration"])
+    from .organisation_routes import organisation_router
+    router.include_router(organisation_router(connection_dependency))
     def execute(connection,context,command,*args):
         actor=require_actor(context)
         try:

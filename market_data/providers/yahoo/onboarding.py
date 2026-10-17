@@ -1,5 +1,6 @@
 """Operator-only Yahoo catalogue for one local simulated personal workspace."""
 from datetime import date, datetime, timezone
+from security_master_schema.governance_clock import governance_date
 
 from sqlalchemy import select
 
@@ -33,7 +34,7 @@ def onboard_personal(c, tenant_id, actor_id, declaration: str) -> dict:
     if existing and existing['permitted_tenant_id'] != tenant_id:
         raise ValueError('Personal dataset is configured for a different tenant')
     from security_master_schema.tenant_workspace import resolve_tenant_workspace
-    workspace = resolve_tenant_workspace(c, tenant_id, actor_id, date.today())
+    workspace = resolve_tenant_workspace(c, tenant_id, actor_id, governance_date())
     if workspace.membership_role != 'TENANT_ADMIN':
         raise ValueError('Personal source activation requires the tenant administrator')
     module_id = c.scalar(select(m.platform_module.c.platform_module_id).where(m.platform_module.c.module_code == 'MARKET_DATA'))
@@ -45,7 +46,7 @@ def onboard_personal(c, tenant_id, actor_id, declaration: str) -> dict:
         now = datetime.now(timezone.utc)
         c.execute(m.tenant_module_entitlement.insert().values(tenant_id=tenant_id, platform_module_id=module_id,
             entitlement_state='GRANTED', entitlement_source='MANUAL',
-            approved_by_user_account_id=actor_id, approved_at_utc=now, valid_from=date.today(), recorded_at_utc=now))
+            approved_by_user_account_id=actor_id, approved_at_utc=now, valid_from=governance_date(), recorded_at_utc=now))
     if existing:
         if existing['status'] != 'ACTIVE' or existing['usage_scope'] != 'PERSONAL' or not existing['provider_enabled']:
             raise ValueError('Existing profile is not active personal scope; refusing automatic reactivation')
@@ -53,7 +54,7 @@ def onboard_personal(c, tenant_id, actor_id, declaration: str) -> dict:
     else:
         if c.scalar(select(m.dataset.c.dataset_id).where(m.dataset.c.dataset_code == DATASET_CODE)):
             raise ValueError('Dataset exists without a reviewed profile; refusing implicit activation')
-        today = date.today()
+        today = governance_date()
         orgs = []
         for code, name, kind in [('YAHOO_PERSONAL_DELIVERY', 'Yahoo Finance delivery identity', 'VENDOR'),
                                   ('PERSONAL_PROJECT_OPERATOR', 'Local personal project operator', 'OPERATIONAL')]:
@@ -130,7 +131,7 @@ def onboard_personal(c, tenant_id, actor_id, declaration: str) -> dict:
             c.execute(m.external_object_mapping.insert().values(external_id_namespace_id=namespace_id,
                 external_object_type='LISTING', external_id_value=symbol, target_object_type='LISTING',
                 target_object_id=node['listing_node_id'], context_market_venue_id=node['market_venue_id'],
-                mapping_method='RULE', status='PROPOSED', valid_from=date.today()))
+                mapping_method='RULE', status='PROPOSED', valid_from=governance_date()))
         mappings.append(dict(symbol=symbol, listingId=str(node['listing_node_id']), mic=row['mic'], universe=row['universe']))
     return dict(datasetId=str(dataset_id), namespaceId=str(namespace_id), mappings=mappings)
 
@@ -146,7 +147,7 @@ def enable_personal_research(c, tenant_id, actor_id, reference: str) -> dict:
         m.dataset_right_requirement.c.activity == 'ACQUIRE',
         m.dataset_right_requirement.c.requirement_code == 'AUTOMATED_SOURCE_ACCESS').with_for_update()).mappings().one()
     if requirement['dataset_licence_assignment_id'] is not None:
-        if not load_rights(c, dataset_id, 'ACQUIRE', date.today(), 'PERSONAL').allowed:
+        if not load_rights(c, dataset_id, 'ACQUIRE', governance_date(), 'PERSONAL').allowed:
             raise ValueError('Existing reviewed access assignment is not effective; refusing reactivation')
         return result
     profile = c.execute(select(m.dataset_access_profile).where(m.dataset_access_profile.c.dataset_id == dataset_id)).mappings().one()
@@ -161,12 +162,12 @@ def enable_personal_research(c, tenant_id, actor_id, reference: str) -> dict:
         licensor_organisation_id=profile['licensee_organisation_id'],
         licensee_organisation_id=profile['licensee_organisation_id'], licence_code=licence_code,
         display_name='Owner personal research exception — not provider permission',
-        licence_reference=reference.strip(), permitted_use_description=evidence, valid_from=date.today())
+        licence_reference=reference.strip(), permitted_use_description=evidence, valid_from=governance_date())
     assignment_id = _insert(c, m.dataset_licence_assignment, 'dataset_licence_assignment_id',
-        dataset_id=dataset_id, data_licence_id=licence_id, licence_role='ACQUISITION', valid_from=date.today())
+        dataset_id=dataset_id, data_licence_id=licence_id, licence_role='ACQUISITION', valid_from=governance_date())
     c.execute(m.licence_activity_grant.insert().values(dataset_licence_assignment_id=assignment_id,
         activity='ACQUIRE', usage_scope='PERSONAL', evidence_basis='PERSONAL_RESEARCH_EXCEPTION',
-        evidence_reference=evidence, valid_from=date.today()))
+        evidence_reference=evidence, valid_from=governance_date()))
     c.execute(m.dataset_right_requirement.update().where(
         m.dataset_right_requirement.c.requirement_id == requirement['requirement_id']).values(
             dataset_licence_assignment_id=assignment_id))

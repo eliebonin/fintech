@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (recommended) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Establish a modular pnpm workspace for Fortem's frontend applications and shared TypeScript packages without changing the existing Python backend.
+**Goal:** Establish a modular pnpm workspace for Platform's frontend applications and shared TypeScript packages without changing the existing Python backend.
 
 **Architecture:** Keep one Git repository with independently deployable apps under `apps/` and deliberately shared packages under `packages/`. Start with a metadata-only `apps/ops-console` boundary and avoid adding a second application or framework until its workflow is specified. The Python security-master backend remains a sibling source tree and communicates through versioned API contracts rather than direct imports.
 

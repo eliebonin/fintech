@@ -48,7 +48,7 @@ def test_member_can_read_but_cannot_book_or_manage_access(client):
     r=client.post('/v1/access/users',headers=admin,json={'name':'Read only '+uuid4().hex,'role':'MEMBER'})
     assert r.status_code==201
     user=r.json()['userId']
-    group=client.post('/v1/access/groups',headers=admin,json={'code':'READ_'+uuid4().hex,'name':'Read only','actions':['TRADE_READ']})
+    group=client.post('/v1/access/groups',headers=admin,json={'code':'READ_'+uuid4().hex,'name':'Read only','scopeMode':'ALL','actions':['TRADE_READ']})
     assert group.status_code==201
     r=client.put(f'/v1/access/users/{user}/groups',headers=admin,json={'groupIds':[group.json()['groupId']]})
     assert r.status_code==200
@@ -97,7 +97,7 @@ def test_group_granted_member_can_book_without_becoming_admin(client):
     from tests.test_cash_booking_integrity import payload
     admin=headers()
     user=client.post('/v1/access/users',headers=admin,json={'name':'Trader '+uuid4().hex,'role':'MEMBER'}).json()['userId']
-    group=client.post('/v1/access/groups',headers=admin,json={'code':'BOOK_'+uuid4().hex,'name':'Book','actions':['TRADE_READ','TRADE_WRITE']}).json()['groupId']
+    group=client.post('/v1/access/groups',headers=admin,json={'code':'BOOK_'+uuid4().hex,'name':'Book','scopeMode':'ALL','actions':['TRADE_READ','TRADE_WRITE']}).json()['groupId']
     assert client.put(f'/v1/access/users/{user}/groups',headers=admin,json={'groupIds':[group]}).status_code==200
     h=admin|{'X-User-Account-Id':user,'Idempotency-Key':str(uuid4())}
     result=client.post('/v1/trades',headers=h,json=payload().model_dump(mode='json',by_alias=True))
@@ -117,7 +117,7 @@ def test_flow_cancellation_http_uses_correction_not_calculation_or_booking(clien
         'recognitionRole':'INCOME','economicDate':'2026-10-01','sourceReference':'SYNTHETIC'})
     assert flow.status_code==201,flow.text
     user=client.post('/v1/access/users',headers=admin,json={'name':'Flow operator '+uuid4().hex,'role':'MEMBER'}).json()['userId']
-    group=client.post('/v1/access/groups',headers=admin,json={'code':'FLOW_'+uuid4().hex,'name':'Flow operator','actions':actions}).json()['groupId']
+    group=client.post('/v1/access/groups',headers=admin,json={'code':'FLOW_'+uuid4().hex,'name':'Flow operator','scopeMode':'ALL','actions':actions}).json()['groupId']
     assert client.put(f'/v1/access/users/{user}/groups',headers=admin,json={'groupIds':[group]}).status_code==200
     response=client.post('/v1/valuation/economic-flows/'+flow.json()['tradeId']+'/cancel',
         headers=admin|{'X-User-Account-Id':user,'Idempotency-Key':str(uuid4())},json={'reason':'Incorrect flow'})

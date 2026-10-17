@@ -10,8 +10,8 @@ from sqlalchemy.engine import make_url
 
 def test_valuation_revision_round_trip_preserves_source_tables():
     base=make_url(os.environ['DATABASE_URL'])
-    assert base.database.startswith('fortem_isolated_tests_')
-    name='fortem_valuation_migration_'+uuid4().hex
+    assert base.database.startswith('platform_isolated_tests_')
+    name='platform_valuation_migration_'+uuid4().hex
     admin=create_engine(base.set(database='postgres'),isolation_level='AUTOCOMMIT')
     with admin.connect() as c: c.execute(text(f'CREATE DATABASE "{name}"'))
     target=base.set(database=name)
@@ -31,6 +31,6 @@ def test_valuation_revision_round_trip_preserves_source_tables():
         finally: engine.dispose()
     finally:
         # Exact generated target, never an app or parent-suite database.
-        assert name.startswith('fortem_valuation_migration_') and len(name.rsplit('_',1)[1])==32
+        assert name.startswith('platform_valuation_migration_') and len(name.rsplit('_',1)[1])==32
         with admin.connect() as c: c.execute(text(f'DROP DATABASE "{name}"'))
         admin.dispose()

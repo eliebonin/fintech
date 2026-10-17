@@ -86,6 +86,26 @@ function input(overrides: Partial<AutocallFormPayloadInput> = {}): AutocallFormP
 }
 
 describe("structured-product draft payload", () => {
+  it.each(['','not-a-number','Infinity'])('rejects missing or invalid contractual rates instead of sending zero: %s',(couponRate)=>{
+    expect(()=>buildAutocallDraftPayload(input({couponRate}))).toThrow();
+  });
+  it('rejects invalid provided optional notional rather than dropping it',()=>{
+    expect(()=>buildAutocallDraftPayload(input({notional:'invalid'}))).toThrow();
+  });
+  it('retains calendar convention and the explicit exception reason',()=>{
+    const payload=buildAutocallDraftPayload(input({paymentDateConvention:'EXPLICIT',explicitScheduleReason:' Contractual holiday exception '}));
+    expect(payload.paymentDateConvention).toBe('EXPLICIT');
+    expect(payload.explicitScheduleReason).toBe('Contractual holiday exception');
+  });
+  it('does not require hidden coupon/autocall fields for a maturity-only template',()=>{
+    const payload=buildAutocallDraftPayload(input({productType:'VANILLA_KIP',includeKip:false,
+      couponRate:'',couponBarrier:'',autocallBarrierStart:'',autocallBarrierStep:'',autocallBarrierFloor:'',kipBarrier:''}));
+    expect(payload.couponRate).toBeUndefined();expect(payload.autocallBarrierStart).toBeUndefined();
+  });
+  it('explicitly reviewed schedule rows supersede generated headline summaries',()=>{
+    const payload=buildAutocallDraftPayload(input({paymentDateConvention:'EXPLICIT',explicitScheduleReason:'Variable contractual periods'}));
+    expect(payload.couponRate).toBeUndefined();expect(payload.kipBarrier).toBeUndefined();
+  });
   it("maps the consolation subtype and contract graph fields to the API shape", () => {
     const payload = buildAutocallDraftPayload(input());
 

@@ -38,8 +38,10 @@ def key_identity(key):
 def booking_removed(chain, request):
     """Validate eligible lifecycle history before requiring active economics.
 
-    A record correction effective by the opening boundary removes the entire
-    erroneous booking. It does not represent a sale or contractual settlement.
+    A record correction at the original execution removes the entire erroneous
+    booking, including a period execution. It is not a sale or settlement.
+    A later effective removal inside the period remains unsupported: it could
+    represent real termination economics, not an erroneous-record correction.
     Callers must pass only events visible at both frozen cutoffs.
     """
     if not chain: raise PositionError('Missing original BOOKED evidence')
@@ -57,15 +59,29 @@ def booking_removed(chain, request):
         last_time=f.effective_at
         if f.kind in {'CANCELLED','SUPERSEDED'}:
             if removed: raise PositionError('Booking already removed')
-            if request.mode=='PERIOD' and f.effective_at>request.opening_cutoff:
+            if f.kind=='SUPERSEDED':
+                proof=f.correction_evidence or {}
+                try:
+                    if (proof['kind']!='BOOKING_CORRECTION' or proof['action']!='REPLACED_BOOKING'
+                        or UUID(proof['originalTradeId'])!=f.trade_id or UUID(proof['replacementTradeId'])==f.trade_id):
+                        raise ValueError()
+                except (KeyError,TypeError,ValueError): raise PositionError('Invalid correction evidence') from None
+            if (request.mode=='PERIOD' and f.effective_at>request.opening_cutoff
+                    and f.effective_at!=original.effective_at):
                 raise PositionError('Unsupported in-period removal requires economic lifecycle treatment')
             removed=True
         elif f.kind=='CORRECTED':
             if removed: raise PositionError('Correction cannot resurrect removed booking')
+            proof=f.correction_evidence or {}
+            try:
+                if (proof['kind']!='BOOKING_CORRECTION' or proof['action']!='REPLACES_BOOKING'
+                    or UUID(proof['replacementTradeId'])!=f.trade_id or UUID(proof['originalTradeId'])==f.trade_id
+                    or not isinstance(proof['reason'],str) or not proof['reason'].strip()): raise ValueError()
+            except (KeyError,TypeError,ValueError): raise PositionError('Invalid correction evidence') from None
         else: raise PositionError(f'Unsupported lifecycle effect: {f.kind}')
     return removed
 
-def reconstruct(facts, request: ProjectionRequest) -> PositionProjection:
+def reconstruct(facts, request: ProjectionRequest, *, splits=(), key_builder=booking_key) -> PositionProjection:
     utc(request.closing_cutoff); utc(request.information_cutoff)
     if request.mode not in {'PERIOD','AS_OF'}: raise PositionError('Unknown projection mode')
     if request.mode=='PERIOD':
@@ -90,7 +106,7 @@ def reconstruct(facts, request: ProjectionRequest) -> PositionProjection:
         original=chain[0]
         if original.kind!='BOOKED' or original.booking is None: raise PositionError('Missing original BOOKED economics')
         if original.booking.trade_id!=trade: raise PositionError('BOOKED identity mismatch')
-        key=booking_key(original.booking,request.tenant_id,request.strategy_id)
+        key=key_builder(original.booking,request.tenant_id,request.strategy_id)
         if original.booking is not None:
             day=original.booking.valuation_effective_date or original.effective_at.date()
             if day<original.effective_at.date(): raise PositionError('Recognition date precedes execution')
@@ -104,10 +120,22 @@ def reconstruct(facts, request: ProjectionRequest) -> PositionProjection:
     active.sort(key=lambda item:(item[1].effective_at,str(item[1].trade_id)))
     grouped=defaultdict(list)
     for key,f in active: grouped[key].append(f)
-    buckets=[]; executions=[]; exposures=[]
+    from .splits import visible_splits,replay_bucket
+    splits=visible_splits(splits,request)
+    buckets=[]; executions=[]; exposures=[]; adjustments=[]
     with localcontext() as context:
         context.prec=512; context.traps[Inexact]=True
         for key,bookings in sorted(grouped.items(),key=lambda item:key_identity(item[0])):
+            events=[event for event in splits if event.subject_id==key.subject_id]
+            if events:
+                opening,closing,relevant,movements,intervals,applied=replay_bucket(key,bookings,actual,events,request)
+                exposures.extend(intervals); adjustments.extend(applied)
+                if opening!=0 or closing!=0 or movements:
+                    buckets.append(PositionBucket(key,opening,closing,
+                        tuple(sorted({f.trade_id for f in relevant},key=str)),
+                        tuple(sorted({f.booking.definition_id for f in relevant},key=str))))
+                    executions.extend(movements)
+                continue
             opening=Decimal(0); closing=Decimal(0); movements=[]
             for f in bookings:
                 closing+=f.booking.quantity
@@ -154,6 +182,8 @@ def reconstruct(facts, request: ProjectionRequest) -> PositionProjection:
             if quantity!=0 and start is not None:
                 exposures.append(ExposureInterval(key,start,request.closing_cutoff,tuple(sorted(set(ids),key=str))))
     executions.sort(key=lambda x:(x.effective_at,str(x.booking.trade_id)))
-    payload=dict(request=asdict(request),facts=[asdict(f) for f in eligible],engine='position-reconstruction-v1')
+    engine='position-reconstruction-v2' if splits else 'position-reconstruction-v1'
+    payload=dict(request=asdict(request),facts=[asdict(f) for f in eligible],engine=engine)
+    if splits: payload.update(splits=[asdict(e) for e in splits],splitAdjustments=[asdict(a) for a in adjustments])
     return PositionProjection(request,tuple(buckets),tuple(executions),tuple(exposures),tuple(eligible),count,
-        request.information_cutoff>=request.closing_cutoff,digest(payload))
+        request.information_cutoff>=request.closing_cutoff,digest(payload),engine,tuple(adjustments),splits)

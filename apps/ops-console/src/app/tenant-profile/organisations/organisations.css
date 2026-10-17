@@ -1,0 +1,26 @@
+.organisation-page {max-width:1400px;margin:auto;display:grid;align-content:start;gap:1.25rem}
+.organisation-page h2 {font-size:1.15rem;margin:0 0 .6rem}
+.organisation-page button {padding:.5rem .85rem;border:1px solid #b9c6d9;border-radius:8px;background:white;color:#194fca;cursor:pointer;font:inherit}
+.organisation-page button[aria-pressed=true],.organisation-editor button[type=submit] {background:#1f5eff;color:white}
+.organisation-page button:disabled {opacity:.55;cursor:not-allowed}
+.organisation-page :focus-visible {outline:3px solid #1f5eff;outline-offset:3px}
+.organisation-policies,.organisation-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.organisation-page label {display:grid;gap:.4rem;font-weight:600}
+.organisation-page input,.organisation-page select,.organisation-page textarea {width:100%;box-sizing:border-box;font:inherit;padding:.55rem;border:1px solid #b9c6d9;border-radius:8px;background:white;color:#172238}
+.organisation-page textarea {min-height:4.5rem;resize:vertical}
+.organisation-editor form>fieldset {display:grid;gap:1rem;border:0;padding:0}
+.organisation-editor fieldset fieldset {border:1px solid #dae3f0;padding:.85rem;display:grid;gap:.7rem}
+.organisation-page .organisation-check {display:flex;align-items:center;gap:.6rem}
+.organisation-check input {width:auto}
+.organisation-actions {display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin:.75rem 0}
+.organisation-search {display:flex;align-items:end;gap:1rem;flex-wrap:wrap;margin:1rem 0}
+.organisation-search label:first-child {flex:1;min-width:200px}
+.organisation-warning {border-left:4px solid #c37810;background:#fff6e8;padding:1rem}
+.organisation-table {overflow-x:auto}
+.organisation-table table {width:100%;border-collapse:collapse;font-size:.9rem;text-align:left}
+.organisation-table caption {text-align:left;margin-bottom:.75rem;font-weight:600}
+.mvp-page.organisation-page .organisation-table th,.mvp-page.organisation-page .organisation-table td {padding:10px 12px;text-align:left;border-bottom:1px solid #e2e9f3;vertical-align:top}
+.organisation-table thead th {font-size:.8rem;color:#526781;background:#f4f7fb}
+.organisation-table small {display:block;font-weight:400;color:#526781;margin-top:.25rem;overflow-wrap:anywhere}
+.organisation-page pre {white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:760px){.organisation-policies,.organisation-fields {grid-template-columns:1fr}}

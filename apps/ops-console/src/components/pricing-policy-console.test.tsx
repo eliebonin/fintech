@@ -3,6 +3,18 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {it,expect} from 'vitest';
 import {PricingPolicyConsole} from './pricing-policy-console';
 const options={canManage:false,cuts:[],venues:[],instrumentTypes:[],calendars:[],strategies:[],datasets:[]};
+it('separates configuration, preview and reference without unmounting forms',()=>{
+ const html=renderToStaticMarkup(<PricingPolicyConsole options={{...options,canManage:true}} initialPolicies={[]}/>);
+ expect(html).toContain('role="tablist"');
+ expect(html.match(/role="tabpanel"/g)).toHaveLength(3);
+ expect(html.match(/hidden=""/g)).toHaveLength(2);
+ expect(html).toContain('Save new immutable version');
+ expect(html).toContain('Preview saved version');
+});
+it('distinguishes contract-specific forward rates from spot FX',()=>{
+ const html=renderToStaticMarkup(<PricingPolicyConsole options={{...options,canManage:true}} initialPolicies={[]}/>);
+ expect(html).toContain('FX-forward contract rate');
+});
 it('offers economic price requirements independently of advanced source filters',()=>{
  const html=renderToStaticMarkup(<PricingPolicyConsole options={{...options,canManage:true}} initialPolicies={[]}/>);
  expect(html).toContain('As-traded valuation price');expect(html).toContain('Allow verified conversion');

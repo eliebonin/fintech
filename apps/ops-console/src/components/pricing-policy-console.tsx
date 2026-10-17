@@ -1,5 +1,7 @@
 'use client';
-import {useEffect,useRef,useState} from 'react';
+import {browserFetch as fetch} from '@/lib/browser-fetch';
+import {useEffect,useId,useRef,useState} from 'react';
+import {WorkspaceTabs,WorkspaceTabPanel} from './workspace-navigation';
 import type {FormEvent} from 'react';
 import {patchPricingRule,newPricingRule,newDefaultPricingRule,newPricingPolicyDraft,withPricingPolicyMode,previewSubjects,pricingEvidenceLabel,stalenessLimit,type PricingPolicy,type PricingPolicyCreate,type PricingOptions,type PricingPreview,type PricingRule,type PricingCompatibility,type PricingDataOptions} from '@/lib/pricing-policy';
 import styles from './pricing-policy-console.module.css';
@@ -9,7 +11,7 @@ import {PolicyCompatibilityReport,PolicySourceProfiles,PolicyRuleSources} from '
 type PolicyPick={valuationPolicyId:string;policyCode:string;displayName:string};
 type Option={id:string;label:string};
 const priceFamilies=[{id:'CLOSE',label:'Closing price'},
- {id:'FX_SPOT',label:'FX spot rate'},{id:'NAV',label:'Fund NAV'},{id:'OFFICIAL_NAV',label:'Published official NAV'},{id:'INDICATIVE_NAV',label:'Indicative NAV'},
+ {id:'FX_SPOT',label:'FX spot rate'},{id:'FX_FORWARD',label:'FX-forward contract rate'},{id:'NAV',label:'Fund NAV'},{id:'OFFICIAL_NAV',label:'Published official NAV'},{id:'INDICATIVE_NAV',label:'Indicative NAV'},
  {id:'BID',label:'Bid price'},{id:'ASK',label:'Ask price'},{id:'MID',label:'Mid price'},{id:'EVALUATED_PRICE',label:'Evaluated price'}];
 const adjustmentChoices=[{id:'RAW',label:'Unadjusted — follows traded units'},{id:'SPLIT_ADJUSTED',label:'Split-adjusted — historical stock-split adjustment'},
  {id:'VENDOR_ADJUSTED',label:'Provider-adjusted — check provider methodology'},{id:'TOTAL_RETURN',label:'Total-return adjusted — includes income assumptions'}];
@@ -28,6 +30,8 @@ async function jsonRequest<T>(url:string,init?:RequestInit):Promise<T> {
 }
 
 export function PricingPolicyConsole({options,initialPolicies}:{options:PricingOptions;initialPolicies:PolicyPick[]}) {
+ const tabsId=useId();
+ const [view,setView]=useState('configuration');
  const today=new Date().toISOString().slice(0,10);
  const [policies,setPolicies]=useState(initialPolicies),[selected,setSelected]=useState<PricingPolicy|null>(null);
  const [draft,setDraft]=useState<PricingPolicyCreate>(()=>newPricingPolicyDraft(today));
@@ -82,13 +86,14 @@ export function PricingPolicyConsole({options,initialPolicies}:{options:PricingO
   }catch(caught){setError((caught as Error).message);}finally{setBusy(false);}
  }
  return <>
-  <details className={`history-panel ${styles.reference}`}><summary>Help with pricing choices</summary><PricingPolicyHelp/></details>
-  {dataOptions?<details className={`history-panel ${styles.reference}`}><summary>Available source definitions and permissions</summary><PolicySourceProfiles data={dataOptions}/></details>:dataError?<p role="status">{dataError}</p>:<p role="status">Loading recorded source definitions…</p>}
   <section className="history-panel"><h2>Inspect a saved version</h2><p>Explicit rules first: exact series → subject → venue + type → venue → type → broad rule. Flexible defaults apply only when no matching explicit rule exists. Missing eligible data never falls through to another rule.</p>
    <label>Policy version<select value={selected?.valuationPolicyId??''} disabled={busy} onChange={e=>{if(e.target.value)void selectPolicy(e.target.value);}}><option value="">Select a policy…</option>{policies.map(p=><option key={p.valuationPolicyId} value={p.valuationPolicyId}>{p.policyCode} · {p.displayName} · {p.valuationPolicyId.slice(-8)}</option>)}</select></label>
    <button type="button" disabled={busy} onClick={async()=>{setError('');try{setPolicies(await jsonRequest(`/api/market-data/valuation-policies?valuationDate=${valuationDate}`));}catch(caught){setError((caught as Error).message);}}}>Refresh versions for preview date</button>
    {selected?<p>{selected.policyCode} · version {selected.versionNo} · {selected.selectionMode} · {selected.strategyId?'Strategy scoped':'Tenant shared'} · {selected.createdByUserAccountId?'Attributed immutable version':'Legacy configuration'}</p>:null}
   </section>
+  {error?<p className="error-panel" role="alert">{error}</p>:null}{message?<p role="status">{message}</p>:null}
+  <WorkspaceTabs id={tabsId} label="Pricing policy tasks" items={[{id:'configuration',label:'Configuration'},{id:'preview',label:'Preview'},{id:'reference',label:'Reference'}]} value={view} onChange={setView}/>
+  <WorkspaceTabPanel id={tabsId} tab="configuration" value={view}>
   {!options.canManage?<section className="history-panel"><h2>Read-only configuration</h2><p>Creating a version requires a MARKET_DATA tenant administrator.</p>{selected?<pre>{JSON.stringify({selectionMode:selected.selectionMode,rules:selected.rules,defaultRules:selected.defaultRules},null,2)}</pre>:null}</section>:
    <form className={`history-panel pricing-policy-editor ${styles.editor}`} onSubmit={save}><h2>{selected?'Create a revised version':'Create pricing policy'}</h2><p>Save creates an immutable version. Preview uses the saved version, not unsaved edits. This does not grant data rights.</p>
     <fieldset disabled={busy}><legend>Policy identity and scope</legend><div className="pricing-policy-fields">
@@ -147,10 +152,16 @@ export function PricingPolicyConsole({options,initialPolicies}:{options:PricingO
     {currentReport?.status==='ACTION_REQUIRED'?<label><input type="checkbox" disabled={busy} checked={acknowledgedCanonical===canonicalDraft} onChange={e=>setAcknowledgedCanonical(e.target.checked?canonicalDraft:null)}/>Save a future-data configuration despite these notices. This does not make it valuation-ready.</label>:null}
     <button disabled={busy} type="submit">{busy?'Working…':'Save new immutable version'}</button>
    </form>}
+  </WorkspaceTabPanel>
+  <WorkspaceTabPanel id={tabsId} tab="preview" value={view}>
   <form className="history-panel" onSubmit={runPreview}><h2>Read-only preview</h2><p>One information cutoff controls receipt/revisions; each rule has its own pricing target. No snapshot, observation, trade or valuation is written.</p><fieldset disabled={busy}><legend>Saved-version preview context</legend><div className="pricing-policy-fields"><label>Valuation date<input required type="date" value={valuationDate} onChange={e=>{setValuationDate(e.target.value);setPreview(null);}}/></label><label>Information cutoff (UTC)<input required type="datetime-local" value={information} onChange={e=>{setInformation(e.target.value);setPreview(null);}}/></label></div><label>Listing / reference UUIDs (up to 50)<textarea required rows={3} value={subjects} onChange={e=>{setSubjects(e.target.value);setPreview(null);}}/></label><button type="submit" disabled={!selected}>Preview saved version</button></fieldset>
    <p>Yahoo daily bars are not named FX fixings. Selection requires NON_DISPLAY rights; personal DISPLAY access alone is insufficient. Package calendars are labelled non-authoritative.</p>
   </form>
-  {error?<p className="error-panel" role="alert">{error}</p>:null}{message?<p role="status">{message}</p>:null}
   {preview?<section className="history-panel" aria-live="polite"><h2>Preview: {preview.status}</h2>{preview.items.map(item=><article key={item.subjectReferenceNodeId}><h3>{item.status} · {item.subjectReferenceNodeId}</h3><p>{item.selectedValue??'No eligible value'} · {item.entitlementDecision} · {item.exceptionCode??item.selectionReason}</p><p>{pricingEvidenceLabel(item.pricingEvidence)}</p><p>Requested {item.pricingDateRequested??'—'} / used {item.pricingDateUsed??'—'} · {item.stalenessStatus}</p><details><summary>Input and target evidence</summary><pre>{JSON.stringify(item,null,2)}</pre></details></article>)}</section>:null}
+  </WorkspaceTabPanel>
+  <WorkspaceTabPanel id={tabsId} tab="reference" value={view}>
+   <section className={`history-panel ${styles.reference}`}><h2>Help with pricing choices</h2><PricingPolicyHelp/></section>
+   {dataOptions?<section className={`history-panel ${styles.reference}`}><h2>Available source definitions and permissions</h2><PolicySourceProfiles data={dataOptions}/></section>:dataError?<p role="status">{dataError}</p>:<p role="status">Loading recorded source definitions…</p>}
+  </WorkspaceTabPanel>
  </>;
 }

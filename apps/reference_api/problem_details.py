@@ -20,7 +20,7 @@ from security_master_schema.tenant_workspace import TenantActionForbidden
 LOGGER = logging.getLogger("apps.reference_api")
 _request_id: ContextVar[str | None] = ContextVar("reference_api_request_id", default=None)
 _api_version: ContextVar[str | None] = ContextVar('reference_api_version',default=None)
-_PROBLEM_BASE_URI = "https://api.fortem.local/problems"
+_PROBLEM_BASE_URI = "https://api.platform.local/problems"
 
 
 class ValidationIssue(BaseModel):

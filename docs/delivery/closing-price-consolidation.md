@@ -64,7 +64,7 @@ Both sources were inspected during the preceding design discussion.
 
 ## Verification and activation
 
-Migration 76 applied to local `fortem_secm`: 12 previously designated official
+Migration 76 applied to local `platform_secm`: 12 previously designated official
 series are now `CLOSE / EXCHANGE_OFFICIAL`; all 543 real Yahoo closing series
 remain `CLOSE / UNKNOWN`. Before/after observation count and numeric value sum,
 saved rule identifiers/types and policy fingerprints were identical.

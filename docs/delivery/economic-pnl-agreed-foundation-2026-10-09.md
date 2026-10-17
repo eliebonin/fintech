@@ -78,7 +78,7 @@ calendars remain technical prerequisites, not already delivered capabilities.
 
 ## Legacy frontend reference inspected
 
-Reviewed the source under `fortem_front/apps/portal-web/src/pages/pnl-attributions`
+Reviewed the source under `legacy_frontend/apps/portal-web/src/pages/pnl-attributions`
 (not a rendered browser session). The main screen selects fund/date and batch,
 shows instrument-level market/gross/net totals and new/existing/maturing/reference
 counts, and drills into attribution groups and individual trade components.

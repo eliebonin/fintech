@@ -1,5 +1,5 @@
 export type BookedTrade = {
-  productEconomics?: {bookedNotional?:string|null;bondDetails?:Record<string,string>|null;terms:import('api-contracts').components['schemas']['ProductBookingContextView'];amount:string;amountKind:'CONSIDERATION'|'REFERENCE_CONTRACT_VALUE'|'ENTRY_REFERENCE_VALUE';direction?:'PAY'|'RECEIVE'|null}|null;
+  productEconomics?: {bookedNotional?:string|null;bookedUnits?:string|null;bondDetails?:Record<string,string>|null;terms:import('api-contracts').components['schemas']['ProductBookingContextView'];amount:string;amountKind:'CONSIDERATION'|'REFERENCE_CONTRACT_VALUE'|'ENTRY_REFERENCE_VALUE';direction?:'PAY'|'RECEIVE'|null}|null;
   positionEffect?: 'OPEN'|'CLOSE'|null;
   optionEconomics?: import('api-contracts').components['schemas']['OptionTradeEconomicsView']|null;
   fxForwardEconomics?: import("api-contracts").components["schemas"]["FxForwardTradeEconomicsView"] | null;
@@ -112,9 +112,8 @@ export type TradeDetailPayload = {
 };
 
 export function formatTradeNumber(value: string | null, maximumFractionDigits = 4): string {
-  if (value === null) return "—";
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed.toLocaleString("en-GB", { maximumFractionDigits }) : value;
+  // Compatibility entry point: never round booked facts or turn a tiny amount into zero.
+  return formatTradeExactDecimal(value);
 }
 
 /** Group decimal text without losing any digits to JavaScript numbers. */

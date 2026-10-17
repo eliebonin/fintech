@@ -19,10 +19,17 @@ def test_group_union_is_intersected_with_enabled_modules():
 def test_admin_cannot_gain_disabled_module_or_platform_authority():
     from security_master_schema import access_control as ac
     result = ac.effective_permissions(role='TENANT_ADMIN', tenant_modules={'TRADING'}, grants=set())
-    assert 'TRADE_WRITE' in result
+    assert result == frozenset({'ACCESS_MANAGE'})
     assert 'ACCESS_MANAGE' in result
     assert 'REFERENCE_APPROVE' not in result
     assert 'PLATFORM_ADMIN' not in result
+
+
+def test_admin_uses_explicit_group_permissions_with_subscription_bound():
+    from security_master_schema import access_control as ac
+    result=ac.effective_permissions(role='TENANT_ADMIN',tenant_modules={'TRADING'},
+        grants={'TRADE_READ','TRADE_WRITE','REFERENCE_APPROVE'})
+    assert result==frozenset({'ACCESS_MANAGE','TRADE_READ','TRADE_WRITE'})
 
 
 def test_member_without_groups_has_no_implicit_role_grants():

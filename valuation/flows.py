@@ -27,9 +27,9 @@ def flow_component(component,role,amount,fx):
 
 
 def book_flow(c,tenant,actor,payload,key):
-    from apps.reference_api.booking_controls import authorize_booking,lock_booking_strategy,find_booking_replay,record_booking_replay
-    from apps.reference_api.product_booking import require_visible
-    authorize_booking(c,tenant,actor)
+    from security_master_schema.booking_controls import authorize_booking,lock_booking_strategy,find_booking_replay,record_booking_replay
+    from security_master_schema.reference_visibility import require_visible
+    authorize_booking(c,tenant,actor,strategy_id=payload['strategyId'])
     amount=payload['amount'];flow_component(payload['component'],payload['recognitionRole'],amount,Decimal(1))
     if amount==0: raise ValueError('Book a nonzero cash amount; confirmed zero coverage is not a trade')
     if not payload['sourceReference'].strip() or payload['economicDate']>datetime.now(timezone.utc).date():
@@ -58,8 +58,9 @@ def book_flow(c,tenant,actor,payload,key):
 
 def cancel_flow(c,tenant,actor,trade_id,reason,key):
     """Cancel an erroneous flow booking, not settle or reverse instrument exposure."""
-    from apps.reference_api.booking_controls import authorize_booking,find_booking_replay,record_booking_replay
-    authorize_booking(c,tenant,actor,action='TRADE_CORRECT')
+    from security_master_schema.booking_controls import authorize_booking,find_booking_replay,record_booking_replay
+    from security_master_schema.booking_controls import authorize_trade_action
+    authorize_trade_action(c,tenant,actor,trade_id,'TRADE_CORRECT')
     if not isinstance(reason,str) or not reason.strip() or len(reason)>2000: raise ValueError('Cancellation reason required')
     endpoint=ENDPOINT+'/cancel';digest=evidence_hash(dict(tradeId=trade_id,reason=reason))
     replay=find_booking_replay(c,tenant,endpoint,key,digest)

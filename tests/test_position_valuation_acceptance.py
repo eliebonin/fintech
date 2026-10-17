@@ -11,7 +11,7 @@ from security_master_schema.demo_data import DEMO_IDS as ids
 
 def test_http_empty_result_is_explicit_and_retry_stable(valued):
     c,r,_=valued
-    assert get_engine().url.database.startswith('fortem_isolated_tests_')
+    assert get_engine().url.database.startswith('platform_isolated_tests_')
     r=replace(r,opening_cutoff=r.opening_cutoff-timedelta(days=10),closing_cutoff=r.closing_cutoff-timedelta(days=10))
     c.commit()  # Synthetic fixture only; runner owns independent transactions.
     payload=dict(strategyId=str(r.strategy_id),policyId=str(r.policy_id),cutId=str(r.cut_id),

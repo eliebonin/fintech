@@ -44,4 +44,4 @@ The prior acceptance research remains applicable: [OWASP authorization regressio
 
 ## Activation and limits
 
-Only the isolated UI3007/API8007 preview was activated against `fortem_fx_signoff_722336f2caf94ffca0fd6f9ca3f08701`. Operating data/builds were not restarted or changed. No commits, GitHub push or production deployment. The previously documented contractual-lifecycle/settlement/accounting/valuation deferrals remain in force.
+Only the isolated UI3007/API8007 preview was activated against `platform_fx_signoff_722336f2caf94ffca0fd6f9ca3f08701`. Operating data/builds were not restarted or changed. No commits, GitHub push or production deployment. The previously documented contractual-lifecycle/settlement/accounting/valuation deferrals remain in force.

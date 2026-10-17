@@ -7,6 +7,13 @@
 
 [Feature register](../feature-register.md). Storage, display rights, valuation-use rights, policy eligibility and financial acceptance are separate states. Counts below are dated activation evidence, not a new live-DB audit.
 
+October 16 [query-efficiency follow-up](../../delivery/quality-reviews/2026-10-16-query-efficiency.md)
+batches licensing evidence, constrains resolver candidates to matching series and
+restructures compact catalogue/latest-detail reads. Existing licensing, provider
+priority, date/correction and private-parent visibility rules remain; no source
+rights, policy semantics or feature statuses were changed. Full explorer-history
+reads still have per-series work; this is not a general market-data scale sign-off.
+
 ## F25 Public reference universe
 
 - **Desired:** Known shared S&P 500/CAC 40 canonical instruments/listings, available to all entitled tenants.
@@ -64,11 +71,11 @@
 ## F31 Corporate actions
 
 - **Desired:** Source corporate actions and adjust historical holdings during valuation without editing original trades; recognize distributions correctly.
-- **Status / backend / frontend:** PARTIAL. Yahoo split/dividend import/provenance/quarantine, split price proof and conservative exposure safety guards. No complete review/replay UI.
-- **Cuts/trade-offs:** Imported ANNOUNCED facts are not reviewed cash flows. An affected interval blocks rather than guessing transformations, even if raw quantities appear flat.
-- **Weaknesses:** No automatic split quantity replay, merger/spin-off mappings, entitlement generation or complete dividend income engine.
-- **Remaining:** Governed effective/recorded-date replay, transformed positions/cost bases and attributable distributions, with original trade facts retained. Keep price normalization and position transformation distinct.
-- **Evidence:** [Safety guard](../../delivery/corporate-action-valuation-guard.md), [source actions](../../delivery/yahoo-market-data-alpha.md#corporate-action-import-and-evidence-assessment--2026-10-09), [reconstruction safeguards](../../../positions/reconstruction.py).
+- **Status / backend / frontend:** PARTIAL. Yahoo split/dividend import/provenance/quarantine, split price proof, reviewed basic equity/ETF share-ratio replay and conservative guards. Position inspection shows server-evidenced quantity changes; no complete action-review UI.
+- **Cuts/trade-offs:** Imported ANNOUNCED facts are not automatically reviewed actions or cash flows. Append-only platform review freezes source versions and timing; original trades stay unchanged. Unreviewed/complex transformations block, including flat histories. An unreviewed successor cannot undo an already-reviewed historical ratio.
+- **Weaknesses:** No merger/spin-off mapping, loyalty/account-specific or fractional-cash entitlement engine, universal cancellation adjudication, tax-lot cost accounting or complete dividend income engine.
+- **Remaining:** Review UI, broader recorded-date/entitlement/cost-basis and distribution workflows, commercial corporate-action rights qualification and scalable action loading. Keep price normalization and position transformation distinct.
+- **Evidence:** [Reviewed ratio replay and live Air Liquide acceptance](../../delivery/share-ratio-position-replay-20261013.md), [safety guard](../../delivery/corporate-action-valuation-guard.md), [source actions](../../delivery/yahoo-market-data-alpha.md#corporate-action-import-and-evidence-assessment--2026-10-09), [reconstruction safeguards](../../../positions/reconstruction.py).
 
 ## F32 Pricing policies
 
@@ -80,6 +87,17 @@
 - **Evidence:** [Flexible/strict semantics](../../delivery/flexible-pricing-policies.md), [form clarity](../../delivery/pricing-policy-rule-form-2026-10-09.md), [selection](../../../market_data/policy_selection.py).
 
 ## F33 Calendars
+
+October 13 addition: [reviewed Paris import and provenance](../../delivery/paris-reference-calendar-20261013.md)
+provides a versioned, sealed 2026 XPAR schedule and explicit local venue activation.
+Library-generated research schedules are not relabelled as exchange-certified
+feeds; annual/other-venue maintenance remains open.
+
+October 13 follow-up: [major-market calendars and FX unblock](../../delivery/major-exchange-calendars-20261013.md)
+sealed twenty major-market candidates plus BATS (16 ACTIVE, five REVIEW_REQUIRED),
+connected seven existing equity venues and verified the user's October 7–8 GBP
+calculation with FLEXIBLE_EOD v3 in a rollback diagnostic. Three active schedules
+end October 13; this is research-grade 2026 coverage, not twenty certified feeds.
 
 - **Desired:** Exchange sessions/holidays and tenant-specific fund/strategy schedules, including joint Irish/UK/US holiday rules and dated exceptions.
 - **Status / backend / frontend:** ALPHA. Published immutable schedules, ALL_OPEN/ANY_OPEN composition, evidence exceptions and recorded-time pinned assignments; calendar administration/inspection paths.

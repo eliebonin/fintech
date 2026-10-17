@@ -85,7 +85,12 @@ def test_new_policy_version_cannot_be_changed_in_database():
 
 def test_new_policy_rejects_foreign_strategy_and_incomplete_fixing():
     payload=policy_payload(); payload['strategyId']=str(uuid4())
-    assert call('POST','/v1/market-data/valuation-policies',payload).status_code==422
+    # The central action-bound strategy guard runs before domain validation.
+    # Unknown/foreign strategy IDs are forbidden, not a 422 existence oracle.
+    assert call('POST','/v1/market-data/valuation-policies',payload).status_code==403
+    with get_engine().connect() as c:
+        assert c.scalar(select(func.count()).select_from(m.valuation_policy).where(
+            m.valuation_policy.c.policy_code==payload['policyCode']))==0
     payload.pop('strategyId'); payload['rules'][0]['pricingConvention']='NAMED_FIXING'
     assert call('POST','/v1/market-data/valuation-policies',payload).status_code==422
 

@@ -51,7 +51,7 @@ issues in the scoped fix. The verification totals above include those tests.
 ## Isolated browser acceptance
 
 Used the retained synthetic database
-`fortem_browser_review_c3b17aa3e76e41159d97e2e9dab8feb2`, API port 8001 and
+`platform_browser_review_c3b17aa3e76e41159d97e2e9dab8feb2`, API port 8001 and
 production frontend port 3001. Only the verified isolated frontend process was
 restarted. The live database was untouched; port 3000 was not restarted.
 Synthetic bookings record executed-trade fixtures and do not send orders.
@@ -70,7 +70,7 @@ warning/error entries. This is not a claim about every abandoned tab or server l
 | Configure through UI | Decimal field, required Boolean, draft catalogue with CORE/HEDGE, publication, catalogue-bound dropdown. |
 | Independent validation | Invalid quantity remained visible while correcting a required Boolean; correcting quantity then cleared its error. |
 | Editing focus | A keyboard-focused Boolean stayed focused while its required error cleared. |
-| Representative ticket | BUY 12 HSBC demo shares at GBP 8.125; Demo Income Strategy; HSBC counterparty, Fortem broker, MVP Operations Booker trader; Acceptance test tag and source reference. |
+| Representative ticket | BUY 12 HSBC demo shares at GBP 8.125; Demo Income Strategy; HSBC counterparty, Platform broker, MVP Operations Booker trader; Acceptance test tag and source reference. |
 | Review/back/save/history | Zero, No and governed selection survived review/back. Saved detail showed parties, trader, tag and reference; ledger linked the exact saved trade ID. |
 | Catalogue correction | Fresh ticket showed corrected CORE label; historical detail retained original label and record v1. |
 | Retirement | Retired CORE unavailable on fresh search; HEDGE remained available. Retired decimal field absent from fresh ticket; historical zero remained readable. |
@@ -141,7 +141,7 @@ is started by this decision.
 Prerequisites: verify the isolated metadata's database/ports and synthetic-only
 flag; use a migrated demo database, configured peer tenant with equal test
 permissions, and the provisioned Acceptance test tag described in the initial
-review. Select Fortem Demo Tenant through the UI before the configuration stage.
+review. Select Platform Demo Tenant through the UI before the configuration stage.
 The runner deliberately rejects any base URL except `http://127.0.0.1:3001`.
 Supply a fresh `UI_...` run code; definitions are not silently reused/deleted.
 

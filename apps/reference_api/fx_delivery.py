@@ -6,7 +6,8 @@ from hashlib import sha256
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException
+from .request_audit import AuditRouter as APIRouter
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
 from sqlalchemy import select
 from security_master_schema import models as m
@@ -152,7 +153,8 @@ def get_delivery(connection, tenant, trade_id, request_id):
 
 def record_delivery(connection, tenant, actor, trade_id, request, key, request_id):
     with connection.begin_nested():
-        authorize_booking(connection, tenant, actor, action='TRADE_CORRECT')
+        from .booking_controls import authorize_trade_action
+        authorize_trade_action(connection,tenant,actor,trade_id,'TRADE_CORRECT')
         normalized = request.model_dump(mode='json', by_alias=True, exclude_none=True)
         if request.amount is not None:
             normalized['amount'] = decimal_text(request.amount)
@@ -168,7 +170,7 @@ def record_delivery(connection, tenant, actor, trade_id, request, key, request_i
         payload = dict(schemaVersion=1, kind='FX_DELIVERY', request=normalized)
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=sequence + 1,
             event_type='FX_DELIVERY', event_datetime_utc=request.effective_at, event_payload=json.dumps(payload, sort_keys=True),
-            payload_hash=fingerprint, recorded_by_user_account_id=actor, source_system_id=f'fortem:fx-delivery:{tenant}', source_event_id=key))
+            payload_hash=fingerprint, recorded_by_user_account_id=actor, source_system_id=f'platform:fx-delivery:{tenant}', source_event_id=key))
         record_booking_replay(connection, tenant, ENDPOINT, key, fingerprint, trade_id)
         return result
 

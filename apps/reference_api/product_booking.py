@@ -1,5 +1,6 @@
 """Governed booking of funded structured securities and cash-settled index futures."""
 from datetime import date, datetime, timezone
+from security_master_schema.governance_clock import governance_date
 from .problem_details import current_api_version
 from .valuation_recognition import trade_values, frozen_recognition
 from decimal import Decimal, localcontext
@@ -33,21 +34,7 @@ class ProductReadinessRefusal(ValueError):
         self.readiness_status = readiness_status
 
 
-def visible_clause(reference_id, tenant):
-    scope = m.reference_node_scope.alias()
-    return ~exists(select(1).select_from(scope).where(
-        scope.c.reference_node_id == reference_id,
-        ~and_(scope.c.status == 'ACTIVE', or_(scope.c.scope_type == 'SHARED_CANONICAL',
-             and_(scope.c.scope_type == 'TENANT_PRIVATE', scope.c.owner_tenant_id == tenant)))))
-
-
-def require_visible(connection, tenant, node_id):
-    from .repository import RepositoryNotFound
-    node = connection.execute(select(m.financial_reference_node).where(
-        m.financial_reference_node.c.reference_node_id == node_id,
-        m.financial_reference_node.c.status == 'ACTIVE', visible_clause(node_id, tenant))).mappings().first()
-    if node is None: raise RepositoryNotFound('Active visible reference was not found.')
-    return node
+from security_master_schema.reference_visibility import visible_clause, require_visible
 
 
 def require_owned(connection, tenant, node_id):
@@ -283,7 +270,7 @@ def lock_booking_currency(connection, instrument_id):
 
 
 def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None, lock=False):
-    as_of = as_of or date.today()
+    as_of = as_of or governance_date()
     locked_currency_id = lock_booking_currency(connection, instrument_id) if lock else None
     if lock:
         # Lock the canonical instrument before reading conventions and listing projections.
@@ -489,7 +476,7 @@ def book(connection, tenant, actor, request, key, kind, request_id):
     from .trade_properties import validate_trade_annotations
     endpoint = '/v1/trades/' + {'STRUCTURED_PRODUCT': 'structured-products', 'FUTURE': 'futures', 'BOND': 'bonds', 'SWAP': 'swaps'}[kind]
     with connection.begin_nested():
-        authorize_booking(connection, tenant, actor)
+        authorize_booking(connection, tenant, actor,strategy_id=request.strategy_id)
         with localcontext() as decimal_context:
             decimal_context.prec = 100
             normalized = request.model_copy(update={'quantity': request.quantity.normalize(), 'execution_price': request.execution_price.normalize(), 'trade_datetime': request.trade_datetime.astimezone(timezone.utc),
@@ -565,7 +552,8 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             booked_by_user_account_id=actor, created_by_user_account_id=actor, comment=request.comment, **trade_values(request)))
         persist_trade_annotations(connection, tenant, trade_id, request, annotations)
         economics = ProductTradeEconomicsView(terms=terms, amount=decimal_text(dirty if kind == 'BOND' else amount), bondDetails=bond_details,
-            bookedNotional=request.quantity if kind == 'SWAP' and terms.swap_details.generic_terms else None,
+            bookedNotional=terms.swap_details.generic_terms.booked_reference_notional(request.quantity) if kind == 'SWAP' and terms.swap_details.generic_terms else None,
+            bookedUnits=request.quantity if kind=='SWAP' and convention.quantity_unit=='UNITS' else None,
             amountKind='ENTRY_REFERENCE_VALUE' if kind == 'SWAP' else 'REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION',
             direction=None if kind in {'FUTURE', 'SWAP'} else ('PAY' if request.side == 'BUY' else 'RECEIVE'))
         valuation_conventions={}

@@ -4,6 +4,7 @@ Source events are ANNOUNCED facts, not reviewed cash flows or executed trades.
 Date timestamps identify ex-dates, not intraday entitlement ordering.
 """
 from datetime import date,datetime,timezone
+from security_master_schema.governance_clock import governance_date
 from decimal import Decimal,InvalidOperation,localcontext
 from hashlib import sha256
 import json
@@ -79,7 +80,7 @@ No network, new price/vintage, original-payload rewrite or automatic proof creat
         raise PermissionError('Only the owning personal dataset can be reassessed')
     namespace=profile['external_id_namespace_id']
     dataset,_=storage.lock_dataset(c,dataset_id,namespace)
-    decision=load_rights(c,dataset_id,'STORE',date.today(),'PERSONAL')
+    decision=load_rights(c,dataset_id,'STORE',governance_date(),'PERSONAL')
     if not decision.allowed: raise PermissionError('Current STORE rights required')
     source=m.source_payload
     runs=c.execute(select(m.market_data_ingestion_run).join(source).where(

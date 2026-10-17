@@ -5,6 +5,11 @@ import {validateTradeAnnotations,type EnrichedTicketDraft,type TicketError} from
 import {parseBookingDecimal as part, exactBookingAmount, formatBookingDecimal, type BookingDecimal as DecimalPart} from '@/lib/booking-decimal';
 export type ProductTerms=components['schemas']['ProductBookingContextView'];
 export type ProductRequest=components['schemas']['ProductBookingRequest'];
+/** A unit ticket must never silently prefill a monetary funding notional. */
+export function swapBookingQuantity(terms:ProductTerms):string {
+  const contract=terms.swapDetails?.genericTerms;
+  return String((contract?.quantityUnit==='UNITS'?contract.contractualUnits:contract?.contractualNotional)??'');
+}
 export type ProductDraft=EnrichedTicketDraft&{positionEffect:'OPEN'|'CLOSE';priceType?:'CLEAN'|'DIRTY'|'';accruedInterestAmount?:string;settlementEvidence?:string};
 export function createProductDraft():ProductDraft {
   return {strategyId:'',side:'BUY',positionEffect:'OPEN',quantity:'',executionPrice:'',tradeDatetime:new Date().toISOString(),settlementDate:'',tradePurpose:'INVESTMENT',properties:{},tagIds:[],externalReferences:[]};

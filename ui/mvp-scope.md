@@ -20,7 +20,7 @@ evidence, book and correct trades, and produce a reviewable Soft-NAV run.
 
 1. **Home / work queue** — unresolved mappings, stale prices, pending approvals,
    failed imports, and NAV runs awaiting review.
-2. **Global search** — search by Fortem UUID, ISIN, FIGI, ticker/listing,
+2. **Global search** — search by Platform UUID, ISIN, FIGI, ticker/listing,
    bank/custodian/client code, or name; show whether the match is canonical,
    tenant-local, or an external mapping.
 3. **Instrument detail** — economic instrument, listings, identifiers,

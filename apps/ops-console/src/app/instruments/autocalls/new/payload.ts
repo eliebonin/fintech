@@ -48,6 +48,8 @@ export type AutocallFormPayloadInput = {
   couponFrequency?: ScheduleFrequency;
   autocallFrequency?: ScheduleFrequency;
   paymentLagBusinessDays: string;
+  paymentDateConvention?: 'EXPLICIT'|'CALENDAR_LAG';
+  explicitScheduleReason?: string;
   couponRate: string;
   couponBarrier: string;
   couponBarrierFollowsAutocall?: boolean;
@@ -95,13 +97,15 @@ export type StructuredProductDraftPayload = {
   couponFrequency: ScheduleFrequency;
   autocallFrequency: ScheduleFrequency;
   paymentLagBusinessDays: number;
-  couponRate: number;
-  couponBarrier: number;
-  couponBarrierFollowsAutocall: boolean;
-  autocallBarrierStart: number;
-  autocallBarrierStep: number;
-  autocallBarrierFloor: number;
-  kipBarrier: number;
+  paymentDateConvention: 'EXPLICIT'|'CALENDAR_LAG';
+  explicitScheduleReason?: string;
+  couponRate?: number;
+  couponBarrier?: number;
+  couponBarrierFollowsAutocall?: boolean;
+  autocallBarrierStart?: number;
+  autocallBarrierStep?: number;
+  autocallBarrierFloor?: number;
+  kipBarrier?: number;
   finalPayoffBarrier?: number;
   consolationLowerBarrier?: number;
   includeKip: boolean;
@@ -156,14 +160,17 @@ export type StructuredProductDraftPayload = {
   submissionMode: "MANUAL";
 };
 
-function numberOrZero(value: string): number {
+function requiredNumber(value: string): number {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+  if(!value.trim()||!Number.isFinite(parsed))throw new Error('Enter an explicit finite contractual number; missing values are not zero.');
+  return parsed;
 }
 
 function optionalNumber(value: string): number | undefined {
   const parsed = Number(value);
-  return value.trim() !== "" && Number.isFinite(parsed) ? parsed : undefined;
+  if(!value.trim())return undefined;
+  if(!Number.isFinite(parsed))throw new Error('A provided optional amount must be a finite number.');
+  return parsed;
 }
 
 /**
@@ -181,6 +188,8 @@ export function buildAutocallDraftPayload(input: AutocallFormPayloadInput): Stru
   const autocallFrequency = input.autocallFrequency ?? input.frequency;
   const couponBarrierFollowsAutocall = input.couponBarrierFollowsAutocall ?? true;
   const firstAutocallObservationDate = input.firstAutocallObservationDate ?? input.startDate;
+  const explicitGraph = input.paymentDateConvention === 'EXPLICIT' && Boolean(input.explicitScheduleReason?.trim());
+  const periodic = ['AUTOCALL','AUTOCALL_CONSOLATION','PHOENIX','ATHENA'].includes(input.productType);
   const payload: StructuredProductDraftPayload = {
     canonicalName: input.productName.trim(),
     effectiveFrom: input.effectiveDate,
@@ -199,14 +208,20 @@ export function buildAutocallDraftPayload(input: AutocallFormPayloadInput): Stru
     frequency: input.frequency,
     couponFrequency,
     autocallFrequency,
-    paymentLagBusinessDays: Math.max(0, Math.trunc(numberOrZero(input.paymentLagBusinessDays))),
-    couponRate: numberOrZero(input.couponRate),
-    couponBarrier: numberOrZero(input.couponBarrier),
-    couponBarrierFollowsAutocall,
-    autocallBarrierStart: numberOrZero(input.autocallBarrierStart),
-    autocallBarrierStep: numberOrZero(input.autocallBarrierStep),
-    autocallBarrierFloor: numberOrZero(input.autocallBarrierFloor),
-    kipBarrier: numberOrZero(input.kipBarrier),
+    paymentLagBusinessDays: requiredNumber(input.paymentLagBusinessDays),
+    paymentDateConvention: input.paymentDateConvention??'EXPLICIT',
+    ...(input.explicitScheduleReason?.trim()?{explicitScheduleReason:input.explicitScheduleReason.trim()}:{}),
+    // Reviewed rows supersede generator summaries. Irrelevant hidden controls
+    // are not contractual inputs for maturity-only templates.
+    ...(periodic && !explicitGraph ? {
+      couponRate: requiredNumber(input.couponRate),
+      ...(!couponBarrierFollowsAutocall ? {couponBarrier: requiredNumber(input.couponBarrier)} : {}),
+      couponBarrierFollowsAutocall,
+      autocallBarrierStart: requiredNumber(input.autocallBarrierStart),
+      autocallBarrierStep: requiredNumber(input.autocallBarrierStep),
+      autocallBarrierFloor: requiredNumber(input.autocallBarrierFloor),
+    } : {}),
+    ...(input.includeKip && !explicitGraph ? {kipBarrier: requiredNumber(input.kipBarrier)} : {}),
     ...(includeConsolation
       ? { finalPayoffBarrier: optionalNumber(input.finalPayoffBarrier) ?? consolationRow?.conditionUpperLevel ?? 0 }
       : {}),
@@ -265,20 +280,20 @@ export function buildAutocallDraftPayload(input: AutocallFormPayloadInput): Stru
   if (counterpartyOrganisationId) payload.counterpartyOrganisationId = counterpartyOrganisationId;
   const notionalAmount = optionalNumber(input.notional);
   if (notionalAmount !== undefined) payload.notionalAmount = notionalAmount;
-  if (includeConsolation) payload.consolationRate = numberOrZero(input.consolationRate);
+  if (includeConsolation) payload.consolationRate = requiredNumber(input.consolationRate);
 
   if (input.productType === "RANGE_ACCRUAL") {
     payload.rangeObservationFrequency = input.rangeObservationFrequency ?? "DAILY";
     payload.rangeAccrualBasis = input.rangeAccrualBasis ?? "OBSERVATION_COUNT";
     payload.rangeNonBusinessDayRule = input.rangeNonBusinessDayRule ?? "BUSINESS_DAYS_ONLY";
-    payload.rangeLowerLevel = optionalNumber(input.rangeLowerLevel ?? "") ?? 0;
-    payload.rangeUpperLevel = optionalNumber(input.rangeUpperLevel ?? "") ?? 0;
-    payload.rangeCouponRatePerAnnum = optionalNumber(input.rangeCouponRatePerAnnum ?? "") ?? 0;
+    payload.rangeLowerLevel = requiredNumber(input.rangeLowerLevel ?? "");
+    payload.rangeUpperLevel = requiredNumber(input.rangeUpperLevel ?? "");
+    payload.rangeCouponRatePerAnnum = requiredNumber(input.rangeCouponRatePerAnnum ?? "");
   }
   if (input.productType === "SUPERTRACKER") {
-    payload.supertrackerParticipationRate = (optionalNumber(input.supertrackerParticipationRate ?? "") ?? 0) / 100;
+    payload.supertrackerParticipationRate = requiredNumber(input.supertrackerParticipationRate ?? "") / 100;
     payload.supertrackerIncludeCap = input.supertrackerIncludeCap ?? false;
-    if (input.supertrackerIncludeCap) payload.supertrackerCapReturn = optionalNumber(input.supertrackerCapReturn ?? "") ?? 0;
+    if (input.supertrackerIncludeCap) payload.supertrackerCapReturn = requiredNumber(input.supertrackerCapReturn ?? "");
   }
 
   return payload;

@@ -322,7 +322,7 @@ Persistence:
 
 Route: `/instruments/swaps/new`
 
-The first operational workflow targets the existing Fortem use case: a
+The first operational workflow targets the existing Platform use case: a
 total-return/performance leg funded by a rate or other funding leg. ABC, XYZ,
 and FOO remain business taxonomy labels, not separate swap types.
 

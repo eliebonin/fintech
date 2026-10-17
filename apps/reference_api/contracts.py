@@ -58,6 +58,7 @@ class StrategyCreateRequest(BaseModel):
     strategy_type: Literal['AMC_MANDATE', 'FUND', 'MANAGED_ACCOUNT', 'PROP_SLEEVE', 'MODEL_PORTFOLIO', 'OTHER'] = Field(alias="strategyType")
     base_currency_code: str | None = Field(default=None, alias="baseCurrencyCode", max_length=30)
     operating_model_label: str | None = Field(default=None, alias="operatingModelLabel", max_length=250)
+    initial_access_group_ids: list[UUID] = Field(default_factory=list,alias='initialAccessGroupIds',max_length=100)
     model_config = ConfigDict(populate_by_name=True, extra='forbid')
 
     @field_validator('strategy_code', 'display_name', mode='before')

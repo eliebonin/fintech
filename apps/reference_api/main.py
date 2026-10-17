@@ -5,7 +5,7 @@ from .resource_limits import governance_date
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, Request, status
 from sqlalchemy import Engine, select
 
 from security_master_schema import models as m
@@ -88,19 +88,48 @@ def _correlation_id(value: str | None) -> str:
 def create_app(*, settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
     resolved_settings = settings or Settings.from_environment()
     app = FastAPI(title="Reference Data API", version=resolved_settings.api_version)
+    from .request_audit import AuditedRoute
+    app.router.route_class = AuditedRoute
     from .access_boundary import install_access_boundary
-    install_access_boundary(app,lambda: engine or get_engine(resolved_settings),resolved_settings.environment)
+    install_access_boundary(app,lambda: engine or get_engine(resolved_settings),resolved_settings.environment,resolved_settings)
     # Starlette executes middleware last-added first. Correlation/error handling
     # surrounds the body budget, which surrounds authorization and DB access.
     from .resource_limits import RequestBodyBudget
     app.add_middleware(RequestBodyBudget, max_bytes=resolved_settings.max_request_body_bytes)
     configure_problem_details(app)
 
-    def connection_dependency():
-        with (engine or get_engine(resolved_settings)).begin() as connection:
+    def connection_dependency(request:Request):
+        active_engine = engine or get_engine(resolved_settings)
+        preview = request.method == 'GET' and request.url.path.startswith('/v1/strategies/') and request.url.path.endswith('/measures')
+        from security_master_schema.financial_snapshot import repeatable_read_transaction
+        transaction = repeatable_read_transaction(active_engine) if preview else active_engine.begin()
+        release = None
+        with transaction as connection:
             from .resource_limits import configure_transaction_budget
             configure_transaction_budget(connection,resolved_settings)
-            yield connection
+            connection.info['request_actor']=getattr(request.state,'effective_actor_id',None)
+            connection.info['request_action']=getattr(request.state,'permission_action',None)
+            try:
+                yield connection
+                from security_master_schema.command_audit import retain_command_audit
+                retain_command_audit(connection)
+            finally:
+                connection.info.pop('request_actor',None)
+                connection.info.pop('request_action',None)
+                release = connection.info.pop('preview_release',None)
+        if preview:
+            if release is None:
+                raise RuntimeError('Preview release context was not prepared')
+            from valuation.preview_access import assert_preview_release
+            # Return the financial connection first. A one-connection pool must
+            # not deadlock trying to acquire a second connection for current rights.
+            with active_engine.begin() as current:
+                configure_transaction_budget(current,resolved_settings)
+                try:
+                    assert_preview_release(current,*release)
+                except PermissionError as exc:
+                    raise ApiProblem(403,'strategy.forbidden','Current access required',
+                        'Current strategy and dataset permissions are required to inspect this preview.') from exc
 
     def market_data_actor(connection, context):
         actor_id = _assert_tenant_membership(connection, context)
@@ -139,9 +168,19 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     from .calendar_routes import calendar_router
     from .valuation_input_routes import valuation_input_router
     app.include_router(valuation_input_router(connection_dependency, _assert_tenant_membership))
+    from .cash_snapshot_routes import cash_snapshot_router
+    app.include_router(cash_snapshot_router(connection_dependency, _assert_tenant_membership))
+    from .bond_redemption_routes import bond_redemption_router
+    app.include_router(bond_redemption_router(connection_dependency,_assert_tenant_membership))
+    from .coupon_routes import coupon_router
+    app.include_router(coupon_router(connection_dependency,_assert_tenant_membership))
+    from lifecycle import fx_service
+    app.include_router(bond_redemption_router(connection_dependency,_assert_tenant_membership,service_module=fx_service,prefix='/v1/lifecycle/fx-forward'))
     from .valuation_amendment_routes import valuation_amendment_router
     app.include_router(valuation_amendment_router(connection_dependency, _assert_tenant_membership))
     app.include_router(calendar_router(connection_dependency, _assert_tenant_membership))
+    from .strategy_workspace import strategy_workspace_router
+    app.include_router(strategy_workspace_router(connection_dependency, _assert_tenant_membership))
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -175,7 +214,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     def create_tenant_strategy(request: StrategyCreateRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyResponse:
         actor_id = _assert_tenant_membership(connection, context)
         try:
-            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date()), "STRATEGY_WRITE")
+            require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date()), "STRATEGY_CREATE")
             with connection.begin_nested():
                 return StrategyResponse(data=create_strategy(connection, context.tenant_id, actor_id, request))
         except StrategyCodeConflict as exc:
@@ -186,9 +225,16 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "request.validation_failed", "Request validation failed", "One or more request fields are invalid.") from exc
 
     @app.get("/v1/strategies", response_model=StrategyListResponse)
-    def tenant_strategies(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyListResponse:
+    def tenant_strategies(for_action:str=Query(default='STRATEGY_READ',alias='forAction'),context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyListResponse:
         _assert_tenant_membership(connection, context)
-        return list_strategies(connection, context.tenant_id)
+        if for_action not in {'STRATEGY_READ','TRADE_READ','TRADE_WRITE','VALUATION_READ','VALUATION_RUN'}:
+            raise HTTPException(422,'Unsupported strategy selector action')
+        return list_strategies(connection, context.tenant_id,action=for_action)
+
+    @app.get('/v1/strategies/access-options')
+    def strategy_access_options(context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency,scope='function')):
+        from security_master_schema.strategy_creation_access import creation_groups
+        return {'groups':creation_groups(connection,context.tenant_id,context.user_account_id)}
 
     @app.get("/v1/strategies/{strategy_id}", response_model=StrategyResponse)
     def tenant_strategy_detail(strategy_id: UUID, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')) -> StrategyResponse:
@@ -256,6 +302,20 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             asset_class,
             status,
         )
+
+    from .instrument_terms_schedule import load_terms_schedule, TermsScheduleResponse
+
+    @app.get("/v1/instruments/{instrument_id}/terms-schedule", response_model=TermsScheduleResponse)
+    def instrument_terms_schedule(
+        instrument_id: UUID,
+        context: TenantContext = Depends(get_tenant_context),
+        connection=Depends(connection_dependency, scope='function'),
+    ):
+        _assert_tenant_membership(connection, context)
+        try:
+            return {'data': load_terms_schedule(connection, context.tenant_id, instrument_id)}
+        except RepositoryNotFound:
+            raise HTTPException(status_code=404, detail='Approved terms unavailable for this tenant')
 
     @app.get("/v1/instruments/{instrument_id}", response_model=InstrumentResponse)
     def detail(
@@ -789,6 +849,42 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             },
         )
 
+    from .structured_product_contracts import ContractualPaymentRequest, ContractualPaymentView, ContractualCalendarOptions
+
+    @app.get('/v1/structured-product-proposals/calendar-options', response_model=ContractualCalendarOptions)
+    def structured_calendar_options(context: TenantContext = Depends(get_tenant_context),
+            connection=Depends(connection_dependency, scope='function')):
+        actor = _assert_tenant_membership(connection, context)
+        from .reference_authority import require_reference_action
+        from sqlalchemy import select, or_
+        from security_master_schema import models as m
+        from .structured_product_dependencies import CONTRACTUAL_CALENDAR_KINDS
+        require_reference_action(connection, context.tenant_id, actor, 'REFERENCE_PROPOSE')
+        rows = connection.execute(select(m.market_calendar).where(m.market_calendar.c.status == 'ACTIVE',
+            m.market_calendar.c.sealed.is_(True),
+            m.market_calendar.c.calendar_kind.in_(CONTRACTUAL_CALENDAR_KINDS),
+            or_(m.market_calendar.c.tenant_id.is_(None), m.market_calendar.c.tenant_id == context.tenant_id))
+            .order_by(m.market_calendar.c.display_name, m.market_calendar.c.version_no)).mappings()
+        return {'data': [dict(calendarId=r['market_calendar_id'], displayName=r['display_name'],
+            version=r['version_no'], timezone=r['timezone_name']) for r in rows]}
+
+    @app.post('/v1/structured-product-proposals/payment-dates', response_model=ContractualPaymentView)
+    def structured_payment_dates(payload: ContractualPaymentRequest,
+            context: TenantContext = Depends(get_tenant_context),
+            connection=Depends(connection_dependency, scope='function')):
+        actor = _assert_tenant_membership(connection, context)
+        from .reference_authority import require_reference_action
+        from .structured_product_dependencies import contractual_payment_dates
+        require_reference_action(connection, context.tenant_id, actor, 'REFERENCE_PROPOSE')
+        try:
+            dates = contractual_payment_dates(connection, context.tenant_id, payload.calendar_id,
+                payload.observation_dates, payload.payment_lag_business_days)
+        except RepositoryNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return ContractualPaymentView(calendarId=payload.calendar_id, paymentDates=dates)
+
     @app.post("/v1/structured-product-proposals", response_model=StructuredProductProposalResponse, status_code=status.HTTP_201_CREATED)
     def propose_structured_product(
         request: AutocallDraftRequest,
@@ -854,7 +950,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     ) -> WorkQueueView:
         _assert_tenant_membership(connection, context)
         from security_master_schema.tenant_workspace import resolve_tenant_workspace
-        workspace = resolve_tenant_workspace(connection, context.tenant_id, context.user_account_id, date.today())
+        workspace = resolve_tenant_workspace(connection, context.tenant_id, context.user_account_id, governance_date())
         return work_queue(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id), limit=limit, offset=offset, permission_codes=workspace.permission_codes)
 
     @app.post(

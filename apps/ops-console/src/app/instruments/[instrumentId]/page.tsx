@@ -20,7 +20,7 @@ export default async function InstrumentPage({ params }: { params: Promise<{ ins
   if (access.kind === "session-required") redirect("/select-tenant");
   if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
   context = access.context; workspace = access.workspace;
-  const shell = {tenantName:workspace.tenantName,membershipRole:workspace.membershipRole,moduleCodes:workspace.moduleCodes};
+  const shell = {tenantName:workspace.tenantName,membershipRole:workspace.membershipRole,moduleCodes:workspace.moduleCodes,permissionCodes:workspace.permissionCodes,userName:workspace.userName,actorId:workspace.actorId};
   try {
     const response = await getInstrument(context, instrumentId);
     const futureTerms=response.data.instrumentType==='FUTURE' ? await getProductInstrument(context,instrumentId,new URLSearchParams()).then(r=>r.data).catch(()=>undefined) : undefined;

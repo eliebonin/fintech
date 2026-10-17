@@ -7,6 +7,7 @@ from uuid import UUID
 import httpx
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
+from security_master_schema.database_config import local_workspace_database
 from security_master_schema.demo_data import DEMO_IDS
 from market_data.providers.yahoo.adapter import fetch_chart
 from market_data.providers.yahoo.fx_storage import configure_fx,ingest_fx,SYMBOLS
@@ -26,7 +27,7 @@ def main():
     parser.add_argument('--cutoff-interval',choices=['5m','1h'],default='5m',help='Hourly history supports a 730-day lookback; five-minute supports 60 days. Definitions remain separate.')
     parser.add_argument('--cutoff-only',action='store_true',help='Skip daily history already stored')
     args=parser.parse_args();settings=IngestorSettings.from_environment();url=make_url(settings.database_url)
-    if settings.environment!='local' or url.host not in {'localhost','127.0.0.1'} or url.port!=54329 or url.database!='fortem_secm':parser.error('FX research import is restricted to local fortem_secm:54329')
+    if settings.environment!='local' or url.host not in {'localhost','127.0.0.1'} or url.port!=54329 or url.database!=local_workspace_database():parser.error('FX research import is restricted to local platform_secm:54329')
     if args.start>args.through or args.through>=date.today() or (args.through-args.start).days+1>1830 or not 1<=args.request_spacing_seconds<=60:parser.error('Use completed prior dates, at most 1830 days and 1..60 second request spacing')
     if args.apply and not args.acknowledge_personal_access:parser.error('Acquisition requires --acknowledge-personal-access; personal scope is not legal clearance')
     engine=create_engine(settings.database_url,pool_pre_ping=True)

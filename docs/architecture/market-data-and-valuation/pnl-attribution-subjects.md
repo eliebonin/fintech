@@ -61,9 +61,9 @@ PostgreSQL checks and, where needed, triggers must enforce that the correct link
 
 Every attribution additionally carries tenant ownership, value date, frozen market-data/valuation inputs, calculation methodology/version, immutable version number, supersession link, and staged/reviewed/published lifecycle evidence.
 
-## Relationship to the current Fortem-core attribution workflow
+## Relationship to the current Platform-core attribution workflow
 
-The existing Fortem-core P&L attribution package is the source of operating principles: clean price/FX/cross decomposition, immutable versions, staged review, publication, and approved adjustment workflow. The new platform will adapt those principles to UUID identities, tenant/strategy scope, frozen `md` and `nav` inputs, and the subject types above. It must not mechanically copy the legacy integer-ID tables or reflect them as its new platform contract.
+The existing Platform-core P&L attribution package is the source of operating principles: clean price/FX/cross decomposition, immutable versions, staged review, publication, and approved adjustment workflow. The new platform will adapt those principles to UUID identities, tenant/strategy scope, frozen `md` and `nav` inputs, and the subject types above. It must not mechanically copy the legacy integer-ID tables or reflect them as its new platform contract.
 
 ## Deferred implementation
 

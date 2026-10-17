@@ -11,7 +11,8 @@ async function handle(request:NextRequest,context:Context) {
         return NextResponse.json({error:{message:'Tenant or user context changed. Reload before saving.'}},{status:409});
     }
     const {path=[]}=await context.params;
-    const response=await accessProxy('/v1/access'+(path.length?'/'+path.map(encodeURIComponent).join('/'):''),{
+    const strategyId=request.nextUrl.searchParams.get('strategyId');
+    const response=await accessProxy('/v1/access'+(path.length?'/'+path.map(encodeURIComponent).join('/'):'')+(strategyId?'?strategyId='+encodeURIComponent(strategyId):''),{
       method:request.method,body:request.method==='GET'?undefined:await request.text()});
     return NextResponse.json(await response.json(),{status:response.status,headers:{'Cache-Control':'no-store'}});
   } catch {return NextResponse.json({error:{message:'Tenant administration is unavailable or not permitted for this user.'}},{status:403});}

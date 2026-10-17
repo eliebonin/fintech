@@ -1,3 +1,4 @@
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import type { components } from "api-contracts";
 export type Catalogue=components["schemas"]["CatalogueView"];
 export type CatalogueRecord=components["schemas"]["RecordView"];

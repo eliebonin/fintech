@@ -7,6 +7,7 @@ from uuid import UUID
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sqlalchemy.engine import make_url
+from security_master_schema.database_config import local_workspace_database
 from apps.reference_api.config import Settings
 from apps.reference_api.db import get_engine
 from security_master_schema.demo_data import DEMO_IDS
@@ -24,8 +25,8 @@ def main():
     args = parser.parse_args()
     settings = Settings.from_environment()
     url = make_url(settings.database_url)
-    if settings.environment != 'local' or url.host not in {'localhost','127.0.0.1'} or url.port != 54329 or url.database != 'fortem_secm':
-        parser.error('This operator seed is restricted to local fortem_secm on port 54329.')
+    if settings.environment != 'local' or url.host not in {'localhost','127.0.0.1'} or url.port != 54329 or url.database != local_workspace_database():
+        parser.error('This operator seed is restricted to local platform_secm on port 54329.')
     if args.export and args.apply:
         parser.error('Export is read-only; inspect its evidence before a separate --apply.')
     if args.export:

@@ -2,6 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookedTrade } from "@/lib/trades";
+import TradeDetailPage,{DetailContent} from './[tradeId]/page';
+import TradeHistoryPage from './page';
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ usePathname: () => "/trades",useRouter:()=>({refresh:vi.fn()}), redirect: (href: string) => { throw new Error(`redirect:${href}`); } }));
@@ -26,7 +28,7 @@ const trade: BookedTrade = {
 };
 
 it('displays correction lineage, reason and separate effective/recorded dates',async()=>{
- const {DetailContent}=await import('./[tradeId]/page');
+
  const original='00000000-0000-7000-8000-000000000001',replacement='00000000-0000-7000-8000-000000000002';
  const html=renderToStaticMarkup(<DetailContent detail={{trade,parties:[],fees:[],externalReferences:[],lifecycleEvents:[{tradeLifecycleEventId:'event',sequenceNo:2,eventType:'SUPERSEDED',eventDatetimeUtc:'2026-09-30T11:17:48Z',sourceSystemId:null,sourceEventId:null,recordedByUserAccountId:'actor',recordedAtUtc:'2026-10-05T12:00:00Z',eventPayload:JSON.stringify({schemaVersion:1,kind:'BOOKING_CORRECTION',action:'REPLACED_BOOKING',originalTradeId:original,replacementTradeId:replacement,reason:'Correct executed shares'})}]}}/>);
  expect(html).toContain(`/trades/${replacement}`);expect(html).toContain('Correct executed shares');expect(html).toContain('Recorded');expect(html).toContain('Effective');
@@ -44,39 +46,46 @@ function fakeApi(data: BookedTrade[] = [trade], total = 143, detailTrade:BookedT
 }
 
 describe("trade history rendered pages", () => {
-  const genericTrade:BookedTrade={...trade,instrumentType:'SWAP',quantity:'-400000',quantityUnit:'NOMINAL',executionPrice:'2',settlementDate:null,productEconomics:{bookedNotional:'400000',amount:'-8000',amountKind:'ENTRY_REFERENCE_VALUE',terms:{instrumentId:'swap',name:'Swap at booking',kind:'SWAP',executionRoute:'OTC',currency:'GBP',bookingEligible:true,termsFingerprint:'b'.repeat(64),maturityDate:'2029-10-01',swapDetails:{performanceReferenceId:'ref',performanceReferenceName:'Equity at booking',performanceDirection:'RECEIVE',returnProfileCode:'TOTAL',fundingReferenceId:null,effectiveDate:'2026-09-01',sourceFacts:{},genericTerms:{schemaVersion:1,contractualNotional:'1000000',notionalCurrencyId:'gbp',effectiveDate:'2026-09-01',maturityDate:'2029-10-01',performanceDirection:'RECEIVE',performanceReferenceId:'ref',returnBasis:'TOTAL',returnProfileId:'total',leverage:'2',financingTreatment:'NONE',performanceResetFrequency:'CUSTOM',performanceScheduleDescription:'Historical reset rule',redemptionRule:'CONTINUE',continuationDescription:'Historical proceeds rule',quoteCurrencyId:'gbp',quoteFactor:'100',sourceReference:'Historical confirmation',additionalFundingAcknowledged:false}}}}};
+  const genericTrade:BookedTrade={...trade,instrumentType:'SWAP',quantity:'-400000',quantityUnit:'NOMINAL',executionPrice:'2',settlementDate:null,productEconomics:{bookedNotional:'400000',amount:'-8000',amountKind:'ENTRY_REFERENCE_VALUE',terms:{instrumentId:'swap',name:'Swap at booking',kind:'SWAP',executionRoute:'OTC',currency:'GBP',bookingEligible:true,termsFingerprint:'b'.repeat(64),maturityDate:'2029-10-01',swapDetails:{performanceReferenceId:'ref',performanceReferenceName:'Equity at booking',performanceDirection:'RECEIVE',returnProfileCode:'TOTAL',fundingReferenceId:null,effectiveDate:'2026-09-01',sourceFacts:{},genericTerms:{schemaVersion:1,quantityUnit:'NOMINAL',contractualNotional:'1000000',notionalCurrencyId:'gbp',effectiveDate:'2026-09-01',maturityDate:'2029-10-01',performanceDirection:'RECEIVE',performanceReferenceId:'ref',returnBasis:'TOTAL',returnProfileId:'total',leverage:'2',financingTreatment:'NONE',performanceResetFrequency:'CUSTOM',performanceScheduleDescription:'Historical reset rule',redemptionRule:'CONTINUE',continuationDescription:'Historical proceeds rule',quoteCurrencyId:'gbp',quoteFactor:'100',sourceReference:'Historical confirmation',additionalFundingAcknowledged:false}}}}};
   it('renders both generic notionals and whole-swap entry value from the booked snapshot',async()=>{
-    const {DetailContent}=await import('./[tradeId]/page');
+
     const html=renderToStaticMarkup(<DetailContent detail={{trade:genericTrade,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
     for(const value of ['Booked nominal','400,000 GBP','Contractual notional','1000000 GBP','Equity at booking','Historical reset rule','Historical proceeds rule','Historical confirmation','No separate funding leg','-8,000 GBP','not independently verified MTM'])expect(html).toContain(value);
     expect(html).not.toContain('Funding spread (decimal)');expect(html).not.toContain('Canonical funding direction');
   },15000);
+  it('shows booked units separately from monetary reference notional in history and details',async()=>{
+    const unitTrade={...genericTrade,quantity:'25000',quantityUnit:'UNITS',productEconomics:{...genericTrade.productEconomics!,bookedUnits:'25000',bookedNotional:'206250000',terms:{...genericTrade.productEconomics!.terms,swapDetails:{...genericTrade.productEconomics!.terms.swapDetails!,genericTerms:{...genericTrade.productEconomics!.terms.swapDetails!.genericTerms!,quantityUnit:'UNITS' as const,contractualUnits:'25000',notionalPerUnit:'8250',contractualNotional:'206250000'}}}}};
+    const details=renderToStaticMarkup(<DetailContent detail={{trade:unitTrade,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
+    expect(details).toContain('Booked units');expect(details).toContain('25,000 UNITS');expect(details).toContain('Reference funding notional');expect(details).toContain('206,250,000 GBP');
+    fakeApi([unitTrade]);const Page=TradeHistoryPage;const list=renderToStaticMarkup(await Page({searchParams:Promise.resolve({range:'all'})}));
+    expect(list).toContain('<strong>25,000</strong>');expect(list).toContain('Booked units');expect(list).not.toContain('Booked nominal');
+  });
   it('uses the generic snapshot identity throughout details even when current master names conflict',async()=>{
     const current={...genericTrade,instrumentName:'CURRENT instrument name',subjectName:'CURRENT subject name'};
-    const {DetailContent,default:Page}=await import('./[tradeId]/page');
+    const Page=TradeDetailPage;
     const detailHtml=renderToStaticMarkup(<DetailContent detail={{trade:current,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
     fakeApi([current],1,current);const pageHtml=renderToStaticMarkup(await Page({params:Promise.resolve({tradeId:'trade-1'}),searchParams:Promise.resolve({})}));
     expect(detailHtml).toContain('<h2>Swap at booking</h2>');expect(detailHtml).not.toContain('CURRENT');expect(pageHtml).toContain('<h1>Swap at booking</h1>');expect(pageHtml).not.toContain('CURRENT');
   },15000);
   it('shows both generic nominal amounts and labels the immutable entry value in history',async()=>{
-    fakeApi([{...genericTrade,quantity:'-500000'}]);const {default:Page}=await import('./page');const html=renderToStaticMarkup(await Page({searchParams:Promise.resolve({range:'all'})}));
+    fakeApi([{...genericTrade,quantity:'-500000'}]);const Page=TradeHistoryPage;const html=renderToStaticMarkup(await Page({searchParams:Promise.resolve({range:'all'})}));
     for(const value of ['Swap at booking','<strong>400,000</strong>','Booked nominal','Contractual notional','1,000,000 GBP','SWAP_VALUE_PER_NOTIONAL · GBP','Entry reference value','-8,000 GBP'])expect(html).toContain(value);
   });
   it("renders FX booking-snapshot obligations and full rate precision",async()=>{
-    const {DetailContent}=await import("./[tradeId]/page");
+
     const fx={baseCurrency:"EUR",quoteCurrency:"USD",quoteConvention:"USD_PER_EUR",agreedRate:"1.123456789012",settlementDate:"2026-12-15",receiveCurrency:"EUR",receiveAmount:"0.000001",payCurrency:"USD",payAmount:"0.000001123456789012",termsFingerprint:"a".repeat(64),source:"BOOKING_SNAPSHOT" as const};
     const html=renderToStaticMarkup(<DetailContent detail={{trade:{...trade,instrumentType:"FX_FORWARD",listingId:null,listingSymbol:null,venueMic:null,venueName:null,quantity:"0.000001",executionPrice:"1.123456789012",fxForwardEconomics:fx},parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
     expect(html).toContain("0.000001123456789012 USD");expect(html).toContain("1.123456789012 USD_PER_EUR");expect(html).toContain("booking snapshot");expect(html).toContain("OTC");
   },15000);
   it.each([[404,"NOT FOUND"],[403,"ACCESS DENIED"],[503,"API UNAVAILABLE"]])("labels a %s detail response as %s", async (status,label) => {
     vi.stubGlobal("fetch", async () => new Response("failure", {status}));
-    const { default: Page } = await import("./[tradeId]/page");
+    const Page=TradeDetailPage;
     const html=renderToStaticMarkup(await Page({params:Promise.resolve({tradeId:"missing"}),searchParams:Promise.resolve({})}));
     expect(html).toContain(label);
     if(status<500)expect(html).not.toContain("API UNAVAILABLE");
   },15000);
   it("renders historical property types with false, exact decimals and named trader", async () => {
-    const { DetailContent } = await import("./[tradeId]/page");
+
     const html=renderToStaticMarkup(<DetailContent detail={{trade,parties:[],fees:[],externalReferences:[],lifecycleEvents:[],traderName:"Responsible trader",tags:[{tagId:"tag",code:"OLD",label:"Historical tag"}],properties:[
       {definitionId:"flag",code:"FLAG",label:"Internal cross",valueType:"BOOLEAN",required:false,choices:[],description:null,value:false},
       {definitionId:"decimal",code:"WEIGHT",label:"Weight",valueType:"DECIMAL",required:false,choices:[],description:null,value:"0.123456789012"},
@@ -95,7 +104,7 @@ describe("trade history rendered pages", () => {
       requests.push(input);
       return new Response(JSON.stringify({ data: [], meta: { total: 0 } }));
     });
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     await Page({ searchParams: Promise.resolve({}) });
     const recent = requests.find((url) => url.pathname === "/v1/trades")!;
     expect(recent.searchParams.get("fromDate")).toBe("2026-09-17");
@@ -108,7 +117,7 @@ describe("trade history rendered pages", () => {
   });
   it("shows real strategy choices, sell side, totals and filter-preserving links", async () => {
     fakeApi();
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ q: "ETP", page: "2" }) }));
     expect(html).toContain("Trade history</h1>");
     expect(html).toContain("Custom sleeve (archived)");
@@ -119,26 +128,26 @@ describe("trade history rendered pages", () => {
   });
   it("shows a clear-filters action for no matches", async () => {
     fakeApi([], 0);
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ q: "missing" }) }));
     expect(html).toContain("No trades match these filters.");
     expect(html).toContain("Clear filters");
   });
   it("distinguishes an empty tenant history from no matching trades", async () => {
     fakeApi([], 0);
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ range: "all" }) }));
     expect(html).toContain("No trades have been recorded for this tenant.");
     expect(html).toContain("Book your first trade");
   });
   it("redirects an out-of-range page to the last valid page with filters", async () => {
     fakeApi([], 1);
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     await expect(Page({ searchParams: Promise.resolve({ q: "ETP", page: "999", range: "all" }) })).rejects.toThrow("redirect:/trades?q=ETP&range=all&pageSize=25&page=1");
   });
   it("shows API failure with retry instead of claiming history is empty", async () => {
     vi.stubGlobal("fetch", async () => new Response("unavailable", { status: 503 }));
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) }));
     expect(html).toContain("trade history service is unavailable");
     expect(html).toContain("Retry");
@@ -146,13 +155,13 @@ describe("trade history rendered pages", () => {
   });
   it("preserves the originating search/page in the details back link", async () => {
     fakeApi();
-    const { default: Page } = await import("./[tradeId]/page");
+    const Page=TradeDetailPage;
     const html = renderToStaticMarkup(await Page({ params: Promise.resolve({ tradeId: "trade-1" }), searchParams: Promise.resolve({ returnTo: "/trades?q=ETP&range=all&page=2" }) }));
     expect(html).toContain('href="/trades?q=ETP&amp;range=all&amp;pageSize=25&amp;page=2"');
   });
   it("remounts uncontrolled filter and page controls when URL state changes", async () => {
     fakeApi();
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     const filtered = await Page({ searchParams: Promise.resolve({ side: "SELL", page: "2", pageSize: "50" }) });
     const cleared = await Page({ searchParams: Promise.resolve({}) });
     function formKeys(node: React.ReactNode): (string | null)[] {
@@ -171,7 +180,7 @@ describe("trade history rendered pages", () => {
   });
   it("explains the default empty range and offers all history", async () => {
     fakeApi([], 0);
-    const { default: Page } = await import("./page");
+    const Page=TradeHistoryPage;
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) }));
     expect(html).toContain("No trades in the last 14 days.");
     expect(html).toContain("View all history");

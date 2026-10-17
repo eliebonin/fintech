@@ -3,6 +3,7 @@ import {useState} from 'react';
 import Link from 'next/link';
 import {accessRequest,accessLabel,type Registry} from '@/lib/access-administration';
 import {useAccessData} from './access-loader';
+import {PageHelp} from './page-help';
 
 export function ContextSelector({initial}:{initial?:Registry}) {
  const {data,error,busy,reload,setBusy,setError}=useAccessData<Registry>('/api/session/context',initial);
@@ -24,6 +25,7 @@ export function ContextSelector({initial}:{initial?:Registry}) {
   }catch(e){setError(e instanceof Error?e.message:'Context switch failed.');setBusy(false);}
  }
  return <main className="mvp-page access-admin-page access-context-page">
+  <PageHelp pathname="/select-context" embedded/>
   <header className="mvp-header"><div><p className="eyebrow">LOCAL ACCESS TESTING</p><h1>Choose your workspace</h1><p className="muted">Explore a tenant as one of its users, or manage the platform outside tenant workspaces.</p></div><span className="synthetic-badge">DEVELOPMENT ONLY</span></header>
   <div className="access-hint">This is a local development testing tool, not a production login. Changes are real local-database writes, attributed to the operator and selected user.</div>
   {error?<div role="alert" className="error-panel"><p>{error}</p><div className="access-actions"><button className="access-secondary" disabled={busy} onClick={()=>void reload()}>Retry loading</button><button className="access-secondary" disabled={busy} onClick={()=>void reset()}>Reset testing session</button></div></div>:null}

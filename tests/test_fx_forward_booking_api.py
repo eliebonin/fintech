@@ -131,7 +131,7 @@ def test_unknown_tenant_references_fail_atomically(connection,instrument,field):
     from apps.reference_api.trade_properties import TradeFieldError
     data=direct_payload(connection,instrument,**{field:str(uuid4())})
     before=connection.scalar(select(func.count()).select_from(m.trade))
-    with pytest.raises((RepositoryNotFound,TradeFieldError,ValueError)):direct_book(connection,data)
+    with pytest.raises((RepositoryNotFound,TradeFieldError,ValueError,PermissionError)):direct_book(connection,data)
     assert connection.scalar(select(func.count()).select_from(m.trade))==before
 
 def test_annotation_and_duplicate_reference_failures_rollback(connection,instrument):
@@ -215,17 +215,15 @@ def test_current_draft_does_not_shadow_or_duplicate_approved_definition(connecti
 
 def test_active_member_without_trade_write_cannot_book(instrument):
     data=payload(instrument)
-    clause=(m.tenant_user_account.c.tenant_id==DEMO_IDS["tenant"]) & (m.tenant_user_account.c.user_account_id==DEMO_IDS["demo_user_account"])
+    # Membership labels no longer remove explicit action-bound group rights.
+    # Use a genuinely ungranted member, preserving the demo Ops user's groups.
+    from security_master_schema import access_management as am
     with get_engine().begin() as c:
-        original=c.scalar(select(m.tenant_user_account.c.membership_role).where(clause))
+        user=am.add_user(c,DEMO_IDS['tenant'],DEMO_IDS['demo_user_account'],name='Mock ungranted FX member')
         before=c.scalar(select(func.count()).select_from(m.trade))
-        c.execute(update(m.tenant_user_account).where(clause).values(membership_role="VIEWER"))
-    try:
-        response=request("POST","/v1/trades/fx-forwards",data)
-        assert response.status_code==403,response.text
-        with get_engine().connect() as c:assert c.scalar(select(func.count()).select_from(m.trade))==before
-    finally:
-        with get_engine().begin() as c:c.execute(update(m.tenant_user_account).where(clause).values(membership_role=original))
+    response=request("POST","/v1/trades/fx-forwards",data,user=user)
+    assert response.status_code==403,response.text
+    with get_engine().connect() as c:assert c.scalar(select(func.count()).select_from(m.trade))==before
 
 
 @pytest.mark.parametrize("scope_type", ["TENANT_PRIVATE", "SHARED_CANONICAL"])

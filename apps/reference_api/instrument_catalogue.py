@@ -1,5 +1,6 @@
 """Three-query catalogue projection; full evidence remains on detail endpoints."""
 from datetime import date
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import and_, func, or_, select
 from security_master_schema import models as m
 from .contracts import ApiMeta, InstrumentCatalogueItem, InstrumentCatalogueResponse
@@ -27,7 +28,7 @@ def search_instrument_catalogue(connection, tenant_id, query, limit, offset, api
     if rows:
         listing, version = m.listing, m.listing_definition_version
         scope = m.reference_node_scope.alias('catalogue_listing_scope')
-        as_of = date.today()
+        as_of = governance_date()
         counts = dict(connection.execute(select(listing.c.instrument_node_id, func.count())
             .select_from(listing.join(version, and_(
                 version.c.listing_node_id == listing.c.listing_node_id,

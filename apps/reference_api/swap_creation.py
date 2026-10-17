@@ -1,5 +1,6 @@
 """Reference governance and atomic materialization of sourced performance swaps."""
 from datetime import date, datetime, timezone
+from security_master_schema.governance_clock import governance_date
 from decimal import Decimal
 from uuid import UUID
 
@@ -53,7 +54,7 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
     if types[reference_id] == 'INSTRUMENT':
         instruments = rows(m.instrument, m.instrument.c.instrument_node_id == reference_id)
         definitions = rows(m.instrument_definition_version, m.instrument_definition_version.c.instrument_node_id == reference_id)
-        today = as_of or date.today()
+        today = as_of or governance_date()
         approved = [row for row in definitions if row['status'] == 'APPROVED' and row['is_current']
             and row['effective_from'] <= today and (row['effective_to'] is None or row['effective_to'] >= today)]
         if len(instruments) != 1 or len(approved) != 1 or not instruments[0]['is_current']:
@@ -152,8 +153,9 @@ def materialize_swap(connection, tenant_id, actor_id, request: SwapProposalReque
     # size or schedule is inferred from the sourced reset-frequency labels.
     append_convention(connection, node_id, SwapConvention(kind='SWAP', effectiveFrom=terms.effective_date,
         priceCurrencyId=terms.quote_currency_id, quoteFactor=terms.quote_factor, sourceReference=terms.source_reference,
-        quantityUnit='NOMINAL', priceBasis='SWAP_VALUE_PER_NOTIONAL', quantityMinimum=Decimal('0.000000000001'),
-        quantityIncrement=Decimal('0.000000000001'), otcAllowed=True), actor_id)
+        quantityUnit=terms.quantity_unit, priceBasis='SWAP_VALUE_PER_UNIT' if terms.quantity_unit=='UNITS' else 'SWAP_VALUE_PER_NOTIONAL',
+        quantityMinimum=Decimal('1') if terms.quantity_unit=='UNITS' else Decimal('0.000000000001'),
+        quantityIncrement=Decimal('1') if terms.quantity_unit=='UNITS' else Decimal('0.000000000001'), otcAllowed=True), actor_id)
     return node_id
 
 

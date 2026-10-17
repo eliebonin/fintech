@@ -1,7 +1,8 @@
 """Tenant-scoped immutable daily input versions. No market-data rights grants."""
 from datetime import date,datetime,time,timedelta,timezone
 from uuid import UUID
-from fastapi import APIRouter,Depends,Header,Query
+from fastapi import Depends,Header,Query
+from .request_audit import AuditRouter as APIRouter
 from sqlalchemy import select
 from security_master_schema import models as m
 from security_master_schema.tenancy import assert_tenant_owns_strategy
@@ -73,7 +74,11 @@ def valuation_input_router(connection_dependency,membership):
         actor=input_authority(c,context,membership,True);tenant=context.tenant_id
         try: assert_tenant_owns_strategy(c,tenant,payload.strategy_id)
         except (PermissionError,ValueError) as exc: raise ApiProblem(404,'resource.not_found','Not found','Strategy not found in tenant.') from exc
-        fingerprint=evidence_hash(payload.model_dump(mode='json'))
+        request_data=payload.model_dump(mode='json')
+        # Omitted currency on legacy detailed requests previously had no field
+        # at all. Preserve their retained request hashes/idempotent replay.
+        if payload.currency_id is None: request_data.pop('currency_id')
+        fingerprint=evidence_hash(request_data)
         old=c.execute(select(t.accrual_input).where(t.accrual_input.c.tenant_id==tenant,t.accrual_input.c.submission_key==key)).mappings().one_or_none()
         if old:
             if old['request_hash']!=fingerprint: raise ApiProblem(409,'valuation.input_conflict','Input conflict','Accrual request key reused for different inputs.')
@@ -82,23 +87,26 @@ def valuation_input_router(connection_dependency,membership):
         try:
             from .product_booking import require_visible
             require_visible(c,tenant,payload.instrument_id)
-            currency=c.scalar(select(m.instrument.c.base_currency_id).where(m.instrument.c.instrument_node_id==payload.instrument_id))
+            currency=payload.currency_id or c.scalar(select(m.instrument.c.base_currency_id).where(m.instrument.c.instrument_node_id==payload.instrument_id))
             now=datetime.now(timezone.utc)
             if payload.value_date>now.date(): raise ValueError('Future accrued-interest inputs are not supported')
-            policy=c.execute(select(m.valuation_policy).where(m.valuation_policy.c.valuation_policy_id==payload.policy_id,
-                m.valuation_policy.c.tenant_id==tenant,m.valuation_policy.c.status=='ACTIVE')).mappings().one_or_none()
-            if not policy or policy['strategy_id'] not in (None,payload.strategy_id): raise ValueError('Active tenant pricing policy required')
-            r=ValuationRequest(tenant,payload.strategy_id,payload.policy_id,payload.cut_id,payload.reporting_currency_id,
-                datetime.combine(payload.value_date-timedelta(days=1),time.max,timezone.utc),datetime.combine(payload.value_date,time.max,timezone.utc),now)
-            opening=resolve_fx(c,r,currency,payload.reporting_currency_id,payload.value_date-timedelta(days=1))
-            closing=resolve_fx(c,r,currency,payload.reporting_currency_id,payload.value_date)
-            inputs=dict(openingBalance=payload.opening_balance,dailyEarned=payload.daily_earned,closingBalance=payload.closing_balance,
-                balanceMovements=payload.balance_movements,openingFx=opening.rate,closingFx=closing.rate)
             data=dict(strategyId=payload.strategy_id,instrumentId=payload.instrument_id,valueDate=payload.value_date,inputType='DAILY_INTEREST',
-                policyId=payload.policy_id,cutId=payload.cut_id,
-                currencyId=currency,reportingCurrencyId=payload.reporting_currency_id,eligibleNominal=payload.eligible_nominal,
-                eligibilityConvention=payload.eligibility_convention,sourceReference=payload.source_reference,supersedesInputId=payload.supersedes_input_id,
-                inputs=inputs,amounts=accrual_amounts(inputs),fxEvidence=[opening.evidence,closing.evidence])
+                currencyId=currency,dailyEarned=payload.daily_earned,supersedesInputId=payload.supersedes_input_id,
+                balanceReconciliation='NOT_PROVIDED')
+            for name,value in [('eligibleNominal',payload.eligible_nominal),('eligibilityConvention',payload.eligibility_convention),('sourceReference',payload.source_reference)]:
+                if value is not None: data[name]=value
+            if payload.opening_balance is not None:
+                policy=c.execute(select(m.valuation_policy).where(m.valuation_policy.c.valuation_policy_id==payload.policy_id,
+                    m.valuation_policy.c.tenant_id==tenant,m.valuation_policy.c.status=='ACTIVE')).mappings().one_or_none()
+                if not policy or policy['strategy_id'] not in (None,payload.strategy_id): raise ValueError('Active tenant pricing policy required')
+                r=ValuationRequest(tenant,payload.strategy_id,payload.policy_id,payload.cut_id,payload.reporting_currency_id,
+                    datetime.combine(payload.value_date-timedelta(days=1),time.max,timezone.utc),datetime.combine(payload.value_date,time.max,timezone.utc),now)
+                opening=resolve_fx(c,r,currency,payload.reporting_currency_id,payload.value_date-timedelta(days=1))
+                closing=resolve_fx(c,r,currency,payload.reporting_currency_id,payload.value_date)
+                inputs=dict(openingBalance=payload.opening_balance,dailyEarned=payload.daily_earned,closingBalance=payload.closing_balance,
+                    balanceMovements=payload.balance_movements,openingFx=opening.rate,closingFx=closing.rate)
+                data.update(policyId=payload.policy_id,cutId=payload.cut_id,reportingCurrencyId=payload.reporting_currency_id,
+                    inputs=inputs,amounts=accrual_amounts(inputs),fxEvidence=[opening.evidence,closing.evidence],balanceReconciliation='VALIDATED')
             identity=record_accrual(c,tenant,actor,data,key,request_hash=fingerprint)
             row=c.execute(select(t.accrual_input).where(t.accrual_input.c.input_id==identity)).mappings().one()
             assert_input_display(c,tenant,[row]);return canonical_payload(dict(row))

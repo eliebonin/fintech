@@ -226,17 +226,24 @@ def test_rejection_and_tenant_permissions(reference):
     assert rejected.json()['data']['decisionReason'] == 'Synthetic confirmation checked.'
 
 
-def test_non_admin_cannot_submit_or_approve(reference):
+def test_missing_explicit_actions_cannot_submit_or_approve(reference):
     data = proposal(reference)
     proposal_id = submit(data)
     with get_engine().begin() as connection:
-        connection.execute(m.tenant_user_account.update().where(m.tenant_user_account.c.tenant_user_account_id == DEMO_IDS['demo_tenant_membership']).values(membership_role='OPERATIONS'))
+        # Admin/member labels do not confer or revoke operational actions.
+        # Remove explicit memberships instead of relying on the legacy role.
+        memberships=connection.execute(select(m.access_group_member).where(
+            m.access_group_member.c.tenant_id==DEMO_IDS['tenant'],
+            m.access_group_member.c.user_account_id==DEMO_IDS['demo_user_account'])).mappings().all()
+        connection.execute(m.access_group_member.delete().where(
+            m.access_group_member.c.tenant_id==DEMO_IDS['tenant'],
+            m.access_group_member.c.user_account_id==DEMO_IDS['demo_user_account']))
     try:
         assert request('POST', '/v1/instruments/swap-proposals', data).status_code == 403
         assert decide(proposal_id).status_code == 403
     finally:
         with get_engine().begin() as connection:
-            connection.execute(m.tenant_user_account.update().where(m.tenant_user_account.c.tenant_user_account_id == DEMO_IDS['demo_tenant_membership']).values(membership_role='TENANT_ADMIN'))
+            if memberships:connection.execute(m.access_group_member.insert(),[dict(row) for row in memberships])
 
 
 def clone_profile(code, **changes):

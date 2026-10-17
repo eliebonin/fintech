@@ -7,6 +7,12 @@ Start at the [documentation home](docs/README.md). The maintained
 links every feature to its current status, evidence, shortcuts and remaining work.
 Historical plans are not current delivery claims.
 
+## Provider-neutral deployment
+
+Source and documentation use neutral platform names. Existing installations
+must retain their explicit connection and volume settings; this cleanup does not
+rename stored data. See [deployment compatibility and verification](docs/delivery/provider-neutral-repository-20261017.md).
+
 ## Local tenant access testing
 
 Open `/select-context` to choose platform administration or a tenant/user.

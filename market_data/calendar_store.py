@@ -1,5 +1,6 @@
 """Calendar visibility and frozen dated evidence, shared by API and resolver."""
 from datetime import timedelta
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import select, or_
 from security_master_schema import models as m
 from .calendar_composition import reference_day
@@ -7,7 +8,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 
-def publish_reference_calendar(c, source_id, actor, reason):
+def publish_reference_calendar(c, source_id, actor, reason, *, publication_status='ACTIVE'):
     """Publish a sealed reference copy now; caller authorizes and owns the transaction.
 
     Existing policies/venue defaults are NOT reassigned. Publication cannot be
@@ -15,8 +16,10 @@ def publish_reference_calendar(c, source_id, actor, reason):
     """
     if not isinstance(reason,str) or not reason.strip() or len(reason)>500:
         raise ValueError('A publication reason of 1–500 characters is required')
+    if publication_status not in ('ACTIVE','REVIEW_REQUIRED'):
+        raise ValueError('Unsupported reference publication status')
     from security_master_schema.tenant_workspace import resolve_platform_role
-    if (resolve_platform_role(c,actor,datetime.now(timezone.utc).date())!='PLATFORM_ADMIN'
+    if (resolve_platform_role(c,actor,governance_date())!='PLATFORM_ADMIN'
             or c.scalar(select(m.user_account.c.status).where(m.user_account.c.user_account_id==actor))!='ACTIVE'):
         raise PermissionError('Active platform administrator authority required')
     source=c.execute(select(m.market_calendar).where(m.market_calendar.c.market_calendar_id==source_id,
@@ -37,8 +40,8 @@ def publish_reference_calendar(c, source_id, actor, reason):
     last=c.scalar(select(func.max(m.market_calendar.c.version_no)).where(
         m.market_calendar.c.tenant_id.is_(None),m.market_calendar.c.logical_code==code)) or 0
     parent=dict(source)|dict(market_calendar_id=published,calendar_code='PUB_'+published.hex,
-        logical_code=code,version_no=last+1,coverage_from=min(days),coverage_to=max(days),sealed=False,
-        definition_json={'sourceCalendarId':str(source_id),'publicationReason':reason.strip()},
+        logical_code=code,version_no=last+1,coverage_from=min(days),coverage_to=max(days),sealed=False,status=publication_status,
+        definition_json={**(source['definition_json'] or {}),'sourceCalendarId':str(source_id),'publicationReason':reason.strip()},
         created_by_user_account_id=actor,created_at_utc=now,submission_key=None,submission_fingerprint=None)
     c.execute(m.market_calendar.insert().values(**parent))
     for table,key,rows in children:

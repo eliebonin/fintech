@@ -7,7 +7,9 @@ const uuid = "[0-9a-fA-F-]{36}";
 function allowedConfigurationPath(path:string,method:string) {
   const reads=[/^properties$/, /^catalogues$/,new RegExp(`^catalogues/${uuid}$`),new RegExp(`^catalogues/${uuid}/records$`),/^selections\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/,/^candidates\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/,/^audit$/];
   const writes=[/^properties$/,new RegExp(`^properties/${uuid}/(retire|replace)$`),/^catalogues$/,new RegExp(`^catalogues/${uuid}/(publish|retire|records)$`),new RegExp(`^catalogues/${uuid}/records/${uuid}/(correct|retire)$`),/^selections\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/];
-  return (method==="GET"?reads:writes).some(pattern=>pattern.test(path));
+  const organisationReads=[/^organisations$/, /^organisations\/candidates$/,new RegExp(`^organisations/${uuid}$`)];
+  const organisationWrites=[new RegExp(`^organisations/${uuid}$`),/^organisation-roles\/(COUNTERPARTY|EXECUTING_BROKER)$/];
+  return [...(method==="GET"?reads:writes),...(method==="GET"?organisationReads:organisationWrites)].some(pattern=>pattern.test(path));
 }
 async function proxy(request:NextRequest,ctx:{params:Promise<{path:string[]}>}) {
   const path=(await ctx.params).path.join("/");
@@ -20,8 +22,8 @@ async function proxy(request:NextRequest,ctx:{params:Promise<{path:string[]}>}) 
       ...(request.method==="POST"?{body:JSON.stringify(await request.json())}:{}),
     });
     const result=await response.json();
-    if(!response.ok)throw new ReferenceApiError(response.status,result.detail??"Configuration request failed.",result.code??"configuration.failed");
-    return NextResponse.json(result,{status:response.status});
+    if(!response.ok)throw new ReferenceApiError(response.status,result.detail??"Configuration request failed.",result.code??"configuration.failed",response.headers.get('X-Request-Id')??undefined);
+    return NextResponse.json(result,{status:response.status,headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return bffErrorResponse(error,"Trade configuration is unavailable.",request);}
 }
 export const GET=proxy;

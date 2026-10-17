@@ -41,9 +41,9 @@ def main():
                     'X-Local-Access-Token':client.cookies.get('local_access_session')}
                 if 'TRADE_READ' in selected['permissionCodes']:
                     trades=expect(httpx.get('http://localhost:8000/v1/trades',headers=api_headers,timeout=30))
-                    if tenant['code']=='FORTEM_DEMO_TENANT' and trades.get('data'):
+                    if tenant['tenantId']=='00000000-0000-7000-8000-000000000011' and trades.get('data'):
                         first_trade=trades['data'][0]['tradeId']
-                    elif first_trade and tenant['code']!='FORTEM_DEMO_TENANT':
+                    elif first_trade and tenant['tenantId']!='00000000-0000-7000-8000-000000000011':
                         expect(httpx.get('http://localhost:8000/v1/trades/'+first_trade,headers=api_headers,timeout=30),404)
                 if 'TRADE_WRITE' not in selected['permissionCodes']:
                     # The API rejects this before business payload validation.

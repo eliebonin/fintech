@@ -2,12 +2,12 @@
 
 ## Decision
 
-The Fortem UI will use a server-first hybrid rendering model:
+The Platform UI will use a server-first hybrid rendering model:
 
 ```text
 Browser
   -> authenticated UI server / BFF
-      -> Fortem APIs
+      -> Platform APIs
           -> central canonical and market-data services
           -> tenant overlay services
 ```

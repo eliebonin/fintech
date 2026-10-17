@@ -5,7 +5,7 @@
   "scenarios": [
     {
       "scenario_code": "OTC_BOND",
-      "instrument": "Fortem Demo 3.25% 2031 Note",
+      "instrument": "Platform Demo 3.25% 2031 Note",
       "instrument_type": "BOND",
       "venue": null,
       "maturity_date": "2031-01-15",

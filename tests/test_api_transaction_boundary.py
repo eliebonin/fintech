@@ -18,6 +18,7 @@ class TransactionEngine:
         self.fail_commit = fail_commit
         self.outcome = None
         self.transaction_count = 0
+        self.info = {}
 
     @contextmanager
     def begin(self):
@@ -50,7 +51,7 @@ def strategy_app(monkeypatch, engine):
     monkeypatch.setattr(api, 'resolve_tenant_workspace', lambda *_: None)
     monkeypatch.setattr(api, 'require_tenant_action', lambda *_: None)
     from apps.reference_api import access_boundary
-    monkeypatch.setattr(access_boundary, 'resolve_tenant_workspace', lambda *_: SimpleNamespace(permission_codes={'STRATEGY_WRITE'}))
+    monkeypatch.setattr(access_boundary, 'resolve_tenant_workspace', lambda *_: SimpleNamespace(permission_codes={'STRATEGY_CREATE','STRATEGY_WRITE'}))
     monkeypatch.setattr(api, 'create_strategy', lambda *_: StrategyView(
         strategyId=IDENTIFIER, tenantId=IDENTIFIER, strategyCode='BOUNDARY',
         displayName='Boundary', strategyType='FUND', baseCurrencyCode='GBP', status='ACTIVE'))

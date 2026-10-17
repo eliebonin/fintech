@@ -41,6 +41,19 @@ def test_generic_context_exposes_actual_decimal_json_wire_notation():
     assert value['convention']['quoteFactor'] == '1E-8'
     assert value['swapDetails']['genericTerms']['contractualNotional'] == '1E-12'
 
+def test_unit_swap_booking_freezes_units_and_derived_reference_notional():
+    node=create_swap(quantityUnit='UNITS',contractualUnits='25000',notionalPerUnit='8250',contractualNotional='206250000',quoteFactor='1',leverage='1.5')
+    value=context(node)
+    assert value['bookingEligible'],value
+    assert value['convention']['quantityUnit']=='UNITS'
+    assert value['convention']['priceBasis']=='SWAP_VALUE_PER_UNIT'
+    response=request('POST','/v1/trades/swaps',ticket(node,quantity='2500',executionPrice='2'))
+    assert response.status_code==201,response.text
+    trade=response.json()['data']['trade'];economics=trade['productEconomics']
+    assert trade['quantityUnit']=='UNITS' and float(trade['quantity'])==2500
+    assert economics['amount']=='5000'  # Leverage already lives in the unit quote.
+    assert economics['bookedUnits']=='2500' and economics['bookedNotional']=='20625000'
+
 
 @pytest.mark.parametrize('funded', [False, True])
 def test_generic_non_autocall_context_preserves_approved_contract_and_optional_funding(funded):

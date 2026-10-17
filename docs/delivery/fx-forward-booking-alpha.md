@@ -1,5 +1,10 @@
 # Deliverable FX-forward booking alpha
 
+**14 October follow-up:** [Rate-based FX-forward P&L](fx-forward-rate-pnl-20261014.md)
+now supports governed contract-rate observations and retained maturity closing
+entries. The valuation-unsupported statements below describe the earlier booking
+checkpoint; NDF, discounted model MTM and actual delivery remain unsupported.
+
 Implemented and engineering-accepted for booking alpha 2026-10-01. Approved [design](../superpowers/specs/2026-10-01-deliverable-fx-forward-booking-design.md) and [plan](../superpowers/plans/2026-10-01-deliverable-fx-forward-booking.md). Full-suite/browser evidence, deployment prerequisites and scope limits are in the [quality review](quality-reviews/2026-10-01-fx-forward-booking-alpha.md). This is not production or valuation sign-off.
 
 Deployment prerequisite: migrate to Alembic head (`20261001_54`) before starting updated code. Sign-off fixes include nullable bond coupon columns and synthetic demo-definition bootstrapping; no live database migration was performed during acceptance.

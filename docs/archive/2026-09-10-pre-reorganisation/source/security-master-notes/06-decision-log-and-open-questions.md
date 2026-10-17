@@ -52,7 +52,7 @@
 | Node and instrument classification | Govern structural node types and economic instrument types in separate catalogues. A taxonomy/value hierarchy captures commercial archetypes and internal desk classifications. |
 | Tenant model | Keep shared canonical data and tenant-scoped data logically separate. Tenant overlays reference immutable UUIDs and never overwrite canonical facts. |
 | Client integration | Accept controlled APIs, uploads, SFTP batches, and authorised provider adapters; convert them through versioned mappings into strict canonical contracts. |
-| External-ID mapping | Preserve immutable Fortem UUIDs as internal identity. Map bank, client, custodian, vendor and internal-system identifiers through effective-dated, namespace-aware external-object mappings. |
+| External-ID mapping | Preserve immutable Platform UUIDs as internal identity. Map bank, client, custodian, vendor and internal-system identifiers through effective-dated, namespace-aware external-object mappings. |
 | Soft NAV | Provide it as a tenant-scoped operational calculation service. Each run retains an append-only resolved-input audit snapshot and is distinct from official administrator NAV. |
 | Tenant routing | Select the tenant overlay database only from the trusted central registry; never accept a database endpoint from the client request. |
 | Canonical definition history | Keep stable instrument/listing UUIDs and append approved effective-dated definition versions; protect versions from UPDATE/DELETE. |

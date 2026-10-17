@@ -18,7 +18,7 @@ financial_reference_node (INSTRUMENT)
                              settlement type, optional fixing currency)
 ```
 
-The Fortem-generated UUID remains the identity. `internal_code` is an optional,
+The Platform-generated UUID remains the identity. `internal_code` is an optional,
 unique operational code. Provider, bank, custodian, and counterparty IDs belong
 in the existing integration/external-mapping layer and are not used as the
 primary key.

@@ -1,4 +1,8 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
+import {submitRetained,type RetainedIntent} from '@/lib/retained-mutation';
+import {useRetainedNavigation} from '@/lib/use-retained-navigation';
+import {UncertainRequest} from '@/components/uncertain-request';
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -75,7 +79,8 @@ export default function NewEtpPage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ severity: "success" | "error" | "info"; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const idempotencyKey = useRef<string | undefined>(undefined);
+  const retainedIntent = useRef<RetainedIntent | null>(null);
+  useRetainedNavigation(retainedIntent);
 
   useEffect(() => {
     let mounted = true;
@@ -114,18 +119,18 @@ export default function NewEtpPage() {
     }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit(event?: FormEvent<HTMLFormElement>,retryOriginal=false) {
+    event?.preventDefault();
     const errors = validateEtpIdentity(canonicalName, etpKind, legalForm, redemptionModel);
     const firstError = errors.canonicalName ?? errors.etpKind ?? errors.legalForm ?? errors.redemptionModel;
-    if (firstError) {
+    if (firstError&&!retryOriginal) {
       setMessage({ severity: "error", text: firstError });
       return;
     }
     setSubmitting(true);
     setMessage(null);
     try {
-      const response = await submitEtpProposalFromBff({
+      const response = await submitRetained(retryOriginal?JSON.parse(retainedIntent.current!.signature):{
         canonicalName: canonicalName.trim(),
         internalCode: internalCode.trim() || undefined,
         effectiveFrom,
@@ -140,7 +145,7 @@ export default function NewEtpPage() {
         referenceNodeId: referenceNodeId || undefined,
         isin: isin.trim() || undefined,
         submissionMode: "MANUAL",
-      }, idempotencyKey.current ?? (idempotencyKey.current = createIdempotencyKey()));
+      }, retainedIntent, submitEtpProposalFromBff);
       setMessage({ severity: "info", text: `${response.data.status} · ${response.data.etpKind}. Proposal ${response.data.proposalId} is queued for Operations review.` });
     } catch (error) {
       setMessage({ severity: "error", text: error instanceof Error ? error.message : "ETP proposal could not be submitted" });
@@ -162,6 +167,7 @@ export default function NewEtpPage() {
             <Typography variant="body2" sx={{ mt: 0.35 }}>This form creates a pending proposal. Operations approves the canonical record; provider enrichment can complete terms that are not known at submission.</Typography>
           </Alert>
           {message && <Alert severity={message.severity} sx={{ mb: 2 }}>{message.text}</Alert>}
+          {retainedIntent.current&&!submitting?<UncertainRequest busy={submitting} onRetry={()=>void submit(undefined,true)}/>:null}
 
           <Card component="form" noValidate onSubmit={submit} sx={{ p: { xs: 2, md: 3 } }}>
             <Stack spacing={3}>

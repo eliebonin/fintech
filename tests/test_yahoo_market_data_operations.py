@@ -48,7 +48,7 @@ def prepare(monkeypatch,extra,engine):
         result=enable_personal_research(c,DEMO_IDS['tenant'],DEMO_IDS['demo_user_account'],'Synthetic operator test approval')
     # Keep CLI's operating-target guard real while directing its SQL to the isolated engine.
     from types import SimpleNamespace
-    monkeypatch.setattr(yahoo.IngestorSettings,'from_environment',lambda:SimpleNamespace(environment='local',database_url='postgresql+psycopg://unused:unused@localhost:54329/fortem_secm'))
+    monkeypatch.setattr(yahoo.IngestorSettings,'from_environment',lambda:SimpleNamespace(environment='local',database_url='postgresql+psycopg://unused:unused@localhost:54329/platform_secm'))
     monkeypatch.setattr(yahoo,'create_engine',lambda *a,**kw:engine)
     monkeypatch.setattr(sys,'argv',['ingestor','--apply','--acknowledge-personal-access','--declaration','Synthetic tests only','--symbols','AAPL','--limit','1',*extra])
     return yahoo,engine,result

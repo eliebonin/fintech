@@ -8,7 +8,7 @@ source link is evidence for a principle or market convention; it is not an
 instruction to copy the source's data model into PostgreSQL.
 
 The register prevents a common failure mode in architecture work: presenting a
-useful Fortem design decision as if it were a universally mandated industry
+useful Platform design decision as if it were a universally mandated industry
 standard. Where research has not yet been completed, the topic is explicitly
 marked **research gap**.
 
@@ -275,7 +275,7 @@ that a design is legally or technically correct:
 * [MSCI portfolio analytics](https://www.msci.com/data-and-analytics/portfolio-management/barra-portfolio-manager)
   and [FactSet portfolio analytics](https://www.factset.com/solutions/portfolio-analytics)
   show that portfolio risk and scenario analytics are established products;
-  Fortem should therefore differentiate on explainability, structured/OTC
+  Platform should therefore differentiate on explainability, structured/OTC
   coverage, and reconciliation rather than promise a universal replacement.
 
 **Adopted product implication:** sell narrow, auditable workflows on top of the

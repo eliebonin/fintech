@@ -70,7 +70,7 @@ export async function bookCycle(tab,cycle){
   await tab.playwright.getByRole("searchbox",{name:`Search ${cycle.bucket}`,exact:true}).fill("CORE");
   await tab.playwright.getByRole("searchbox",{name:`Search ${cycle.bucket}`,exact:true}).press("Enter");
   await button(tab,`${cycle.original} CORE`).click();
-  for(const [name,query,result] of [["counterparty","HSBC","HSBC Demo plc"],["executing broker","Fortem","Fortem Demo Management Ltd"],["trader","","MVP Operations Booker"]]){
+  for(const [name,query,result] of [["counterparty","HSBC","HSBC Demo plc"],["executing broker","Platform","Platform Demo Management Ltd"],["trader","","MVP Operations Booker"]]){
     await label(tab,`Search ${name}`).fill(query);await button(tab,`Search ${name}`).press("Enter");await button(tab,result).click();
   }
   await label(tab,"Acceptance test").check();
@@ -84,7 +84,7 @@ export async function bookCycle(tab,cycle){
   await button(tab,"Review booking").press("Space");await button(tab,"Confirm booking").click();
   await tab.playwright.getByRole("heading",{name:"Trade properties and tags",exact:true}).waitFor({state:"visible"});
   cycle.tradeUrl=await tab.url();await contains(tab,cycle.original);await contains(tab,"No");
-  for(const name of ["HSBC Demo plc","Fortem Demo Management Ltd","MVP Operations Booker","Acceptance test",cycle.runCode])await contains(tab,name);
+  for(const name of ["HSBC Demo plc","Platform Demo Management Ltd","MVP Operations Booker","Acceptance test",cycle.runCode])await contains(tab,name);
   await tab.goto(`${cycle.baseUrl}/trades?range=all`);await tab.playwright.locator(`a[href^="${new URL(cycle.tradeUrl).pathname}?"]`).waitFor({state:"visible"});
   cycle.checks.push("Required validation clears on edit without focus theft; zero/No survive review-back-booking-history");return cycle.checks;
 }
@@ -108,14 +108,14 @@ export async function lifecycleCycle(tab,cycle){
   cycle.checks.push("Catalogue label correction and entry/field retirement preserve booked version and zero");return cycle.checks;
 }
 export async function isolationCycle(tab,cycle){
-  await tab.goto(`${cycle.baseUrl}/select-tenant`);await button(tab,"Fortem Second Tenant FORTEM_SECOND_TENANT · TENANT_ADMIN Open workspace →").click();
+  await tab.goto(`${cycle.baseUrl}/select-tenant`);await button(tab,"Platform Second Tenant PLATFORM_SECOND_TENANT · TENANT_ADMIN Open workspace →").click();
   await tab.goto(cycle.tradeUrl);await contains(tab,"NOT FOUND");const text=await tab.playwright.getByRole("main").innerText();assert(!text.includes(cycle.original)&&!text.includes("API UNAVAILABLE"),"Foreign trade leaked or was mislabelled as an outage");
   await tab.goto(`${cycle.baseUrl}/trades?range=all`);await contains(tab,"No trades have been recorded for this tenant.");
   await configuration(tab,cycle);await contains(tab,"No fields match");
   cycle.checks.push("Equivalent-permission second tenant sees no foreign history, fields or trade values; NOT FOUND not outage");return cycle.checks;
 }
 export async function densityFields(tab,cycle,start=0,count=5){
-  if(start===0){await tab.goto(`${cycle.baseUrl}/select-tenant`);await button(tab,"Fortem Demo Tenant FORTEM_DEMO_TENANT · TENANT_ADMIN Open workspace →").click();await configuration(tab,cycle);}
+  if(start===0){await tab.goto(`${cycle.baseUrl}/select-tenant`);await button(tab,"Platform Demo Tenant PLATFORM_DEMO_TENANT · TENANT_ADMIN Open workspace →").click();await configuration(tab,cycle);}
   for(let i=start;i<start+count;i++)await newField(tab,cycle,`${cycle.runCode}_D${i}`,`${cycle.runCode} optional ${String(i).padStart(2,"0")}`,"TEXT");
   return {createdThrough:start+count};
 }

@@ -1,4 +1,5 @@
 'use client';
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {useRef,useState} from 'react';
 import type {FormEvent} from 'react';
 import {newCalendarDraft,parseCalendarDates,type CalendarPublish,type CalendarView,type CalendarOptions,type CalendarDays,type CalendarAssignment} from '@/lib/calendar-input';

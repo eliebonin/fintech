@@ -1,0 +1,18 @@
+{
+  "corporateActionId": "01a120af-e8c7-7730-837e-2b9527372d82",
+  "review": {
+    "numerator": "11",
+    "denominator": "10",
+    "wholeSharesOnly": true,
+    "entitlementScope": "BASIC_RATIO_ONLY",
+    "boundaryConvention": "EX_DATE_START",
+    "reviewedOn": "2026-10-13",
+    "sourceReferences": [
+      "https://www.airliquide.com/free-shares-attribution",
+      "https://live.euronext.com/en/ajax/getNoticePublicData/FR0000120073-XPAR?alias=1&pageNum=1&pageSize=25"
+    ],
+    "exchangeNoticeReference": "PAR_20260604_15132_EUR",
+    "deliveryDate": "2026-06-10",
+    "reviewReason": "Personal research alpha: retained Yahoo 11:10 share-unit ratio and June 8 ex-date agree with issuer basic 1-for-10 allocation and Euronext notice effective June 8. Pricing units change from the ex-date, not the June 10 delivery. Only the basic integer-share market position is reconstructed. No loyalty premium, custody-account allocation, cash-in-lieu or settlement is inferred. The October 2024 mock acquisition is not eligible for the 2026 two-full-calendar-year loyalty premium. All original trades remain unchanged."
+  }
+}

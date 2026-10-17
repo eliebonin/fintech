@@ -60,7 +60,7 @@ it('anchors the historical window to the chosen end date rather than today',asyn
  const {default:Page}=await import('./explorer/page');
  const html=renderToStaticMarkup(await Page({searchParams:Promise.resolve({referenceNodeId:'listing',toDate:'2026-08-28'})}));
  expect(mocks.series.mock.calls[0][1].fromDate).toBe('2026-08-15');expect(mocks.series.mock.calls[0][1].toDate).toBe('2026-08-28');
- expect(html).toContain('PERSONAL PROJECT');expect(html).toContain('split adjusted');
+ expect(html).toContain('PERSONAL PROJECT');expect(html).toContain('separately labelled price bases');expect(html).not.toContain('Close is split adjusted');
 });
 
 it('preserves the exact series selection in history requests, refresh and pagination',async()=>{

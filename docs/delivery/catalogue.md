@@ -9,6 +9,45 @@ This directory is dated evidence, not a flat list of current promises. Read [fea
 
 ## Individual records
 
+- [Contextual page help: purpose, steps, terms and business/workflow effects](page-contextual-help-20261017.md)
+
+- [Project-wide frontend style/density review, policy tabs and contract navigation](quality-reviews/2026-10-17-frontend-visual-consistency.md)
+
+- [Position values & exposure report, readable statuses and input inspection](position-values-report-ui-20261015.md)
+
+- [FX-forward contractual currency legs and native/fund amounts](fx-forward-position-measures-20261015.md)
+- [Three-measure code review, best-practice sources and remaining gaps](quality-reviews/2026-10-15-position-measures-review.md)
+
+- [Futures monetary notional/exposure, distinct from contract MTM](future-position-measures-20261015.md)
+
+- [Position monetary measures: separate scoped preview and formulas](position-monetary-measures-20261015.md)
+
+- [Unit-based SPX/UKX swaps and two-year synthetic EoD histories](mock-unit-swaps-20261015.md)
+
+- [Strategy register, dated holdings/movements and calendar visibility](strategy-workspace-20261015.md)
+
+- [Mock bond prices, policy, daily interest and verified valuation dates](mock-bond-valuation-inputs-20261015.md)
+
+- [Tenant-one visible mock bond strategy and opening trades](mock-bond-strategy-app-seed-20261015.md)
+
+- [Mock coupon-to-maturity valuation cycle, publication and correction acceptance](mock-valuation-cycle-20261015.md)
+
+- [Bond coupon schedules and payment evidence](bond-coupons-20261015.md)
+
+- [Typed daily interest amount/currency and optional balance evidence](typed-daily-interest-20261014.md)
+
+- [Valuation methodology matrix, numerical assurance and completed explanations](valuation-methodology-assurance-20261014.md)
+
+- [Trade corrections, immutable valuation evidence and explicit reassessment](trade-corrections-valuation-reassessment-20261014.md)
+
+- [Lifecycle permission foundation and agreed maturity rules](lifecycle-authority-foundation-20261014.md)
+
+- [Applied valuation rules, methodology matrix and dated cash balance register](valuation-rules-and-cash-snapshots-20261014.md)
+
+- [Controlled valuation self-publication and temporary cover](valuation-self-publication-20261014.md)
+
+- [Strategy-filtered valuation results and operational history reports](valuation-results-history-report-20261014.md)
+
 - [API boundary hardening](api-boundary-hardening.md)
 - [Reference Data API contract delivery](api-contracts.md)
 - [Reference Data API problem responses](api-problems.md)
@@ -21,6 +60,7 @@ This directory is dated evidence, not a flat list of current promises. Read [fea
 - [Closing-price consolidation](closing-price-consolidation.md)
 - [Composite pricing policies — alpha delivery](composite-pricing-policy-alpha.md)
 - [Historical corporate-action valuation guard](corporate-action-valuation-guard.md)
+- [Reviewed share-ratio position replay and Air Liquide acceptance](share-ratio-position-replay-20261013.md)
 - [Execution ledger — daily valuation recognition](daily-valuation-recognition-progress.md)
 - [Economic strategy P&L: agreed foundation](economic-pnl-agreed-foundation-2026-10-09.md)
 - [Economic strategy P&L — implementation and activation boundary](economic-pnl-implementation-2026-10-09.md)
@@ -75,5 +115,10 @@ This directory is dated evidence, not a flat list of current promises. Read [fea
 - [Yahoo personal valuation permissions — 2026-10-09](yahoo-personal-valuation-permissions.md)
 
 ## Other collections
+
+- [Plain bond maturity redemption — 14 October 2026](plain-bond-redemption-20261014.md)
+- [Deliverable FX-forward maturity closure — 14 October 2026](fx-forward-maturity-20261014.md)
+- [Deliverable FX-forward rate-based P&L — 14 October 2026](fx-forward-rate-pnl-20261014.md)
+- [FX-forward end-to-end acceptance and correction boundary — 14 October 2026](fx-forward-e2e-acceptance-20261014.md)
 
 [Quality reviews](quality-reviews/README.md), [specifications](specifications/README.md), [implementation plans](implementation-plans/README.md). Consult [safe testing](README.md#safe-postgresql-verification) before copying old commands.

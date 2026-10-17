@@ -19,6 +19,12 @@ def ordered_datasets(c, version_id):
 
 
 def effective_priority(c, tenant, instrument_type, as_of, purpose='VALUATION'):
+    from .read_scope import cached_read
+    return cached_read(c, ('priority', tenant, instrument_type, as_of, purpose),
+        lambda: _effective_priority(c, tenant, instrument_type, as_of, purpose))
+
+
+def _effective_priority(c, tenant, instrument_type, as_of, purpose):
     """None means legacy arbitration; an empty order explicitly excludes all."""
     tenant_version = latest_version(c, tenant, instrument_type, as_of, purpose)
     platform_version = latest_version(c, None, instrument_type, as_of, purpose)

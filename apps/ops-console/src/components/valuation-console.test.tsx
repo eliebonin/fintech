@@ -21,7 +21,7 @@ it('explains restricted evidence and hides review and financial controls',async(
  const detail={attempt:{status:'COMPLETED',correlation_id:'safe-correlation'},events:[],batch:{batch_id:'batch',status:'STAGED',items:[],reviews:[],
   summary:{scope:'MARKET_ONLY',evidenceAccess:'DENIED',reason:'Current DISPLAY rights are required.'}}};
  // Only the loaded detail state is supplied; all other hooks stay real.
- vi.mocked(useState).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real)
+ vi.mocked(useState).mockImplementationOnce(real)
   .mockImplementationOnce(()=>[detail,()=>{}] as unknown as ReturnType<typeof useState>);
  const html=renderToStaticMarkup(<ValuationConsole canCalculate canReview actorId="admin"/>);
  expect(html).toContain('Current DISPLAY rights are required.');
@@ -35,7 +35,7 @@ it('renders position-owned results and original execution links without fake tra
   summary:{scope:'MARKET_ONLY',resultFormat:'POSITION_V2',marketPnl:'20',openingValue:'0',closingValue:'0',executionValue:'-20',reportingCurrencyId:'gbp',externalComparison:'NOT_COMPARED'},
   items:[{attribution_id:'attr',trade_id:null,position_key:'position-key',subject_id:'listing-id',version:1,market_pnl:'20',components:{PRICE:'20'},evidence:{},
    lineage:[{trade_id:'original-trade',event_id:'booked-event',role:'PERIOD_EXECUTION'}]}]}};
- vi.mocked(useState).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real)
+ vi.mocked(useState).mockImplementationOnce(real)
   .mockImplementationOnce(()=>[detail,()=>{}] as unknown as ReturnType<typeof useState>);
  const html=renderToStaticMarkup(<ValuationConsole canCalculate canReview actorId="admin"/>);
  expect(html).toContain('Position listing-id');expect(html).toContain('original-trade');
@@ -46,7 +46,7 @@ it('distinguishes a calculated empty position result from missing run history',a
  const real=(await vi.importActual<typeof import('react')>('react')).useState;
  const detail={attempt:{status:'COMPLETED',correlation_id:'empty-run'},events:[],batch:{batch_id:'batch',status:'STAGED',staged_by:'admin',reviews:[],items:[],
   summary:{resultFormat:'POSITION_V2',marketPnl:'0',openingValue:'0',closingValue:'0',executionValue:'0',reportingCurrencyId:'gbp',externalComparison:'NOT_COMPARED'}}};
- vi.mocked(useState).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real)
+ vi.mocked(useState).mockImplementationOnce(real)
   .mockImplementationOnce(()=>[detail,()=>{}] as unknown as ReturnType<typeof useState>);
  const html=renderToStaticMarkup(<ValuationConsole canCalculate canReview actorId="admin"/>);
  expect(html).toContain('No relevant positions or period movements');
@@ -58,7 +58,7 @@ it('explains a failed entitlement check outside JSON while preserving technical 
   events:[{event_id:'failure',event_code:'FAILED',stage:'CALCULATION',recorded_at:'2026-10-09T07:11:56Z',details:{
    reason:'Input selection blocked: NO_VALID_ENTITLEMENT. TTE (01a11297-b3c8-72f3-b80e-9ce8bfd3d775) on 2026-10-06: requires closing price / split-adjusted (CLOSE/SPLIT_ADJUSTED); visible data has no valuation-use coverage.',
    errorCode:'VALUATION_BLOCKED'}}]};
- vi.mocked(useState).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real)
+ vi.mocked(useState).mockImplementationOnce(real)
   .mockImplementationOnce(()=>[detail,()=>{}] as unknown as ReturnType<typeof useState>);
  const html=renderToStaticMarkup(<ValuationConsole canCalculate canReview actorId="admin"/>);
  expect(html).toContain('Valuation permission is missing');
@@ -73,11 +73,11 @@ it.each([[true,false],[false,true]])('separates calculation=%s from review=%s on
  const detail={attempt:{status:'COMPLETED',correlation_id:'delegated'},events:[],batch:{batch_id:'batch',status:'STAGED',staged_by:'maker',reviews:[],items:[],
   summary:{scope:'MARKET_ONLY',marketPnl:'0',openingValue:'0',closingValue:'0',executionValue:'0',reportingCurrencyId:'gbp',externalComparison:'NOT_COMPARED',
    request:{strategy_id:'strategy',policy_id:'policy',reporting_currency_id:'gbp'}}}};
- vi.mocked(useState).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real).mockImplementationOnce(real)
+ vi.mocked(useState).mockImplementationOnce(real)
   .mockImplementationOnce(()=>[detail,()=>{}] as unknown as ReturnType<typeof useState>);
  const html=renderToStaticMarkup(<ValuationConsole canCalculate={canCalculate} canReview={canReview} actorId="delegated"/>);
  for(const label of ['Calculate and stage','Daily input register','Request component change','Save explanation','Prepare corrected-input recalculation']){
   if(canCalculate)expect(html).toContain(label);else expect(html).not.toContain(label);
  }
- if(canReview)expect(html).toContain('Publish reviewed P&amp;L');else expect(html).not.toContain('Publish reviewed P&amp;L');
+ if(canReview)expect(html).toContain('Publish valuation');else expect(html).not.toContain('Publish valuation');
 });

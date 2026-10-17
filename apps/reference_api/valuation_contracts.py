@@ -1,6 +1,7 @@
 """Transport contracts for bounded market-only valuation and review."""
 from datetime import date,datetime,time,timedelta,timezone
 from uuid import UUID
+from typing import Literal
 from pydantic import BaseModel,ConfigDict,Field,JsonValue,model_validator
 
 class ValuationCreate(BaseModel):
@@ -50,6 +51,9 @@ class ReviewComment(BaseModel):
     comment: str=Field(min_length=1,max_length=2000)
     model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
 
+class SelfPublicationRequest(ReviewComment):
+    confirmSelfPublication: Literal[True]
+
 class ValuationAttemptList(BaseModel):
     items: list[dict[str,JsonValue]]
     scope: str='MARKET_ONLY'
@@ -66,3 +70,20 @@ class ValuationOptions(BaseModel):
     strategies: list[dict[str,JsonValue]]
     policies: list[dict[str,JsonValue]]
     currencies: list[dict[str,JsonValue]]
+
+
+class ValuationChoice(BaseModel):
+    id: UUID
+    label: str
+    currencyId: UUID | None = None
+    cutId: UUID | None = None
+    strategyId: UUID | None = None
+    canCalculate: bool | None = None
+
+
+class ValuationChoicePage(BaseModel):
+    items: list[ValuationChoice]
+    selected: ValuationChoice | None = None
+    total: int
+    limit: int
+    offset: int

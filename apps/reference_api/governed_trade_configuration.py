@@ -1,5 +1,6 @@
 """Small, tenant-owned reference-data domain; no arbitrary source adapters."""
 from datetime import datetime, timezone
+from security_master_schema.governance_clock import governance_date
 import re
 from uuid import UUID, uuid4
 from sqlalchemy import select, insert, update, delete, func
@@ -170,7 +171,7 @@ def publish_selection(connection, tenant_id, actor_id, role, identifiers, expect
         from datetime import date
         from sqlalchemy import or_
         p,a,t = m.person, m.user_account, m.tenant_user_account
-        today = date.today()
+        today = governance_date()
         eligible = set(connection.execute(select(p.c.person_id).join(a, a.c.person_id == p.c.person_id).join(t, t.c.user_account_id == a.c.user_account_id).where(
             p.c.person_id.in_(identifiers), p.c.status == "ACTIVE", a.c.status == "ACTIVE", t.c.tenant_id == tenant_id, t.c.status == "ACTIVE", t.c.valid_from <= today, or_(t.c.valid_to.is_(None), t.c.valid_to >= today))).scalars())
     else:

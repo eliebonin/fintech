@@ -81,7 +81,7 @@ These modules are deliberately outside current booking acceptance. The next user
 
 See [dated quality review](quality-reviews/2026-10-01-option-booking-alpha.md) for tests, synthetic browser evidence and limitations. Implementation is uncommitted on the current feature branch alongside preserved earlier work; no merge or push occurred.
 
-The local operator database `fortem_secm` was backed up before activation to `C:/Users/forte/Documents/ChatGPT/Tech V2/local-db-backups/fortem_secm_pre_option_cleanup_20261001.dump`. It was at revision 53 but already contained the two revision-54 bond fields. Revision 54 now reconciles only exact compatible types, nullability and defaults, updates comments without changing values, and refuses incompatible definitions; no blind revision stamp or column deletion was used.
+The local operator database `platform_secm` was backed up before activation to `C:/Users/forte/Documents/ChatGPT/Tech V2/local-db-backups/platform_secm_pre_option_cleanup_20261001.dump`. It was at revision 53 but already contained the two revision-54 bond fields. Revision 54 now reconciles only exact compatible types, nullability and defaults, updates comments without changing values, and refuses incompatible definitions; no blind revision stamp or column deletion was used.
 
 The additive upgrade reached revision 55. Record counts stayed at nine trades and 271 instruments. API/frontend are served locally on ports 8000/3000; browser submission regressions use the separate synthetic database on 8001/3001. No synthetic acceptance bookings were copied into the operator database. A fresh process-only tenant-cookie secret requires selecting the tenant again; no credentials were committed.
 

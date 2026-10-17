@@ -23,7 +23,7 @@ export default async function MarketDataExplorerPage({searchParams}:{searchParam
  let catalogue:components['schemas']['MarketDataCatalogueResponse']|null=null,error='';
  if(enabled)try{catalogue=await getMarketDataCatalogue(context,{q,asOf,limit:25,offset});}catch(e){error=describeMvpError(e,'Market data catalogue');}
  function pageLink(value:number){return `/market-data/explorer?${new URLSearchParams({q,asOf,offset:String(value)})}`;}
- return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes}><main className="mvp-page">
+ return <WorkspaceShell tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId}><main className="mvp-page">
   {enabled?<MarketDataNavigation active="explorer"/>:null}
   <header className="mvp-header"><div><p className="eyebrow">MARKET DATA / EXPLORER</p><h1>Data explorer</h1><p>Find a recorded series. Open a series to load its chart, observations and provenance.</p></div></header>
   {!enabled?<p className="error-panel">Market data is not enabled. Contact your tenant administrator.</p>:<div className={styles.content}>

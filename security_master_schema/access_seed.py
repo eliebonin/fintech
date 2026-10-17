@@ -1,5 +1,6 @@
 """Idempotent access-only local seed; never reruns trading/market-data fixtures."""
 from datetime import date
+from security_master_schema.governance_clock import governance_date
 from uuid import UUID, uuid5
 from sqlalchemy import select, update
 from . import models as m
@@ -20,11 +21,11 @@ def once(c, table, pk, values):
 
 def seed_access(c):
     third=seed_id('third-tenant')
-    once(c,m.tenant,'tenant_id',dict(tenant_id=third,owning_organisation_id=DEMO_IDS['fortem_organisation'],
-        tenant_code='FORTEM_THIRD_TENANT',display_name='Fortem Third Tenant',status='ACTIVE'))
-    specs=[(DEMO_IDS['tenant'],'Fortem Demo',None),
-           (DEMO_IDS['second_tenant'],'Fortem Second',{'SECURITY_MASTER','TRADING','MARKET_DATA'}),
-           (third,'Fortem Third',{'SECURITY_MASTER','TRADING'})]
+    once(c,m.tenant,'tenant_id',dict(tenant_id=third,owning_organisation_id=DEMO_IDS['platform_organisation'],
+        tenant_code='PLATFORM_THIRD_TENANT',display_name='Platform Third Tenant',status='ACTIVE'))
+    specs=[(DEMO_IDS['tenant'],'Platform Demo',None),
+           (DEMO_IDS['second_tenant'],'Platform Second',{'SECURITY_MASTER','TRADING','MARKET_DATA'}),
+           (third,'Platform Third',{'SECURITY_MASTER','TRADING'})]
     personas={'Traders':{'REFERENCE_READ','STRATEGY_READ','TRADE_READ','TRADE_WRITE'},
         'Operations':{'REFERENCE_READ','REFERENCE_PROPOSE','REFERENCE_APPROVE','STRATEGY_READ','TRADE_READ','TRADE_CORRECT',
                       'MARKET_DATA_READ','MARKET_DATA_MANAGE','VALUATION_READ','VALUATION_RUN','VALUATION_REVIEW','CALENDAR_READ'},
@@ -41,8 +42,8 @@ def seed_access(c):
         enabled=set(c.scalars(select(m.platform_module.c.module_code).join(m.tenant_module_entitlement,
             m.tenant_module_entitlement.c.platform_module_id==m.platform_module.c.platform_module_id)
             .where(m.tenant_module_entitlement.c.tenant_id==tenant,m.tenant_module_entitlement.c.entitlement_state=='GRANTED',
-                m.tenant_module_entitlement.c.valid_from<=date.today(),m.tenant_module_entitlement.c.valid_to.is_(None)
-                |(m.tenant_module_entitlement.c.valid_to>=date.today()))))
+                m.tenant_module_entitlement.c.valid_from<=governance_date(),m.tenant_module_entitlement.c.valid_to.is_(None)
+                |(m.tenant_module_entitlement.c.valid_to>=governance_date()))))
         for persona in ('Admin','Traders','Operations','Read Only'):
             key=f'{tenant}:{persona}'
             person=seed_id(key+':person')
@@ -57,9 +58,11 @@ def seed_access(c):
                 c.execute(m.tenant_user_account.insert().values(tenant_id=tenant,user_account_id=user,
                     membership_role='TENANT_ADMIN' if persona=='Admin' else 'MEMBER',status='ACTIVE',valid_from=date(2026,1,1)))
             if persona=='Admin':
+                from .access_bootstrap import bootstrap_admin_operations
+                bootstrap_admin_operations(c,tenant,user,DEMO_IDS['platform_admin_user_account'])
                 continue
             group=seed_id(key+':group')
-            once(c,m.access_group,'group_id',dict(group_id=group,tenant_id=tenant,code=persona.upper().replace(' ','_'),display_name=persona))
+            once(c,m.access_group,'group_id',dict(group_id=group,tenant_id=tenant,code=persona.upper().replace(' ','_'),display_name=persona,scope_mode='ALL'))
             # Seed only once: subsequent runs preserve administrator edits/revocations.
             if c.scalar(select(m.access_group_member.c.user_account_id).where(m.access_group_member.c.tenant_id==tenant,
                     m.access_group_member.c.group_id==group,m.access_group_member.c.user_account_id==user)) is None:

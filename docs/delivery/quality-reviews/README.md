@@ -3,11 +3,27 @@
 **Status:** Maintained dated-evidence index  
 **Content type:** Review index  
 **Owner:** Engineering/architecture  
-**Last reviewed:** 2026-10-12
+**Last reviewed:** 2026-10-17
 
 Reviews are findings/evidence at a date, not permanent open issues after fixes. [Feature records](../../product/feature-register.md) own current gaps. No historical report certifies the entire current codebase.
 
 ## Current reconciliation and merge
+
+- [Frontend visual consistency/density — October 17](2026-10-17-frontend-visual-consistency.md):
+  shared presentation, policy task tabs, structured-product outline, keyboard skip
+  navigation and bounded visual/browser acceptance. No domain/authority changes.
+
+- [Query-efficiency remediation — October 16](2026-10-16-query-efficiency.md):
+  observation scan, licensing/history/roster batching, catalogue plans and
+  complete forward proof chunks; measured gains and remaining scale limits.
+
+- [Backend/API remediation — October 16](2026-10-16-backend-remediation.md):
+  intake, scope, request/audit/UTC, measured preview SQL and paged selectors;
+  shared term-model extraction is completed after approval; broader decomposition
+  and bounded scaling remain.
+
+- [Frontend shared remediation — October 16](2026-10-16-frontend-remediation.md),
+  resolving the [original frontend findings](2026-10-15-frontend-findings.md).
 
 - [Documentation versus code/conversation — October 12](2026-10-12-documentation-reconciliation.md).
 - [Merged main verification, failures and focused remediation](../tenant-access-administration-progress.md#completed-remediation-verification).

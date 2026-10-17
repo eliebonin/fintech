@@ -35,7 +35,7 @@ HTTPS JSON or multipart upload / SFTP batch file / authorised provider adapter
   -> tenant-scoped operational record or canonical-data proposal
 ```
 
-The service should support three commercial tiers: documented Fortem templates; maintained adapters for common administrator/custodian/provider exports; and priced, versioned bespoke mappings. The internal contract is never relaxed for a client-specific file.
+The service should support three commercial tiers: documented Platform templates; maintained adapters for common administrator/custodian/provider exports; and priced, versioned bespoke mappings. The internal contract is never relaxed for a client-specific file.
 
 An ingestion request is asynchronous and idempotent. It returns a durable job resource and retains tenant, source identity, payload hash/locator, schema version, mapping version, received and effective times, resolved IDs, validation issues, and resulting record IDs. Ambiguous identifier matches are exceptions, not guesses.
 
@@ -80,12 +80,12 @@ org_identifier
 
 An external identifier is never assumed globally unique without its scheme, source/issuer where relevant, and validity period. A ticker normally belongs to a listing/venue context; an ISIN normally identifies the security/economic issuance.
 
-External systems also use local, provider-specific IDs that are not standards identifiers. Maintain an `external_id_namespace` plus effective-dated `external_object_mapping` service to map a bank, client, custodian, administrator, broker, vendor, or internal system's object ID to Fortem's immutable UUID. Namespace and tenant scope are mandatory parts of the lookup; the same string can legitimately occur in more than one client or provider namespace.
+External systems also use local, provider-specific IDs that are not standards identifiers. Maintain an `external_id_namespace` plus effective-dated `external_object_mapping` service to map a bank, client, custodian, administrator, broker, vendor, or internal system's object ID to Platform's immutable UUID. Namespace and tenant scope are mandatory parts of the lookup; the same string can legitimately occur in more than one client or provider namespace.
 
 ```text
 POST /v1/external-id-mappings:resolve
   namespace + external object type + external ID + context + as-of date
-  -> one resolved Fortem UUID, an ambiguity/error response, or an onboarding exception
+  -> one resolved Platform UUID, an ambiguity/error response, or an onboarding exception
 ```
 
 Formal identifiers such as ISIN and FIGI remain in the canonical identifier model. The external mapping layer records provider/local identity, mapping method, confidence, verification, source payload, validity and supersession. It must never silently infer a match from a ticker or display name.

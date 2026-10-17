@@ -1,4 +1,5 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 import Link from "next/link";

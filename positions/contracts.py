@@ -8,7 +8,8 @@ class PositionError(ValueError):
     """Position evidence cannot safely represent the requested economic state."""
 
 POSITION_UNITS={'EQUITY':frozenset({'SHARES','UNITS'}),'ETF':frozenset({'SHARES','UNITS'}),
-    'FUND':frozenset({'UNITS'}),'BOND':frozenset({'NOMINAL'}),'CASH':frozenset({'CURRENCY_AMOUNT'})}
+    'FUND':frozenset({'UNITS'}),'BOND':frozenset({'NOMINAL'}),'CASH':frozenset({'CURRENCY_AMOUNT'}),
+    'FX_FORWARD':frozenset({'CURRENCY_AMOUNT'})}
 
 @dataclass(frozen=True)
 class ProjectionRequest:
@@ -60,6 +61,7 @@ class LedgerFact:
     effective_at: datetime
     recorded_at: datetime
     booking: Booking | None = None
+    correction_evidence: dict | None = None
 
 @dataclass(frozen=True)
 class ExecutionEffect:
@@ -95,3 +97,26 @@ class PositionProjection:
     complete_knowledge: bool
     input_hash: str
     engine_version: str = 'position-reconstruction-v1'
+    split_adjustments: tuple['SplitAdjustment', ...] = ()
+    split_events: tuple['SplitEvent', ...] = ()
+
+@dataclass(frozen=True)
+class SplitEvent:
+    """Reviewed same-security unit change; not a trade or income event."""
+    action_id: UUID
+    review_id: UUID
+    subject_id: UUID
+    effective_at: datetime
+    effective_date: date
+    recorded_at: datetime
+    ratio: Decimal
+    whole_shares_only: bool
+    evidence: dict
+
+@dataclass(frozen=True)
+class SplitAdjustment:
+    key: PositionKey
+    event: SplitEvent
+    quantity_before: Decimal
+    quantity_after: Decimal
+    trade_ids: tuple[UUID, ...]

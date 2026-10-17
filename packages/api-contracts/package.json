@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Generated, view-oriented TypeScript contracts for Fortem APIs.",
+  "description": "Generated, view-oriented TypeScript contracts for Platform APIs.",
   "exports": "./src/index.ts",
   "scripts": {
     "generate": "openapi-typescript openapi/reference-data-api.v1.json -o src/generated.ts",

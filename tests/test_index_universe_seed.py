@@ -101,7 +101,7 @@ def test_seed_rejects_retired_projections_and_invalid_snapshot_owner():
             tx.rollback()
 
 
-@pytest.mark.parametrize('database,environment_name', [('not_the_operating_database', 'local'), ('fortem_secm', 'production')])
+@pytest.mark.parametrize('database,environment_name', [('not_the_operating_database', 'local'), ('platform_secm', 'production')])
 def test_cli_refuses_non_operating_local_database_before_connecting(database, environment_name):
     import os
     from pathlib import Path
@@ -111,7 +111,7 @@ def test_cli_refuses_non_operating_local_database_before_connecting(database, en
     result = subprocess.run([sys.executable, 'scripts/seed_index_universe.py', '--apply'],
         cwd=Path(__file__).resolve().parents[1], env=environment, capture_output=True, text=True)
     assert result.returncode == 2
-    assert 'restricted to local fortem_secm' in result.stderr
+    assert 'restricted to local platform_secm' in result.stderr
 
 
 def test_seed_rejects_missing_operator_without_creating_reference_rows():

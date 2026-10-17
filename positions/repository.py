@@ -11,9 +11,9 @@ from .reconstruction import booking_removed
 
 CHUNK_SIZE=500
 
-def iter_ledger_facts(connection, request):
+def iter_ledger_facts(connection, request, *, subject_ids=None):
     assert_tenant_owns_strategy(connection,request.tenant_id,request.strategy_id)
-    after=None
+    after=None;currency_cache={}
     while True:
         query=select(m.trade).where(m.trade.c.strategy_id==request.strategy_id,
             # Flow records are validated separately, never as share positions.
@@ -21,6 +21,7 @@ def iter_ledger_facts(connection, request):
             m.trade.c.trade_datetime_utc<=request.closing_cutoff,
             func.coalesce(m.trade.c.valuation_effective_date,cast(func.timezone('UTC',m.trade.c.trade_datetime_utc),Date))<=request.closing_cutoff.date(),
             m.trade.c.created_at_utc<=request.information_cutoff)
+        if subject_ids is not None: query=query.where(m.trade.c.trade_subject_reference_node_id.in_(subject_ids))
         if after is not None: query=query.where(m.trade.c.trade_id>after)
         rows=connection.execute(query.order_by(m.trade.c.trade_id).limit(CHUNK_SIZE)).mappings().all()
         if not rows: return
@@ -38,7 +39,8 @@ def iter_ledger_facts(connection, request):
                 if e['event_type']=='BOOKED' and e['event_datetime_utc']!=row['trade_datetime_utc']:
                     raise PositionError('BOOKED execution time is inconsistent')
             audit[identity]=tuple(LedgerFact(e['trade_lifecycle_event_id'],identity,request.tenant_id,request.strategy_id,
-                e['sequence_no'],e['event_type'],e['event_datetime_utc'],e['recorded_at_utc']) for e in chain)
+                e['sequence_no'],e['event_type'],e['event_datetime_utc'],e['recorded_at_utc'],
+                correction_evidence=json.loads(e['event_payload'] or '{}') if e['event_type'] in ('CORRECTED','SUPERSEDED') else None) for e in chain)
             eligible=[f for f in audit[identity] if f.effective_at<=request.closing_cutoff]
             if booking_removed(eligible,request):
                 removed.add(identity)
@@ -47,11 +49,27 @@ def iter_ledger_facts(connection, request):
                 if e['event_type']!='BOOKED': continue
                 try:
                     snapshot=json.loads(e['event_payload'] or '{}')
-                    if snapshot['kind']=='PRODUCT_BOOKING':
+                    redemption=snapshot.get('lifecycleRedemption')
+                    if row['trade_type']=='MATURITY_REDEMPTION':
+                        from valuation.economics import evidence_hash
+                        if not redemption or e['payload_hash']!=evidence_hash(snapshot):
+                            raise PositionError('Missing or inconsistent frozen maturity redemption evidence')
+                        inputs=redemption['inputs'];proof=redemption['authority']
+                        move=next((item for item in inputs['movements'] if UUID(item['subjectId'])==row['trade_subject_reference_node_id']),None)
+                        if (move is None or Decimal(move['quantity'])!=row['quantity'] or Decimal(move['price'])!=row['execution_price']
+                            or UUID(inputs['instrumentId'])!=row['reference_instrument_node_id'] or UUID(inputs['strategyId'])!=request.strategy_id
+                            or inputs['valueDate']!=row['trade_datetime_utc'].date().isoformat() or inputs['scope']!='PRINCIPAL_ONLY'
+                            or inputs['paymentRecognised'] is not False or UUID(proof['actorId'])!=e['recorded_by_user_account_id']):
+                            raise PositionError('Maturity posting differs from frozen sourced closing economics')
+                    if snapshot['kind'] in ('FX_FORWARD_BOOKING','FX_FORWARD_MATURITY'):
+                        from .fx_forward import normalize_booking
+                        snapshot=normalize_booking(connection,row,snapshot,e,currency_cache=currency_cache)
+                    elif snapshot['kind']=='PRODUCT_BOOKING':
                         if snapshot['economics']['terms']['kind']!='BOND' or 'valuationConventions' not in snapshot:
                             raise PositionError('Unsupported booking economics; missing frozen product valuation conventions')
                         snapshot=snapshot['valuationConventions'] | dict(kind='BOND_BOOKING',
-                            bondDetails=snapshot['economics']['bondDetails'],valuationRecognition=snapshot.get('valuationRecognition'))
+                            bondDetails=snapshot['economics']['bondDetails'],valuationRecognition=snapshot.get('valuationRecognition'),
+                            redemptionEvidence=redemption)
                     elif snapshot['kind']!='CASH_BOOKING': raise PositionError('Unsupported booking economics')
                     definition=UUID(snapshot['instrumentDefinitionId']); parent=UUID(snapshot['instrumentId'])
                     snapshots[e['trade_id']]=(snapshot,definition,parent)
@@ -96,7 +114,7 @@ def iter_ledger_facts(connection, request):
                 term=next((x for x in etp.get(parent,[]) if x['effective_from']<=row['trade_datetime_utc'].date()),None)
                 product=term['etp_kind'] if term else None
             if product=='FUND_SHARE_CLASS': product='FUND'
-            if product not in {'EQUITY','ETF','FUND','BOND'}: raise PositionError('Unsupported booking product')
+            if product not in {'EQUITY','ETF','FUND','BOND','FX_FORWARD'}: raise PositionError('Unsupported booking product')
             try:
                 currency=UUID(snapshot['priceCurrencyId'])
                 price=row['execution_price']
@@ -116,14 +134,17 @@ def iter_ledger_facts(connection, request):
                             raise PositionError('Frozen bond clean/dirty execution bridge mismatch')
                 booking=Booking(row['trade_id'],row['trade_subject_reference_node_id'],currency,row['quantity_unit'],
                     row['quantity'],price,Decimal(snapshot['unitMultiplier']),Decimal(snapshot['quoteFactor']),definition,product,
-                    day,basis,reason,snapshot if product in ('BOND','FUND') else None)
+                    day,basis,reason,snapshot if product in ('BOND','FUND','FX_FORWARD') else None)
             except (KeyError,ValueError,TypeError) as exc: raise PositionError('Invalid frozen BOOKED conventions') from exc
-            if currency!=row['price_currency_id'] or row['price_basis']!=('PCT_OF_PAR' if product=='BOND' else 'UNIT_PRICE'):
+            if product=='FX_FORWARD' and (snapshot['kind']!='FX_RATE_BOOKING' or row['quantity_unit']!='CURRENCY_AMOUNT'):
+                raise PositionError('Frozen forward units mismatch')
+            if currency!=row['price_currency_id'] or row['price_basis']!=('PCT_OF_PAR' if product=='BOND' else 'RATE' if product=='FX_FORWARD' else 'UNIT_PRICE'):
                 raise PositionError('Frozen booking price currency/basis is inconsistent')
             for e in chain:
                 if e['event_type']=='BOOKED' and e['event_datetime_utc']!=row['trade_datetime_utc']:
                     raise PositionError('BOOKED execution time is inconsistent')
                 yield LedgerFact(e['trade_lifecycle_event_id'],row['trade_id'],request.tenant_id,request.strategy_id,
                     e['sequence_no'],e['event_type'],e['event_datetime_utc'],e['recorded_at_utc'],
-                    booking if e['event_type']=='BOOKED' else None)
+                    booking if e['event_type']=='BOOKED' else None,
+                    json.loads(e['event_payload'] or '{}') if e['event_type'] in ('CORRECTED','SUPERSEDED') else None)
         after=rows[-1]['trade_id']

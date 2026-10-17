@@ -24,7 +24,7 @@ def upgrade() -> None:
         sa.Column("supersedes_event_id", sa.UUID(), sa.ForeignKey("trd.trade_lifecycle_event.trade_lifecycle_event_id"), nullable=True, comment="Prior lifecycle event superseded by this correction or replacement."),
         sa.Column("event_payload", sa.Text(), nullable=True, comment="Serialized normalized correction details; the original trade and source payload remain separately retained."),
         sa.Column("recorded_by_user_account_id", sa.UUID(), sa.ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Authenticated internal account or service that recorded this lifecycle event."),
-        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP"), comment="UTC timestamp at which Fortem recorded the lifecycle event."),
+        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP"), comment="UTC timestamp at which Platform recorded the lifecycle event."),
         sa.UniqueConstraint("trade_id", "sequence_no", name="uq_trade_lifecycle_event_sequence"),
         sa.UniqueConstraint("source_system_id", "source_event_id", name="uq_trade_lifecycle_event_source_id"),
         schema="trd",

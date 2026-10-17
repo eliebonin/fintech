@@ -69,6 +69,7 @@ export function InstrumentDetail({ instrument, standalone = false, futureTerms,s
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.8 }}>{instrument.notes}</Typography>
         </Box>
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+          {['STRUCTURED_PRODUCT','SWAP'].includes(instrument.instrumentType)?<Button component={Link} href={`/instruments/${instrument.instrumentId}/terms-schedule`} variant="outlined">Terms &amp; Schedule</Button>:null}
           <Chip label={instrument.status} color="success" size="small" />
           <Chip label={`Definition v${instrument.definitionVersion}`} variant="outlined" size="small" />
         </Stack>

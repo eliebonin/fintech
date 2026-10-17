@@ -8,6 +8,17 @@ function sidebar(node:any):any {if(!node||typeof node!=='object')return;if(node.
 function sidebarNode(node:any):any {if(!node||typeof node!=='object')return;if(node.type?.name==='Sidebar')return node;for(const child of [node.props?.children].flat(Infinity)){const found=sidebarNode(child);if(found)return found;}}
 function contains(node:any,test:(n:any)=>boolean):boolean {if(test(node))return true;if(!node||typeof node!=='object')return false;return [node.props?.children].flat(Infinity).some(child=>contains(child,test));}
 const workspace={tenantId:'tenant',tenantName:'Selected tenant',tenantCode:'SELECTED',membershipRole:'TENANT_ADMIN',moduleCodes:['TRADING']};
+it('offers contextual guidance on the policy workflow without exposing denied write content',()=>{
+ harness.path='/market-data/policies';
+ expect(contains(render(),n=>n?.type?.name==='PageHelp')).toBe(true);
+ harness.path='/trades/new';
+ expect(contains(render(),n=>n?.type?.name==='PageHelp')).toBe(false);
+});
+it('offers a keyboard skip link and one programmatically focusable content target',()=>{
+ const tree=render();
+ expect(contains(tree,n=>n?.type?.name==='WorkspaceSkipLink')).toBe(true);
+ expect(contains(tree,n=>n?.props?.id==='workspace-content'&&n.props.tabIndex===-1)).toBe(true);
+});
 afterEach(()=>{harness.slots=[];harness.path='/instruments/create';vi.unstubAllGlobals();});
 it('does not show mock identity or module grants before workspace verification',()=>{const props=sidebar(render());expect(props.tenantName).toBeUndefined();expect(props.moduleCodes).toEqual([]);});
 it('loads the selected workspace for legacy pages',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>workspace}));render();harness.effects[0]();await new Promise(resolve=>setTimeout(resolve,0));expect(sidebar(render()).tenantName).toBe('Selected tenant');expect(sidebar(render()).moduleCodes).toEqual(['TRADING']);});

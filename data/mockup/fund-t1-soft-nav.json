@@ -4,13 +4,13 @@
   "valuation_cut": "LONDON_CLOSE_DEMO",
   "information_cutoff_utc": "2026-08-28T16:30:00Z",
   "fund": {
-    "canonical_name": "Fortem Demo Income Fund",
+    "canonical_name": "Platform Demo Income Fund",
     "kind": "STANDALONE",
     "legal_form": "OEIC",
     "domicile_country_code": "GBR"
   },
   "share_class": {
-    "canonical_name": "Fortem Demo Income Fund I Acc GBP",
+    "canonical_name": "Platform Demo Income Fund I Acc GBP",
     "instrument_type": "FUND_SHARE_CLASS",
     "share_class_code": "I_ACC_GBP",
     "income_treatment": "ACCUMULATION",

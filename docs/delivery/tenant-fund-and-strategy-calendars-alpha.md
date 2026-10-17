@@ -4,6 +4,11 @@ Date: 2026-10-07. Scope: governed calendar configuration and market-data input s
 
 ## Outcome
 
+The [October 13 Paris reference-calendar delivery](paris-reference-calendar-20261013.md)
+adds a reviewed 2026 exchange schedule import with retained per-version provenance,
+sealed publication and explicit venue activation. It does not replace tenant fund
+calendar management or claim an ongoing authoritative exchange feed.
+
 The tenant can maintain a fund/strategy schedule independently of exchange trading calendars. Open **Market data → Fund and strategy calendars** (`/market-data/calendars`). Reference calendars remain platform-owned; tenants publish separate versions, not edits to shared exchange holidays.
 
 Available schedule modes:
@@ -63,7 +68,7 @@ The disposable-database runner exited successfully and cleaned up its owned test
 
 Local activation is migration `20261007_68`. Before/after counts: trades9; strategies50; observations1,358,477; calendars4; assignments0. No operating reference holiday imports, calendar publication/assignment, financial records or licence grants were created or modified. The already-running API reloaded the implementation; no restart was needed.
 
-Read-only browser acceptance in the selected Fortem Demo Tenant loaded the editor, reference options and date-range preview. The London synthetic reference returned UNKNOWN / NO_REFERENCE_COVERAGE for 2026-08-28 through 2026-08-31; native date controls and the preview retained the requested range. No warning/error console entries were captured. This confirms honest missing-coverage display, not authoritative London holiday coverage. Publication and assignment writes were exercised through real HTTP in disposable test databases rather than operator data.
+Read-only browser acceptance in the selected Platform Demo Tenant loaded the editor, reference options and date-range preview. The London synthetic reference returned UNKNOWN / NO_REFERENCE_COVERAGE for 2026-08-28 through 2026-08-31; native date controls and the preview retained the requested range. No warning/error console entries were captured. This confirms honest missing-coverage display, not authoritative London holiday coverage. Publication and assignment writes were exercised through real HTTP in disposable test databases rather than operator data.
 
 Reference bank/calendar feeds are not automatically onboarded or certified. Existing reference-calendar coverage may be incomplete; the UI shows UNKNOWN honestly. Administrators can use an explicit published schedule or a weekday schedule plus sourced exceptions immediately. Automated provider schedule ingestion, four-eyes approval and searchable fund pickers remain future enhancements. Fund UUID assignment is the current alpha UI. Dealing/settlement calendars are configurable but do not implement dealing or settlement workflows.
 

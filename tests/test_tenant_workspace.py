@@ -26,7 +26,7 @@ SECOND_TENANT_ID = UUID("00000000-0000-7000-8000-000000000301")
 def engine():
     database_url = os.environ['DATABASE_URL']
     from sqlalchemy.engine import make_url
-    if make_url(database_url).database == 'fortem_secm':
+    if make_url(database_url).database == 'platform_secm':
         raise RuntimeError('Tenant workspace tests require an isolated test database')
     engine = create_engine(database_url)
     create_schema(engine)
@@ -38,7 +38,7 @@ def _insert_second_tenant(connection) -> None:
     connection.execute(
         insert(m.tenant).values(
             tenant_id=SECOND_TENANT_ID,
-            owning_organisation_id=DEMO_IDS["fortem_organisation"],
+            owning_organisation_id=DEMO_IDS["platform_organisation"],
             tenant_code="SECOND_ALPHA",
             display_name="Second Alpha Tenant",
             status="ACTIVE",
@@ -114,8 +114,8 @@ def test_workspace_returns_only_current_memberships_and_granted_modules(engine) 
         workspace = resolve_tenant_workspace(connection, DEMO_IDS["tenant"], DEMO_IDS["demo_user_account"], date(2026, 9, 29))
 
     assert [(row.tenant_code, row.membership_role) for row in memberships] == [
-        ("FORTEM_DEMO_TENANT", "TENANT_ADMIN"),
-        ("FORTEM_SECOND_TENANT", "OPERATIONS"),
+        ("PLATFORM_DEMO_TENANT", "TENANT_ADMIN"),
+        ("PLATFORM_SECOND_TENANT", "OPERATIONS"),
     ]
     assert "TRADING" in workspace.module_codes
 

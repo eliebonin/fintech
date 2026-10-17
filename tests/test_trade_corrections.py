@@ -239,7 +239,7 @@ def test_malformed_predecessor_link_blocks_new_correction(c):
 def test_replacement_cannot_move_original_strategy(c):
     first=original(c);before=c.scalar(select(func.count()).select_from(m.trade))
     with pytest.raises(TradeFieldError) as error:
-        replacement(c,first.trade.trade_id,strategyId=str(uuid4()))
+        replacement(c,first.trade.trade_id,strategyId=str(ids['uk_fund_strategy']))
     assert error.value.field=='correction'
     assert c.scalar(select(func.count()).select_from(m.trade))==before
     assert r.get_booked_trade_detail(c,ids['tenant'],first.trade.trade_id,'v1','test').data.trade.lifecycle_status=='BOOKED'

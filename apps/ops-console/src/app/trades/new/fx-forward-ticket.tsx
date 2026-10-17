@@ -1,4 +1,5 @@
 "use client";
+import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {freezeBookingSubmission,type FrozenBookingSubmission} from '@/lib/booking-submission';
 import {RecognitionSummary} from './valuation-recognition-fields';
 import {withBookingCorrection,type BookingCorrection} from '@/lib/trade-correction-model';

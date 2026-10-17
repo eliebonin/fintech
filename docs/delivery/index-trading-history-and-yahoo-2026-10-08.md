@@ -80,7 +80,7 @@ historical security-master certification.
    exactly one approved definition valid on the execution date. Gaps, overlapping
    approvals, lifecycle exclusions and changed historical economics fail closed.
    The chosen historical IDs are frozen in BOOKED evidence.
-6. Restrict the utility to local `fortem_secm` on port 54329. It defaults to a
+6. Restrict the utility to local `platform_secm` on port 54329. It defaults to a
    rollback preview, verifies shared seed identities/economics, takes the seed
    advisory lock, and commits all references atomically with `--apply`.
 

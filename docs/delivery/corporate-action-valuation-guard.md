@@ -2,6 +2,8 @@
 
 Date: 2026-10-07. Scope: fail-closed safety correction, not corporate-action position replay.
 
+**Current follow-up:** [October 13 reviewed basic share-ratio replay](share-ratio-position-replay-20261013.md) implements bounded equity/ETF quantity transformation while retaining this guard for unreviewed and complex actions. Original evidence and exclusions below describe the October 7 version, not the latest capability.
+
 ## Behaviour
 
 Original trades and their booked quantities remain unchanged. A calculation now checks every retained booking from execution through the closing cutoff, rather than checking only the opening-to-closing P&L interval. Thus a split before the opening cutoff cannot silently leave a carried holding at its original quantity.

@@ -1,6 +1,7 @@
 """Read-only setup metadata: never prices, grants or valuation readiness claims."""
 from collections import defaultdict
 from datetime import date,datetime,timezone
+from security_master_schema.governance_clock import governance_date
 from sqlalchemy import select,func
 from security_master_schema import models as m
 from security_master_schema.market_data_visibility import visible_subject_clause
@@ -27,13 +28,13 @@ def profile_rows(c,tenant,subject=None):
     query=select(s.c.market_data_series_id,s.c.reference_node_id,s.c.series_type,s.c.closing_method,o.c.value_basis,o.c.dataset_id,
         t.c.type_code.label('subject_type'),i.c.instrument_type_id,l.c.market_venue_id,
         cal.c.sealed.label('calendar_sealed'),
-        tenant_series_entitlement_clause(o.c.dataset_id,s.c.market_data_series_id,tenant,'VALUATION',date.today()).label('valuation_allowed')
+        tenant_series_entitlement_clause(o.c.dataset_id,s.c.market_data_series_id,tenant,'VALUATION',governance_date()).label('valuation_allowed')
     ).select_from(s.join(o,s.c.market_data_series_id==o.c.market_data_series_id).join(n,s.c.reference_node_id==n.c.reference_node_id).join(t)
         .outerjoin(l,l.c.listing_node_id==s.c.reference_node_id)
         .outerjoin(i,i.c.instrument_node_id==func.coalesce(l.c.instrument_node_id,s.c.reference_node_id))
         .outerjoin(v,l.c.market_venue_id==v.c.market_venue_id).outerjoin(cal,v.c.market_calendar_id==cal.c.market_calendar_id)
     ).where(s.c.status=='ACTIVE',visible_subject_clause(s.c.reference_node_id,tenant),
-        tenant_series_entitlement_clause(o.c.dataset_id,s.c.market_data_series_id,tenant,None,date.today())).distinct()
+        tenant_series_entitlement_clause(o.c.dataset_id,s.c.market_data_series_id,tenant,None,governance_date())).distinct()
     if subject is not None:query=query.where(s.c.reference_node_id==subject)
     return [dict(row) for row in c.execute(query).mappings()]
 
@@ -41,7 +42,7 @@ def profile_rows(c,tenant,subject=None):
 def data_options(c,tenant,source_catalogue):
     grouped=defaultdict(list)
     for row in profile_rows(c,tenant):grouped[row['dataset_id']].append(row)
-    result=[];denied=set(denied_activity_datasets(c,tenant,date.today(),['NON_DISPLAY']))
+    result=[];denied=set(denied_activity_datasets(c,tenant,governance_date(),['NON_DISPLAY']))
     for source in source_catalogue:
         profiles=defaultdict(list)
         for row in grouped[source['datasetId']]:profiles[(row['series_type'],row['value_basis'],row['closing_method'])].append(row)
@@ -67,7 +68,7 @@ def describe_price(series,basis):
 
 def check_configuration(c,tenant,payload,source_catalogue):
     rows=profile_rows(c,tenant);sources={s['datasetId']:s for s in source_catalogue}
-    denied=set(denied_activity_datasets(c,tenant,date.today(),['NON_DISPLAY']))
+    denied=set(denied_activity_datasets(c,tenant,governance_date(),['NON_DISPLAY']))
     priorities={};checks=[]
     for origin,rules in [('EXPLICIT',payload.rules),('DEFAULT',payload.default_rules)]:
         for rule in rules:

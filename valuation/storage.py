@@ -13,6 +13,8 @@ from .service import METHOD
 
 def input_revision_lock(c, tenant, strategy):
     """Serialize source revisions with review across every date in a strategy."""
+    c.execute(select(m.strategy.c.strategy_id).where(m.strategy.c.tenant_id==tenant,
+        m.strategy.c.strategy_id==strategy).with_for_update(key_share=True))
     scope=f'valuation-inputs:{tenant}:{strategy}'
     c.execute(select(func.pg_advisory_xact_lock(int.from_bytes(sha256(scope.encode()).digest()[:8],'big',signed=True))))
 
@@ -63,11 +65,15 @@ def begin_attempt(engine, request, actor, key, correlation_id=None, *, configure
                 if (lineage.complete and (real_operator_id or actor) not in lineage.operators
                     or not lineage.complete and real_operator_id and real_operator_id!=actor):
                     raise ValueError('Legacy request real operator cannot be verified; use a new request key')
+            from security_master_schema.command_audit import retain_command_audit
+            retain_command_audit(c, resources=[old['attempt_id']], phase='REQUEST_ACCEPTED')
             return old['attempt_id']
         attempt=c.execute(t.attempt.insert().values(tenant_id=request.tenant_id,strategy_id=request.strategy_id,
             initiated_by=actor,request_key=key,request_hash=digest,request_payload=canonical_payload(asdict(request)),
             correlation_id=correlation_id or str(uuid4()),status='RUNNING').returning(t.attempt.c.attempt_id)).scalar_one()
         _event(c,attempt,'STARTED','REQUEST',{'realOperatorId':str(real_operator_id or actor)})
+        from security_master_schema.command_audit import retain_command_audit
+        retain_command_audit(c, resources=[attempt], phase='REQUEST_ACCEPTED')
         return attempt
 
 
@@ -133,6 +139,7 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
         return prior['batch_id']
     official=published(c,request.tenant_id,request.strategy_id,day)
     selected={}
+    stored_totals={'market':Decimal(0),'gross':Decimal(0),'net':Decimal(0)}
     from collections import defaultdict
     facts_by_trade=defaultdict(list); selections_by_subject=defaultdict(list); executions_by_key=defaultdict(list)
     if calculation.projection is not None:
@@ -147,19 +154,23 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
         gross=line.gross_pnl if calculation.projection is not None else total
         net=line.net_pnl if calculation.projection is not None else total
         validate_totals(components,market=total,gross=gross,net=net)
-        for amount in [*components.values(),total,gross,net]: _amount(amount)
+        from .rounding import rounded_result
+        rounded=rounded_result(components,market=total,gross=gross,net=net)
+        with localcontext() as ctx:
+            ctx.prec=512
+            for name in stored_totals: stored_totals[name]+=rounded[name]
         if calculation.projection is not None:
             from .position_storage import stage_line
             position,attribution=stage_line(c,attempt_id,calculation,line,
                 facts=[fact for trade in line.bucket.trade_ids for fact in facts_by_trade[trade]],
                 selections=selections_by_subject[str(line.bucket.key.subject_id)]+[s for s in calculation.evidence['selections']
                     if s.get('input_role')=='FX' and s.get('valuation_source_currency_id')==str(line.bucket.key.currency_id)],
-                executions=executions_by_key[line.bucket.key])
+                executions=executions_by_key[line.bucket.key],rounded=rounded)
             selected[position]=attribution
             continue
         # Unrelated trade changes must not manufacture a new version of this lot.
         selections=[row for row in calculation.evidence['selections'] if row['subject_reference_node_id']==str(line.lot.subject_id)]
-        identity=dict(method=METHOD,lot=asdict(line.lot),basis=line.basis,components=components,
+        identity=dict(method=METHOD,lot=asdict(line.lot),basis=line.basis,components=components,storageRounding=rounded['evidence'],
             openingCutoff=request.opening_cutoff,closingCutoff=request.closing_cutoff,
             policyId=request.policy_id,reportingCurrency=request.reporting_currency_id,
             selections=[selection_identity(row) for row in selections])
@@ -170,12 +181,12 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
             selected[line.lot.trade_id]=previous['attribution_id'];continue
         evidence=canonical_payload(dict(identity=identity,informationCutoff=request.information_cutoff,
             resolutionSnapshotIds=calculation.resolution_snapshot_ids,events=[event for event in calculation.evidence['events'] if event['trade_id']==str(line.lot.trade_id)],
-            selections=selections,scope=calculation.scope))
+            selections=selections,scope=calculation.scope,storageRounding=rounded['evidence']))
         selected[line.lot.trade_id]=c.execute(t.attribution.insert().values(tenant_id=request.tenant_id,strategy_id=request.strategy_id,
             attempt_id=attempt_id,trade_id=line.lot.trade_id,value_date=day,version=previous['version']+1 if previous else 1,
             supersedes_attribution_id=previous['attribution_id'] if previous else None,method=METHOD,input_hash=digest,
-            currency_id=request.reporting_currency_id,market_pnl=total,gross_pnl=total,net_pnl=total,
-            components=canonical_payload(components),evidence=evidence).returning(t.attribution.c.attribution_id)).scalar_one()
+            currency_id=request.reporting_currency_id,market_pnl=rounded['market'],gross_pnl=rounded['gross'],net_pnl=rounded['net'],
+            components=canonical_payload(rounded['components']),evidence=evidence).returning(t.attribution.c.attribution_id)).scalar_one()
     old_staged=c.execute(select(t.batch.c.batch_id).where(t.batch.c.tenant_id==request.tenant_id,t.batch.c.strategy_id==request.strategy_id,
         t.batch.c.value_date==day,t.batch.c.status=='STAGED')).scalars().all()
     for old in old_staged:
@@ -184,12 +195,14 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
             status='STALE',reviewed_by=actor,reviewed_at=datetime.now(timezone.utc),
             review_comment='Base candidate replaced by a new staged calculation'))
         c.execute(t.review_event.insert().values(batch_id=old,actor_id=actor,action='CANCELLED',comment='Replaced by a new staged calculation'))
+    with localcontext() as ctx:
+        ctx.prec=512
+        market_rounding=stored_totals['market']-calculation.period.market_pnl
     summary=canonical_payload(dict(scope=calculation.scope,externalComparison=calculation.external_comparison,
-        marketPnl=calculation.period.market_pnl,openingValue=calculation.period.opening_value,closingValue=calculation.period.closing_value,
-        grossPnl=calculation.gross_pnl if calculation.projection is not None else calculation.period.market_pnl,
-        netPnl=calculation.net_pnl if calculation.projection is not None else calculation.period.market_pnl,
+        marketPnl=stored_totals['market'],openingValue=calculation.period.opening_value,closingValue=calculation.period.closing_value,
+        grossPnl=stored_totals['gross'],netPnl=stored_totals['net'],marketRoundingAdjustment=market_rounding,
         executionValue=calculation.period.execution_value,reportingCurrencyId=request.reporting_currency_id,
-        request=asdict(request),limitations=calculation.evidence['limitations'],blockingValidation=[],inputHash=calculation.input_hash,
+        request=asdict(request),ledgerSource=calculation.evidence.get('ledgerSource'),limitations=calculation.evidence['limitations'],blockingValidation=[],inputHash=calculation.input_hash,
         resultFormat='POSITION_V2' if calculation.projection is not None else 'TRADE_V1',
         positionEvidence=({ 'engine':calculation.projection.engine_version,'inputHash':calculation.projection.input_hash,
             'completeKnowledge':calculation.projection.complete_knowledge,'factsScanned':calculation.projection.facts_scanned,
@@ -207,6 +220,25 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
     return batch
 
 
+def batch_disclosure_views(c,tenant,batch_ids,*,include_evidence=True):
+    """Minimal batched history projection; NOT a publication/review view.
+
+    Keep exact evidence consumed by assert_batch_display (including empty/flat
+    population proof). Do not fetch financial lines, lineage or review events
+    just to authorize a headline. Missing/foreign headers remain absent.
+    """
+    if not batch_ids: return {}
+    headers={row['batch_id']:dict(row,items=[]) for row in c.execute(select(t.batch).where(
+        t.batch.c.tenant_id==tenant,t.batch.c.batch_id.in_(set(batch_ids)))).mappings()}
+    if headers and include_evidence:
+        for row in c.execute(select(t.item.c.batch_id,t.attribution.c.position_key,t.attribution.c.evidence)
+                .join(t.attribution,t.attribution.c.attribution_id==t.item.c.attribution_id)
+                .where(t.item.c.tenant_id==tenant,t.item.c.batch_id.in_(headers))
+                .order_by(t.attribution.c.trade_id)).mappings():
+            headers[row['batch_id']]['items'].append(dict(position_key=row['position_key'],evidence=row['evidence']))
+    return headers
+
+
 def batch_view(c, tenant, batch_id):
     header=c.execute(select(t.batch).where(t.batch.c.batch_id==batch_id,t.batch.c.tenant_id==tenant)).mappings().one_or_none()
     if header is None: raise LookupError('Review batch not found')
@@ -220,20 +252,31 @@ def batch_view(c, tenant, batch_id):
         row['lineage']=links.get(row['attribution_id'],[])
     reviews=[dict(row) for row in c.execute(select(t.review_event).where(t.review_event.c.batch_id==batch_id)
         .order_by(t.review_event.c.recorded_at,t.review_event.c.review_event_id)).mappings()]
-    return dict(header)|dict(items=items,reviews=reviews)
+    mode=c.scalar(select(t.run_event.c.details['reviewMode'].astext).where(t.run_event.c.event_code=='PUBLISHED',
+        t.run_event.c.details['batchId'].astext==str(batch_id),t.run_event.c.attempt_id==header['attempt_id'])
+        .order_by(t.run_event.c.recorded_at.desc(),t.run_event.c.event_id.desc()).limit(1))
+    from .ledger_impacts import source_health
+    return dict(header)|dict(items=items,reviews=reviews,publicationReviewMode=mode,sourceHealth=source_health(c,header))
 
 
-def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None):
+def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None,self_publication=False):
     header=c.execute(select(t.batch).where(t.batch.c.batch_id==batch_id,t.batch.c.tenant_id==tenant)).mappings().one_or_none()
     if header is None: raise LookupError('Review batch not found')
     _lock(c,tenant,header['strategy_id'],header['value_date'])
     header=c.execute(select(t.batch).where(t.batch.c.batch_id==batch_id).with_for_update()).mappings().one()
-    if actor==header['staged_by']: raise ValueError('Publication requires an independent reviewer')
-    from .review_authority import assert_batch_independent
-    assert_batch_independent(c,tenant,batch_id,actor,real_operator_id)
+    if self_publication:
+        from .self_publication import authorize_self_publication
+        publication_evidence=authorize_self_publication(c,tenant,header,actor,real_operator_id,lock=True)
+    else:
+        if actor==header['staged_by']: raise ValueError('Publication requires an independent reviewer')
+        from .review_authority import assert_batch_independent
+        assert_batch_independent(c,tenant,batch_id,actor,real_operator_id)
+        publication_evidence={'reviewMode':'INDEPENDENT'}
     if not isinstance(comment,str) or not comment.strip() or len(comment)>2000: raise ValueError('Review explanation required')
     if header['status']=='PUBLISHED': return batch_id
     if header['status']!='STAGED': raise ValueError('Batch is no longer staged')
+    from .ledger_impacts import assert_batch_ledger_current
+    assert_batch_ledger_current(c,tenant,batch_id)
     if c.scalar(select(t.amendment.c.request_id).where(t.amendment.c.base_batch_id==batch_id,t.amendment.c.status=='PENDING').limit(1)):
         raise ValueError('Resolve pending amendment requests before publication')
     if header['summary'].get('blockingValidation'): raise ValueError('Blocking validation must be resolved before publication')
@@ -254,7 +297,10 @@ def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None):
             if not all(value.is_finite() for value in values.values()): raise ValueError('Nonfinite review summary')
             if any(str(row['currency_id'])!=summary['reportingCurrencyId'] for row in candidate):
                 raise ValueError('Review currency mismatch')
-            if selected_total!=values['marketPnl'] or selected_total!=values['closingValue']-values['openingValue']-values['executionValue']:
+            rounding=sum((Decimal(row['evidence'].get('storageRounding',{}).get('adjustments',{}).get('market','0')) for row in candidate),Decimal(0))
+            if rounding!=Decimal(summary.get('marketRoundingAdjustment','0')):
+                raise ValueError('Review rounding adjustment and immutable evidence do not reconcile')
+            if selected_total!=values['marketPnl'] or selected_total!=values['closingValue']-values['openingValue']-values['executionValue']+rounding:
                 raise ValueError('Review summary and selected attribution do not reconcile')
             for column,label in [('gross_pnl','grossPnl'),('net_pnl','netPnl')]:
                 expected=sum((row[column] for row in candidate),Decimal(0))
@@ -271,7 +317,7 @@ def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None):
         c.execute(t.batch.update().where(t.batch.c.batch_id==prior).values(status='SUPERSEDED'))
         c.execute(t.review_event.insert().values(batch_id=prior,actor_id=actor,action='SUPERSEDED',comment='Superseded by a reviewed publication'))
     c.execute(t.batch.update().where(t.batch.c.batch_id==batch_id).values(status='PUBLISHED'))
-    c.execute(t.review_event.insert().values(batch_id=batch_id,actor_id=actor,action='PUBLISHED',comment=comment.strip()))
+    c.execute(t.review_event.insert().values(batch_id=batch_id,actor_id=actor,action='SELF_PUBLISHED' if self_publication else 'PUBLISHED',comment=comment.strip()))
     _event(c,header['attempt_id'],'PUBLISHED','REVIEW',{'batchId':batch_id,
-        'reviewerId':actor,'realOperatorId':real_operator_id or actor})
+        'reviewerId':actor,'realOperatorId':real_operator_id or actor,'reason':comment.strip(),**publication_evidence})
     return batch_id

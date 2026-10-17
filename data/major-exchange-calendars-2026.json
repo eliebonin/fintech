@@ -1,0 +1,305 @@
+{
+  "reviewedOn": "2026-10-13",
+  "selectionNote": "Twenty major-market cash-equity calendar candidates, chosen for universe and regional coverage; not an exact market-capitalization ranking.",
+  "calendars": [
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XNYS",
+      "calendarName": "NYSE",
+      "displayName": "NYSE",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.nyse.com/trade/hours-calendars"
+      ],
+      "reviewScope": "2026 holidays and early-close dates cross-checked; core cash equities only.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XNAS",
+      "calendarName": "NASDAQ",
+      "displayName": "Nasdaq US",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.nasdaq.com/market-activity/stock-market-holiday-schedule"
+      ],
+      "reviewScope": "US regular cash-equity session; same ten closures and two early closes as published US calendar.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XPAR",
+      "calendarName": "XPAR",
+      "displayName": "Euronext Paris",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.euronext.com/en/trading/trading-hours-holidays"
+      ],
+      "reviewScope": "Re-review of Paris 2026 closures/half-day dates; library boundary is not a certified auction timestamp.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XAMS",
+      "calendarName": "XAMS",
+      "displayName": "Euronext Amsterdam",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.euronext.com/en/trading/trading-hours-holidays"
+      ],
+      "reviewScope": "2026 Amsterdam closure and half-day dates checked separately from Paris.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XLON",
+      "calendarName": "LSE",
+      "displayName": "London Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.londonstockexchange.com/trade/trading-access/business-days"
+      ],
+      "reviewScope": "Pinned library research schedule; primary page is dynamically rendered and could not be fully revalidated with the web reader. Not exchange-certified.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XTKS",
+      "calendarName": "JPX",
+      "displayName": "Tokyo Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.jpx.co.jp/english/corporate/about-jpx/calendar/index.html"
+      ],
+      "reviewScope": "JPX holiday source and post-November-2024 15:30 close checked; lunch breaks retained as supporting evidence.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XSHG",
+      "calendarName": "SSE",
+      "displayName": "Shanghai Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://english.sse.com.cn/start/trading/schedule/"
+      ],
+      "reviewScope": "Pinned 2026 SSE cash-equity rules; exchange reference identified. Not Stock Connect or settlement calendar.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XSHE",
+      "calendarName": "SSE",
+      "displayName": "Shenzhen Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://investor.szse.cn/English/services/trading/calendar/index.html"
+      ],
+      "reviewScope": "No dedicated installed Shenzhen calendar. Shanghai snapshot is a candidate only; independent SZSE reconciliation required before activation.",
+      "publicationStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XHKG",
+      "calendarName": "HKEX",
+      "displayName": "Hong Kong Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.hkex.com.hk/News/HKEX-Calendar?sc_lang=en"
+      ],
+      "reviewScope": "Installed HKEX schedule has no half-days. Lunar-new-year eve and year-end half-days must be reconciled before use.",
+      "publicationStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XNSE",
+      "calendarName": "NSE",
+      "displayName": "National Stock Exchange India",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.nseindia.com/resources/exchange-communication-holidays?apiversion=v2"
+      ],
+      "reviewScope": "Research schedule through October 13 only. Announced November 8 Muhurat session has unspecified times; future dates excluded.",
+      "publicationStatus": "ACTIVE",
+      "coverageTo": "2026-10-13"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XBOM",
+      "calendarName": "BSE",
+      "displayName": "Bombay Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.bseindia.com/"
+      ],
+      "reviewScope": "Pinned library research schedule through October 13 only; future Diwali/Muhurat session excluded. Primary notice retrieval remains limited.",
+      "publicationStatus": "ACTIVE",
+      "coverageTo": "2026-10-13"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XTSE",
+      "calendarName": "TSX",
+      "displayName": "Toronto Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.tsx.com/en/trading/calendars-and-trading-hours/calendar"
+      ],
+      "reviewScope": "Pinned TSX research rules; official source identified but direct web reader returned 403. No Alpha/settlement-calendar substitution.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XETR",
+      "calendarName": "XETR",
+      "displayName": "Deutsche Boerse Xetra",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.cashmarket.deutsche-boerse.com/cash-en/trading/trading-calendar-and-trading-hours"
+      ],
+      "reviewScope": "Core 09:00–17:30 cash equities checked. October 13 coverage end excludes provisional December 30 hours; extended retail session excluded.",
+      "publicationStatus": "ACTIVE",
+      "coverageTo": "2026-10-13"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XSWX",
+      "calendarName": "SIX",
+      "displayName": "SIX Swiss Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.six-group.com/dam/download/the-swiss-stock-exchange/trading/trading-provisions/regulation/trading-guides/trading-guide.pdf"
+      ],
+      "reviewScope": "Primary trading guide reviewed; 17:30 equity close, not 17:35 ETF/ETP close. Equity scope only.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XASX",
+      "calendarName": "ASX",
+      "displayName": "Australian Securities Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.asx.com.au/markets/market-resources/trading-hours-calendar/cash-market-trading-hours/trading-calendar"
+      ],
+      "reviewScope": "2026 cash-market holiday and 14:10 half-day dates checked; not ASX24 futures.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XKRX",
+      "calendarName": "XKRX",
+      "displayName": "Korea Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://global.krx.co.kr/contents/GLB/01/0109/0109000000/guide_to_trading_in_the_korean_stock_market.pdf"
+      ],
+      "reviewScope": "Library emits fixed 09:00–15:30; first-session and examination-day exceptions require dated reconciliation.",
+      "publicationStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XTAI",
+      "calendarName": "XTAI",
+      "displayName": "Taiwan Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.twse.com.tw/holidaySchedule/holidaySchedule?response=html"
+      ],
+      "reviewScope": "TWSE holiday schedule reviewed, including lunar-new-year trading closures distinct from settlement-only dates.",
+      "publicationStatus": "ACTIVE"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "BVMF",
+      "calendarName": "BVMF",
+      "displayName": "B3 Brazil",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.b3.com.br/pt_br/noticias/calendario-de-negociacao-da-b3-confira-o-funcionamento-da-bolsa-em-2026.htm"
+      ],
+      "reviewScope": "Calendar holidays sourced; library 18:00 close conflicts with 2026 seasonal trading-hours changes. Requires dated time overrides.",
+      "publicationStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XSES",
+      "calendarName": "XSES",
+      "displayName": "Singapore Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.sgx.com/securities/trading"
+      ],
+      "reviewScope": "Installed library has no half-days; holiday-eve shortened sessions need reconciliation. Not approved for valuation.",
+      "publicationStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "XJSE",
+      "calendarName": "XJSE",
+      "displayName": "Johannesburg Stock Exchange",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://clientportal.jse.co.za/reports/trading-calendars"
+      ],
+      "reviewScope": "Pinned library research schedule; JSE 2026 source identified but source page retrieval failed. Not independently exchange-certified.",
+      "publicationStatus": "ACTIVE"
+    }
+  ],
+  "additionalVenues": [
+    {
+      "mode": "LIBRARY_SNAPSHOT",
+      "mic": "BATS",
+      "calendarName": "BATS",
+      "displayName": "Cboe US cash equities",
+      "year": 2026,
+      "reviewedOn": "2026-10-13",
+      "sourceReference": "https://pandas-market-calendars.readthedocs.io/en/latest/",
+      "verificationReferences": [
+        "https://www.nyse.com/trade/hours-calendars"
+      ],
+      "reviewScope": "Existing seeded BATS venue; the installed BATS alias uses the common NYSE core-session rules. Primary Cboe hours URL was unavailable; no independent Cboe certification, options, overnight or futures calendar is claimed.",
+      "publicationStatus": "ACTIVE"
+    }
+  ]
+}

@@ -221,7 +221,7 @@ def upgrade() -> None:
         sa.Column("market_data_resolution_snapshot_id", sa.UUID(), nullable=True, comment="Resolution snapshot proving the entitled market-data inputs used for this fixing."),
         sa.Column("status", sa.String(length=30), server_default=sa.text("'ACCEPTED'"), nullable=False, comment="Fixing lifecycle state: ACCEPTED, SUPERSEDED, or REJECTED."),
         sa.Column("supersedes_fixing_id", sa.UUID(), nullable=True, comment="Prior fixing superseded by this corrected fixing, without mutating the original fact."),
-        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False, comment="UTC timestamp at which Fortem recorded the fixing."),
+        sa.Column("recorded_at_utc", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False, comment="UTC timestamp at which Platform recorded the fixing."),
         sa.ForeignKeyConstraint(["option_strike_reset_rule_id"], ["secm.option_strike_reset_rule.option_strike_reset_rule_id"], name="fk_option_strike_fixing_rule"),
         sa.ForeignKeyConstraint(["market_data_observation_id"], ["md.market_data_observation.market_data_observation_id"], name="fk_option_strike_fixing_observation"),
         sa.ForeignKeyConstraint(["market_data_resolution_snapshot_id"], ["md.market_data_resolution_snapshot.market_data_resolution_snapshot_id"], name="fk_option_strike_fixing_resolution_snapshot"),

@@ -1,5 +1,15 @@
 # Tenant access administration — local alpha
 
+Current authority model (2026-10-13): [admins manage access; operations require
+explicit groups](admin-operational-authority-separation.md). Migration 84 retained
+the three existing admins' permissions in separate compatibility groups, bringing
+the local group count to 12. Older verification/seed counts below describe their
+original activation, not the current count.
+
+2026-10-13 addition: [current-state effective-access explanations and scoped source
+evidence](effective-access-transparency.md). Tenant profile links to self inspection;
+tenant admins can inspect same-tenant members. Current admin authority is unchanged.
+
 Implemented 9 October 2026 against the approved [design](../superpowers/specs/2026-10-09-tenant-access-administration.md) and [plan](../superpowers/plans/2026-10-09-tenant-access-administration.md). Sequential implementation in the existing feature checkout; unrelated changes were preserved. No commit or push was requested.
 
 ## Where to use it
@@ -15,7 +25,7 @@ Switching performs a full page navigation. The tenant shell identifies the selec
 
 The `access_control` action catalogue maps group permissions to modules. Effective access requires an active account, one unambiguous active tenant membership, active group membership, and enabled tenant subscriptions. Group grants combine; a group cannot override a disabled tenant module. Unknown actions fail closed.
 
-Tenant administrators receive enabled-module permissions plus `ACCESS_MANAGE`. Only separately recorded platform administrators can change tenant subscriptions. An impersonated tenant user never inherits the operator's platform authority. Shared canonical reference data remains shared deliberately; tenant business/configuration data is scoped independently.
+Tenant administrators receive `ACCESS_MANAGE` only. Operational permissions require explicit active group grants within enabled modules, for admins as well as members. Existing admins' operational access is retained via the audited [migration 84 transition](admin-operational-authority-separation.md). Only separately recorded platform administrators can change tenant subscriptions. An impersonated tenant user never inherits the operator's platform authority. Shared canonical reference data remains shared deliberately; tenant business/configuration data is scoped independently.
 
 Default seed personas:
 
@@ -42,9 +52,9 @@ Context switching and new access-management writes require same-origin requests.
 
 Additive migration `20261009_82` creates tenant-scoped groups, group members/grants, audit events and local sessions. Same-tenant composite foreign keys constrain group assignments/grants; services additionally validate the user's current tenant membership. Existing effective-date module tables are reused; same-day changes retain before/after audit evidence rather than inserting overlapping same-day grants.
 
-Applied to local `fortem_secm` on PostgreSQL port 54329. Registry backup: `logs/tenant-access-registry-complete-20261009.sql` (8,235 bytes). This is a data-only recovery snapshot with self-referencing entitlement records; restoration requires a controlled dependency/trigger-aware procedure, not blindly replaying it into a populated database.
+Applied to local `platform_secm` on PostgreSQL port 54329. Registry backup: `logs/tenant-access-registry-complete-20261009.sql` (8,235 bytes). This is a data-only recovery snapshot with self-referencing entitlement records; restoration requires a controlled dependency/trigger-aware procedure, not blindly replaying it into a populated database.
 
-`scripts/seed_tenant_access.py` adds access fixtures only; it does not call the business-data demo loader. It reuses Fortem Demo and Second tenants and adds Fortem Third. Each has an admin, trader, operations user and reader, and three tenant-local groups. Demo subscriptions were preserved; Second has Security Master/Trading/Market Data; Third has Security Master/Trading. The existing demo administrator retains their name, **MVP Operations Booker**. Their older Second-tenant membership remains, but has no implicit group privileges.
+`scripts/seed_tenant_access.py` adds access fixtures only; it does not call the business-data demo loader. It reuses Platform Demo and Second tenants and adds Platform Third. Each has an admin, trader, operations user and reader, and three tenant-local groups. Demo subscriptions were preserved; Second has Security Master/Trading/Market Data; Third has Security Master/Trading. The existing demo administrator retains their name, **MVP Operations Booker**. Their older Second-tenant membership remains, but has no implicit group privileges.
 
 The seed was run twice. Three tenants and nine groups exist; **11 trades and seven strategies stayed unchanged**. Deliberate subsequent group removals/configuration edits are not re-granted by repeat seeding. API/frontend were restarted on ports 8000/3000.
 
@@ -70,15 +80,15 @@ Suspension and reactivation are separate confirmed actions, not an easily change
 
 `PUT /v1/platform/tenants/{tenant_id}` accepts a strict `TenantUpdate` command. Names are trimmed, blank optional contacts become null, contact email receives basic format validation, unknown fields are rejected, and `expectedVersion` is mandatory. A locked tenant row serialises edits; a stale version returns 409 rather than overwriting another administrator's work. Status transitions additionally require `confirmStatusChange`. The same transaction updates the row and records `TENANT_PROFILE_CHANGED` with real platform actor and before/after profile values. Platform role checks and the existing BFF same-origin/context gates remain authoritative.
 
-Migration `20261009_83` adds nullable operational contact fields and `profile_version` (default zero). It is additive and forward-only, with bootstrap-safe column creation. Applied to the isolated test DB and the operating `fortem_secm` database; the API was restarted on 8000, and the development UI on 3000 serves the new editor. OpenAPI and generated TypeScript contracts were refreshed. Existing tenant names, statuses and contacts were not altered by feature acceptance checks.
+Migration `20261009_83` adds nullable operational contact fields and `profile_version` (default zero). It is additive and forward-only, with bootstrap-safe column creation. Applied to the isolated test DB and the operating `platform_secm` database; the API was restarted on 8000, and the development UI on 3000 serves the new editor. OpenAPI and generated TypeScript contracts were refreshed. Existing tenant names, statuses and contacts were not altered by feature acceptance checks.
 
 Verification: **41 focused backend tests passed** (12 existing dependency deprecation warnings); **764 frontend tests passed** across 164 files; frontend and contract TypeScript checks, deterministic OpenAPI check and production build passed. Logs: `logs/tenant-edit-backend.log`, `logs/tenant-edit-ui-tests.log`, `logs/tenant-edit-build.log`. Backend tests exercise platform-only writes, immutable identity, contact validation, stale writes, audit evidence, confirmed suspension and session denial/reactivation. UI checks cover separate actions, no write before confirmation, cancellation, retained failed edits and refreshed success. Live BFF checks verified new fields, 422 validation, 409 stale conflict, wrong-origin rejection and tenant-admin denial without changing tenant profiles. Browser visual walkthrough remains pending because the browser automation environment was already unavailable.
 
 ### Test fixture safety correction
 
-The first expanded backend run finished with 40 passes and one failure in `test_expired_entitlement_removes_strategy_write_permission`. That older module also hard-coded the operating `fortem_secm` database and reran demo seeding, ignoring `DATABASE_URL`. Its expiry update attempted to end newly seeded grants before their start date and failed the valid-period constraint.
+The first expanded backend run finished with 40 passes and one failure in `test_expired_entitlement_removes_strategy_write_permission`. That older module also hard-coded the operating `platform_secm` database and reran demo seeding, ignoring `DATABASE_URL`. Its expiry update attempted to end newly seeded grants before their start date and failed the valid-period constraint.
 
-The fixture now requires an environment-selected isolated database and explicitly rejects `fortem_secm`. Its historic expiry test only edits grants that began by the expiry date. The corrected 41-test run used `fortem_tenant_edit_20261009`. The accidental platform account/grant created by the first run was identified by exact UUID and creation time, backed up in `logs/tenant-edit-accidental-fixture.json`, and removed. All pre-existing platform grants were preserved. Operating counts remained three tenants, seven strategies and eleven trades; tenant names/statuses were confirmed unchanged. Demo seeding did run on operating sample data, so these count checks are not presented as proof that every seeded field was unchanged.
+The fixture now requires an environment-selected isolated database and explicitly rejects `platform_secm`. Its historic expiry test only edits grants that began by the expiry date. The corrected 41-test run used `platform_tenant_edit_20261009`. The accidental platform account/grant created by the first run was identified by exact UUID and creation time, backed up in `logs/tenant-edit-accidental-fixture.json`, and removed. All pre-existing platform grants were preserved. Operating counts remained three tenants, seven strategies and eleven trades; tenant names/statuses were confirmed unchanged. Demo seeding did run on operating sample data, so these count checks are not presented as proof that every seeded field was unchanged.
 
 ## Tenant administration UX refinement
 

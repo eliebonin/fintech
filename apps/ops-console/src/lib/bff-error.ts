@@ -24,6 +24,7 @@ export function bffErrorResponse(error: unknown, fallbackMessage: string, reques
   const status = referenceError?.status ?? 503;
   const correlationId = typedError?.correlationId
     ?? request?.headers.get("X-Correlation-Id")
+    ?? referenceError?.requestId
     ?? crypto.randomUUID();
   const retryable = typedError?.retryable ?? (status === 408 || status === 429 || status >= 500);
   const response = NextResponse.json({
@@ -34,10 +35,12 @@ export function bffErrorResponse(error: unknown, fallbackMessage: string, reques
       // unknown failures receive the route's human-safe fallback.
       message: referenceError?.message ?? fallbackMessage,
       correlationId,
+      ...(referenceError?.requestId?{requestId:referenceError.requestId}:{}),
       retryable,
       ...(typedError?.fieldErrors ? { fieldErrors: typedError.fieldErrors } : {}),
     },
   }, { status });
   response.headers.set("X-Correlation-Id", correlationId);
+  if(referenceError?.requestId)response.headers.set('X-Request-Id',referenceError.requestId);
   return response;
 }

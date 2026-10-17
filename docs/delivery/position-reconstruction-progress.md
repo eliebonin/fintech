@@ -42,6 +42,6 @@ Spec: docs/superpowers/specs/2026-10-08-position-reconstruction-foundation-desig
 
 ## Operating schema activation — 2026-10-08
 
-- User explicitly requested migration 70. Verified target `fortem_secm` and starting revision `20261007_69`, then ran `alembic upgrade 20261008_70` successfully.
+- User explicitly requested migration 70. Verified target `platform_secm` and starting revision `20261007_69`, then ran `alembic upgrade 20261008_70` successfully.
 - Fresh `alembic current`: `20261008_70 (head)`. Verified the attribution/review ownership columns, four ownership/version constraints, and both enabled lineage protection triggers.
 - Before/after counts: trades 9, attributions 0, review batches 0; new lineage table empty. No financial calculation/publication, app restart, commit or push. This supersedes the earlier pending-activation record, not the prior test evidence or browser-signoff limitations.

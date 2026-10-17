@@ -91,6 +91,6 @@ The local ignored diagnostic module is `.superpowers/sdd/2026-10-05-instrument-i
 .venv/Scripts/python.exe scripts/run_isolated_python_tests.py .superpowers/sdd/2026-10-05-instrument-integrity/test_review.py -q -s --tb=short
 ```
 
-Latest result: **15 passed in 2.41 seconds**, exit 0. The runner created a uniquely named `fortem_isolated_tests_…` PostgreSQL database, migrated/seeded it and removed it afterward. Each diagnostic used rollback; the HTTP diagnostic used a dependency override bound to the same isolated connection. No operating tenant data, trades, services or migrations were changed.
+Latest result: **15 passed in 2.41 seconds**, exit 0. The runner created a uniquely named `platform_isolated_tests_…` PostgreSQL database, migrated/seeded it and removed it afterward. Each diagnostic used rollback; the HTTP diagnostic used a dependency override bound to the same isolated connection. No operating tenant data, trades, services or migrations were changed.
 
 The earlier diagnostic run had two failures because immutable-definition triggers correctly refused definition updates. Those diagnostics were replaced with fresh draft aggregates, retaining the triggers. No full Python or frontend suite was rerun for this documentation-only review; prior consolidation results remain recorded separately in [its acceptance review](2026-10-05-booking-consolidation.md).

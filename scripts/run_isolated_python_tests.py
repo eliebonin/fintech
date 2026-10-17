@@ -16,11 +16,13 @@ from sqlalchemy.engine import make_url
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-APP_URL = make_url("postgresql+psycopg://fortem:fortem_local_only@localhost:54329/fortem_secm")
+APP_URL = make_url(os.environ.get("TEST_DATABASE_ADMIN_URL",
+    "postgresql+psycopg://platform:platform_local_only@localhost:54329/postgres"
+)).set(database="platform_secm")
 
 
 def main():
-    name = "fortem_isolated_tests_" + uuid4().hex
+    name = "platform_isolated_tests_" + uuid4().hex
     isolated = APP_URL.set(database=name)
     original = sqlalchemy.create_engine
     admin = original(APP_URL.set(database="postgres"), isolation_level="AUTOCOMMIT")
@@ -54,7 +56,7 @@ def main():
         if previous is None: os.environ.pop("DATABASE_URL", None)
         else: os.environ["DATABASE_URL"] = previous
         for engine in engines: engine.dispose()
-        assert name.startswith("fortem_isolated_tests_") and len(name.rsplit("_",1)[1]) == 32
+        assert name.startswith("platform_isolated_tests_") and len(name.rsplit("_",1)[1]) == 32
         with admin.connect() as connection:
             connection.execute(text(f'DROP DATABASE "{name}"'))
         admin.dispose()

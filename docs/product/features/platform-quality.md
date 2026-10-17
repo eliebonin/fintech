@@ -3,11 +3,15 @@
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Engineering/platform operations  
-**Last reviewed:** 2026-10-12
+**Last reviewed:** 2026-10-17
 
 [Feature register](../feature-register.md). Test pass, local activation, visual acceptance, financial reconciliation and production certification are different claims.
 
 ## F48 API and operational hardening
+
+October 16 [query-efficiency delivery](../../delivery/quality-reviews/2026-10-16-query-efficiency.md)
+records measured read-only gains, preserved authority/evidence boundaries and
+remaining full-history/concurrency limits. No production-capacity certification.
 
 - **Desired:** Consistent authorized/replay-safe APIs, generated contracts, safe logs and scalable recovery/operations.
 - **Status / backend / frontend:** PARTIAL. Authority/tenant checks, budgets, transactions, idempotency, safe RFC problem responses/request IDs and generated OpenAPI/TypeScript; BFF stale-context/uncertain-result handling and readable operational errors.
@@ -18,12 +22,29 @@
 
 ## F49 Frontend acceptance
 
+October 17 [contextual workflow help](../../delivery/page-contextual-help-20261017.md)
+adds page-specific purpose/steps/terms/impact disclosures across complex workflows,
+without moving required warnings or changing authority. Latest verification:
+957 frontend tests, 21 isolated browser journeys, types and optimized build pass;
+live structured-product guide inspected read-only. Full assistive acceptance is
+still open.
+
+October 17 [visual consistency/density delivery](../../delivery/quality-reviews/2026-10-17-frontend-visual-consistency.md)
+adds shared presentation tokens, policy task tabs, structured-product outline and
+shell skip navigation. Whole-project source inventory is distinct from bounded
+visual samples; 932 unit tests, 20 isolated browser cases, types and production
+build pass. F49 remains PARTIAL: full live-page and assistive acceptance is open.
+
+October 16 backend-integration follow-up adds server-paged valuation selectors and
+governed contractual calendar preview. [Verification and remaining limits](../../delivery/quality-reviews/2026-10-16-backend-remediation.md)
+are separate from the earlier frontend remediation; F49 remains PARTIAL.
+
 - **Desired:** Consistent, permission-aware and accessible tenant, reference, booking, data and P&L workflows with realistic user walkthroughs.
-- **Status / backend / frontend:** PARTIAL. Working pages/BFF, native workspace styling, scoped action controls, tests/typechecks/build. Earlier trade-side synthetic browser journeys are recorded; latest access/P&L visual sign-off is not complete.
+- **Status / backend / frontend:** PARTIAL. Working pages/BFF, scoped actions, shared context/retry/error/display protocols and contextual guides. October 17 help follow-up passes 957 frontend regressions, 21 synthetic browser cases, TypeScript and production build. Broader access/P&L visual and assistive sign-off remains incomplete.
 - **Cuts/trade-offs:** Component/HTTP tests are not visual acceptance. Existing MUI dependency does not mean all new pages use MUI. Dedicated operations/booking/profile pages avoid overloading instrument/strategy screens.
 - **Weaknesses:** Dense tickets, heterogeneous page patterns, incomplete latest mobile/keyboard/screen-reader and chart-interaction acceptance. Browser tool failures explain missing evidence, not a successful walkthrough.
 - **Remaining:** Sign off current context/Users/Groups, market-data chart basis/date refresh and economic-P&L inputs/review with realistic trades. Record defects and scope rather than general “UI done”.
-- **Evidence:** [Style review](../../delivery/frontend-style-review-2026-10-08.md), [trade walkthroughs](../../delivery/trade-side-acceptance-2026-10-06.md), [access evidence](../../delivery/tenant-access-administration.md), [economic acceptance limits](../../delivery/economic-pnl-implementation-progress.md).
+- **Evidence:** [October 16 remediation and browser evidence](../../delivery/quality-reviews/2026-10-16-frontend-remediation.md), [style review](../../delivery/frontend-style-review-2026-10-08.md), [trade walkthroughs](../../delivery/trade-side-acceptance-2026-10-06.md), [access evidence](../../delivery/tenant-access-administration.md), [economic acceptance limits](../../delivery/economic-pnl-implementation-progress.md).
 
 ## F50 Automated reference onboarding
 

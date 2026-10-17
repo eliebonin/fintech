@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use superpowers:executing-plans sequentially. No subagents, automatic commits or pushes; preserve existing checkout changes.
 
-**Goal:** Deliver an auditable listed-equities/ETF valuation and economic P&L alpha inspired by Fortem-core attribution review.
+**Goal:** Deliver an auditable listed-equities/ETF valuation and economic P&L alpha inspired by Platform-core attribution review.
 **Architecture:** Pure Decimal economics and historical replay feed frozen-input calculation. Transaction-bound immutable results feed separately persisted operational attempts and staged review/publication.
 **Tech stack:** Python, Decimal, SQLAlchemy, PostgreSQL, FastAPI, Next.js; existing resolver and permissions.
 **Spec:** [valuation/P&L design](../specs/2026-10-07-valuation-pnl-design.md).

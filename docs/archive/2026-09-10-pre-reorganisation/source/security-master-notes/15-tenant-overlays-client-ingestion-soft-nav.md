@@ -40,7 +40,7 @@ licence/entitlement resolution.
 
 | Data class | Owner and visibility | Examples |
 |---|---|---|
-| Shared canonical | Fortem-governed and visible only under policy/rights | public instrument identity, listings, issuer, identifiers, official reference facts |
+| Shared canonical | Platform-governed and visible only under policy/rights | public instrument identity, listings, issuer, identifiers, official reference facts |
 | Shared licensed | retained once where permitted, visibility determined by entitlement | vendor series and observations, data-source metadata |
 | Tenant overlay | one tenant, effective-dated and approved where required | display alias, classification, valuation-source rule, model-price override |
 | Tenant private | one tenant, confidential by default | bespoke OTC terms, private asset, client portfolio, positions and cash |
@@ -104,19 +104,19 @@ The canonical contract is strict. The boundary can be flexible through either a 
 
 ### External-ID mapping service
 
-Every incoming object must resolve through a namespace-aware mapping service. A Fortem UUID is the internal identifier; an external system's code is a time-bound mapping, not an alternate primary key.
+Every incoming object must resolve through a namespace-aware mapping service. A Platform UUID is the internal identifier; an external system's code is a time-bound mapping, not an alternate primary key.
 
 ```text
 Custodian A / asset code "78462"
   -> namespace = CUSTODIAN_A_PROD, type = REFERENCE_NODE
-  -> Fortem instrument/listing UUID
+  -> Platform instrument/listing UUID
 
 Client B / portfolio code "INCOME-01"
   -> namespace = CLIENT_B_PMS, type = STRATEGY
-  -> Fortem strategy UUID
+  -> Platform strategy UUID
 ```
 
-The namespace identifies the provider/bank/client/custodian and, where needed, the tenant and environment. A mapping records the external object type/ID, Fortem object type/UUID, mapping role, venue/context, validity, verification/confidence, source payload, and supersession. It returns one match, an explicit ambiguity, or an exception queue item; it must not guess from ticker or name.
+The namespace identifies the provider/bank/client/custodian and, where needed, the tenant and environment. A mapping records the external object type/ID, Platform object type/UUID, mapping role, venue/context, validity, verification/confidence, source payload, and supersession. It returns one match, an explicit ambiguity, or an exception queue item; it must not guess from ticker or name.
 
 Formal identifiers such as ISIN, FIGI, CUSIP and SEDOL remain separate canonical identifier assignments. The mapping service is for vendor opaque IDs, client/custodian codes, source trade IDs, organisation codes, portfolio codes, and other integration-specific aliases.
 
@@ -186,7 +186,7 @@ tenant position and cash upload
   -> NAV result and administrator comparison
 ```
 
-This proves the shared-master and tenant-overlay model with a daily client outcome. It does not require Fortem to claim full fund accounting, official NAV production, or a universal integration platform.
+This proves the shared-master and tenant-overlay model with a daily client outcome. It does not require Platform to claim full fund accounting, official NAV production, or a universal integration platform.
 
 Namespace-aware external-ID mapping is a **foundation of this slice**, not a later ingestion enhancement. It must support at least `REFERENCE_NODE` and `STRATEGY` before any client position/cash upload is accepted. Without it, every client ingestion route would recreate fragile, adapter-specific identifier matching.
 

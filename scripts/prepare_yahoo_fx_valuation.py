@@ -19,6 +19,7 @@ def main():
     for name in ('from-date','to-date'): parser.add_argument('--'+name,type=date.fromisoformat,required=True)
     parser.add_argument('--authorization-reference',required=True)
     parser.add_argument('--apply',action='store_true')
+    parser.add_argument('--review-existing-classification',action='store_true',help='Explicit scoped review; append package/calendar/policy, retaining old evidence')
     args=parser.parse_args();settings=IngestorSettings.from_environment()
     if settings.environment not in ('local','test'): parser.error('Local personal research only')
     engine=create_engine(settings.database_url)
@@ -26,7 +27,8 @@ def main():
         with engine.connect() as c:
             tx=c.begin()
             try:
-                report=prepare_fx_valuation(c,args.tenant_id,args.actor_id,args.platform_actor_id,args.base_policy_id,args.from_date,args.to_date,args.authorization_reference)
+                report=prepare_fx_valuation(c,args.tenant_id,args.actor_id,args.platform_actor_id,args.base_policy_id,args.from_date,args.to_date,args.authorization_reference,
+                    review_existing_classification=args.review_existing_classification)
                 policy=c.execute(select(m.valuation_policy).where(m.valuation_policy.c.valuation_policy_id==report['policyId'])).mappings().one()
                 currencies=dict(c.execute(select(m.currency.c.currency_code,m.currency.c.currency_id).where(m.currency.c.currency_code.in_(['EUR','GBP']))).all())
                 request=ValuationRequest(args.tenant_id,args.strategy_id,report['policyId'],policy['valuation_cut_id'],currencies['GBP'],

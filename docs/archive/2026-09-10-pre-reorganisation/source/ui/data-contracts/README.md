@@ -6,7 +6,7 @@ mirror PostgreSQL tables blindly.
 Every contract should identify:
 
 - tenant context and authorization requirements;
-- Fortem UUIDs and object types;
+- Platform UUIDs and object types;
 - effective version/status and display label;
 - source/provider/dataset/licence lineage where relevant;
 - market date, valuation cut, and information cutoff for values;

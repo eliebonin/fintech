@@ -1,6 +1,7 @@
 """Review actions enforce tenant, entitlement and independent approval."""
 from uuid import UUID
-from fastapi import APIRouter,Depends,Header,Request
+from fastapi import Depends,Header,Request
+from .request_audit import AuditRouter as APIRouter
 from sqlalchemy import select
 from valuation import tables as t,storage
 from valuation.amendments import request_component_change,approve_component_change,reject_component_change

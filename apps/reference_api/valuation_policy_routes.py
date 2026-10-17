@@ -1,6 +1,7 @@
 """Tenant/module scoped policy administration and read-only preview routes."""
 from uuid import UUID
-from fastapi import APIRouter,Depends,Header,Response
+from fastapi import Depends,Header,Response
+from .request_audit import AuditRouter as APIRouter
 from .tenant_context import TenantContext,get_tenant_context
 from .problem_details import ApiProblem
 from .contracts import MarketDataResolutionSnapshotCreate
