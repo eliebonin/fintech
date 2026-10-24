@@ -1,5 +1,11 @@
 # Keep the retained seed payload byte-identical across Windows/Linux checkouts.
 security_master_schema/data/index_universe_2026_10_06.json text eol=lf
 
+# Archive manifests hash exact bytes; checkout must not convert line endings.
+/docs/archive/** text eol=lf
+
+# The deterministic OpenAPI exporter also compares exact UTF-8/LF bytes.
+/packages/api-contracts/openapi/*.json text eol=lf
+
 # Source archives of the clean product omit optional local reconciliation tools.
 /tooling export-ignore
