@@ -1,7 +1,7 @@
 import type {TradeDetailPayload,TradeLifecycleEvent} from './trades';
 export type BookingCorrection={tradeId:string;expectedSequenceNo:number;reason:string};
-export type BookingProduct='CASH'|'FX_FORWARD'|'OPTION'|'STRUCTURED_PRODUCT'|'FUTURE'|'BOND'|'SWAP';
-const products:BookingProduct[]=['CASH','FX_FORWARD','OPTION','STRUCTURED_PRODUCT','FUTURE','BOND','SWAP'];
+export type BookingProduct='CASH'|'FX_FORWARD'|'OPTION'|'STRUCTURED_PRODUCT'|'FUTURE'|'BOND'|'SWAP'|'ACTIVELY_MANAGED_CERTIFICATE';
+const products:BookingProduct[]=['CASH','FX_FORWARD','OPTION','STRUCTURED_PRODUCT','FUTURE','BOND','SWAP','ACTIVELY_MANAGED_CERTIFICATE'];
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function payload(event:TradeLifecycleEvent):Record<string,any>|null {
  try{const value=JSON.parse(event.eventPayload??'null');return value&&typeof value==='object'&&!Array.isArray(value)?value:null;}catch{return null;}

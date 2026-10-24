@@ -772,6 +772,21 @@ class OptionInstrumentTermsView(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class AmcInstrumentTermsView(BaseModel):
+    redemption_model: str = Field(alias='redemptionModel')
+    distribution_policy: str = Field(alias='distributionPolicy')
+    collateralisation_type: str = Field(alias='collateralisationType')
+    adviser_name: str | None = Field(default=None,alias='adviserName')
+    reference_name: str | None = Field(default=None,alias='referenceName')
+    strategy_description: str | None = Field(default=None,alias='strategyDescription')
+    fee_description: str | None = Field(default=None,alias='feeDescription')
+    pricing_frequency: str | None = Field(default=None,alias='pricingFrequency')
+    publication_lag_business_days: int | None = Field(default=None,alias='publicationLagBusinessDays')
+    maturity_date: date | None = Field(default=None,alias='maturityDate')
+    source_reference: str = Field(alias='sourceReference')
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class InstrumentView(BaseModel):
     instrument_id: UUID = Field(alias="instrumentId")
     canonical_name: str = Field(alias="canonicalName")
@@ -790,6 +805,7 @@ class InstrumentView(BaseModel):
     notes: str
     option_terms: OptionInstrumentTermsView | None = Field(default=None, alias="optionTerms")
     generic_terms: GenericSwapTerms | None = Field(default=None, alias="genericTerms")
+    amc_terms: AmcInstrumentTermsView | None = Field(default=None,alias='amcTerms')
 
     model_config = ConfigDict(populate_by_name=True)
 

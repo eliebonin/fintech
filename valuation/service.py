@@ -32,6 +32,7 @@ class ValuationRequest:
     daily: bool = False
     predecessor_batch_id: UUID | None = None
     recalculation_reason: str | None = None
+    require_complete_accruals: bool = False
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,17 @@ def _selection(c, request, subject, economic_cutoff,product='EQUITY',*,dimension
     normalized = (rule.get('price_requirement')=='AS_TRADED' and selected.valuation_basis=='AS_TRADED'
         and selected.valuation_value is not None and (selected.pricing_evidence or {}).get('priceBasis'))
     permitted=('OFFICIAL_NAV','NAV') if product=='FUND' else ('CLOSE','OFFICIAL_CLOSE')
+    if product in ('SWAP','OPTION'):
+        permitted=(*permitted,'MARK')
+        if product=='OPTION':permitted=(*permitted,'SETTLEMENT')
+        if rule['value_basis']!='RAW' or rule.get('price_requirement'):
+            raise ValuationBlocked('Native RAW derivative contract marks required; share-price normalization is not applicable')
+        dimensions={}
+        for code,value in c.execute(select(m.market_data_series_dimension.c.dimension_code,m.market_data_series_dimension.c.dimension_value)
+            .where(m.market_data_series_dimension.c.market_data_series_id==selected.market_data_series_id)):
+            dimensions.setdefault(code,set()).add(value)
+        if not dimension_filters or any(dimensions.get(code)!={value} for code,value in dimension_filters):
+            raise ValuationBlocked('Unambiguous derivative contract mark units and quote divisor required')
     if product=='FUTURE':
         permitted=(*permitted,'SETTLEMENT')
         if rule['value_basis']!='RAW' or rule.get('price_requirement'):
@@ -89,7 +101,7 @@ def _selection(c, request, subject, economic_cutoff,product='EQUITY',*,dimension
     convention='NAV_DATE' if product=='FUND' else rule['pricing_convention']
     sources=('TENANT_PUBLISHED_SCHEDULE','GOVERNED_SESSIONS') if product=='FUND' else ('GOVERNED_SESSIONS',)
     if (rule['pricing_convention']!=convention or (product!='FUND' and convention not in ('SESSION_CLOSE','EXPLICIT_TIME'))
-        or (convention=='EXPLICIT_TIME' and product not in ('BOND','SWAP','INDEX','FUTURE')) or evidence.get('calendarEvidence',{}).get('source') not in sources):
+        or (convention=='EXPLICIT_TIME' and product not in ('BOND','SWAP','OPTION','INDEX','FUTURE','ACTIVELY_MANAGED_CERTIFICATE')) or evidence.get('calendarEvidence',{}).get('source') not in sources):
         raise ValuationBlocked('Explicit governed session calendar required; legacy weekday fallback is not valuation-ready')
     if not (evidence['calendarEvidence'].get('sealed') or evidence['calendarEvidence'].get('source')=='TENANT_PUBLISHED_SCHEDULE'):
         raise ValuationBlocked('A sealed reference calendar version is required for reproducible valuation')
@@ -198,7 +210,14 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
                     try: prepare_product_inputs(c,request,bucket,{})
                     except ValueError as exc: raise ValuationBlocked(str(exc)) from exc
             cached=selections.get(subject)
-            if product=='FX_FORWARD':
+            if product=='OPTION':
+                from .product_inputs import option_mark_context
+                try:premium_subject,dimensions=option_mark_context(projection,subject,cutoff)
+                except ValueError as exc:raise ValuationBlocked(str(exc)) from exc
+                # Premiums belong to the canonical contract; the ledger retains
+                # its exact listing. Never substitute the performance underlying.
+                selection_request,selected=_selection(c,request,premium_subject,cutoff,product,dimension_filters=dimensions)
+            elif product=='FX_FORWARD':
                 conventions=[f.booking.product_evidence for f in projection.facts if f.booking and f.booking.subject_id==subject]
                 if not conventions:raise ValuationBlocked('Frozen forward conventions required')
                 from decimal import Decimal
@@ -208,6 +227,23 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
                 from .forward_inputs import select_forward_rate
                 try:selection_request,selected=cached if cached else select_forward_rate(c,request,subject,cutoff,conventions[0])
                 except ValueError as exc:raise ValuationBlocked(str(exc)) from exc
+            elif product=='SWAP':
+                from .product_inputs import swap_mark_dimensions
+                try:dimensions=swap_mark_dimensions(projection,subject,cutoff)
+                except ValueError as exc:raise ValuationBlocked(str(exc)) from exc
+                selection_request,selected=cached if cached else _selection(c,request,subject,cutoff,product,dimension_filters=dimensions)
+            elif product=='ACTIVELY_MANAGED_CERTIFICATE':
+                from security_master_schema.amc_quotation import matching_quotation
+                bases=set()
+                for fact in projection.facts:
+                    booking=fact.booking
+                    if booking and booking.subject_id==subject:
+                        proof=booking.product_evidence or {}
+                        try:bases.add(matching_quotation([proof['amcConvention']],booking.quantity_unit,booking.unit_multiplier,booking.quote_factor))
+                        except (KeyError,ValueError) as exc:raise ValuationBlocked('Frozen compatible AMC quotation required') from exc
+                if len(bases)!=1:raise ValuationBlocked('Incompatible AMC price quotation bases on the same subject')
+                selection_request,selected=cached if cached else _selection(c,request,subject,cutoff,product,
+                    dimension_filters=(('AMC_PRICE_BASIS',next(iter(bases))),))
             else:selection_request,selected=cached if cached else _selection(c,request,subject,cutoff,product)
             from .corporate_actions import assert_native_mark_units
             try:
@@ -262,8 +298,9 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
     except ValueError as exc: raise ValuationBlocked(str(exc)) from exc
     from .accruals import load_accrual_inputs,attach_accruals
     try:
-        accruals=load_accrual_inputs(c,request,projection)
-        period=attach_accruals(period,accruals)
+        coverage=load_accrual_inputs(c,request,projection)
+        accruals=coverage.inputs
+        period=attach_accruals(period,accruals,missing=coverage.missing)
     except ValueError as exc: raise ValuationBlocked(str(exc)) from exc
     # Interest coverage reconstructs actual investment exposure. Monetary flows
     # are appended afterwards solely for result ownership/ledger lineage.
@@ -285,10 +322,13 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
             rate=fx.rate,economicDate=fx.economic_date,observationDate=fx.observation_date,evidence=fx.evidence) for fx in conversions.values()],
         economicFlows=[f.evidence for f in flows],
         dailyAccrualInputs=[dict(inputId=a.input_id,revision=a.revision,payload=a.payload) for a in accruals],
+        accrualCoverage=coverage.evidence(request.require_complete_accruals),
         executionFxConvention='ECONOMIC_DAY_END',dailyBridgeCount=len(periods),requiredMarkCount=len(requirements),scope=scope,limitations=['UNBOOKED_INCOME_NOT_INCLUDED',
         'ONLY_REVIEWED_BASIC_SHARE_RATIOS_REPLAYED','CASH_NOT_VALUED','NOT_FULL_NAV']+
         (['FX_FORWARD_UNDISCOUNTED_RATE_DIFFERENCE_NOT_MODEL_MTM'] if any(b.key.product_basis=='FX_FORWARD' for b in projection.buckets) else [])+
         (['ACCRUED_BALANCE_NOT_ASSESSED'] if any(a.payload.get('balanceReconciliation')=='NOT_PROVIDED' for a in accruals) else []),externalComparison='NOT_COMPARED'))
+    if coverage.missing:
+        evidence['limitations'].append('DAILY_ACCRUAL_NOT_SUPPLIED_NOT_INCLUDED')
     from .decisions import applied_decisions
     evidence['appliedRules']=applied_decisions(evidence | dict(
         executionInputs=[asdict(e) for e in projection.executions],

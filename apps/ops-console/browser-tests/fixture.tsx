@@ -24,6 +24,7 @@ import AutocallForm from '../src/app/instruments/autocalls/new/form';
 import {PageHelp} from '../src/components/page-help';
 import {WorkspaceOutline,WorkspaceSkipLink} from '../src/components/workspace-navigation';
 import {PricingPolicyConsole} from '../src/components/pricing-policy-console';
+import {ImportConsole} from '../src/features/imports/import-console';
 
 function StyleWorkspace(){return <ThemeProvider theme={workspaceTheme}><CssBaseline/><WorkspaceSkipLink/><main id="workspace-content" tabIndex={-1} className="mvp-page organisation-page"><h1>Style acceptance</h1><button>Unclassified action</button><Button>Material action</Button><Button size="small">Compact action</Button><WorkspaceOutline items={[{id:'section-two',label:'Second section'}]}/><h2 id="section-two" tabIndex={-1}>Section two</h2><div className="organisation-table"><table><thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead><tbody><tr><td>Synthetic bank</td><td>Counterparty</td><td><button>Manage</button></td></tr></tbody></table></div></main></ThemeProvider>;}
 
@@ -37,6 +38,7 @@ const batch:Batch={batch_id:'synthetic-batch',status:'STAGED',staged_by:'maker',
 if(mode==='structured')render(<AutocallForm/>);else
 if(mode==='styles')render(<StyleWorkspace/>);else
 if(mode==='policy')render(<main className="mvp-page"><PricingPolicyConsole options={{canManage:new URLSearchParams(location.search).get('reader')!=='true',cuts:[{id:'cut',label:'EoD'}],venues:[],instrumentTypes:[],calendars:[],strategies:[],datasets:[]}} initialPolicies={[{valuationPolicyId:'saved-policy',policyCode:'SAVED',displayName:'Saved version'}]}/></main>);else
+if(mode==='imports')render(<ImportConsole tenantId="synthetic-tenant" canWrite={new URLSearchParams(location.search).get('reader')!=='true'}/>);else
 if(mode==='organisations')render(<OrganisationConsole tenantId="synthetic-tenant"/>);else
 if(mode==='labels')render(<ResultWorkspace batch={batch} currency="GBP"/>);else
 if(mode==='valuation')render(<ValuationConsole canCalculate canReview actorId="reviewer"/>);else

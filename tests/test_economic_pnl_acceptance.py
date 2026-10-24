@@ -3,6 +3,7 @@ from datetime import date,timedelta
 from decimal import Decimal as D
 from uuid import uuid4
 import json
+from dataclasses import replace
 import pytest
 from sqlalchemy import select
 from tests.test_valuation_service import valued,service
@@ -48,7 +49,8 @@ def test_dirty_execution_clean_mark_coupon_daily_accrual_stage_publish(valued):
     # app after the independently committed booking transaction.
     attempt=storage.begin_attempt(get_engine(),r,ids['demo_user_account'],str(uuid4()))
     add_bond(c,r,trade)
-    with pytest.raises(ValueError,match='Missing assessed daily'): service().calculate(c,r)
+    with pytest.raises(ValueError,match='Missing assessed daily'):
+        service().calculate(c,replace(r,require_complete_accruals=True))
     inputs=dict(openingBalance=D('990'),dailyEarned=D('10'),closingBalance=D('0'),balanceMovements=D('-1000'),openingFx=D('1'),closingFx=D('1'))
     payload=dict(strategyId=r.strategy_id,instrumentId=ids['bond_instrument_node'],valueDate=date(2026,9,30),inputType='DAILY_INTEREST',
         currencyId=ids['gbp_currency'],reportingCurrencyId=ids['gbp_currency'],eligibleNominal=D('100000'),sourceReference='SYNTHETIC',
@@ -64,6 +66,77 @@ def test_dirty_execution_clean_mark_coupon_daily_accrual_stage_publish(valued):
     batch=storage.stage(c,attempt,ids['demo_user_account'],result)
     storage.publish(c,r.tenant_id,batch,reviewer(c),'Synthetic economics and coverage reviewed')
     assert storage.batch_view(c,r.tenant_id,batch)['summary']['grossPnl']=='2729.877'
+
+
+def test_missing_accrual_is_optional_disclosed_and_not_a_zero_input(valued):
+    c,r,trade=valued
+    add_bond(c,r,trade)
+    result=service().calculate(c,r)
+    assert result.gross_pnl==result.period.market_pnl==D('2609.877')
+    assert result.evidence['dailyAccrualInputs']==[]
+    coverage=result.evidence['accrualCoverage']
+    assert coverage['mode']=='OPTIONAL'
+    assert coverage['suppliedCount']==0 and coverage['missingCount']==2
+    assert coverage['missing']==[
+        dict(instrumentId=str(ids['bond_instrument_node']),valueDate='2026-09-30'),
+        dict(instrumentId=str(ids['bond_instrument_node']),valueDate='2026-10-01')]
+    assert 'DAILY_ACCRUAL_NOT_SUPPLIED_NOT_INCLUDED' in result.evidence['limitations']
+    bond=next(l for l in result.period.lines if l.bucket.key.product_basis=='BOND')
+    assert 'ACCRUAL' not in bond.components()
+    assert [p['valueDate'] for p in bond.economic_evidence if p['kind']=='MISSING_DAILY_ACCRUAL']==['2026-09-30','2026-10-01']
+    batch=staged(c,r,result)
+    view=storage.batch_view(c,r.tenant_id,batch)
+    assert view['summary']['accrualCoverage']==coverage
+    saved=next(i for i in view['items'] if i['subject_id']==bond.bucket.key.subject_id)
+    assert any(rule['code']=='DAILY_ACCRUAL_NOT_SUPPLIED' for rule in saved['evidence']['appliedRules'])
+    # Missing input is allowed at publication when it remains absent and is
+    # disclosed; this is not a claim of complete accrued-interest P&L.
+    storage.publish(c,r.tenant_id,batch,reviewer(c),'Missing interest explicitly reviewed')
+
+
+def test_partial_coverage_includes_confirmed_zero_but_later_input_requires_recalculation(valued):
+    from valuation.accruals import record_accrual
+    c,r,trade=valued
+    add_bond(c,r,trade)
+    data=dict(strategyId=r.strategy_id,instrumentId=ids['bond_instrument_node'],inputType='DAILY_INTEREST',
+        currencyId=ids['gbp_currency'],dailyEarned=D('0'))
+    record_accrual(c,r.tenant_id,ids['demo_user_account'],data|dict(valueDate=date(2026,9,30)),str(uuid4()))
+    result=service().calculate(c,r)
+    assert result.evidence['accrualCoverage']['suppliedCount']==1
+    assert result.evidence['accrualCoverage']['missingCount']==1
+    bond=next(l for l in result.period.lines if l.bucket.key.product_basis=='BOND')
+    assert bond.components()['ACCRUAL']==0
+    assert len(result.evidence['dailyAccrualInputs'])==1
+    batch=staged(c,r,result)
+    record_accrual(c,r.tenant_id,ids['demo_user_account'],data|dict(valueDate=date(2026,10,1),dailyEarned=D('12')),str(uuid4()))
+    with pytest.raises(ValueError,match='previously missing'):
+        storage.publish(c,r.tenant_id,batch,reviewer(c),'Cannot ignore newly supplied interest')
+    refreshed=service().calculate(c,r)
+    assert refreshed.gross_pnl==result.gross_pnl+D('12')
+    assert refreshed.evidence['accrualCoverage']['missingCount']==0
+    assert 'DAILY_ACCRUAL_NOT_SUPPLIED_NOT_INCLUDED' not in refreshed.evidence['limitations']
+    strict=service().calculate(c,replace(r,require_complete_accruals=True))
+    assert strict.gross_pnl==refreshed.gross_pnl
+    assert strict.evidence['accrualCoverage']['mode']=='REQUIRED'
+
+
+def test_optional_accrual_does_not_ignore_invalid_supplied_evidence(valued):
+    from valuation.accruals import record_accrual
+    from valuation import tables as t
+    c,r,trade=valued
+    add_bond(c,r,trade)
+    identity=record_accrual(c,r.tenant_id,ids['demo_user_account'],dict(strategyId=r.strategy_id,
+        instrumentId=ids['bond_instrument_node'],inputType='DAILY_INTEREST',valueDate=date(2026,10,1),
+        currencyId=ids['gbp_currency'],dailyEarned=D('10')),str(uuid4()))
+    # Simulate malformed retained bridge evidence only in the disposable fixture.
+    # Core typed amount/currency constraints remain intact; no triggers disabled.
+    original=dict(c.execute(select(t.accrual_input).where(t.accrual_input.c.input_id==identity)).mappings().one())
+    payload=original['payload']|dict(inputs=dict(openingBalance='1',dailyEarned='10',
+        closingBalance='0',balanceMovements='0',openingFx='1',closingFx='1'))
+    c.execute(t.accrual_input.insert().values(original|dict(input_id=uuid4(),revision=2,
+        supersedes_input_id=identity,submission_key=str(uuid4()),payload=payload)))
+    with pytest.raises(ValueError,match='balance does not reconcile'):
+        service().calculate(c,r)
 
 
 def test_fund_nav_lag_uses_closed_fund_day_and_publication_cutoff(valued):

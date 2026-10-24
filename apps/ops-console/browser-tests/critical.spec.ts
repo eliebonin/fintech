@@ -29,9 +29,9 @@ test('unknown requests warn before closing and retain the retry when closure is 
  const dialog=page.waitForEvent('dialog');await page.close({runBeforeUnload:true});const warning=await dialog;expect(warning.type()).toBe('beforeunload');await warning.dismiss();expect(page.isClosed()).toBe(false);
  await expect(page.getByRole('status')).toHaveText('Outcome unknown');
 });
-test('actual valuation ticket selects a versioned policy, stages, inspects and explicitly publishes',async({page})=>{
+for(const strict of [false,true])test(`actual valuation ticket selects a versioned policy, stages, inspects and explicitly publishes (strict accrual ${strict})`,async({page})=>{
  const request={strategy_id:'strategy',policy_id:'policy-v3',reporting_currency_id:'gbp',opening_cutoff:'2026-10-06T00:00:00Z',closing_cutoff:'2026-10-07T00:00:00Z'};
- const batch={batch_id:'synthetic-batch',status:'STAGED',staged_by:'maker',reviews:[],summary:{scope:'MARKET_ONLY',resultFormat:'POSITION_V2',request,marketPnl:'1',openingValue:'1',closingValue:'2',executionValue:'0',reportingCurrencyId:'gbp',externalComparison:'NOT_COMPARED',limitations:[]},items:[]};
+ const batch={batch_id:'synthetic-batch',status:'STAGED',staged_by:'maker',reviews:[],summary:{scope:'MARKET_ONLY',resultFormat:'POSITION_V2',request,marketPnl:'1',openingValue:'1',closingValue:'2',executionValue:'0',reportingCurrencyId:'gbp',externalComparison:'NOT_COMPARED',limitations:[],accrualCoverage:{mode:strict?'REQUIRED':'OPTIONAL',suppliedCount:strict?1:0,missingCount:strict?0:1,missing:strict?[]:[{instrumentId:'bond',valueDate:'2026-10-07'}]}},items:[]};
  const posts:string[]=[];
  await page.route('**/api/valuation/options',r=>r.fulfill({json:{...options,policies:[{id:'policy-v3',label:'Synthetic EOD · v3',cutId:'cut'}]}}));
  await page.route('**/api/valuation/option-choices?**',r=>{
@@ -39,14 +39,18 @@ test('actual valuation ticket selects a versioned policy, stages, inspects and e
   const items=query.get('kind')==='policies'?[{id:'policy-v3',label:'Synthetic EOD · v3',cutId:'cut'}]:query.get('kind')==='currencies'?options.currencies:options.strategies;
   return r.fulfill({json:{items,total:items.length,limit:25,offset:0,selected:items.find(item=>item.id===query.get('selected_id'))??null}});
  });
- await page.route('**/api/valuation/attempts',async r=>{posts.push('calculate');expect(r.request().postDataJSON().policyId).toBe('policy-v3');await r.fulfill({json:{attempt:{attempt_id:'attempt',status:'COMPLETED',started_at:'2026-10-08T12:00:00Z',correlation_id:'synthetic',request_payload:request},events:[],batch}});});
+ await page.route('**/api/valuation/attempts',async r=>{posts.push('calculate');expect(r.request().postDataJSON().policyId).toBe('policy-v3');expect(r.request().postDataJSON().requireCompleteAccruals).toBe(strict?true:undefined);await r.fulfill({json:{attempt:{attempt_id:'attempt',status:'COMPLETED',started_at:'2026-10-08T12:00:00Z',correlation_id:'synthetic',request_payload:request},events:[],batch}});});
  await page.route('**/api/valuation/batches/synthetic-batch/publish',async r=>{posts.push('publish');expect(r.request().postDataJSON().comment).toBe('Synthetic independent review');await r.fulfill({json:{...batch,status:'PUBLISHED'}});});
  await page.goto('/?mode=valuation');const input=page.getByRole('tabpanel',{name:'Input form'});
  await input.getByRole('combobox',{name:'Strategy',exact:true}).selectOption('strategy');await input.getByRole('combobox',{name:'Pricing policy'}).selectOption('policy-v3');
  await input.getByRole('combobox',{name:'Reporting currency',exact:true}).selectOption('gbp');
  await input.getByLabel('Opening valuation date').fill('2026-10-06');await input.getByLabel('Closing valuation date').fill('2026-10-07');
+ const coverage=input.getByRole('checkbox',{name:'Require complete daily accrual coverage'});
+ await expect(coverage).not.toBeChecked();if(strict)await coverage.check();
  await expect.poll(()=>input.locator('form').first().evaluate(form=>(form as HTMLFormElement).checkValidity())).toBe(true);
  await input.getByRole('button',{name:'Calculate and stage',exact:true}).click();await expect(page.getByRole('tab',{name:'Results',exact:true})).toHaveAttribute('aria-selected','true');
+ if(strict)await expect(page.getByText('Accrual not supplied—not included.',{exact:true})).toHaveCount(0);
+ else {await expect(page.getByText('Accrual not supplied—not included.',{exact:true})).toBeVisible();await page.getByText('Missing daily interest dates',{exact:true}).click();await expect(page.getByRole('link',{name:'bond',exact:true})).toBeVisible();}
  await expect(page.getByText('Completed · Staged — not published',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Publish valuation',exact:true}).click();
  await page.getByRole('button',{name:'Confirm publication',exact:true}).click();expect(posts).toEqual(['calculate']);
  await page.getByRole('textbox',{name:'Review decision'}).fill('Synthetic independent review');await page.getByRole('button',{name:'Confirm publication',exact:true}).click();

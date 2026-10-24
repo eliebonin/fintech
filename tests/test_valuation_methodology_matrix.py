@@ -77,7 +77,7 @@ def test_missing_nonzero_boundary_mark_does_not_become_zero():
         attribute_projection(p,{MarkKey(SUBJECT,OPEN):D(100)},CURRENCY)
 
 
-@pytest.mark.parametrize('product', ['OPTION','FUTURE','SWAP','STRUCTURED_PRODUCT'])
+@pytest.mark.parametrize('product', ['FUTURE','STRUCTURED_PRODUCT'])
 def test_booking_support_does_not_enable_unimplemented_valuation(product):
     from valuation.product_inputs import supported_product
     with pytest.raises(ValueError,match='not valuation-ready'):

@@ -1,6 +1,7 @@
-export function dailyValuationRequest(fields:FormData,scope:Record<string,string>,now=new Date().toISOString()):Record<string,string>{
+export function dailyValuationRequest(fields:FormData,scope:Record<string,string>,now=new Date().toISOString()):Record<string,string|boolean>{
  return {...scope,openingDate:String(fields.get('openingDate')??''),closingDate:String(fields.get('closingDate')??''),
-  informationCutoff:String(fields.get('informationCutoff')||now)};
+  informationCutoff:String(fields.get('informationCutoff')||now),
+  ...(fields.get('requireCompleteAccruals')==='on'?{requireCompleteAccruals:true}:{})};
 }
 
 export class ValuationHttpError extends Error{

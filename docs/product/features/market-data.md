@@ -3,7 +3,7 @@
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Market-data engineering/operations  
-**Last reviewed:** 2026-10-12
+**Last reviewed:** 2026-10-23 (product/tooling separation)
 
 [Feature register](../feature-register.md). Storage, display rights, valuation-use rights, policy eligibility and financial acceptance are separate states. Counts below are dated activation evidence, not a new live-DB audit.
 
@@ -24,6 +24,12 @@ reads still have per-series work; this is not a general market-data scale sign-o
 - **Evidence:** [Universe seed](../../delivery/index-universe-seed-2026-10-06.md), [trading history](../../delivery/index-trading-history-and-yahoo-2026-10-08.md), [operator orchestration](../../../apps/market_data_ingestor/index_trading_history.py).
 
 ## F26 Ingestion boundary and operations
+
+23 October: [private reconciliation FX delivery](../../delivery/reconciliation-fx-import-20261023.md)
+adds 15 source currencies, 210 directed pairs and 4,620 exactly retained rates
+(21 September–20 October) to a tenant-one-private dataset. Dates are not certified
+UK/US fixing times; inspection rights do not imply valuation eligibility. This is
+a bounded local operator, not delivery of a general tenant FX upload interface.
 
 - **Desired:** Provider-neutral ingestion isolated from API request handling, with retries, provenance and operational recovery.
 - **Status / backend / frontend:** ALPHA. `market_data` contracts/rights/publication, Yahoo adapters and operator entry points; durable jobs/attempts and partial/gap retries. UI inspects stored results, not acquisition orchestration.
@@ -122,4 +128,5 @@ end October 13; this is research-grade 2026 coverage, not twenty certified feeds
 - **Cuts/trade-offs:** Upload must retain original third-party provenance/licensing; ownership of a file does not establish legal content ownership. New/unvalidated values must not automatically replace market marks.
 - **Weaknesses:** Intake templates, validation, duplicate/correction workflow, rights declaration and priority activation are missing as one operational journey.
 - **Remaining:** Tenant-scoped intake API/UI, reviewed source identity and semantics, publication/correction evidence and configurable validated-source priority.
+- **Proposed common intake:** [F59 upload catalogue](tenant-data-imports.md) includes prices/NAVs/FX as U03, with market-data ownership and rights unchanged. Shared upload planning does not upgrade F35 or imply implemented self-service intake.
 - **Evidence:** [Tenant-supplied boundary](../../delivery/scoped-dataset-entitlements.md#tenant-supplied-series), [generic ingest](../../../market_data/ingestion.py), [priority semantics](../../delivery/market-data-sources-ui.md).

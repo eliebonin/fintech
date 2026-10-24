@@ -9,7 +9,8 @@ class PositionError(ValueError):
 
 POSITION_UNITS={'EQUITY':frozenset({'SHARES','UNITS'}),'ETF':frozenset({'SHARES','UNITS'}),
     'FUND':frozenset({'UNITS'}),'BOND':frozenset({'NOMINAL'}),'CASH':frozenset({'CURRENCY_AMOUNT'}),
-    'FX_FORWARD':frozenset({'CURRENCY_AMOUNT'})}
+    'FX_FORWARD':frozenset({'CURRENCY_AMOUNT'}),'ACTIVELY_MANAGED_CERTIFICATE':frozenset({'UNITS','NOMINAL'}),
+    'SWAP':frozenset({'UNITS','NOMINAL'}),'OPTION':frozenset({'CONTRACTS'})}
 
 @dataclass(frozen=True)
 class ProjectionRequest:

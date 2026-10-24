@@ -33,7 +33,8 @@ def recalculate(engine, tenant, actor, batches, reason, key, correlation, *, ope
             request=ValuationRequest(tenant_id=tenant,strategy_id=base['strategy_id'],
                 policy_id=UUID(original['policy_id']),cut_id=UUID(original['cut_id']),reporting_currency_id=UUID(original['reporting_currency_id']),
                 opening_cutoff=datetime.fromisoformat(original['opening_cutoff']),closing_cutoff=datetime.fromisoformat(original['closing_cutoff']),
-                information_cutoff=cutoff,daily=original.get('daily',False),predecessor_batch_id=base['batch_id'],recalculation_reason=reason)
+                information_cutoff=cutoff,daily=original.get('daily',False),predecessor_batch_id=base['batch_id'],recalculation_reason=reason,
+                require_complete_accruals=original.get('require_complete_accruals',True))
             attempt=execute(engine,request,actor,child,correlation,configure_transaction=configure_transaction,real_operator_id=operator)
             with engine.begin() as c:
                 if configure_transaction: configure_transaction(c)

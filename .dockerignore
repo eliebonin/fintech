@@ -1,0 +1,15 @@
+# Source-specific local tools and their tests never belong in a product image.
+tooling/
+
+# Local artifacts, secrets and dependency caches.
+.git/
+.venv/
+node_modules/
+**/node_modules/
+logs/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+.env
+.env.*
+!.env.example

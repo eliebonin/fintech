@@ -4,9 +4,57 @@ from decimal import Decimal,localcontext
 from .economics import finite_decimal
 
 
+def option_mark_context(projection,subject,cutoff):
+    """Canonical contract premium; listing/underlying multipliers are not reapplied."""
+    from datetime import date
+    from uuid import UUID
+    conventions=set()
+    for fact in projection.facts:
+        booking=fact.booking
+        if not booking or booking.subject_id!=subject:continue
+        proof=booking.product_evidence or {}
+        try:
+            if booking.product_basis!='OPTION' or booking.quantity_unit!='CONTRACTS' or proof['optionPriceBasis']!='PREMIUM_POINTS':
+                raise ValueError('Frozen option contract-premium quotation required')
+            expiry=date.fromisoformat(proof['expiryDate'])
+            if cutoff.date()>expiry:raise ValueError('Unclosed option exposure after expiry requires Ops lifecycle handling')
+            def text(value):
+                result=format(value,'f')
+                return result.rstrip('0').rstrip('.') if '.' in result else result
+            conventions.add((UUID(proof['instrumentId']),text(booking.unit_multiplier),text(booking.quote_factor),expiry))
+        except (KeyError,TypeError) as exc:raise ValueError('Frozen option contract-premium quotation required') from exc
+    if len(conventions)!=1:raise ValueError('Unique compatible frozen option premium quotation required')
+    canonical,multiplier,factor,_=next(iter(conventions))
+    return canonical,(('OPTION_PRICE_BASIS','PREMIUM_POINTS'),('PREMIUM_MULTIPLIER',multiplier),('QUOTE_FACTOR',factor),('QUANTITY_UNIT','CONTRACTS'))
+
+
+def swap_mark_dimensions(projection,subject,cutoff):
+    """Bind a supplied whole-swap mark to its booked units, never its underlying."""
+    from datetime import date
+    conventions=set()
+    for fact in projection.facts:
+        booking=fact.booking
+        if not booking or booking.subject_id!=subject:continue
+        proof=booking.product_evidence or {}
+        try:
+            basis='WHOLE_SWAP_MTM_PER_'+('UNIT' if booking.quantity_unit=='UNITS' else 'NOTIONAL')
+            if (booking.product_basis!='SWAP' or proof['swapPriceBasis']!=basis
+                or booking.unit_multiplier!=1 or Decimal(proof['quoteFactor'])!=booking.quote_factor):
+                raise ValueError('Frozen compatible whole-swap quotation required')
+            maturity=date.fromisoformat(proof['maturityDate'])
+            if cutoff.date()>maturity:raise ValueError('Unclosed swap exposure after maturity requires Ops closure')
+            factor=format(booking.quote_factor,'f')
+            if '.' in factor:factor=factor.rstrip('0').rstrip('.')
+            conventions.add((basis,booking.quantity_unit,factor,maturity))
+        except (KeyError,TypeError) as exc:raise ValueError('Frozen compatible whole-swap quotation required') from exc
+    if len(conventions)!=1:raise ValueError('Frozen unique whole-swap quotation required')
+    basis,unit,factor,_=next(iter(conventions))
+    return (('SWAP_PRICE_BASIS',basis),('QUANTITY_UNIT',unit),('QUOTE_FACTOR',factor))
+
+
 def supported_product(product,unit):
     from positions.contracts import POSITION_UNITS
-    expected={'EQUITY':'PRICE','ETF':'PRICE','FUND':'NAV','BOND':'CLEAN_PLUS_ACCRUAL','CASH':'FX_ONLY','FX_FORWARD':'FORWARD_RATE_DIFFERENCE'}
+    expected={'EQUITY':'PRICE','ETF':'PRICE','FUND':'NAV','ACTIVELY_MANAGED_CERTIFICATE':'PRICE','BOND':'CLEAN_PLUS_ACCRUAL','CASH':'FX_ONLY','FX_FORWARD':'FORWARD_RATE_DIFFERENCE','SWAP':'WHOLE_SWAP_MARK','OPTION':'OPTION_PREMIUM'}
     if product not in expected or unit not in POSITION_UNITS.get(product,()):
         raise ValueError(f'{product}/{unit} is not valuation-ready: explicit unit economics and final marks required')
     return expected[product]

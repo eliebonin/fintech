@@ -67,6 +67,7 @@ export type InstrumentRecord = {
   notes: string;
   optionTerms?: OptionInstrumentTerms | null;
   genericTerms?: components['schemas']['GenericSwapTerms-Output'] | null;
+  amcTerms?: components['schemas']['AmcInstrumentTermsView'] | null;
 };
 
 const instruments: InstrumentRecord[] = [

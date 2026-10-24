@@ -212,7 +212,7 @@ export function bookFxForwardTrade(payload: components["schemas"]["FxForwardBook
 export function bookOptionTrade(payload: components["schemas"]["OptionBookingRequest"], options: EquityProposalOptions, key: string) {
   return postBookedTrade("/v1/trades/options",payload,options,key);
 }
-export function bookProductTrade(product:'structured-products'|'futures'|'bonds'|'swaps',payload:components['schemas']['ProductBookingRequest'],options:EquityProposalOptions,key:string) {
+export function bookProductTrade(product:'structured-products'|'futures'|'bonds'|'swaps'|'amcs',payload:components['schemas']['ProductBookingRequest'],options:EquityProposalOptions,key:string) {
   return postBookedTrade(`/v1/trades/${product}`,payload,options,key);
 }
 export function searchProductInstruments(options:EquityProposalOptions,params:URLSearchParams) {
@@ -226,6 +226,9 @@ export function searchFutureFamilies(options:EquityProposalOptions,params:URLSea
 }
 export function submitProductProposal(kind:'future-families'|'futures'|'booking-conventions',payload:unknown,options:EquityProposalOptions) {
   return postBookedTrade<components['schemas']['ReferenceDataProposalResponse']>(kind==='future-families'?'/v1/future-family-proposals':kind==='futures'?'/v1/future-proposals':'/v1/instrument-booking-convention-proposals',payload,options,crypto.randomUUID());
+}
+export function submitAmcProposal(context:EquityProposalOptions,request:components['schemas']['AmcProposalRequest']) {
+  return postBookedTrade<components['schemas']['ReferenceDataProposalResponse']>('/v1/instruments/amc-proposals',request,context,crypto.randomUUID());
 }
 export function submitSwapProposal(context:EquityProposalOptions,request:components['schemas']['SwapProposalRequest']) {
   return postBookedTrade<components['schemas']['ReferenceDataProposalResponse']>('/v1/instruments/swap-proposals',request,context,crypto.randomUUID());

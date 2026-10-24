@@ -15,6 +15,12 @@ maintained domain references; they do not replace the capability register.
 
 ## Module boundaries and invariants
 
+- `tooling/reconciliation_csv/` is an optional external-dataset convenience tool,
+  not a product subsystem. Application packages and product tests must not import
+  it. Keep source-specific adapters, mockup completion, operators and their tests
+  there; use existing governed services without weakening validators. Do not add
+  its execution to startup, migrations, product CI seeding or tenant endpoints.
+
 - `apps/reference_api` owns access-checked reference reads, proposal workflow and
   database mutations. Its local header/session identity is not production
   authentication (BACKEND-001). `security_master_schema` owns schema/domain foundations;

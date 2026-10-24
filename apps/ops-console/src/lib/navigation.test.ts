@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { WORKSPACE_NAV_ITEMS, getActiveWorkspaceSection } from "./navigation";
 
 describe("workspace navigation", () => {
+  it('exposes a dedicated tenant import destination',()=>{
+    expect(WORKSPACE_NAV_ITEMS.find(item=>item.href==='/imports')?.label).toBe('Trade imports');
+    expect(getActiveWorkspaceSection('/imports')).toBe('imports');
+  });
   it('exposes source settings as its own market-data destination',()=>{
     expect(WORKSPACE_NAV_ITEMS.find(item=>item.href==='/market-data/sources')?.label).toBe('Data sources');
     expect(getActiveWorkspaceSection('/market-data/sources')).toBe('market-data-sources');

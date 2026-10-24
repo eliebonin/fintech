@@ -15,5 +15,8 @@ def test_cash_is_unit_mark_and_derivatives_have_explicit_readiness_gate():
     assert supported_product('CASH','CURRENCY_AMOUNT')=='FX_ONLY'
     assert supported_product('BOND','NOMINAL')=='CLEAN_PLUS_ACCRUAL'
     assert supported_product('FUND','UNITS')=='NAV'
-    for product in ('SWAP','OPTION','FX_FORWARD','FUTURE','STRUCTURED_PRODUCT'):
+    assert supported_product('SWAP','UNITS')=='WHOLE_SWAP_MARK'
+    assert supported_product('SWAP','NOMINAL')=='WHOLE_SWAP_MARK'
+    assert supported_product('OPTION','CONTRACTS')=='OPTION_PREMIUM'
+    for product in ('OPTION','FX_FORWARD','FUTURE','STRUCTURED_PRODUCT'):
         with pytest.raises(ValueError,match='not valuation-ready'): supported_product(product,'NOMINAL')

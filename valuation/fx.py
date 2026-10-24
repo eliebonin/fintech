@@ -3,7 +3,7 @@ from dataclasses import asdict,dataclass
 from datetime import date
 from decimal import Decimal,ROUND_HALF_EVEN,localcontext
 from uuid import UUID
-from sqlalchemy import select
+from sqlalchemy import select,exists
 from security_master_schema import models as m
 from security_master_schema.market_data_resolver import ResolutionRequest,resolve_market_data
 from .economics import finite_decimal
@@ -37,16 +37,38 @@ def resolve_fx(c,request,source_currency_id,target_currency_id,economic_date):
     codes=dict(c.execute(select(m.currency.c.currency_id,m.currency.c.currency_code).where(
         m.currency.c.currency_id.in_([source_currency_id,target_currency_id]),m.currency.c.status=='ACTIVE')).all())
     if len(codes)!=2: raise ValueError('Active FX source and reporting currency required')
+    from market_data.entitlements import tenant_series_entitlement_clause
+    from market_data.rights import denied_activity_datasets
+    from security_master_schema.reference_visibility import visible_clause
+    from security_master_schema.governance_clock import governance_date
+    today=governance_date()
+    denied=denied_activity_datasets(c,request.tenant_id,today,['NON_DISPLAY'])
     dims=m.market_data_series_dimension;s=m.market_data_series;n=m.financial_reference_node;t=m.reference_node_type
-    def subjects(base,quote):
+    def subjects(base,quote,*,eligible=False):
         def dimension(code,value):
             return s.c.market_data_series_id.in_(select(dims.c.market_data_series_id).where(dims.c.dimension_code==code,dims.c.dimension_value==value))
-        return list(c.scalars(select(s.c.reference_node_id).join(n,s.c.reference_node_id==n.c.reference_node_id).join(t).where(
+        query=select(s.c.reference_node_id).join(n,s.c.reference_node_id==n.c.reference_node_id).join(t).where(
             t.c.type_code=='FX_PAIR',s.c.status=='ACTIVE',s.c.series_type=='FX_SPOT',s.c.value_type=='RATE',
-            dimension('BASE_CURRENCY',base),dimension('QUOTE_CURRENCY',quote)).distinct()))
-    pairs=subjects(codes[source_currency_id],codes[target_currency_id]);inverse=False
+            visible_clause(n.c.reference_node_id,request.tenant_id),dimension('BASE_CURRENCY',base),dimension('QUOTE_CURRENCY',quote))
+        if eligible:
+            # Merely uploading an inspection-only direct series must not shadow
+            # an already entitled inverse. Use actual observation provenance,
+            # never the catalogue's default dataset, to discover usable sources.
+            obs=m.market_data_observation.alias('fx_subject_observation')
+            query=query.where(exists(select(1).select_from(obs).where(obs.c.market_data_series_id==s.c.market_data_series_id,
+                obs.c.dataset_id.not_in(denied),
+                tenant_series_entitlement_clause(obs.c.dataset_id,s.c.market_data_series_id,request.tenant_id,'VALUATION',economic_date),
+                tenant_series_entitlement_clause(obs.c.dataset_id,s.c.market_data_series_id,request.tenant_id,'VALUATION',today)).correlate(s)))
+        return list(c.scalars(query.distinct()))
+    pairs=subjects(codes[source_currency_id],codes[target_currency_id],eligible=True);inverse=False
     if not pairs:
-        pairs=subjects(codes[target_currency_id],codes[source_currency_id]);inverse=True
+        pairs=subjects(codes[target_currency_id],codes[source_currency_id],eligible=True);inverse=True
+    if not pairs:
+        # Preserve resolver diagnostics when references exist but no source is
+        # entitled. This does not authorize it: normal selection still checks all
+        # rights, policy, fixing, date, freshness and inverse-permission rules.
+        pairs=subjects(codes[source_currency_id],codes[target_currency_id]);inverse=False
+        if not pairs:pairs=subjects(codes[target_currency_id],codes[source_currency_id]);inverse=True
     if len(pairs)!=1: raise ValueError('Missing or ambiguous governed FX currency pair')
     rr=ResolutionRequest(request.tenant_id,pairs[0],request.policy_id,economic_date,request.cut_id,
         request.information_cutoff,'VALUATION',request.strategy_id)

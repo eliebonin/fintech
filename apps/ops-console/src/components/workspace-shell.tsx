@@ -23,7 +23,7 @@ function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, permi
     if (item.key === "strategies") return moduleCodes.includes("TRADING") || moduleCodes.includes("FUND_MANAGEMENT");
     if (item.key === "book-trade") return canBookTrades({membershipRole:membershipRole??'',moduleCodes,permissionCodes});
     if (item.key === 'instruments' || item.key === 'operations') return moduleCodes.includes('SECURITY_MASTER');
-    if (item.key === "trades") return moduleCodes.includes("TRADING");
+    if (item.key === "trades" || item.key === 'imports') return moduleCodes.includes("TRADING");
     if (item.key === "market-data" || item.key === "market-data-sources") return moduleCodes.includes("MARKET_DATA");
     if (item.key === "pnl") return moduleCodes.includes("MARKET_DATA") && moduleCodes.includes("VALUATION");
     return true;

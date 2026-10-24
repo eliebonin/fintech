@@ -4,7 +4,7 @@ import {useEffect,useRef,useState,type FormEvent,type KeyboardEvent} from 'react
 import {dailyValuationRequest,valuationError,ValuationHttpError} from '@/lib/daily-valuation-request';
 import {ResultWorkspace} from '@/features/valuation/result-workspace';
 import {displayTime} from '@/features/valuation/presentation';
-import type {Batch,Detail} from '@/features/valuation/types';
+import type {Batch,Detail,RecordedRequest} from '@/features/valuation/types';
 import {ValuationFailureSummary} from './valuation-failure-summary';
 import {ReviewWorkspace} from '@/features/valuation/review-workspace';
 import {InputRegister} from '@/features/valuation/input-register';
@@ -30,9 +30,9 @@ async function read<T>(path:string,init?:RequestInit):Promise<T>{
 export function ValuationConsole({canCalculate,canReview,actorId}:{canCalculate:boolean;canReview:boolean;actorId:string}){
  const [options,setOptions]=useState<Options>({strategies:[],policies:[],currencies:[]});
  const [detail,setDetail]=useState<Detail|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const [pending,setPending]=useState<{key:string;body:Record<string,string>}|null>(null);
+ const [pending,setPending]=useState<{key:string;body:Record<string,string|boolean>}|null>(null);
  const [strategy,setStrategy]=useState(''),[policy,setPolicy]=useState(''),[currency,setCurrency]=useState('');
- const [correction,setCorrection]=useState<{batchId:string;request:Record<string,string>}|null>(null);
+ const [correction,setCorrection]=useState<{batchId:string;request:RecordedRequest}|null>(null);
  const [showRequests,setShowRequests]=useState(false);
  const [positionLabels,setPositionLabels]=useState<Record<string,string>>({});
  const [view,setView]=useState<View>(canCalculate?'input':'results');
@@ -88,6 +88,8 @@ export function ValuationConsole({canCalculate,canReview,actorId}:{canCalculate:
     <label>Opening valuation date<input required type="date" name="openingDate" defaultValue={correction?.request.opening_cutoff?.slice(0,10)}/></label>
     <label>Closing valuation date<input required type="date" name="closingDate" defaultValue={correction?.request.closing_cutoff?.slice(0,10)}/></label>
     {correction?<><p>Replacement for batch {correction.batchId}. Correct source inputs before calculating.</p><label>Recalculation reason<textarea name="recalculationReason" required maxLength={2000}/></label></>:null}
+    <label><input type="checkbox" name="requireCompleteAccruals" defaultChecked={correction?correction.request.require_complete_accruals!==false:false}/> Require complete daily accrual coverage</label>
+    <p className="pnl-muted">Supplied daily interest is always included. Leave unchecked to calculate price/FX P&amp;L with missing interest clearly flagged—not assumed zero. Check to block when any eligible bond/date lacks assessed interest.</p>
     <details className="pnl-advanced"><summary>Advanced · information cutoff</summary><label>Information cutoff<input name="informationCutoff" placeholder="Blank uses submission time, retained for retries"/></label><p className="pnl-muted">Controls what evidence was known. Blank uses the current time; retries retain the original value.</p></details>
    </fieldset><button disabled={busy} type="submit">{busy?'Working…':pending?'Retry unchanged':'Calculate and stage'}</button>
    {pending?<><p>The frozen request is retained. Check run history before starting a different request; a network timeout does not cancel calculation.</p><button type="button" disabled={busy} onClick={()=>setPending(null)}>Start a different request</button></>:null}</form></section>:<p>Read-only: inspect runs and published evidence. Calculation and review require their respective granted permissions.</p>}

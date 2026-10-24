@@ -55,6 +55,18 @@ def test_unit_swap_booking_freezes_units_and_derived_reference_notional():
     assert economics['bookedUnits']=='2500' and economics['bookedNotional']=='20625000'
 
 
+def test_exact_derived_reference_value_does_not_reduce_valid_booking_precision():
+    node=create_swap(quoteFactor='1')
+    key=str(uuid4())
+    data=ticket(node,quantity='21.798376115126',executionPrice='1.123456789012')
+    response=request('POST','/v1/trades/swaps',data,key=key)
+    assert response.status_code==201,response.text
+    trade=response.json()['data']['trade']
+    assert trade['quantity']=='21.798376115126' and trade['executionPrice']=='1.123456789012'
+    assert trade['productEconomics']['amount']=='24.489533635975330803795512'
+    assert request('POST','/v1/trades/swaps',data,key=key).json()['data']['trade']['tradeId']==trade['tradeId']
+
+
 @pytest.mark.parametrize('funded', [False, True])
 def test_generic_non_autocall_context_preserves_approved_contract_and_optional_funding(funded):
     node = create_swap(funded)

@@ -32,6 +32,12 @@ class StructuredConvention(ConventionBase):
         return self
 
 
+class AmcConvention(StructuredConvention):
+    """Funded certificate quotations, without a fund vehicle or NAV assumption."""
+    kind: Literal['ACTIVELY_MANAGED_CERTIFICATE']
+    accrual: Literal['NONE']
+
+
 class FutureFamilySpecification(BaseModel):
     underlying_kind: Literal['INDEX', 'CRYPTOASSET'] = Field(alias='underlyingKind')
     symbol_root: str = Field(alias='symbolRoot', min_length=1, max_length=30, pattern='^[A-Z0-9]+$')
@@ -91,7 +97,7 @@ class SwapConvention(ConventionBase):
         return self
 
 
-BookingConvention = Annotated[StructuredConvention | FutureConvention | BondConvention | SwapConvention, Field(discriminator='kind')]
+BookingConvention = Annotated[StructuredConvention | AmcConvention | FutureConvention | BondConvention | SwapConvention, Field(discriminator='kind')]
 
 
 class ConventionProposalRequest(BaseModel):
@@ -198,7 +204,7 @@ class SwapDetailsView(BaseModel):
 class ProductBookingContextView(BaseModel):
     instrument_id: UUID = Field(alias='instrumentId')
     name: str
-    kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP']
+    kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP', 'ACTIVELY_MANAGED_CERTIFICATE']
     coupon_type: str | None = Field(default=None, alias='couponType')
     coupon_rate: Decimal | None = Field(default=None, alias='couponRate')
     coupon_frequency: int | None = Field(default=None, alias='couponFrequency')

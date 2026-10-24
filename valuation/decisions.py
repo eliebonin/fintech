@@ -61,6 +61,15 @@ def applied_decisions(evidence):
         add('EXECUTION_DAY_END_FX','Period executions use their economic day closing FX, not the preceding day FX; new positions do not acquire overnight FX P&L.')
     identity=evidence.get('identity') or {}
     key=identity.get('bucket',{}).get('key',{})
+    if key.get('product_basis')=='OPTION':
+        add('OPTION_CONTRACT_PREMIUM','Signed whole contracts multiply the frozen premium multiplier and canonical contract premium, divided by the quote factor once, then convert with reporting FX. Deliverable/listing units and underlying prices are not multiplied again. No model price, exercise or expiry cashflow is inferred.',
+            premiumMultiplier=key.get('unit_multiplier'),quoteFactor=key.get('quote_factor'),quantityUnit=key.get('quantity_unit'))
+    if key.get('product_basis')=='SWAP':
+        add('SWAP_WHOLE_MARK','Signed booked units or nominal multiply the supplied whole-swap mark, divided by the frozen quote factor once, then convert with reporting FX. Contractual notional, underlying price and leverage are not multiplied again. Funding is not modelled; dated RESET income remains separate.',
+            quoteFactor=key.get('quote_factor'),unitMultiplier=key.get('unit_multiplier'),quantityUnit=key.get('quantity_unit'))
+    if key.get('product_basis')=='ACTIVELY_MANAGED_CERTIFICATE':
+        add('AMC_QUOTED_PRICE','AMC value uses signed booked quantity × frozen denomination multiplier × quoted price ÷ booked divisor, with reporting FX. Nominal quantities already include denomination; do not apply it twice. No fund NAV/publication-lag assumption, fee accrual or underlying look-through is inferred.',
+            quoteFactor=key.get('quote_factor'),unitMultiplier=key.get('unit_multiplier'))
     if key.get('product_basis')=='BOND' and key.get('quantity_unit')=='NOMINAL':
         add('CLEAN_BOND_NOMINAL','Bond market values use clean quotations per 100 nominal. Booked dirty executions are normalised once using frozen accrued-interest evidence; daily earned interest is separate from the accumulated balance.',
             quoteFactor=key.get('quote_factor'),unitMultiplier=key.get('unit_multiplier'))
@@ -84,6 +93,9 @@ def applied_decisions(evidence):
             add('PAYMENT_ONLY_NO_INCOME' if payment else 'RECORDED_ECONOMIC_INCOME',
                 'Payment settles a recorded flow without recognising income again.' if payment else f"Recorded {booking.get('component')} contributes income under its explicit recognition role.",
                 [item.get('tradeId')])
+        elif item.get('kind')=='MISSING_DAILY_ACCRUAL':
+            add('DAILY_ACCRUAL_NOT_SUPPLIED','Accrual not supplied—not included. Price/FX P&L is calculated; absent daily earned interest is not confirmed zero.',
+                instrumentId=item['instrumentId'],valueDate=item['valueDate'])
         elif item.get('kind')=='DAILY_ACCRUAL':
             balance=(item.get('payload') or {}).get('balanceReconciliation')
             text='Only daily earned interest contributes accrual P&L; the accumulated balance is retained separately.'

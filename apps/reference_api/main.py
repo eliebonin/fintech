@@ -138,6 +138,9 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
             raise HTTPException(status_code=403, detail='Market-data module is not enabled for this tenant')
         return actor_id
 
+    from .import_routes import import_router
+    app.include_router(import_router(connection_dependency,_assert_tenant_membership))
+
     from .market_data_workspace import market_data_workspace_router
     from .access_routes import access_router
     app.include_router(access_router(connection_dependency,resolved_settings.environment))

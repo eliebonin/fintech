@@ -21,6 +21,7 @@ export const INSTRUMENT_CREATE_GROUPS: InstrumentCreateGroup[] = [
       { label: "Structured product", description: "Structured-security definitions for listed or OTC execution; booking conventions follow approval.", href: "/instruments/autocalls/new" },
       { label: "Bond", description: "Fixed-income and debt securities.", href: "/instruments/bonds/new" },
       { label: "Fund", description: "Funds and share classes.", href: "/instruments/funds/new" },
+      { label: "AMC", description: "Actively managed certificates with explicit issuer, quotation and redemption terms.", href: "/instruments/amcs/new" },
       { label: "ETP", description: "ETFs, ETNs, ETCs, and related products.", href: "/instruments/etps/new" },
     ],
   },

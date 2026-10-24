@@ -90,7 +90,8 @@ def attribute_projection(projection: PositionProjection, marks, reporting_curren
                 if quantity==0: values.append(Decimal(0)); continue
                 mark=marks.get(MarkKey(key.subject_id,cutoff))
                 if mark is None: raise ValueError(f'Missing required position mark for {key.subject_id}')
-                finite_decimal(mark,'market price',positive=True)
+                finite_decimal(mark,'market price',positive=key.product_basis not in ('SWAP','OPTION'))
+                if key.product_basis=='OPTION' and mark<0:raise ValueError('Option premium must be non-negative')
                 # Rate-difference value is separate from gross currency notional.
                 # It is explicitly an undiscounted rate-based value, not model MTM.
                 values.append(quantity*factor*(mark-strike))

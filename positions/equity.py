@@ -15,6 +15,10 @@ def booking_key(booking: Booking, tenant_id, strategy_id) -> PositionKey:
         raise PositionError('Unsupported booking economics; frozen compatible product units required')
     if finite(booking.quantity,'quantity') == 0: raise PositionError('Booked quantity must be nonzero')
     for field in ('price','unit_multiplier','quote_factor'):
-        finite(getattr(booking,field),field,positive=True)
+        finite(getattr(booking,field),field,positive=not(field=='price' and booking.product_basis in ('SWAP','OPTION')))
+    if booking.product_basis=='OPTION' and (booking.price<0 or booking.quantity!=booking.quantity.to_integral_value()):
+        raise PositionError('Option bookings require whole contracts and a non-negative premium')
+    if booking.product_basis=='SWAP' and booking.unit_multiplier!=1:
+        raise PositionError('Whole-swap marks require unit multiplier one; leverage/notional must not be reapplied')
     return PositionKey(tenant_id,strategy_id,booking.subject_id,booking.currency_id,
         booking.quantity_unit,booking.product_basis,booking.unit_multiplier,booking.quote_factor)

@@ -38,6 +38,7 @@ def request_identity(request):
     """Keep pre-date-mode retry identities stable; daily mode is explicit."""
     values = asdict(request)
     if not values.get('daily'): values.pop('daily', None)
+    if not values.get('require_complete_accruals'): values.pop('require_complete_accruals',None)
     for key in ('predecessor_batch_id','recalculation_reason'):
         if values.get(key) is None: values.pop(key,None)
     return values
@@ -203,6 +204,7 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
         grossPnl=stored_totals['gross'],netPnl=stored_totals['net'],marketRoundingAdjustment=market_rounding,
         executionValue=calculation.period.execution_value,reportingCurrencyId=request.reporting_currency_id,
         request=asdict(request),ledgerSource=calculation.evidence.get('ledgerSource'),limitations=calculation.evidence['limitations'],blockingValidation=[],inputHash=calculation.input_hash,
+        accrualCoverage=calculation.evidence.get('accrualCoverage'),
         resultFormat='POSITION_V2' if calculation.projection is not None else 'TRADE_V1',
         positionEvidence=({ 'engine':calculation.projection.engine_version,'inputHash':calculation.projection.input_hash,
             'completeKnowledge':calculation.projection.complete_knowledge,'factsScanned':calculation.projection.facts_scanned,

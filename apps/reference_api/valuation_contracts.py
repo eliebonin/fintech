@@ -2,7 +2,7 @@
 from datetime import date,datetime,time,timedelta,timezone
 from uuid import UUID
 from typing import Literal
-from pydantic import BaseModel,ConfigDict,Field,JsonValue,model_validator
+from pydantic import BaseModel,ConfigDict,Field,JsonValue,StrictBool,model_validator
 
 class ValuationCreate(BaseModel):
     strategy_id: UUID=Field(alias='strategyId')
@@ -16,6 +16,8 @@ class ValuationCreate(BaseModel):
     information_cutoff: datetime=Field(default_factory=lambda:datetime.now(timezone.utc),alias='informationCutoff')
     predecessor_batch_id: UUID | None=Field(default=None,alias='predecessorBatchId')
     recalculation_reason: str | None=Field(default=None,alias='recalculationReason',min_length=1,max_length=2000)
+    require_complete_accruals: StrictBool=Field(default=False,alias='requireCompleteAccruals',
+        description='Require assessed daily interest for every eligible bond/date. Otherwise include supplied inputs and disclose missing coverage without assuming zero.')
     model_config=ConfigDict(populate_by_name=True,extra='forbid')
 
     @property

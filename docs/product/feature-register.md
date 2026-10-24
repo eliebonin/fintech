@@ -1,5 +1,21 @@
 # Desired features and implementation register
 
+23 October F37/F38: [optional assessed bond accruals](../delivery/optional-bond-accruals-20261023.md)
+replace the blanket missing-interest blocker. Price/FX P&L includes supplied
+interest and discloses omissions; explicit strict coverage remains available.
+Missing is not zero; newly supplied interest requires recalculation before
+publication. The UKTB blocker below describes the earlier pre-change run.
+
+The external CSV reconciliation exercise is not product capability delivery.
+Its source-specific operators, adapters and tests are isolated under
+[optional tooling](../../tooling/reconciliation_csv/README.md); retained delivery
+records describe that exercise, not a supported upload interface.
+
+23 October F08/F09/F37: [native AMC onboarding, quotation and monetary measures](../delivery/amc-onboarding-20261023.md).
+Certificate identity remains distinct while common booking/price/FX machinery is
+reused. Unit and percentage quotations are supported with explicit dimensions;
+full AMC management F41, look-through and dedicated amendment UI remain deferred.
+
 **Status:** Maintained current reference  
 **Content type:** Product capability register  
 **Owner:** Product and engineering  
@@ -57,7 +73,7 @@ These are capability states, not permission states. A module can be enabled even
 | ID | Desired feature / detailed Markdown record | Status | Main remaining boundary |
 | --- | --- | --- | --- |
 | F07 | [Instrument search, catalogue and details](features/instrument-management.md#f07-catalogue-and-details) | ALPHA | Page-size limits are read budgets, not a complete universe snapshot. |
-| F08 | [Canonical instruments and contextual listings](features/instrument-management.md#f08-canonical-instruments-and-listings) | ALPHA | Product/date/convention eligibility remains explicit. |
+| F08 | [Canonical instruments and contextual listings](features/instrument-management.md#f08-canonical-instruments-and-listings) | ALPHA | Product/date/convention eligibility remains explicit. [Shared/private stewardship direction](features/instrument-management.md#proposed-direction-shared-and-tenant-private-stewardship) recorded 17 October; platform-managed shared publication and type-independent tenant-private creation remain to be specified/verified consistently. |
 | F09 | [Creation requests, approval and Operations queue](features/instrument-management.md#f09-requests-and-approval) | ALPHA | Not universal reference stewardship or contractual lifecycle. |
 | F10 | [Custom instrument taxonomy](features/instrument-management.md#f10-instrument-taxonomy) | FOUNDATION | Reference classification model; general tenant taxonomy UI absent. |
 | F11 | [Safe instrument amendments/version lifecycle](features/instrument-management.md#f11-instrument-amendments-and-lifecycle) | PARTIAL | Historical definitions exist; complete amendment/promotion UX does not. |
@@ -68,11 +84,11 @@ These are capability states, not permission states. A module can be enabled even
 | --- | --- | --- | --- |
 | F12 | [Plain listed cash booking](features/product-booking.md#f12-plain-listed-cash) | ALPHA | Explicit eligible listing allowlist, not arbitrary cash/derivatives. |
 | F13 | [Deliverable FX forwards](features/product-booking.md#f13-deliverable-fx-forwards) | ALPHA | Booking, maturity closure and bounded rate-based P&L; no NDF, discounted model MTM or signed-off delivery. |
-| F14 | [Listed options](features/product-booking.md#f14-listed-options) | ALPHA | OPEN/CLOSE is intent, not inventory validation or exercise. |
+| F14 | [Listed options](features/product-booking.md#f14-listed-options) | ALPHA | OPEN/CLOSE is intent, not inventory validation or exercise. [Supplied-premium P&L](../delivery/option-premium-pnl-20261023.md) applies the frozen multiplier once; no model pricing, Greeks or automatic expiry. |
 | F15 | [Listed/OTC structured securities](features/product-booking.md#f15-structured-securities) | ALPHA | Booking supported; payoff/lifecycle/valuation engine not implied. [Seeded-note readiness](../delivery/termsheet-note-booking-readiness-2026-10-14.md): six PDF parent notes have approved unit/PCT_OF_PAR dirty OTC conventions; 15 focused tests and app readiness verified. [Terms & Schedule](../delivery/instrument-terms-schedule-2026-10-14.md): read-only approved structured schedules, distinct note/share dates and swap performance-reference look-through are available; lifecycle processing remains separate. |
 | F16 | [Future family → contract → listing → booking](features/product-booking.md#f16-futures) | ALPHA | Physical/crypto remains creation-only. Cash-settled index futures also have a monetary notional/exposure preview, not contract MTM, P&L or margin processing. |
 | F17 | [Bond CLEAN/DIRTY booking](features/product-booking.md#f17-bonds) | ALPHA | Assessed accrual needed; no automatic coupon/redemption engine. |
-| F18 | [Generic swap creation and booking](features/product-booking.md#f18-generic-swaps) | ALPHA | Nominal or unit-based whole-swap quote; separate funding reference notional. No swap valuation or generated cash. |
+| F18 | [Generic swap creation and booking](features/product-booking.md#f18-generic-swaps) | ALPHA | Nominal or unit-based whole-swap quote; separate funding reference notional. [Supplied-mark P&L](../delivery/swap-supplied-mark-pnl-20261023.md) retains divisor once and dated RESET flows; no payoff/funding model or generated cash. |
 
 ## Trade operations
 
@@ -102,12 +118,22 @@ These are capability states, not permission states. A module can be enabled even
 | F34 | [Data inspection, coverage and price validation](features/market-data.md#f34-inspection-and-validation) | PARTIAL | Inspection/eligibility exist; full pre-valuation validation sign-off does not. |
 | F35 | [Tenant-supplied time-series upload](features/market-data.md#f35-tenant-time-series-upload) | FOUNDATION | Ownership/source model exists; general upload API/UI absent. |
 
+## Tenant data onboarding and file imports
+
+External reconciliation scripts are separate from F59. See the
+[isolated tooling scope](../../tooling/reconciliation_csv/README.md).
+No new supported dataset family is implied.
+
+| ID | Desired feature / detailed Markdown record | Status | Main remaining boundary |
+| --- | --- | --- | --- |
+| F59 | [Governed tenant file imports](features/tenant-data-imports.md#f59-governed-tenant-file-imports) | PARTIAL | NEW listed equity/ETF/fund imports: tenant-aware Excel/CSV, optional/custom fields, backend validation, atomic confirmation and durable replay/row receipts at `/imports`. One strategy and 500 rows/512 KiB per file; no partial booking. Other products/datasets, bulk corrections, queued processing and retention cleanup remain absent. [Delivery and acceptance limits](../delivery/trade-imports-20261018.md). |
+
 ## Valuation and P&L
 
 | ID | Desired feature / detailed Markdown record | Status | Main remaining boundary |
 | --- | --- | --- | --- |
 | F36 | [Relevant positions from immutable trade history](features/valuation-and-pnl.md#f36-position-reconstruction) | ALPHA | No total 1,000-trade cap; reviewed basic share-ratio replay. Complex entitlements/transformations and historical scaling remain bounded. |
-| F37 | [Market P&L and position monetary measures](features/valuation-and-pnl.md#f37-economic-valuation) | PARTIAL | Existing P&L scope unchanged; Position values & exposure reports native/fund amounts, forward currency legs and linear index-futures exposure with explicit missing/deferred status, not forward/futures MTM. Compact scan amounts retain exact values in full-width input inspection. Equity/fund/bond and bounded index-swap boundaries remain. No weights, measure publication, interim resets or generic derivative pricer. |
+| F37 | [Market P&L and position monetary measures](features/valuation-and-pnl.md#f37-economic-valuation) | PARTIAL | [Whole-swap marks](../delivery/swap-supplied-mark-pnl-20261023.md) and [listed-option premiums](../delivery/option-premium-pnl-20261023.md) use the shared signed execution bridge, with frozen factors once. Position values & exposure reports native/fund amounts, forward legs and linear index-futures exposure, not forward/futures MTM or option monetary measures. Exact inspection retained. No weights, measure publication, modelled resets, automatic option expiry or generic derivative pricer. |
 | F38 | [Daily bond accrual and economic income/cost flows](features/valuation-and-pnl.md#f38-accruals-and-economic-flows) | PARTIAL | Assessed inputs/manual recognition; no automatic generation/reconciliation. |
 | F39 | [Stage → amendment → governed publication](features/valuation-and-pnl.md#f39-review-and-publication) | ALPHA | Filtered reports and dual statuses; independent publication by default, explicitly scoped/opted-in self-publication with reason/expiry/audit. Financial acceptance, per-user expiry and broader ownership pending. |
 | F40 | [Full strategy/fund NAV and cash balance valuation](features/valuation-and-pnl.md#f40-full-nav-and-cash-balances) | PARTIAL | Dated balance register/translated preview active on migration 89. No movement P&L or staged cash/full fund NAV. |

@@ -3,7 +3,7 @@ type Input={kind?:string;valueDate?:string;inputId?:string;payload?:{currencyId?
 export function InputEvidence({evidence}:{evidence:unknown}){
  if(!evidence||typeof evidence!=='object')return null;
  const inputs=(evidence as {economicInputs?:Input[]}).economicInputs??[];
- return <>{inputs.filter(i=>i.kind==='DAILY_ACCRUAL').map((input,index)=><article key={input.inputId??index}><h5>Daily accrued interest · {input.valueDate}</h5>
+ return <>{inputs.filter(i=>i.kind==='MISSING_DAILY_ACCRUAL').map((input,index)=><p key={`missing-${index}`} className="pnl-notice">{input.valueDate}: Accrual not supplied—not included. Missing is not confirmed zero.</p>)}{inputs.filter(i=>i.kind==='DAILY_ACCRUAL').map((input,index)=><article key={input.inputId??index}><h5>Daily accrued interest · {input.valueDate}</h5>
   <p>{input.payload?.sourceReference} · local {input.payload?.currencyId} / reporting {input.payload?.reportingCurrencyId}</p>
   <dl><dt>Daily earned · local / reporting</dt><dd>{input.payload?.amounts?.dailyLocal} / {input.payload?.amounts?.dailyBase}</dd>
    <dt>Accumulated balance · local / reporting</dt><dd>{input.payload?.amounts?.balanceLocal} / {input.payload?.amounts?.balanceBase}</dd>

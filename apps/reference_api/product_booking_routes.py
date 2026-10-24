@@ -15,6 +15,7 @@ from . import product_booking as service
 from .repository import RepositoryNotFound, IdempotencyKeyConflict, InvalidWorkflowState
 from .trade_properties import TradeFieldError
 from .swap_creation_contracts import SwapProposalRequest
+from .amc_contracts import AmcProposalRequest
 
 
 def product_booking_router(connection_dependency, membership):
@@ -31,7 +32,7 @@ def product_booking_router(connection_dependency, membership):
                     correlationId=current_request_id(), **pagination)
 
     @router.get('/v1/trades/product-instruments', response_model=ProductBookingSearchResponse)
-    def search(kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP'], route: Literal['LISTED', 'OTC'],
+    def search(kind: Literal['STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP', 'ACTIVELY_MANAGED_CERTIFICATE'], route: Literal['LISTED', 'OTC'],
                q: str = Query(default='', max_length=250), limit: int = Query(default=20, ge=1, le=100),
                offset: int = Query(default=0, ge=0), as_of: date = Query(default=None, alias='asOfDate'),
                context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
@@ -78,6 +79,12 @@ def product_booking_router(connection_dependency, membership):
               context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         return booking(request, response, key, context, connection, 'SWAP')
 
+    @router.post('/v1/trades/amcs', response_model=TradeDetailResponse, status_code=201)
+    def amcs(request: ProductBookingRequest,response: Response,
+             key: str=Header(alias='Idempotency-Key',min_length=1,max_length=255),
+             context: TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency,scope='function')):
+        return booking(request,response,key,context,connection,'ACTIVELY_MANAGED_CERTIFICATE')
+
     def propose(request, context, connection):
         actor = membership(connection, context)
         try:
@@ -101,6 +108,10 @@ def product_booking_router(connection_dependency, membership):
     @router.post('/v1/instruments/swap-proposals', response_model=ReferenceDataProposalResponse, status_code=201)
     def swap_proposal(request: SwapProposalRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         return propose(request, context, connection)
+
+    @router.post('/v1/instruments/amc-proposals', response_model=ReferenceDataProposalResponse, status_code=201)
+    def amc_proposal(request: AmcProposalRequest,context: TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency,scope='function')):
+        return propose(request,context,connection)
 
     @router.post('/v1/future-proposals', response_model=ReferenceDataProposalResponse, status_code=201)
     def future_proposal(request: FutureProposalRequest, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):

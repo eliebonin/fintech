@@ -9,6 +9,9 @@ Start with the [feature register](../../product/feature-register.md) for desired
 
 ## Collection (newest filename first, not priority order)
 
+- [Tenant import workflows — shared foundation and per-dataset implementation tasks](../../superpowers/plans/2026-10-17-tenant-import-workflows.md) (proposed; implementation not started)
+- [Tenant data imports — proposed dataset scope and phased roadmap](../../superpowers/plans/2026-10-17-tenant-data-imports.md) (planning only; not an executable/approved implementation plan)
+
 - [Structured-product termsheet ingestion — proposed execution plan](../../superpowers/plans/2026-10-13-structured-product-termsheet-ingestion.md)
 - [Valuation Price Basis Implementation Plan](../../superpowers/plans/2026-10-09-valuation-price-basis.md)
 - [Tenant access administration implementation plan](../../superpowers/plans/2026-10-09-tenant-access-administration.md)

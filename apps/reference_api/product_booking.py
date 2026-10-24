@@ -17,6 +17,7 @@ from .product_booking_contracts import (
     ProductBookingContextView, ProductTradeEconomicsView,
 )
 from .swap_creation_contracts import SwapProposalRequest
+from .amc_contracts import AmcProposalRequest
 from .booking_controls import authorize_booking, lock_booking_strategy, find_booking_replay, record_booking_replay
 
 CONVENTION = TypeAdapter(BookingConvention)
@@ -53,7 +54,7 @@ def instrument_row(connection, tenant, node_id):
         m.instrument_type.c.status.label('type_status')).join(m.instrument_type,
         m.instrument_type.c.instrument_type_id == m.instrument.c.instrument_type_id).where(
         m.instrument.c.instrument_node_id == node_id)).mappings().first()
-    if row is None or row.type_code not in {'STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP'}:
+    if row is None or row.type_code not in {'STRUCTURED_PRODUCT', 'FUTURE', 'BOND', 'SWAP', 'ACTIVELY_MANAGED_CERTIFICATE'}:
         raise RepositoryNotFound('A structured security or futures instrument is required.')
     return node, row
 
@@ -107,7 +108,11 @@ def submit_proposal(connection, tenant, actor, request):
     replay = find_proposal_replay(connection, tenant, request, require_source=False)
     if replay is not None:
         return get_reference_data_proposal(connection, tenant, replay)
-    if isinstance(request, SwapProposalRequest):
+    if isinstance(request, AmcProposalRequest):
+        from .amc_creation import validate_amc_references
+        validate_amc_references(connection,tenant,request)
+        kind='CREATE_AMC'
+    elif isinstance(request, SwapProposalRequest):
         from .swap_creation import validate_swap_references
         validate_swap_references(connection, tenant, request.terms)
         kind = 'CREATE_SWAP'
@@ -235,14 +240,17 @@ def decide_proposal(connection, tenant, actor, proposal_id, decision, reason):
         m.reference_data_proposal.c.reference_data_proposal_id == proposal_id,
         m.reference_data_proposal.c.tenant_id == tenant).with_for_update()).mappings().first()
     if not row: raise RepositoryNotFound('Proposal was not found.')
-    if row.status != 'PENDING' or row.proposal_type not in {'CREATE_SWAP', 'CREATE_FUTURE', 'CREATE_FUTURE_FAMILY', 'CONFIGURE_BOOKING_CONVENTION'}:
+    if row.status != 'PENDING' or row.proposal_type not in {'CREATE_AMC', 'CREATE_SWAP', 'CREATE_FUTURE', 'CREATE_FUTURE_FAMILY', 'CONFIGURE_BOOKING_CONVENTION'}:
         raise InvalidWorkflowState('Only pending product booking proposals can be decided.')
     payload = json.loads(row.proposed_payload)
     payload.pop('proposedByUserAccountId', None)
-    request = {'CREATE_SWAP': SwapProposalRequest, 'CREATE_FUTURE': FutureProposalRequest, 'CREATE_FUTURE_FAMILY': FutureFamilyProposalRequest, 'CONFIGURE_BOOKING_CONVENTION': ConventionProposalRequest}[row.proposal_type].model_validate(payload)
+    request = {'CREATE_AMC': AmcProposalRequest, 'CREATE_SWAP': SwapProposalRequest, 'CREATE_FUTURE': FutureProposalRequest, 'CREATE_FUTURE_FAMILY': FutureFamilyProposalRequest, 'CONFIGURE_BOOKING_CONVENTION': ConventionProposalRequest}[row.proposal_type].model_validate(payload)
     node_id = None
     if decision == 'APPROVED':
-        if isinstance(request, SwapProposalRequest):
+        if isinstance(request, AmcProposalRequest):
+            from .amc_creation import materialize_amc
+            node_id=materialize_amc(connection,tenant,actor,request)
+        elif isinstance(request, SwapProposalRequest):
             from .swap_creation import materialize_swap
             node_id = materialize_swap(connection, tenant, actor, request)
         elif isinstance(request, FutureFamilyProposalRequest): node_id = materialize_family(connection, tenant, request)
@@ -280,6 +288,7 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
              (m.instrument_booking_convention, 'instrument_node_id', instrument_id),
              (m.structured_product_terms, 'instrument_node_id', instrument_id),
              (m.bond_terms, 'instrument_node_id', instrument_id),
+             (m.amc_terms, 'instrument_node_id', instrument_id),
              (m.future_terms, 'instrument_node_id', instrument_id), (m.instrument_dates, 'instrument_node_id', instrument_id)]:
             connection.execute(select(table).where(table.c[key] == value).with_for_update()).all()
         if listing_id:
@@ -338,7 +347,26 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
             venue = connection.execute(venue_stmt.with_for_update() if lock else venue_stmt).mappings().one()
             if venue.status != 'ACTIVE': raise ValueError('Execution venue must be active.')
             facts.update(listingDefinitionId=str(version.listing_definition_version_id), venueId=str(venue.market_venue_id))
-        if convention.kind == 'STRUCTURED_PRODUCT':
+        if convention.kind == 'ACTIVELY_MANAGED_CERTIFICATE':
+            rows=connection.execute(select(m.amc_terms).where(m.amc_terms.c.instrument_node_id==instrument_id,
+                m.amc_terms.c.is_current,m.amc_terms.c.effective_from<=as_of,
+                or_(m.amc_terms.c.effective_to.is_(None),m.amc_terms.c.effective_to>=as_of))).mappings().all()
+            if len(rows)!=1:raise ValueError('Exactly one effective approved AMC terms record is required.')
+            amc=rows[0]
+            issuer_stmt=select(m.organisation.c.status).where(m.organisation.c.organisation_id==instrument.issuer_organisation_id)
+            if connection.scalar(issuer_stmt.with_for_update() if lock else issuer_stmt)!='ACTIVE':
+                raise ValueError('An active AMC issuer is required.')
+            if amc.adviser_organisation_id:
+                adviser_stmt=select(m.organisation.c.status).where(m.organisation.c.organisation_id==amc.adviser_organisation_id)
+                if connection.scalar(adviser_stmt.with_for_update() if lock else adviser_stmt)!='ACTIVE':raise ValueError('AMC adviser must be active.')
+            if amc.reference_node_id:require_visible(connection,tenant,amc.reference_node_id)
+            dates=connection.execute(select(m.instrument_dates).where(m.instrument_dates.c.instrument_node_id==instrument_id)).mappings().one()
+            if dates.maturity_date and as_of>=dates.maturity_date:raise ValueError('Matured AMC cannot be newly booked.')
+            if not listing_id and not convention.otc_allowed:raise ValueError('OTC execution has not been approved for this AMC.')
+            if listing_id and listing.unit_multiplier!=1:raise ValueError('AMC listings must represent one certificate per unit.')
+            values['maturityDate']=dates.maturity_date
+            facts['amcTerms']=dict(amc)
+        elif convention.kind == 'STRUCTURED_PRODUCT':
             terms = connection.execute(select(m.structured_product_terms).where(
                 m.structured_product_terms.c.instrument_node_id == instrument_id,
                 m.structured_product_terms.c.is_current)).mappings().all()
@@ -474,7 +502,7 @@ def search(connection, tenant, kind, route, query, limit, offset, as_of):
 def book(connection, tenant, actor, request, key, kind, request_id):
     from .repository import _trade_booking_fingerprint, IdempotencyKeyConflict, RepositoryNotFound, get_booked_trade_detail, persist_trade_annotations
     from .trade_properties import validate_trade_annotations
-    endpoint = '/v1/trades/' + {'STRUCTURED_PRODUCT': 'structured-products', 'FUTURE': 'futures', 'BOND': 'bonds', 'SWAP': 'swaps'}[kind]
+    endpoint = '/v1/trades/' + {'STRUCTURED_PRODUCT': 'structured-products', 'FUTURE': 'futures', 'BOND': 'bonds', 'SWAP': 'swaps','ACTIVELY_MANAGED_CERTIFICATE':'amcs'}[kind]
     with connection.begin_nested():
         authorize_booking(connection, tenant, actor,strategy_id=request.strategy_id)
         with localcontext() as decimal_context:
@@ -557,6 +585,15 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             amountKind='ENTRY_REFERENCE_VALUE' if kind == 'SWAP' else 'REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION',
             direction=None if kind in {'FUTURE', 'SWAP'} else ('PAY' if request.side == 'BUY' else 'RECEIVE'))
         valuation_conventions={}
+        if kind=='ACTIVELY_MANAGED_CERTIFICATE':
+            from security_master_schema.amc_quotation import quotation_factors
+            multiplier,divisor=quotation_factors(convention.model_dump(mode='json',by_alias=True),convention.quantity_unit)
+            definition_id=connection.scalar(select(m.instrument_definition_version.c.instrument_definition_version_id).where(
+                m.instrument_definition_version.c.instrument_node_id==request.instrument_id,m.instrument_definition_version.c.is_current,
+                m.instrument_definition_version.c.status=='APPROVED'))
+            valuation_conventions={'valuationConventions':dict(instrumentDefinitionId=str(definition_id),instrumentId=str(request.instrument_id),
+                priceCurrencyId=str(convention.price_currency_id),unitMultiplier=decimal_text(multiplier),quoteFactor=decimal_text(divisor),
+                productBasis='ACTIVELY_MANAGED_CERTIFICATE',priceBasis=convention.price_basis)}
         if kind=='BOND':
             definition_id=connection.scalar(select(m.instrument_definition_version.c.instrument_definition_version_id).where(
                 m.instrument_definition_version.c.instrument_node_id==request.instrument_id,m.instrument_definition_version.c.is_current,
@@ -564,6 +601,13 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             valuation_conventions={'valuationConventions':dict(instrumentDefinitionId=str(definition_id),instrumentId=str(request.instrument_id),
                 priceCurrencyId=str(convention.price_currency_id),unitMultiplier='1',quoteFactor='100',productBasis='BOND',
                 cleanExecutionAmount=decimal_text(clean),maturityDate=terms.maturity_date.isoformat() if terms.maturity_date else None)}
+        if kind=='SWAP' and terms.swap_details.generic_terms:
+            from security_master_schema.swap_valuation import frozen_swap_conventions
+            valuation_conventions={'valuationConventions':frozen_swap_conventions(dict(
+                reference_instrument_node_id=request.instrument_id,trade_subject_reference_node_id=request.instrument_id,
+                quantity=request.quantity if request.side=='BUY' else request.quantity.copy_negate(),quantity_unit=convention.quantity_unit,
+                execution_price=request.execution_price,price_basis=convention.price_basis,price_currency_id=convention.price_currency_id),
+                dict(kind='PRODUCT_BOOKING',economics=economics.model_dump(mode='json',by_alias=True)))}
         connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type='BOOKED',
             event_datetime_utc=execution, source_event_id=key, payload_hash=fingerprint,
             event_payload=json.dumps({'schemaVersion': 1, 'kind': 'PRODUCT_BOOKING', 'economics': economics.model_dump(mode='json', by_alias=True)} | frozen_recognition(request) | valuation_conventions, sort_keys=True),

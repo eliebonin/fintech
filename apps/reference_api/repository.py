@@ -929,6 +929,7 @@ def _option_inspection_terms(connection: Connection, tenant_id: UUID, instrument
 
 def get_instrument(connection: Connection, tenant_id: UUID, instrument_id: UUID) -> InstrumentView | None:
     from .swap_creation import inspection_terms
+    from .amc_creation import inspection_terms as amc_inspection_terms
     _, _, _, _, _, stmt = _base_instrument_select(tenant_id)
     row = connection.execute(stmt.where(m.financial_reference_node.c.reference_node_id == instrument_id)).mappings().first()
     if row is None:
@@ -956,6 +957,7 @@ def get_instrument(connection: Connection, tenant_id: UUID, instrument_id: UUID)
         notes="Canonical reference-data view returned by the reference API.",
         optionTerms=_option_inspection_terms(connection, tenant_id, instrument_id) if row.instrument_type == "OPTION" else None,
         genericTerms=generic_terms,
+        amcTerms=amc_inspection_terms(connection,tenant_id,instrument_id,row.definition_version) if row.instrument_type=='ACTIVELY_MANAGED_CERTIFICATE' else None,
     )
 
 
@@ -1421,6 +1423,7 @@ def decide_reference_data_proposal(
     from .product_booking import decide_proposal
     dispatchers["CREATE_FUTURE"] = decide_proposal
     dispatchers["CREATE_SWAP"] = decide_proposal
+    dispatchers["CREATE_AMC"] = decide_proposal
     dispatchers["CREATE_FUTURE_FAMILY"] = decide_proposal
     dispatchers["CONFIGURE_BOOKING_CONVENTION"] = decide_proposal
     dispatcher = dispatchers.get(proposal.proposal_type)
@@ -4268,6 +4271,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
             "CREATE_STRUCTURED_PRODUCT",
             "CREATE_FUTURE",
             "CREATE_SWAP",
+            "CREATE_AMC",
             "CONFIGURE_BOOKING_CONVENTION",
             "CREATE_FUTURE_FAMILY",
         }
@@ -4314,6 +4318,9 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                 f"{len(payload.get('underlyings', []))} underlyings · "
                 f"{len(payload.get('rows', []))} schedule rows"
             )
+        elif proposal.proposal_type == 'CREATE_AMC':
+            title = f"Review AMC · {payload.get('canonicalName', 'new certificate')}"
+            detail = f"Actively managed certificate · {payload.get('redemptionModel')} · listing is separate"
         elif proposal.proposal_type == 'CREATE_SWAP':
             title = f"Review swap · {payload.get('canonicalName', 'new swap')}"
             terms = payload.get('terms', {})
@@ -4360,6 +4367,7 @@ def work_queue(connection: Connection, tenant_id: UUID, api_version: str, correl
                         "CREATE_STRUCTURED_PRODUCT",
                         "CREATE_FUTURE",
                         "CREATE_SWAP",
+                        "CREATE_AMC",
                         "CONFIGURE_BOOKING_CONVENTION",
                         "CREATE_FUTURE_FAMILY",
                     }

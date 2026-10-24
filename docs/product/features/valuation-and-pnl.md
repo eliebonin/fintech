@@ -3,7 +3,7 @@
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Valuation/operations engineering  
-**Last reviewed:** 2026-10-15 (scoped monetary-measures follow-up)
+**Last reviewed:** 2026-10-23 (scoped supplied swap-mark and option-premium P&L follow-up)
 
 [Feature register](../feature-register.md). Current engine is `economic-position-pnl-v3`; historical trade-owned/market-only methods remain readable, not a second live fallback calculator. The retired homepage P&L demo is not capability evidence.
 
@@ -25,6 +25,11 @@ or independent financial reconciliation implied.
 - **Evidence:** [Foundation/scaling](../../delivery/position-reconstruction-foundation.md), [reviewed share-ratio delivery and live acceptance](../../delivery/share-ratio-position-replay-20261013.md), [repository](../../../positions/repository.py), [reconstruction](../../../positions/reconstruction.py).
 
 ## F37 Economic valuation
+
+External CSV preparation and local source activation are
+[optional tooling](../../../tooling/reconciliation_csv/README.md), not part of
+this calculation engine or its supported upload contracts. Valuation and its
+native regression tests do not depend on that tooling.
 
 October 16 [query-efficiency delivery](../../delivery/quality-reviews/2026-10-16-query-efficiency.md)
 batches retained forward proof/holdings reads and history projections, constrains
@@ -77,10 +82,10 @@ synthetic index histories give all three native/GBP measures for 11 positions on
 publication scope is unchanged; this is not derivative P&L or external acceptance.
 
 - **Desired:** Position price/FX/cross P&L using selected T/T−1 marks, dates/evidence and actual execution prices; fund NAV availability and bond quotation semantics explicit.
-- **Status / backend / frontend:** PARTIAL. Supported equity/ETF, native fund NAV, clean-bond and deliverable FX-forward rate-difference economics, direct governed FX and explicitly permitted inverse FX; `/valuation` calculation/evidence/results. Other derivatives and cash-balance stock valuation remain excluded.
+- **Status / backend / frontend:** PARTIAL. Supported equity/ETF, native fund NAV, clean-bond, deliverable FX-forward rate-difference, supplied whole-swap marks and listed-option premiums, direct governed FX and explicitly permitted inverse FX; `/valuation` calculation/evidence/results. Other derivatives and cash-balance stock valuation remain excluded. [Swap extension](../../delivery/swap-supplied-mark-pnl-20261023.md) retains signed units/nominal and divisor once. [Option extension](../../delivery/option-premium-pnl-20261023.md) applies frozen premium multiplier once to actual contract counts; no underlying-price substitution, model price, automatic expiry or extra leverage multiplication.
 - **Cuts/trade-offs:** FX translates trade-price currency to reporting/strategy currency, with no silent triangulation. Same-day execution price enters the execution bridge; it does not overwrite a whole existing position's opening market mark. Fund NAV for T remains economically T when signed off T+1; availability/explicit lag decide what may be used at calculation time.
 - **FX boundary:** Foreign conversion requires RAW FX_RATE semantics, a NAMED_FIXING or EXPLICIT_TIME rule, a sealed governed session calendar and an explicit maximum staleness. A daily FX bar alone is insufficient. A direct pair with an active qualifying FX series is chosen first; an inverse pair is considered only when no such direct pair is found and its selected rule permits inversion. Missing observations on an existing qualifying direct pair block conversion rather than falling back to the inverse.
-- **Weaknesses:** No option/future/swap/structured valuation or discounted FX-forward model MTM. [Rate-based FX-forward P&L](../../delivery/fx-forward-rate-pnl-20261014.md) requires contract-specific outright-rate data, not spot substitutes; net values are explicitly undiscounted rate differences. [Booked plain-bond principal maturity](../../delivery/plain-bond-redemption-20261014.md) closes exposure; unsupported maturity and missing final-interest coverage still block. Financial/user acceptance is separate from tests.
+- **Weaknesses:** No future/structured valuation, modelled option pricing/Greeks/exercise, modelled swap pricing/funding or discounted FX-forward model MTM. [Rate-based FX-forward P&L](../../delivery/fx-forward-rate-pnl-20261014.md) requires contract-specific outright-rate data, not spot substitutes; net values are explicitly undiscounted rate differences. [Booked plain-bond principal maturity](../../delivery/plain-bond-redemption-20261014.md) closes exposure; unsupported maturity and missing final-interest coverage still block. Financial/user acceptance is separate from tests.
 - **Remaining:** Accept realistic multi-currency/fund/bond cases with provider reconciliation; product-specific pricing/final marks, documented FX methodology and reviewed source availability. Never infer DF=1 or transform rate into MTM without contract semantics.
 - **Evidence:** [Economic delivery](../../delivery/economic-pnl-implementation-2026-10-09.md), [input capability guards](../../../valuation/product_inputs.py), [position bridge](../../../valuation/position_calculation.py), [FX](../../../valuation/fx.py).
 
@@ -91,6 +96,13 @@ also verifies historical maturity cancellation/rebooking, restored exposure and 
 15,000 USD replacement result. Later-effective economic termination still blocks.
 
 ## F38 Accruals and economic flows
+
+23 October: [optional daily-accrual coverage](../../delivery/optional-bond-accruals-20261023.md)
+includes supplied valid daily interest and discloses missing bond/date inputs,
+without assuming zero or blocking price/FX P&L. `requireCompleteAccruals` opts into
+complete coverage. Results show an omission warning; staging retains missing dates
+and publication refuses inputs supplied since staging. No automatic coupon or
+discount-accretion model or retrospective evidence change.
 
 October 14 follow-up: [typed daily-interest columns](../../delivery/typed-daily-interest-20261014.md)
 make date/bond/daily earnings/currency explicit under tenant/strategy scope.

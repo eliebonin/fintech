@@ -28,6 +28,17 @@ it('never discloses financial fields or ledger links when display evidence is de
  expect(html).not.toContain('Position attribution');
 });
 
+it('prominently discloses omitted daily interest rather than a zero accrual',()=>{
+ const partial={...batch,summary:{...batch.summary,accrualCoverage:{mode:'OPTIONAL',suppliedCount:1,missingCount:2,
+  missing:[{instrumentId:'bond',valueDate:'2026-10-06'},{instrumentId:'bond',valueDate:'2026-10-07'}]}}};
+ const html=renderToStaticMarkup(<ResultWorkspace batch={partial} currency="GBP"/>);
+ expect(html).toContain('Accrual not supplied—not included');
+ expect(html).toContain('2 bond/date inputs');
+ expect(html).toContain('not confirmed zero');
+ const denied=renderToStaticMarkup(<ResultWorkspace batch={{...partial,summary:{...partial.summary,evidenceAccess:'DENIED'}}} currency="GBP"/>);
+ expect(denied).not.toContain('2 bond/date inputs');
+});
+
 it('formats decimal strings for display without floating point precision loss',()=>{
  expect(displayAmount('999999999999999999.123456')).toBe('999,999,999,999,999,999.12');
  expect(displayAmount('-1.005')).toBe('-1.00');

@@ -639,6 +639,33 @@ fund_share_class_terms = Table(
     schema="secm",
 )
 
+amc_terms = Table(
+    "amc_terms", metadata,
+    Column("amc_terms_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT),
+    Column("instrument_node_id", UUID_V7, ForeignKey("secm.instrument.instrument_node_id"), nullable=False),
+    Column("adviser_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id")),
+    Column("reference_node_id", UUID_V7, ForeignKey("secm.financial_reference_node.reference_node_id")),
+    Column("redemption_model", String(30), nullable=False),
+    Column("distribution_policy", String(30), nullable=False),
+    Column("collateralisation_type", String(30), nullable=False),
+    Column("strategy_description", Text),
+    Column("fee_description", Text),
+    Column("pricing_frequency", String(20)),
+    Column("publication_lag_business_days", Integer, comment="Expected source publication delay, not automatic valuation policy lag; null means unknown."),
+    Column("source_reference", Text, nullable=False),
+    Column("effective_from", Date, nullable=False),
+    Column("effective_to", Date),
+    Column("sequence_no", Integer, nullable=False, server_default=text("1")),
+    Column("is_current", Boolean, nullable=False, server_default=text("true")),
+    UniqueConstraint("instrument_node_id", "sequence_no", name="uq_amc_terms_version"),
+    CheckConstraint("effective_to IS NULL OR effective_to >= effective_from", name="ck_amc_terms_dates"),
+    CheckConstraint("publication_lag_business_days IS NULL OR publication_lag_business_days >= 0",name="ck_amc_publication_lag"),
+    CheckConstraint("redemption_model IN ('OPEN_ENDED','FIXED_MATURITY','ISSUER_REDEEMABLE','UNKNOWN')",name="ck_amc_redemption"),
+    CheckConstraint("distribution_policy IN ('ACCUMULATING','DISTRIBUTING','NONE','UNKNOWN')",name="ck_amc_distribution"),
+    CheckConstraint("collateralisation_type IN ('SECURED','UNSECURED','UNKNOWN')",name="ck_amc_collateral"),
+    schema="secm",
+)
+
 etp_terms = Table(
     "etp_terms",
     metadata,
@@ -1912,7 +1939,7 @@ instrument_booking_convention = Table(
     Column("approved_by_user_account_id", UUID_V7, ForeignKey("secm.user_account.user_account_id"), nullable=False, comment="Actor approving this immutable version."),
     Column("approved_at_utc", DateTime(timezone=True), nullable=False, server_default=UTC_NOW, comment="Approval audit timestamp."),
     UniqueConstraint("instrument_node_id", "version_no", name="uq_instrument_booking_convention_version"),
-    CheckConstraint("version_no > 0 AND kind IN ('STRUCTURED_PRODUCT','FUTURE','BOND','SWAP')", name="ck_instrument_booking_convention_kind"),
+    CheckConstraint("version_no > 0 AND kind IN ('STRUCTURED_PRODUCT','FUTURE','BOND','SWAP','ACTIVELY_MANAGED_CERTIFICATE')", name="ck_instrument_booking_convention_kind"),
     schema="secm",
 )
 

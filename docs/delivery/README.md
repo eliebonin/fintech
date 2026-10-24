@@ -1,5 +1,29 @@
 # Delivery records
 
+23 October: [external CSV tooling isolation](csv-tooling-isolation-20261023.md) —
+source-specific scripts/tests are optional tooling, not product packages or
+capability delivery. Existing operating data and evidence are unchanged.
+
+23 October: [optional daily bond accruals](optional-bond-accruals-20261023.md) —
+disclosed partial coverage by default, explicit strict coverage and publication
+protection against newly supplied interest. Supersedes the missing-accrual blocker
+in the earlier imported-data preflight below.
+
+23 October: [imported-data personal valuation eligibility](reconciliation-valuation-eligibility-20261023.md),
+separate FCAGF source-date policy, scoped rights evidence and retained forward
+quotation-label normalization; price/FX checks pass, daily accrual remains a blocker.
+
+23 October: [supplied listed-option premium P&L](option-premium-pnl-20261023.md),
+signed contracts and frozen premium multiplier once, canonical premium evidence,
+older booking compatibility and retained staging; no model price or expiry booking.
+
+23 October: [supplied whole-swap mark P&L](swap-supplied-mark-pnl-20261023.md),
+signed unit/nominal mark-and-FX changes, immutable older-booking compatibility,
+explicit quote dimensions and dated RESET treatment; no swap pricer or option P&L.
+
+23 October: [native AMC onboarding](amc-onboarding-20261023.md), certificate
+creation/approval, shared funded booking and bounded unit-price daily processing.
+
 **Status:** Maintained evidence index  
 **Content type:** Delivery index  
 **Owner:** Engineering delivery  
@@ -17,6 +41,14 @@ For desired-versus-current scope start with the [feature register](../product/fe
 - [Merge/remediation verification](tenant-access-administration-progress.md#completed-remediation-verification).
 
 ## Current capability evidence by domain
+
+October 19: [strategy register cleanup](strategy-register-cleanup-20261019.md),
+two unused cutoff demos archived via the existing API; six active strategies and
+all historical records retained.
+
+October 19: [Yahoo missing-data refresh](yahoo-refresh-20261019.md), acquisition
+and readback evidence for existing equity prices, corporate actions and GBP FX;
+source completeness is distinct from RAW normalization and financial sign-off.
 
 October 17: [contextual workflow help](page-contextual-help-20261017.md), consistent
 optional guides for complex screens; purpose, steps, terms and workflow impact
@@ -59,6 +91,10 @@ October 14: [strategy/date Results and operational History reports](valuation-re
 | Quality | [Capabilities/gaps](../product/features/platform-quality.md) | [API hardening](api-boundary-hardening.md), [latest merge](tenant-access-administration-progress.md#completed-remediation-verification) |
 
 ## Safe PostgreSQL verification
+
+Private operator delivery: [FCAGF reconciliation source foundation and bond
+onboarding](fcagf-reconciliation-import-20261023.md), 23 October 2026; partial,
+not a completed financial import.
 
 Never run integration tests against an operating application database, regardless
 of its name. The pytest guard permits only recognised disposable fixture names

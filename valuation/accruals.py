@@ -106,8 +106,30 @@ class AccrualInput:
     position_key: object
 
 
+@dataclass(frozen=True)
+class MissingAccrualInput:
+    instrument_id: object
+    value_date: object
+    position_keys: tuple
+
+
+@dataclass(frozen=True)
+class AccrualCoverage:
+    inputs: tuple = ()
+    missing: tuple = ()
+
+    def evidence(self,required):
+        return dict(mode='REQUIRED' if required else 'OPTIONAL',suppliedCount=len(self.inputs),
+            missingCount=len(self.missing),missing=[dict(instrumentId=str(i.instrument_id),
+                valueDate=i.value_date.isoformat()) for i in self.missing])
+
+
 def load_accrual_inputs(c,request,position_projection):
-    """Require assessed daily coverage once per canonical bond, including weekends."""
+    """Include assessed daily interest; disclose absent inputs unless required.
+
+    Missing is never a confirmed zero. Invalid supplied evidence still fails.
+    Coverage counts canonical bond/dates, not the number of traded listings.
+    """
     from datetime import timedelta,date
     from uuid import UUID
     from positions.reconstruction import reconstruct
@@ -124,11 +146,11 @@ def load_accrual_inputs(c,request,position_projection):
                     raise ValueError('Mature bond requires recorded supported redemption; no inferred final marks or cash')
                 bonds.setdefault(instrument,[])
                 if bucket.key not in bonds[instrument]: bonds[instrument].append(bucket.key)
-    if not bonds: return ()
+    if not bonds: return AccrualCoverage()
     start=request.opening_cutoff.date()+timedelta(days=1);end=request.closing_cutoff.date()
     if start>end: raise ValueError('Daily bond accrual requires an economic date interval')
     rows=read_accruals(c,request.tenant_id,request.strategy_id,start,end,request.information_cutoff)
-    known={(row['instrument_id'],row['value_date']):row for row in rows};results=[]
+    known={(row['instrument_id'],row['value_date']):row for row in rows};results=[];missing=[]
     day=start
     while day<=end:
         # Coverage follows actual daily exposure, not every historical bond ever
@@ -136,11 +158,15 @@ def load_accrual_inputs(c,request,position_projection):
         boundary=request.closing_cutoff.replace(year=day.year,month=day.month,day=day.day)
         daily=reconstruct(position_projection.facts,replace(position_projection.request,
             opening_cutoff=boundary-timedelta(days=1),closing_cutoff=boundary))
-        for instrument,keys in bonds.items():
+        for instrument,keys in sorted(bonds.items(),key=lambda item:str(item[0])):
             active=[b for b in daily.buckets if b.key in keys]
             if not active: continue
             row=known.get((instrument,day))
-            if row is None: raise ValueError(f'Missing assessed daily accrued-interest input for {instrument} on {day}')
+            if row is None:
+                if request.require_complete_accruals:
+                    raise ValueError(f'Missing assessed daily accrued-interest input for {instrument} on {day}')
+                missing.append(MissingAccrualInput(instrument,day,tuple(b.key for b in active)))
+                continue
             payload=dict(row['payload']);daily_amount=row['daily_earned_interest'];currency=row['currency_id']
             finite_decimal(daily_amount,'stored daily earned interest')
             source_amount=payload.get('dailyEarned',(payload.get('amounts') or {}).get('dailyLocal'))
@@ -168,10 +194,10 @@ def load_accrual_inputs(c,request,position_projection):
                 raise ValueError('Foreign accrued-interest inputs require matching frozen valuation policy/cut')
             results.append(AccrualInput(row['input_id'],instrument,day,row['revision'],payload,active[0].key))
         day+=timedelta(days=1)
-    return tuple(results)
+    return AccrualCoverage(tuple(results),tuple(missing))
 
 
-def attach_accruals(period,inputs):
+def attach_accruals(period,inputs,*,missing=()):
     """One deterministic owner per canonical bond; never multiply by listing count."""
     lines=list(period.lines)
     for source in inputs:
@@ -188,6 +214,14 @@ def attach_accruals(period,inputs):
             receivableFxComponent='CARRY' if 'receivableFx' in source.payload['amounts'] else None,
             allocation='ONCE_PER_CANONICAL_INSTRUMENT')
         lines[index]=replace(line,economic_components=components,economic_evidence=line.economic_evidence+(proof,))
+    for source in missing:
+        for key in source.position_keys:
+            index=next((i for i,l in enumerate(lines) if l.bucket.key==key),None)
+            if index is None: raise ValueError('Missing accrual coverage has no real position owner')
+            line=lines[index]
+            proof=dict(kind='MISSING_DAILY_ACCRUAL',instrumentId=str(source.instrument_id),
+                valueDate=source.value_date.isoformat(),status='NOT_SUPPLIED_NOT_INCLUDED')
+            lines[index]=replace(line,economic_evidence=line.economic_evidence+(proof,))
     return replace(period,lines=tuple(lines))
 
 
@@ -199,6 +233,15 @@ def assert_current_accrual_versions(c,tenant,items):
     from . import tables as t
     for item in items:
         for evidence in item['evidence'].get('economicInputs',[]):
+            if evidence.get('kind')=='MISSING_DAILY_ACCRUAL':
+                supplied=c.scalar(select(t.accrual_input.c.input_id).where(t.accrual_input.c.tenant_id==tenant,
+                    t.accrual_input.c.strategy_id==item['strategy_id'],
+                    t.accrual_input.c.instrument_id==UUID(evidence['instrumentId']),
+                    t.accrual_input.c.value_date==date.fromisoformat(evidence['valueDate']),
+                    t.accrual_input.c.input_type=='DAILY_INTEREST',
+                    t.accrual_input.c.recorded_at<=datetime.now(timezone.utc)).limit(1))
+                if supplied: raise ValueError('A previously missing daily accrued-interest input is now supplied; recalculate before publication')
+                continue
             if evidence.get('kind')!='DAILY_ACCRUAL': continue
             payload=evidence['payload']
             row=c.execute(select(t.accrual_input.c.input_id).where(t.accrual_input.c.tenant_id==tenant,

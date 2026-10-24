@@ -10,6 +10,7 @@ from apps.reference_api.product_booking_contracts import BookingConvention
     ('1000000','0.02','1','20000'), ('1000000','0','100','0'),
     ('-1000000','2','100','-20000'),
     ('99999999999999999.123456789012','1','1','99999999999999999.123456789012'),
+    ('21.798376115126','1.123456789012','1','24.489533635975330803795512'),
 ])
 def test_swap_quote_value(nominal,price,factor,want):
     assert rules.swap_reference_value(Decimal(nominal),Decimal(price),Decimal(factor)) == Decimal(want)

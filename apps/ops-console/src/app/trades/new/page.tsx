@@ -38,7 +38,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   }
   const product=original?bookingCorrectionEligibility(original).product:requestedProduct;
   const fx=product==='FX_FORWARD',option=product==='OPTION';
-  const extended=product==='STRUCTURED_PRODUCT'||product==='FUTURE'||product==='BOND'||product==='SWAP';
+  const extended=product==='STRUCTURED_PRODUCT'||product==='FUTURE'||product==='BOND'||product==='SWAP'||product==='ACTIVELY_MANAGED_CERTIFICATE';
   const listingId=original||fx||option||extended?undefined:requestedListingId;
   let bookingContext;
   try { bookingContext = (await getTradeBookingContext(context)).data; }
@@ -53,6 +53,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   const ticket=extended?<ProductTicket key={`${context.tenantId}:${product}`} kind={product} strategies={strategies} context={bookingContext}/>:option?<OptionTicket key={context.tenantId} strategies={strategies} context={bookingContext}/>:fx?<FxForwardTicket key={context.tenantId} strategies={strategies} context={bookingContext}/>:<TradeTicket key={context.tenantId} listing={listing?.bookingEligible?listing as TicketListing:undefined} strategies={strategies} context={bookingContext}/>;
   return <WorkspaceShell sourceLabel={strategiesResponse.ok ? "LIVE API" : "API UNAVAILABLE"} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}>
     {!original?<nav className="ticket-actions" aria-label="Booking product"><a href="/trades/new" aria-current={!fx&&!option&&!extended?"page":undefined}>Listed cash</a><a href="/trades/new?product=FX_FORWARD" aria-current={fx?"page":undefined}>Deliverable FX forward</a><a href="/trades/new?product=OPTION" aria-current={option?"page":undefined}>Listed option</a><a href="/trades/new?product=STRUCTURED_PRODUCT" aria-current={product==='STRUCTURED_PRODUCT'?'page':undefined}>Structured security</a><a href="/trades/new?product=FUTURE" aria-current={product==='FUTURE'?'page':undefined}>Future</a><a href="/trades/new?product=BOND" aria-current={product==='BOND'?'page':undefined}>Bond</a><a href="/trades/new?product=SWAP" aria-current={product==='SWAP'?'page':undefined}>Swap</a></nav>:null}
+    {!original?<p className="ticket-actions"><a href="/trades/new?product=ACTIVELY_MANAGED_CERTIFICATE" aria-current={product==='ACTIVELY_MANAGED_CERTIFICATE'?'page':undefined}>Book AMC</a></p>:null}
     <p className="muted">Historical execution dates use UTC. Current tenant permissions and governed annotations still apply. Only supported approved facts valid on execution can be used; retired or unavailable historical configuration is not reconstructed. Settlement dates are expected obligations, not payment confirmation.</p>
     {listing&&!listing.bookingEligible?<aside className="error-panel" role="alert"><p>{listing.ineligibilityMessage??"This listing is not ready to book."}</p><a href={`/instruments/${listing.parentReferenceNodeId}`}>Inspect instrument</a></aside>:null}
     {original?<CorrectionBookingGate key={`${context.tenantId}:${original.trade.tradeId}`} original={original} strategies={strategies} context={bookingContext}/>:ticket}

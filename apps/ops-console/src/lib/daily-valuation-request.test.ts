@@ -6,6 +6,13 @@ it('sends dates and freezes information cutoff without inventing price times',()
  expect(dailyValuationRequest(form,{strategyId:'strategy',policyId:'policy',cutId:'cut',reportingCurrencyId:'gbp'},'2026-10-08T10:00:00Z')).toEqual({strategyId:'strategy',policyId:'policy',cutId:'cut',reportingCurrencyId:'gbp',openingDate:'2026-10-06',closingDate:'2026-10-07',informationCutoff:'2026-10-08T10:00:00Z'});
 });
 
+it('sends strict interest coverage only when explicitly selected',()=>{
+ const form=new FormData();form.set('requireCompleteAccruals','on');
+ expect(dailyValuationRequest(form,{}).requireCompleteAccruals).toBe(true);
+ form.delete('requireCompleteAccruals');
+ expect(dailyValuationRequest(form,{}).requireCompleteAccruals).toBeUndefined();
+});
+
 it('unlocks only rejected validation while retaining uncertain/calculation retries',()=>{
  const invalid=valuationError({status:422},{code:'request.validation_failed',errors:[{location:['body','openingDate'],message:'Invalid date'}]});
  expect(invalid.message).toContain('openingDate: Invalid date');expect(invalid.validationRejected).toBe(true);

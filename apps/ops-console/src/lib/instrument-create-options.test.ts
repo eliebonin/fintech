@@ -10,6 +10,7 @@ describe("instrument create options", () => {
     expect(paths).toContain("/instruments/swaps/new");
     expect(paths).toContain("/instruments/bonds/new");
     expect(paths).toContain("/instruments/funds/new");
+    expect(paths).toContain("/instruments/amcs/new");
     expect(paths).toContain("/instruments/indices/new");
     expect(paths).not.toContain("/instruments/listings/new");
     expect(paths).not.toContain("/instruments/index-families/new");

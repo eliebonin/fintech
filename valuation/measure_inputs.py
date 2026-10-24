@@ -20,7 +20,7 @@ def measure_reason(product,name,status,*,contract_invalid=False,nominal=False):
     """Presentation metadata only; never infer support by parsing error prose."""
     if status in {'AVAILABLE','MULTI_CURRENCY'}:return None
     if status=='LOCAL_ONLY':return 'FX_UNAVAILABLE'
-    if product not in {'EQUITY','ETF','ETP','FUND','BOND','FUTURE','FX_FORWARD','SWAP'}:return 'NOT_SUPPORTED_YET'
+    if product not in {'EQUITY','ETF','ETP','FUND','BOND','FUTURE','FX_FORWARD','SWAP','ACTIVELY_MANAGED_CERTIFICATE'}:return 'NOT_SUPPORTED_YET'
     if contract_invalid:return 'INVALID_CONTRACT'
     if name=='marketValue' and product in {'FUTURE','FX_FORWARD'}:return 'NOT_SUPPORTED_YET'
     if product=='SWAP' and nominal and name=='economicExposure':return 'NOT_SUPPORTED_YET'
@@ -96,6 +96,16 @@ def preview_measures(c,request,projection,descriptions,rows):
                 price,_=selected(subject,product,native,'securityPrice')
                 amounts=cash_security(bucket.closing_quantity,price,key.unit_multiplier,key.quote_factor)
                 route='SECURITY_PRICE'
+            elif product=='ACTIVELY_MANAGED_CERTIFICATE':
+                from security_master_schema.amc_quotation import matching_quotation
+                conventions=[t.get('convention') or {} for t in terms]
+                basis=matching_quotation(conventions,key.quantity_unit,key.unit_multiplier,key.quote_factor)
+                price,_=selected(key.subject_id,product,native,'amcPrice',(('AMC_PRICE_BASIS',basis),))
+                amounts=cash_security(bucket.closing_quantity,price,key.unit_multiplier,key.quote_factor)
+                route='AMC_'+basis
+                selections['amcQuotation']=dict(priceBasis=basis,quantityUnit=key.quantity_unit,
+                    multiplier=key.unit_multiplier,quoteDivisor=key.quote_factor,
+                    reportingConvention='FUNDED_SECURITY_MARKET_VALUE_PROXY_NO_LOOKTHROUGH')
             elif product=='BOND':
                 conventions=[t.get('convention') or {} for t in terms]
                 if key.quantity_unit=='UNITS':

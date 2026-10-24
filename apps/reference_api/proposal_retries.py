@@ -38,6 +38,7 @@ def find_proposal_replay(connection, tenant_id, request, *, require_source=True)
         'AutocallDraftRequest': 'structured-product.v1',
         'OptionProposalRequest': 'option.v1',
         'SwapProposalRequest': 'product-booking.v1',
+        'AmcProposalRequest': 'product-booking.v1',
         'FutureProposalRequest': 'product-booking.v1',
         'FutureFamilyProposalRequest': 'product-booking.v1',
         'ConventionProposalRequest': 'product-booking.v1',
@@ -45,7 +46,7 @@ def find_proposal_replay(connection, tenant_id, request, *, require_source=True)
     conflict = IdempotencyKeyConflict('Idempotency key was already used with a different proposal request')
     if row['payload_schema_version'] != schemas.get(type(request).__name__):
         raise conflict
-    expected_kind = {'SwapProposalRequest':'CREATE_SWAP', 'FutureProposalRequest':'CREATE_FUTURE',
+    expected_kind = {'AmcProposalRequest':'CREATE_AMC', 'SwapProposalRequest':'CREATE_SWAP', 'FutureProposalRequest':'CREATE_FUTURE',
         'FutureFamilyProposalRequest':'CREATE_FUTURE_FAMILY', 'ConventionProposalRequest':'CONFIGURE_BOOKING_CONVENTION'}.get(type(request).__name__)
     if expected_kind and row['proposal_type'] != expected_kind:
         raise conflict

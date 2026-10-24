@@ -49,7 +49,7 @@ def _chain(connection, original, expected_sequence, *, allow_legacy_cancel=False
         if payload.get('schemaVersion')!=1: raise ValueError()
         kind={'CASH_BOOKING':'CASH','FX_FORWARD_BOOKING':'FX_FORWARD','OPTION_BOOKING':'OPTION'}.get(payload.get('kind'))
         if payload.get('kind')=='PRODUCT_BOOKING': kind=payload['economics']['terms']['kind']
-        if kind not in {'CASH','FX_FORWARD','OPTION','STRUCTURED_PRODUCT','FUTURE','BOND','SWAP'}: raise ValueError()
+        if kind not in {'CASH','FX_FORWARD','OPTION','STRUCTURED_PRODUCT','FUTURE','BOND','SWAP','ACTIVELY_MANAGED_CERTIFICATE'}: raise ValueError()
         if len(events)==2:
             link=json.loads(events[1].event_payload or '{}')
             if events[1].event_type!='CORRECTED' or link.get('schemaVersion')!=1 or link.get('kind')!='BOOKING_CORRECTION' or link.get('action')!='REPLACES_BOOKING': raise ValueError()

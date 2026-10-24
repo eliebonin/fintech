@@ -1,5 +1,5 @@
 """Exact execution economics for bounded structured securities, futures and bonds."""
-from decimal import Decimal, localcontext
+from decimal import Decimal, localcontext, Inexact
 
 
 def exact_amount(value: Decimal) -> Decimal:
@@ -19,7 +19,17 @@ def swap_reference_value(signed_notional: Decimal, price: Decimal, quote_factor:
         raise ValueError('Finite nonzero nominal and positive quotation divisor are required.')
     with localcontext() as context:
         context.prec = 100
-        return exact_amount(nominal * price / factor)
+        # This is retained decimal-text reference evidence, not a fixed-scale
+        # payment column. Valid 12-place inputs can produce 24-place products.
+        # Keep them exact; do not force source quantities/prices to lose digits.
+        context.traps[Inexact] = True
+        try:
+            value=nominal * price / factor
+        except Inexact as exc:
+            raise ValueError('Swap reference value requires exact terminating decimal arithmetic.') from exc
+        if not value.is_finite() or abs(value)>=Decimal('1e18'):
+            raise ValueError('Amount exceeds supported precision.')
+        return value
 
 
 def execution_amount(quantity, price, *, quantity_unit, price_basis, quote_factor,

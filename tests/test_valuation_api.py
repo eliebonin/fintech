@@ -63,6 +63,21 @@ def test_daily_date_transport_freezes_resolved_request_even_if_inputs_missing():
     assert evidence['closing_cutoff'].startswith('2026-10-01T23:59:59.999999')
 
 
+def test_explicit_required_accrual_mode_survives_api_attempt_retention():
+    key=str(uuid4())
+    response=call('POST','/v1/valuation/attempts',dict(strategyId=str(ids['strategy']),
+        policyId=str(uuid4()),cutId=str(ids['valuation_cut']),reportingCurrencyId=str(ids['gbp_currency']),
+        openingDate='2026-09-29',closingDate='2026-10-01',requireCompleteAccruals=True,
+        informationCutoff=datetime.now(timezone.utc).isoformat()),headers={'Idempotency-Key':key})
+    assert response.status_code==422,response.text
+    row=next(item for item in call('GET','/v1/valuation/attempts').json()['items'] if item['request_key']==key)
+    detail=call('GET','/v1/valuation/attempts/'+row['attempt_id']).json()
+    raw=detail['attempt']['request_payload']
+    import json
+    evidence=json.loads(raw) if isinstance(raw,str) else raw
+    assert evidence['require_complete_accruals'] is True
+
+
 def test_market_data_alone_does_not_grant_valuation_access():
     engine=get_engine()
     assert engine.url.database.startswith('platform_isolated_tests_')

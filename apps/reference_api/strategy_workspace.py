@@ -42,11 +42,11 @@ def position_rows(projection,descriptions):
         instrument_type={'OPTION_BOOKING':'OPTION','ETF':'ETP'}.get(key.product_basis,key.product_basis)
         labels={'EQUITY':'Equities','BOND':'Bonds','ETP':'Exchange-traded products','FUND':'Funds',
             'FUTURE':'Futures','OPTION':'Options','SWAP':'Swaps','FX_FORWARD':'FX forwards',
-            'STRUCTURED_PRODUCT':'Structured products'}
+            'STRUCTURED_PRODUCT':'Structured products','ACTIVELY_MANAGED_CERTIFICATE':'Actively managed certificates'}
         label=labels.get(instrument_type,'Other instruments')
         # Alerts explain dated retained terms against this view's UTC date.
         # They are not settlement evidence, a notification queue or an unwind.
-        dated_types={'BOND','FX_FORWARD','FUTURE','OPTION','SWAP','STRUCTURED_PRODUCT'}
+        dated_types={'BOND','FX_FORWARD','FUTURE','OPTION','SWAP','STRUCTURED_PRODUCT','ACTIVELY_MANAGED_CERTIFICATE'}
         evidence={(descriptions[t].get('contractDate'),descriptions[t].get('contractDateLabel')) for t in bucket.trade_ids}
         known={item for item in evidence if item[0]}
         contract_date,date_label=next(iter(known)) if len(known)==1 else (None,None)

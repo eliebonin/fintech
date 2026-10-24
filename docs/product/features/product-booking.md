@@ -1,9 +1,23 @@
 # Instrument-specific creation and booking — capability records
 
+23 October F14: [private standard SPX source import](../../delivery/reconciliation-spx-option-20261023.md)
+converts owner-confirmed embedded-multiplier quantities into actual contracts,
+preserves premium economics, approves an XCBO listing and uses native option
+booking/replay. Old mockup terms remain retained and untradable. This does not
+add a public option-upload template or exercise handling. The subsequent
+[supplied-premium P&L extension](../../delivery/option-premium-pnl-20261023.md)
+supports daily marks with the frozen contract multiplier applied once.
+
+23 October: [native AMC onboarding](../../delivery/amc-onboarding-20261023.md)
+adds creation/approval, inspection and listed/OTC funded booking with explicit
+certificate identity. Unit and percentage-quoted daily processing and the three
+monetary measures use explicit quotation factors. Fee modelling, look-through,
+redemption and dedicated convention-amendment UI remain deferred.
+
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Trading/reference engineering  
-**Last reviewed:** 2026-10-16 (shared futures/swap contract ownership follow-up)
+**Last reviewed:** 2026-10-23 (scoped frozen swap valuation conventions follow-up)
 
 [Feature register](../feature-register.md). [Shared booking controls](../../delivery/booking-controls.md) apply across these paths. Creation, listing, booking, contractual lifecycle and valuation are separate capabilities.
 
@@ -36,7 +50,7 @@ This does not expand booking or valuation product coverage.
 - **Desired:** Canonical option/listing creation and premium booking with explicit opening/closing intent.
 - **Status / backend / frontend:** ALPHA. Supported fixed deliverable/underlying and quotation conventions, integer contract quantity, premium factors and saved snapshots; option creation/review/ticket/detail.
 - **Cuts/trade-offs:** OPEN/CLOSE records trader intent; it does not prove available inventory or identify lots. Dynamic strike/reference modelling is not universal booking support.
-- **Weaknesses:** No inventory allocation, exercise/assignment, expiry obligations, automatic premium settlement or option valuation.
+- **Weaknesses:** No inventory allocation, exercise/assignment, expiry obligations, automatic premium settlement or option-pricing model. [Supplied-premium P&L](../../delivery/option-premium-pnl-20261023.md) uses actual contract counts and the frozen premium multiplier once; it does not add Greeks or monetary measures.
 - **Remaining:** Lot/position validation and independently scoped contractual event/valuation handling; general OTC options require a new slice.
 - **Evidence:** [Option delivery](../../delivery/listed-option-booking-alpha.md), [quality review](../../delivery/quality-reviews/2026-10-01-option-booking-alpha.md), [rules](../../../security_master_schema/option_booking.py).
 
@@ -75,6 +89,13 @@ contract MTM, futures P&L, margin or physical/crypto booking.
 
 ## F17 Bonds
 
+23 October: [private source bond-import delivery](../../delivery/reconciliation-bond-bookings-20261023.md)
+maps owner-confirmed CLEAN fraction-of-par execution prices into native nominal
+booking with separately translated settlement accrual, retained originals and
+replay identities. Historical pre-issue executions retain their actual issue and
+settlement dates. Activation/test status is recorded in the delivery; this is not
+a public bond-upload template or automatic coupon/cash workflow.
+
 - **Desired:** Listed/OTC nominal booking with unambiguous CLEAN or DIRTY quotes and accrued interest.
 - **Status / backend / frontend:** ALPHA. Approved bond quotation/source conventions, signed accrued amounts and frozen clean/dirty settlement bridge; bond terms creation and dedicated ticket.
 - **Cuts/trade-offs:** CLEAN adds the supplied accrual to consideration; DIRTY already includes it and does not add it again. The separate accrual evidence explains the bridge. Trade settlement accrual is not daily P&L accrual.
@@ -87,7 +108,7 @@ contract MTM, futures P&L, margin or physical/crypto booking.
 - **Desired:** Performance/funded reference, optional funding index, spread, contractual notional/currency, total/excess return, leverage and reset/termination terms; flexible booked notional and whole-swap quote.
 - **Status / backend / frontend:** ALPHA. Typed governed terms/legs, reference revalidation, contractual and booked nominal retained separately; optional unit-based contracts retain units plus exact reference notional/unit and derived booked notional. Counterparty and immutable quote-factor snapshot; generic creation and OTC booking ticket, unit-aware history/details. See [unit swap extension and seeded examples](../../delivery/mock-unit-swaps-20261015.md).
 - **Cuts/trade-offs:** Swaps reference economic instruments, including OTC autocalls. Funding economics stay in terms. User may book zero or a compatible price; no automatic upfront cash entry or duplicate leverage multiplication.
-- **Weaknesses:** No universal swap payoff engine, automatic funding/reset postings, final marks, settlement or valuation. A separate operational cost/upfront cash booking is not generated merely because a quote was entered.
+- **Weaknesses:** No universal swap payoff engine, automatic funding/reset postings, generated final marks or settlement. [Supplied whole-swap mark P&L](../../delivery/swap-supplied-mark-pnl-20261023.md) is now supported with compatible native unit/nominal quotes and frozen evidence; it does not model the payoff or infer funding. A separate operational cost/upfront cash booking is not generated merely because a quote was entered.
 - **Remaining:** Controlled lifecycle/reset/final valuation and cash-flow reconciliation when resumed. Quote and received market marks must use the same whole-swap dimensions/quote factor.
 - **Evidence:** [Generic swap delivery](../../delivery/generic-swap-creation-and-booking.md), [legacy supported slice](../../delivery/swap-booking-alpha.md), [creation](../../../apps/reference_api/swap_creation.py), [booking](../../../apps/reference_api/generic_swap_booking.py).
 

@@ -1,5 +1,37 @@
 # Feature implementation and test map
 
+23 October F37/F38 [optional daily accruals](../delivery/optional-bond-accruals-20261023.md):
+[coverage/consumer/publication guard](../../valuation/accruals.py),
+[strict request](../../apps/reference_api/valuation_contracts.py),
+[calculation](../../valuation/service.py),
+[results disclosure](../../apps/ops-console/src/features/valuation/result-workspace.tsx),
+[economic acceptance](../../tests/test_economic_pnl_acceptance.py),
+[request/retry checks](../../tests/test_optional_accrual_contract.py).
+
+The external CSV reconciliation exercise is not product capability delivery.
+Its source-specific operators, adapters and tests are isolated under
+[optional tooling](../../tooling/reconciliation_csv/README.md); retained delivery
+records describe that exercise, not a supported upload interface.
+
+23 October F14/F37 [supplied option-premium P&L](../delivery/option-premium-pnl-20261023.md):
+[frozen premium validation](../../security_master_schema/option_valuation.py),
+[original fingerprint adapter](../../positions/option.py), [native writer](../../apps/reference_api/option_booking.py),
+[input selection](../../valuation/service.py), [shared bridge](../../valuation/position_calculation.py)
+and [applied rules](../../valuation/decisions.py). Verification:
+[arithmetic](../../tests/test_option_valuation.py), [frozen evidence](../../tests/test_option_frozen_valuation.py),
+[native booking/resolution/staging](../../tests/test_option_valuation_integration.py).
+Existing Results/evidence UI presents staged lines; no option pricer, exercise,
+expiry posting, new upload family or monetary-measure preview is added.
+
+23 October: [AMC delivery/limits](../delivery/amc-onboarding-20261023.md),
+[creation](../../apps/reference_api/amc_creation.py),
+[booking](../../apps/reference_api/product_booking.py),
+[UI](../../apps/ops-console/src/components/amc-creation-form.tsx),
+[booking tests](../../tests/test_amc.py),
+[quotation factors](../../security_master_schema/amc_quotation.py),
+[measure/daily integration tests](../../tests/test_amc_measures.py). Native certificate onboarding is not full AMC
+management; F41 remains incomplete.
+
 October 16 query-efficiency follow-up for F02/F27/F32/F34/F36/F37/F48:
 [delivery, source paths, measurements and limits](../delivery/quality-reviews/2026-10-16-query-efficiency.md).
 Regression entry point: `tests/test_query_efficiency.py`; existing policy/coverage,
@@ -13,6 +45,10 @@ No capability-status upgrade or operating activation is implied.
 Use this map with the [desired-feature register](feature-register.md) and its [capability records](features/). Each row identifies a concrete backend implementation surface, frontend route/component, and focused regression-test file where one exists. For foundation-only, deferred or not-implemented capabilities, it points to the existing foundation and states where the desired workflow or its dedicated tests are absent.
 
 Test links identify test files; they do not imply that tests were run in this review or cover every scenario. “No dedicated test located” means no matching focused file was found in the current source inventory. Component/API tests are not browser acceptance. This is a navigation aid, not a certification of correctness.
+
+17 October F08/F09/F11: [shared/private instrument stewardship](features/instrument-management.md#proposed-direction-shared-and-tenant-private-stewardship)
+is a recorded proposal, not a newly implemented or verified authority matrix.
+Existing source/test mappings and capability classifications remain unchanged.
 
 F05 contract-date follow-up: [frozen-date extraction](../../positions/holdings_repository.py)
 and [as-of attention projection](../../apps/reference_api/strategy_workspace.py)
@@ -160,7 +196,27 @@ F33 reference-calendar addition: [reviewed import](../../market_data/reference_c
 | [F34](features/market-data.md#f34-inspection-and-validation) | [market_data_catalogue](../../apps/reference_api/market_data_workspace.py#L36); [audit_dataset](../../market_data/coverage.py#L41); [market-data resolver](../../security_master_schema/market_data_resolver.py) | [Workspace](../../apps/ops-console/src/app/market-data/page.tsx); [coverage](../../apps/ops-console/src/app/market-data/coverage/page.tsx); [explorer](../../apps/ops-console/src/app/market-data/explorer/page.tsx) | [test_market_data_workspace.py](../../tests/test_market_data_workspace.py), [test_market_data_coverage.py](../../tests/test_market_data_coverage.py), [market-data page test](../../apps/ops-console/src/app/market-data/page.test.tsx); no explorer chart/date-refresh test located. |
 | [F35](features/market-data.md#f35-tenant-time-series-upload) | Generic provider ingestion exists in [ingest_delivery](../../market_data/ingestion.py#L33); tenant self-service upload endpoint/workflow: none. | No tenant upload page or API route. | No tenant-upload workflow test located; generic ingestion tests do not verify tenant intake. |
 
+## Tenant data onboarding
+
+| Feature | Backend evidence / remaining work | Frontend evidence / remaining work | Tests / evidence limits |
+| --- | --- | --- | --- |
+| [F59](features/tenant-data-imports.md#f59-governed-tenant-file-imports) | [Import routes](../../apps/reference_api/import_routes.py), [trade orchestration](../../apps/reference_api/import_service.py), [adapter](../../apps/reference_api/import_adapters/trades.py), [safe formats](../../data_imports/formats.py), [retained jobs/identities](../../data_imports/tables.py), migration 96. Existing cash-booking writer remains authoritative; other public processors absent. | [Imports page](../../apps/ops-console/src/app/imports/page.tsx), [guided console](../../apps/ops-console/src/features/imports/import-console.tsx), [row review](../../apps/ops-console/src/features/imports/import-review.tsx), [separate history](../../apps/ops-console/src/features/imports/import-history.tsx), [context-checked BFF](../../apps/ops-console/src/app/api/trade-imports/%5B...path%5D/route.ts). No reconciliation operator UI. | [Parser tests](../../tests/test_import_formats.py), [disposable booking tests](../../tests/test_import_trades.py), [browser recovery/mobile/read-only tests](../../apps/ops-console/browser-tests/imports.spec.ts), [transport tests](../../apps/ops-console/src/app/api/trade-imports/%5B...path%5D/route.test.ts). [Delivery evidence and limits](../delivery/trade-imports-20261018.md). |
+
+External CSV helper evidence is kept in the [optional tooling README](../../tooling/reconciliation_csv/README.md),
+not in this product implementation table.
+
 ## Valuation and P&L
+
+23 October F18/F37 [supplied swap-mark P&L](../delivery/swap-supplied-mark-pnl-20261023.md):
+[frozen generic evidence adapter](../../security_master_schema/swap_valuation.py),
+[native BOOKED writer](../../apps/reference_api/product_booking.py),
+[ledger reader](../../positions/repository.py), [input selection](../../valuation/service.py),
+[shared bridge](../../valuation/position_calculation.py), [applied rules](../../valuation/decisions.py).
+Focused evidence: [arithmetic](../../tests/test_swap_valuation.py),
+[frozen compatibility](../../tests/test_swap_frozen_valuation.py),
+[native resolver integration](../../tests/test_swap_valuation_integration.py).
+Existing generic BOOKED payloads are read without rewriting them; options and
+automatic funding/reset/maturity modelling remain outside this extension.
 
 F37 monetary-measure preview: [exact kernel](../../valuation/position_measures.py),
 [governed inputs](../../valuation/measure_inputs.py), [strategy API](../../apps/reference_api/strategy_workspace.py),

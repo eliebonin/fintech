@@ -20,7 +20,7 @@ The alpha requires exactly one PERFORMANCE and one FUNDING leg, opposing directi
 
 Submit rechecks authoritative terms under transaction locks, including the underlying projection. Snapshot/fingerprint facts include conventions, definitions, legs, dates, payoff graph, schedules and dated events, including component-owned coupon observation overrides and range-accrual observation schedules. A changed funding spread or schedule invalidates the reviewed ticket. Historical views use the saved booking snapshot, not current reference terms.
 
-Decimal arithmetic retains exact supported precision and rejects non-finite values, invalid factors/increments and out-of-range or inexact stored amounts. Existing tenant permissions, visibility, properties and idempotency paths are reused. Concurrent identical replay returns one trade; invalid properties roll back the transaction. Cash-only P&L fails closed when a strategy contains swaps.
+Decimal arithmetic retains exact supported precision and rejects non-finite values, invalid factors/increments and out-of-range or inexact amounts. On 23 October the derived swap entry reference value was separated from fixed-scale cash amounts: it is retained as decimal text and may have more than 12 fractional digits when exact multiplication of valid inputs produces them. Repeating/nonterminating division still fails; native quantity/price limits remain 12 decimals. No payment is created or old evidence rewritten. Existing tenant permissions, visibility, properties and idempotency paths are reused. Concurrent identical replay returns one trade; invalid properties roll back the transaction. Cash-only P&L fails closed when a strategy contains swaps.
 
 ## Verification
 
