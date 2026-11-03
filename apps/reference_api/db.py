@@ -9,6 +9,8 @@ from .config import Settings
 
 @lru_cache(maxsize=4)
 def _engine_for_url(database_url: str) -> Engine:
+    if not database_url:
+        raise RuntimeError('DATABASE_URL is required; run scripts/configure_local_database.py')
     return create_engine(database_url, pool_pre_ping=True)
 
 

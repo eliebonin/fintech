@@ -33,6 +33,8 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """Apply revisions against the configured PostgreSQL database."""
 
+    if not database_url:
+        raise RuntimeError('DATABASE_URL is required for migrations; use scripts/migrate_database.py for local maintenance')
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

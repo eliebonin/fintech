@@ -2,6 +2,11 @@
   --font-inter: Arial;
 }
 
+.instrument-label { display: inline-flex; flex-direction: column; gap: 0.15rem; max-width: 100%; vertical-align: top; }
+.instrument-label-name { font-weight: 600; overflow-wrap: anywhere; line-height: 1.35; }
+.instrument-label-name a { color: #194ac0; text-decoration: underline; text-underline-offset: 2px; }
+.instrument-label-context { color: #52627b; font-size: 0.78rem; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; }
+
 * {
   box-sizing: border-box;
 }
@@ -133,6 +138,17 @@ code { color: #64748b; font-family: ui-monospace, SFMono-Regular, Menlo, monospa
 @media (max-width: 900px) { .tenant-profile-grid { grid-template-columns: 1fr; } }
 
 .strategy-form.enriched-ticket { display: flex; flex-direction: column; gap: 22px; }
+.strategy-form.product-convention-form { display:block; }
+.product-convention-form fieldset { min-width:0; margin:0; padding:0; border:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.product-convention-form fieldset > :is(p,legend,button) { grid-column:1 / -1; }
+.product-convention-form legend { margin-bottom:18px; font-size:17px; font-weight:650; }
+.product-convention-form label { min-width:0; font-size:13px; text-transform:none; letter-spacing:0; }
+.product-convention-form :is(input,select,textarea) { max-width:100%; min-width:0; }
+.product-convention-form textarea { width:100%; }
+.product-convention-form input[readonly] { background:#f3f6fb; }
+.product-convention-form label:has(>input[type="checkbox"]) { display:flex; align-items:flex-start; gap:10px; }
+.product-convention-form input[type="checkbox"] { width:auto; flex:none; margin-top:3px; }
+@media(max-width:650px) { .product-convention-form fieldset { grid-template-columns:minmax(0,1fr); } }
 .ticket-section { margin: 0; padding: 22px; border: 1px solid #dbe3ed; border-radius: 10px; min-width: 0; }
 .ticket-section legend { font-size: 18px; font-weight: 650; padding: 0 8px; }
 .ticket-section > label { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; max-width: 560px; }
@@ -265,3 +281,20 @@ code { color: #64748b; font-family: ui-monospace, SFMono-Regular, Menlo, monospa
 .workspace-nav-hint.is-pending { animation:workspace-nav-reveal 180ms ease 250ms forwards; }
 @keyframes workspace-nav-reveal { to { opacity:0.8; } }
 @media (prefers-reduced-motion:reduce) { .workspace-nav-hint.is-pending { animation:workspace-nav-reveal 0s linear 250ms forwards; } }
+.bond-cashflow-editor fieldset { min-width:0; margin:16px 0; padding:18px; border:1px solid #dce4f0; border-radius:10px; }
+.bond-cashflow-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:16px; margin-bottom:16px; }
+.bond-cashflow-fields label { display:flex; flex-direction:column; gap:6px; }
+.bond-cashflow-fields :is(input,select) { box-sizing:border-box; width:100%; max-width:100%; padding:10px; border:1px solid #bac9df; border-radius:6px; background:white; color:inherit; font:inherit; }
+.bond-cashflow-editor .bond-cashflow-confirm { display:flex; align-items:flex-start; gap:10px; margin:18px 0; }
+.bond-cashflow-editor .bond-cashflow-confirm input { flex:none; width:18px; height:18px; margin:2px 0 0; }
+
+.interest-register { min-width:0; }
+.interest-register .pnl-table-scroll { max-width:100%; }
+.pnl-workspace.interest-register table.pnl-table :is(th,td) { text-align:left; }
+.pnl-workspace.interest-register table.pnl-table .pnl-amount { text-align:right; }
+.pnl-workspace.interest-register table.interest-balance-table .interest-bond { min-width:200px; }
+.pnl-workspace.interest-register table.interest-balance-table .interest-date { white-space:nowrap; }
+.interest-register td code { white-space:normal; overflow-wrap:anywhere; }
+.interest-register details { margin:14px 0; }
+.interest-register td details { margin:6px 0 0; max-width:250px; }
+.interest-register td pre { max-height:250px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }

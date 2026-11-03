@@ -199,13 +199,15 @@ def option_router(connection_dependency,assert_membership):
     def listing_search(q:str=Query(default='',max_length=250),limit:int=Query(default=25,ge=1,le=100),offset:int=Query(default=0,ge=0),as_of:date|None=Query(default=None,alias='asOfDate'),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         authorized(connection,context)
         items,total=search(connection,context.tenant_id,q,limit,offset,as_of)
-        return OptionBookingListingSearchResponse(data=items,meta=meta(context,total=total,limit=limit,offset=offset))
+        from .instrument_display import decorate_response
+        return decorate_response(connection,context.tenant_id,OptionBookingListingSearchResponse(data=items,meta=meta(context,total=total,limit=limit,offset=offset)),[item.listing_id for item in items])
     @router.get('/v1/trades/option-listings/{listing_id}',response_model=OptionBookingListingResponse)
     def listing_detail(listing_id:UUID,as_of:date|None=Query(default=None,alias='asOfDate'),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         authorized(connection,context)
         try: _,item=load(connection,context.tenant_id,listing_id,as_of=as_of)
         except RepositoryNotFound as error: raise HTTPException(404,str(error)) from error
-        return OptionBookingListingResponse(data=item,meta=meta(context))
+        from .instrument_display import decorate_response
+        return decorate_response(connection,context.tenant_id,OptionBookingListingResponse(data=item,meta=meta(context)),[item.listing_id])
     @router.post(ENDPOINT,response_model=TradeDetailResponse,status_code=201)
     def booking(request:OptionBookingRequest,response:Response,idempotency_key:str=Header(alias='Idempotency-Key',min_length=1,max_length=255),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
         actor=authorized(connection,context)

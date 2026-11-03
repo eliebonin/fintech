@@ -2,7 +2,8 @@
 import asyncio
 from uuid import UUID, uuid4
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport,ConnectionEngine
 from sqlalchemy import select, update, func, text
 from apps.reference_api.main import create_app
 from apps.reference_api.db import get_engine
@@ -292,14 +293,7 @@ def test_http_refuses_inactive_scope_without_writing_trade(connection, instrumen
     connection.execute(update(m.reference_node_scope).where(
         m.reference_node_scope.c.reference_node_id == UUID(instrument)).values(status="INACTIVE"))
     before = connection.scalar(select(func.count()).select_from(m.trade))
-    app = create_app()
-    # Cash and included FX routes share this dependency; included routers may be
-    # expanded lazily by FastAPI, so locate it on the directly registered route.
-    route = next(route for route in app.routes if getattr(route, "path", None) == "/v1/trades" and "POST" in getattr(route, "methods", set()))
-    dependency = next(item.call for item in route.dependant.dependencies if item.call.__name__ == "connection_dependency")
-    def injected():
-        yield connection
-    app.dependency_overrides[dependency] = injected
+    app = create_app(engine=ConnectionEngine(connection))
     async def run():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             return await client.post("/v1/trades/fx-forwards", json=data.model_dump(mode="json", by_alias=True), headers={

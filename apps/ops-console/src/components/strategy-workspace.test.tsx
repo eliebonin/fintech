@@ -16,7 +16,7 @@ it('groups positions by type and hides opaque subject IDs without losing drill-d
  const html=renderToStaticMarkup(<StrategyPositions strategyId="s" query={query} data={{asOf:'2026-09-30',basis:'EXECUTED',informationCutoff:'2026-10-15T10:00:00Z',total:3,limit:25,offset:0,items:[row,{...row,positionId:'p2',name:'Zebra equity'},{...row,positionId:'p3',name:'A swap',instrumentType:'SWAP',instrumentTypeLabel:'Swaps',quantityUnit:'UNITS'}]}}/>);
  expect(html).toContain('scope="rowgroup"');expect(html).toContain('Equities');expect(html).toContain('Swaps');
  expect(html.indexOf('Equities')).toBeLessThan(html.indexOf('Alpha equity'));expect(html.indexOf('Zebra equity')).toBeLessThan(html.indexOf('Swaps'));
- expect(html).not.toContain('opaque-subject-uuid');expect(html).toContain('/instruments/i');expect(html).toContain('position=p');expect(html).toContain('20');
+ expect(html.replace(/<[^>]*>/g,'')).not.toContain('opaque-subject-uuid');expect(html).toContain('/instruments/i#listing-opaque-subject-uuid');expect(html).toContain('position=p');expect(html).toContain('20');
 });
 it('uses a register with detail links and a separate permitted creation action',()=>{
  const html=renderToStaticMarkup(<StrategyConsole initialStrategies={[strategy]} canWrite/>);

@@ -2,6 +2,13 @@
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 import re
+import os
+
+# Explicit disposable-test configuration, never an authentication bypass.
+# Individual identity tests remove/replace these values to exercise fail-closed
+# startup. Product requests still need an actual session.
+os.environ.setdefault('APP_ENV','test')
+os.environ.setdefault('LOCAL_ACCESS_OPERATOR_KEY','synthetic-test-bootstrap-capability-not-for-operating-use')
 
 @event.listens_for(Engine,'do_connect')
 def reject_operating_database(dialect,connection_record,args,params):

@@ -113,10 +113,12 @@ def test_search_pages_count_the_full_register_and_keep_role_filter(connection):
 
 def test_http_contract_forbids_identity_inputs_and_returns_conflicts(connection):
     from fastapi import FastAPI
-    from httpx import ASGITransport,AsyncClient
+    from httpx import AsyncClient,ASGITransport
+    from tests.api_client import router_fixture_identity
     from apps.reference_api.trade_configuration_routes import configuration_router
     from apps.reference_api.problem_details import configure_problem_details
     app=FastAPI();configure_problem_details(app)
+    router_fixture_identity(app)
     def dependency():yield connection
     app.include_router(configuration_router(dependency))
     identifier=organisation(connection)
@@ -209,7 +211,7 @@ def test_internal_codes_are_tenant_unique_and_bad_inputs_leave_no_profile(connec
 
 @pytest.mark.parametrize('audit_failure',[False,True])
 def test_full_api_retains_request_audit_or_rolls_back_the_whole_command(monkeypatch,audit_failure):
-    from fastapi.testclient import TestClient
+    from tests.api_client import FixtureTestClient as TestClient
     from apps.reference_api.main import create_app
     from security_master_schema import access_management as am
     engine=create_engine(os.environ['DATABASE_URL'])

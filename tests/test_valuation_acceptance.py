@@ -1,16 +1,19 @@
 """Successful HTTP calculation/retry/review on an independently owned database."""
 import asyncio
-from dataclasses import asdict
+from dataclasses import asdict,replace
 import os
 from pathlib import Path
 import subprocess
 import sys
 from uuid import uuid4
-from httpx import ASGITransport,AsyncClient
+from httpx import AsyncClient,ASGITransport as RawTransport
+from tests.api_client import FixtureASGITransport as ASGITransport
 from sqlalchemy import create_engine,text,select,event
 from security_master_schema import models as m
 from sqlalchemy.engine import make_url
 from apps.reference_api.main import create_app
+from apps.reference_api.config import Settings
+from security_master_schema.governance_clock import governance_date
 from security_master_schema.demo_data import DEMO_IDS as ids,load_demo_data
 
 
@@ -22,6 +25,7 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
     with admin.connect() as c: c.execute(text(f'CREATE DATABASE "{name}"'))
     target=base.set(database=name);engine=create_engine(target)
     database_errors=[]
+    setup=None
     def capture_error(context):
         exception=context.original_exception
         database_errors.append((getattr(exception,'sqlstate',None),getattr(getattr(exception,'diag',None),'message_primary',None)))
@@ -33,33 +37,62 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
         from tests import test_valuation_service as fixture
         monkeypatch.setattr(fixture,'get_engine',lambda:engine)
         setup=fixture.valued.__wrapped__()
-        try:
-            c,request,trade=next(setup)
-            c.commit()  # Only this child database contains committed mock financial rows.
-        finally: setup.close()
+        c,request,trade=next(setup)
+        c.commit()  # Only this child database contains committed mock financial rows.
+        # Keep the fixture alive: closing it restores its original policy rule.
+        # The API calculation must still see the synthetic RAW/session policy.
         payload=dict(strategyId=str(request.strategy_id),policyId=str(request.policy_id),cutId=str(request.cut_id),
             reportingCurrencyId=str(request.reporting_currency_id),openingCutoff=request.opening_cutoff.isoformat(),
             closingCutoff=request.closing_cutoff.isoformat(),informationCutoff=request.information_cutoff.isoformat())
         app=create_app(engine=engine);key=str(uuid4())
-        from security_master_schema.access_management import add_user
+        from security_master_schema.access_management import add_user,save_group,set_user_groups
         with engine.begin() as c:
             reviewer=add_user(c,ids['tenant'],ids['demo_user_account'],name='Independent reviewer',role='TENANT_ADMIN')
+            # An independent local operator is an explicit fixture identity,
+            # not a caller-supplied header or an implicit tenant-admin privilege.
+            c.execute(m.platform_user_account.insert().values(user_account_id=reviewer,
+                platform_role='PLATFORM_ADMIN',status='ACTIVE',valid_from=governance_date()))
+            group=save_group(c,ids['tenant'],ids['demo_user_account'],code='REVIEW_'+uuid4().hex,
+                name='Synthetic independent review',actions=['VALUATION_READ','VALUATION_REVIEW','MARKET_DATA_READ'],scope_mode='ALL')
+            set_user_groups(c,ids['tenant'],ids['demo_user_account'],reviewer,[group])
+        independent_key='synthetic-independent-local-operator-bootstrap-key'
+        independent_app=create_app(engine=engine,settings=replace(Settings.from_environment(),
+            local_operator_id=reviewer,local_operator_key=independent_key))
         headers={'X-Tenant-Id':str(ids['tenant']),'X-User-Account-Id':str(ids['demo_user_account']),'Idempotency-Key':key}
         async def acceptance():
+            async with AsyncClient(transport=RawTransport(app=independent_app),base_url='http://test') as operator:
+                login=await operator.post('/v1/local-session',headers={'X-Local-Operator-Key':independent_key,
+                    'X-User-Account-Id':str(reviewer)},json={'tenantId':str(ids['tenant']),'userId':str(reviewer)})
+                assert login.status_code==201,login.text
+                independent_token=login.json()['token']
             async with AsyncClient(transport=ASGITransport(app=app),base_url='http://test') as client:
-                operator_headers={'X-User-Account-Id':str(ids['platform_admin_user_account'])}
+                operator_headers={'X-User-Account-Id':str(ids['platform_admin_user_account']),
+                    'X-Local-Operator-Key':os.environ['LOCAL_ACCESS_OPERATOR_KEY']}
                 session=await client.post('/v1/local-session',headers=operator_headers,
                     json={'tenantId':str(ids['tenant']),'userId':str(ids['demo_user_account'])})
                 assert session.status_code==201,session.text
                 headers['X-Local-Access-Token']=session.json()['token']
                 first,concurrent=await asyncio.gather(*[
                     client.post('/v1/valuation/attempts',json=payload,headers=headers) for _ in range(2)])
-                if first.status_code==409:
+                if first.status_code in (409,429):
                     first,concurrent=concurrent,first
-                assert first.status_code==201,f'{first.text}; databaseErrors={database_errors}'
-                assert concurrent.status_code in (201,409),f'{concurrent.text}; databaseErrors={database_errors}'
+                if first.status_code!=201:
+                    from valuation import tables as v
+                    with engine.connect() as evidence:
+                        failed=evidence.scalar(select(v.attempt.c.attempt_id).where(v.attempt.c.request_key==key))
+                        reasons=list(evidence.scalars(select(v.run_event.c.details).where(v.run_event.c.attempt_id==failed)))
+                    pytest_message=f'{first.text}; runEvidence={reasons}; databaseErrors={database_errors}'
+                else:pytest_message=first.text
+                assert first.status_code==201,pytest_message
+                assert concurrent.status_code in (201,409,429),f'{concurrent.text}; databaseErrors={database_errors}'
                 if concurrent.status_code==201:
                     assert concurrent.json()['attempt']['attempt_id']==first.json()['attempt']['attempt_id']
+                elif concurrent.status_code==429:
+                    assert concurrent.json()['code']=='workload.busy' and concurrent.json()['notStarted'] is True
+                    assert concurrent.headers['Retry-After']=='5'
+                    retried=await client.post('/v1/valuation/attempts',json=payload,headers=headers)
+                    assert retried.status_code==201,retried.text
+                    assert retried.json()['attempt']['attempt_id']==first.json()['attempt']['attempt_id']
                 else:
                     assert concurrent.json()['code']=='valuation.in_progress'
                 result=first.json();batch=result['batch'];attempt=result['attempt']['attempt_id']
@@ -93,7 +126,8 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
                 decision='/v1/valuation/amendments/'+amendment+'/approve'
                 denied=await client.post(decision,headers=switched_headers,json={'comment':'Same operator, different selected user'})
                 assert denied.status_code==403,denied.text
-                independent={'X-Tenant-Id':str(ids['tenant']),'X-User-Account-Id':str(reviewer)}
+                independent={'X-Tenant-Id':str(ids['tenant']),'X-User-Account-Id':str(reviewer),
+                    'X-Local-Access-Token':independent_token}
                 approved=await client.post(decision,headers=independent,json={'comment':'Independent review of adjustment'})
                 assert approved.status_code==200,approved.text
                 revised=approved.json()['batch']['batch_id']
@@ -109,10 +143,9 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
                 headers['X-Local-Access-Token']=restored.json()['token']
                 # Calculation authority is not perpetual display authority.
                 with engine.begin() as c:
-                    c.execute(m.dataset_access_profile.insert().values(dataset_id=ids['dataset'],
-                        licensee_organisation_id=c.scalar(select(m.organisation.c.organisation_id).limit(1)),
-                        permitted_tenant_id=ids['tenant'],usage_scope='PERSONAL',provider_enabled=True,
-                        activation_reference='Synthetic display revocation regression',status='ACTIVE'))
+                    c.execute(m.licence_activity_grant.update().where(m.licence_activity_grant.c.activity=='DISPLAY',
+                        m.licence_activity_grant.c.dataset_licence_assignment_id.in_(select(m.dataset_licence_assignment.c.dataset_licence_assignment_id)
+                            .where(m.dataset_licence_assignment.c.dataset_id==ids['dataset']))).values(status='SUSPENDED'))
                 restricted=await client.get('/v1/valuation/attempts/'+attempt,headers=headers)
                 assert restricted.status_code==200,restricted.text
                 safe=restricted.json()
@@ -129,6 +162,7 @@ def test_successful_http_calculation_retry_and_self_review_guard(monkeypatch):
                 assert hidden.status_code==403,hidden.text
         asyncio.run(acceptance())
     finally:
+        if setup is not None:setup.close()
         engine.dispose()
         assert name.startswith('platform_isolated_tests_') and len(name.rsplit('_',1)[1])==32
         with admin.connect() as c: c.execute(text(f'DROP DATABASE "{name}"'))

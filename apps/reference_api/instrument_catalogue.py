@@ -1,10 +1,11 @@
-"""Three-query catalogue projection; full evidence remains on detail endpoints."""
+"""Bounded catalogue projection with separately resolved display metadata."""
 from datetime import date
 from security_master_schema.governance_clock import governance_date
 from sqlalchemy import and_, func, or_, select
 from security_master_schema import models as m
 from .contracts import ApiMeta, InstrumentCatalogueItem, InstrumentCatalogueResponse
 from .repository import _base_instrument_select, _search_predicate
+from .instrument_display import load_instrument_displays
 
 
 def search_instrument_catalogue(connection, tenant_id, query, limit, offset, api_version,
@@ -48,6 +49,6 @@ def search_instrument_catalogue(connection, tenant_id, query, limit, offset, api
         instrumentType=row.instrument_type, assetClass=row.asset_class,
         status=row.node_status, baseCurrency=row.base_currency,
         listingCount=counts.get(row.instrument_id, 0)) for row in rows],
-        meta=ApiMeta(tenantContext=str(tenant_id), source='live-reference-api',
+        meta=ApiMeta(instrumentDisplays=load_instrument_displays(connection,tenant_id,[row.instrument_id for row in rows]),tenantContext=str(tenant_id), source='live-reference-api',
                      apiVersion=api_version, correlationId=correlation_id,
                      limit=limit, offset=offset, total=total))

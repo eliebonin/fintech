@@ -77,3 +77,45 @@ def test_unknown_trade_instrument_is_not_guessed(tmp_path):
     source=sample(tmp_path);path=source/'SAMPLE-2026-10-20-trades.csv'
     path.write_text(path.read_text().replace('open,10,2,','open,404,2,'))
     with pytest.raises(ValueError,match='Missing instrument'):load(source)
+
+
+def with_activity(source, *, flag='False'):
+    path=source/'SAMPLE-2026-10-20-trades.csv'
+    rows=list(csv.DictReader(StringIO(path.read_text(encoding='utf-8'))))
+    for row in rows:row['active']='True'
+    rows.extend([dict(rows[0],trade_id='inactive-investment',active=flag),
+                 dict(rows[1],trade_id='inactive-reset',active=flag)])
+    out=StringIO(newline='');writer=csv.DictWriter(out,fieldnames=list(rows[0]))
+    writer.writeheader();writer.writerows(rows)
+    path.write_text(out.getvalue(),encoding='utf-8')
+    return path
+
+
+def test_inactive_positions_and_flows_are_evidence_only(tmp_path):
+    source=sample(tmp_path);path=with_activity(source);original=path.read_bytes()
+    bundle=load(source)
+    assert [r['trade_id'] for r in bundle.positions]==['open']
+    assert [r['trade_id'] for r in bundle.flows]==['reset']
+    assert bundle.manifest['inactiveTradeIds']==['inactive-investment','inactive-reset']
+    assert len(bundle.tables['trades'])==5
+    assert bundle.files['trades']==original==path.read_bytes()
+
+
+@pytest.mark.parametrize('flag',['','unknown','0','1'])
+def test_unknown_activity_is_rejected_when_column_is_present(tmp_path,flag):
+    source=sample(tmp_path);with_activity(source,flag=flag)
+    with pytest.raises(ValueError,match='activity'):load(source)
+
+
+def test_inactive_accruals_are_retained_but_not_aggregated(tmp_path):
+    from tooling.reconciliation_csv.reconciliation_accruals import aggregate_accruals
+    source=sample(tmp_path);with_activity(source,flag=' false ')
+    path=source/'SAMPLE-2026-10-20-accrued_interests.csv'
+    path.write_text('trade_id,instrument_id,value_date,trade_daily_accrual_amount\n'
+        'open,10,2026-10-20,2.12\ninactive-investment,10,2026-10-20,99\n',encoding='utf-8')
+    bundle=load(source);result=aggregate_accruals(bundle)
+    assert len(bundle.tables['accrued_interests'])==2
+    assert len(result)==1 and result[0]['normalization']['value']=='2.120000000000'
+    assert [r['trade_id'] for r in result[0]['originalRows']]==['open']
+    path.write_text(path.read_text(encoding='utf-8')+'unknown,10,2026-10-20,99\n',encoding='utf-8')
+    with pytest.raises(ValueError,match='unavailable position'):load(source)

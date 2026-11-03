@@ -1,5 +1,33 @@
 # Market data and valuation
 
+31 October: [Incomplete-price review and independently reviewed marks](../../delivery/incomplete-price-review-20261031.md)
+retains unknown investment/cash FX contributions, calculated subtotals and a
+required-mark publication gate. Optional assessed interest/cash snapshots remain
+separate nonblocking omissions; no price/FX substitute is invented.
+
+
+29 October: [Compact review and dual-currency accrued stocks](../../delivery/valuation-review-signals-20261029.md)
+use retained coverage/FX with independent availability. Partial inputs stay
+discoverable and nonblocking; publication blockers remain separate.
+
+28 October: [Bond DIRTY-to-CLEAN quotations](../../delivery/bond-dirty-to-clean-20261028.md)
+pair per-100 accrued with the exact source observation. Daily P&L consumes
+derived CLEAN; strategy earned interest/stock FX and full DIRTY monetary values
+remain distinct. No interest generator or public upload workflow is added.
+
+28 October: [Linear crypto futures](../../delivery/linear-futures-extension-20261028.md)
+reuse exact-contract daily variation for cash and physical settlement. Actual
+delivery, margin accounting and crypto monetary-measure previews stay separate.
+
+28 October: [Quoted wrappers and spot crypto](../../delivery/etp-spot-crypto-pnl-20261028.md)
+use native security/token prices with frozen factors and trade-quote FX. Crypto
+pricing days require explicit assessed calendar coverage; venue prices and
+stablecoin quotation currencies are not silently interchangeable.
+
+28 October: [Supplied whole-note P&L](../../delivery/structured-note-pnl-20261028.md)
+extends the common security bridge with explicit note quotation/interest handling.
+Payoff pricing and note lifecycle automation remain deferred.
+
 Publication authority follow-up (14 October 2026): [controlled self-publication](../../delivery/valuation-self-publication-20261014.md)
 is an explicit default-off tenant/strategy-scoped continuity exception. Independent
 review remains the default; real-operator provenance, amendment independence and
@@ -43,7 +71,7 @@ policy-selected FX. That preview is not investment P&L, persisted staging or ful
 
 `positions` reads tenant/strategy ledger history in keyset chunks without a total 1,000-trade cap, then reconstructs compatible opening/closing positions and period executions. Only nonzero boundaries need marks; execution-only round trips retain P&L. Historical facts and financial ownership lineage remain distinct.
 
-`valuation` uses `economic-position-pnl-v3`: supported equity/ETF, native fund NAV and clean-bond economics; governed direct/explicit inverse FX; assessed daily bond interest and explicitly booked economic flows. Reviewed basic equity/ETF share ratios transform holdings, retaining original trades and immutable source/decision/quantity evidence. Unreviewed successor corrections cannot erase reviewed historical changes, and stale pre-action prices cannot value post-action units. Price/FX/cross, daily accrual and signed income/cost components reconcile to market/gross/net totals. Cash stock, derivative/final-maturity valuation, full NAV, complex corporate transformations and account-specific/fractional-cash entitlements remain excluded and fail closed rather than inventing economics.
+`valuation` uses `economic-position-pnl-v3`: supported equity/ETF, native fund NAV, AMC and clean-bond economics; governed direct/explicit inverse FX; supplied whole-swap marks, listed-option premiums and bounded FX-forward rate differences. [Cash-settled index-futures P&L](../../delivery/futures-daily-pnl-20261027.md) adds price variation with the frozen multiplier once and economic-day closing FX, without treating notional as a NAV asset. Reviewed basic share ratios transform holdings while retaining original trades and immutable source/decision evidence. Price/FX/cross, supplied daily interest, available accrued-stock FX, cash FX and explicit income/costs reconcile to market/gross/net totals. Plain bond and deliverable-forward maturity have recorded closure paths. Unsupported products/actions and missing required marks fail closed; missing optional interest/cash stocks are disclosed without assuming zero. Full fund NAV, universal derivative pricing, broader lifecycle, income entitlement and complex corporate transformations remain separate work. See the [current methodology matrix](valuation-methodology.md).
 
 Calculation stages immutable candidates. Source corrections require recalculation; controlled component amendments produce replacement candidates. Independent approval/publication checks real operator ancestry, current disclosure rights, selected versions, totals and stale inputs/populations. Financial input and review history are not overwritten. Operational logs survive failed calculation; readable diagnostics and JSON coexist.
 

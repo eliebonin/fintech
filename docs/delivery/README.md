@@ -1,5 +1,181 @@
 # Delivery records
 
+3 November: [Trade markers on accrued-balance history](balance-trade-markers-20261103.md)
+— date-aligned Buy/Sell groups, exact details and individual trade links behind
+current strategy valuation/trade-read scope. Read-only, independently loaded;
+Line/Bar chart and exact balance pagination stay intact.
+
+3 November: [Expanded FCAGF/FCPGF accrued-balance history](expanded-accrued-balance-history-20261103.md)
+— earlier provisional zero-opening history, schedule-based economic stock resets
+and preserved reviewed closings. Original sources/revisions remain; incomplete
+coupon schedules and independent-assessment differences remain explicit.
+
+3 November: [FCAGF/FCPGF accrual CSV refresh](daily-accrual-csv-refresh-20261103.md)
+— appended 128 / 1,368 new bond/date inputs, retained exact source evidence and
+left existing values and balances unchanged. Three fund share-class accruals
+are explicitly deferred for investigation; this is a private data operation.
+
+3 November: [Accrued-balance explorer](accrued-balance-explorer-20261103.md)
+— independent strategy/instrument/range page with the full chart and exact
+25/50/100/All datapoints. Reuses existing secured history reads; no financial writes.
+
+3 November: [Two-stage daily interest review](interest-daily-review-20261103.md)
+— strategy/day daily accrual review, then gated balance review; exact sourced
+corrections, whole-population validation and explicit acknowledged gaps. Supersedes
+the 1 November three-tab UI; exploration and accounting are deferred.
+
+1 November: [Ops interest workspace](interest-ops-workspace-20261101.md) — three
+maintenance tabs, contextual revision/withdrawal editors, explicit filters and
+rebuild, independent reads and preserved chart/evidence; no page-specific P&L links.
+
+1 November: [Accrued-balance chart](accrued-balance-chart-20261101.md) — read-only
+bond/date modal, full-series line chart and exact 25/50/100/All datapoint table,
+including strategy-scoped choices and missing/stale values.
+
+1 November: [Provisional FCAGF/FCPGF accrued balances](provisional-accrued-balances-20261101.md)
+— owner-authorised zero opening assumptions and exact supplied-flow assessments;
+native maintained history populated, with missing dates/unsupported bonds and
+unconfirmed coupon receipts kept explicit. No published valuation was changed.
+
+31 October: [Maintained accrued balances](maintained-accrued-balances-20261031.md)
+— validated daily interest, explicit revisioned local-stock updates, coupon receipt
+bridges, verified checkpoints and valuation FX consumption with optional gaps.
+
+31 October: [Owner-supplied closed Treasury-bill position](owner-bill-reconciliation-20261031.md)
+— missing buy/sale and prior-day mark retained; exact nominal/CLEAN normalization,
+separate source counterparties, historical reference coverage and zero closing position.
+
+31 October: [Inactive source trade cancellation](inactive-source-trade-cancellation-20261031.md)
+— three imported inactive sales cancelled through the native audited workflow;
+all ten fund P&L contributions reconcile, with a new staged candidate and a guard
+against future inactive-row booking in optional CSV tooling.
+
+31 October: [Fund NAV-date correction](fund-nav-lag-20261031.md)
+— FCPGF policy v3 selects T−1/T−2 NAVs with unchanged T/T−1 FX and a new weekday
+valuation-calendar version. Existing policy/session machinery is reused.
+
+
+31 October: [Incomplete-price review and reviewed manual marks](incomplete-price-review-20261031.md)
+— partial staging, explicit unpriced positions/cash, calculated subtotals and
+independent retained mark requests. Required prices still gate publication;
+optional interest/cash-snapshot gaps remain nonblocking. Migration 107 applied.
+
+
+31 October initial attempt: [FCPGF valuation attempt](fcpgf-valuation-attempt-20261031.md)
+— FCAGF-equivalent policy activated for FCPGF, with a native published NAV date
+calendar. Failed on two absent opening forward marks; 248/250 required position
+marks selected. No staged result or publication; original financial data retained.
+
+30 October: [FCPGF private reconciliation import](fcpgf-reconciliation-import-20261030.md)
+— all 383 source position entries and 1,002 RESET records posted, including
+four separately priced rate exchanges, an owner-authorised price correction
+and 28 typed fund-unit movements. Optional tooling; no full-portfolio
+valuation acceptance or publication.
+
+30 October: [Separately priced rate-exchange swaps](rate-exchange-swaps-20261030.md)
+— native two-floating-leg terms, approval, booking, frozen evidence and supplied-mark
+P&L; guarded completion preserves existing price/RESET identities. No generated
+cashflows, curve pricer or rate-exchange monetary/risk measures.
+
+30 October: [Fund unit transfers and reinvestment credits](fund-unit-movements-20261030.md)
+— separate native movement command, signed quantity/type proof, policy-day-end
+NAV bridge, unassessed reinvestment-income review and cancel-only correction.
+No generated cash/income, movement ticket/template or operating publication.
+
+30 October: [Dataset rights and shared admission](dataset-rights-and-workload-20261030.md)
+— strict profiles/reporting purpose, explicit invented seed origin, nonblocking
+cross-worker capacity, safe retries and unchanged financial acceptance.
+
+30 October: [Database, audit and browser security controls](security-controls-20261030.md)
+— findings 3/4/6/8, preserved operating data, non-owner runtime, default secret
+rules, safe denial evidence and nonce CSP/HTTPS cookies; findings 5/7 remain open.
+
+30 October: [Local identity containment](local-identity-safeguard-20261030.md)
+— mandatory verified sessions, guarded local operator bootstrap, removed legacy
+identity fallbacks and blocked non-local startup. Production login deferred.
+
+30 October: [Dependency-security remediation](dependency-security-20261030.md)
+— patched complete locks, preserved contracts and focused compatibility evidence,
+with fail-closed PR/main/manual/weekly dependency checks. Security point 2 only.
+
+29 October: [Cash-booking domain extraction](cash-booking-service-extraction-20261029.md)
+— native trading command shared by HTTP and file confirmation, original governed
+validation/frozen facts, transactional projection/audit and a baseline swap-lock fix.
+
+29 October: [API service extraction, phases 1–3](api-service-extraction-20261029.md)
+— pinned contracts/evidence, lower shared helpers and a pricing-policy command
+pilot used by HTTP and the FX operator; unchanged schema/financial semantics.
+
+29 October: [Compact valuation review and dual-currency stocks](valuation-review-signals-20261029.md)
+— collapsed coverage summary, complete Attention routing, actual-window cash
+partial status and exact frozen local/reporting accrued balances.
+
+28 October: [Bond DIRTY-to-CLEAN normalization](bond-dirty-to-clean-20261028.md)
+— exact source-paired quoted accrual, immutable correction evidence, separate
+strategy daily interest/stock FX, readable inspector and publication guard.
+
+28 October: [Linear crypto futures booking and P&L](linear-futures-extension-20261028.md)
+— cash and physical linear asset-unit contracts, original conventions, governed
+daily variation, responsive convention editor and retained delivery facts.
+
+28 October: [ETP and spot-crypto P&L](etp-spot-crypto-pnl-20261028.md) —
+subtype-preserving cash economics, historical unit-label netting, explicit crypto
+cut/calendar/FX, recorded wrapper income and existing governed publication.
+
+28 October: [Directly held structured-note P&L](structured-note-pnl-20261028.md) —
+supplied whole-note price/FX, explicit quote basis, optional CLEAN interest/stock
+FX and recorded note coupons; ordinary review/publication, deferred lifecycle.
+
+27 October: [Futures daily P&L](futures-daily-pnl-20261027.md) — supplied-price
+variation for the current cash-settled index slice, original contract evidence,
+closing FX, ordinary staging/publication and manual-check inspection. No migration.
+
+27 October: [Accrued-stock FX](accrued-balance-fx-20261027.md) — source reconstruction,
+immutable local balances, partial coverage and retained unpaid receivables;
+coupon/accrual source revalidation preserves reviewed publications.
+
+27 October: [Full bond cashflow schedule](bond-cashflow-schedule-20261027.md) —
+versioned coupon/principal rows with retained evidence, sourced editor and
+coupon-only payment guards. Accrued-stock reconstruction and DCF remain deferred.
+
+26 October: [Shared instrument display](shared-instrument-display-20261026.md) —
+business name, governed identifier and market/currency context across main read
+and booking-search surfaces; listing-preserving anchors, retained technical
+evidence and unchanged frozen financial inputs. Replaces the bond-only label rule.
+
+26 October: [Readable position inspection](position-inspection-manual-check-20261026.md) —
+exact boundary quantities/prices/FX and dated executions first, retained value
+bridge and product conventions, technical proof collapsed below; no repricing.
+
+26 October: [Position instrument-type column and filter](valuation-report-tabs-20261026.md#instrument-type-column-and-filter-follow-up) —
+accessible canonical/listing classification, full-result combined filtering before
+pagination and explicit unavailable types; no financial or authority change.
+
+26 October: [Zero-coupon accrual applicability](zero-coupon-accrual-applicability-20261026.md) —
+original frozen ZERO terms exempt absent coupon inputs, including strict mode;
+explicit not-applicable evidence, supplied-interest validation and publication
+freshness retained. No migration or historical financial rewrite.
+
+26 October: [Frontend HTML/console integrity](quality-reviews/2026-10-26-frontend-console-integrity.md) —
+valid currency-evidence disclosure markup, native group/import pattern repairs
+and a browser-console regression guard; no financial or authority change.
+
+26 October: [Selected valuation report tabs](valuation-report-tabs-20261026.md) —
+Breakdown, Positions & cash, Review and Logs; shared context/warnings/publication,
+retained drafts, direct links and keyboard navigation. No financial/API change.
+
+25 October: [Account-owned cash FX P&L](cash-fx-pnl-20261025.md) — standard daily
+opening-balance attribution, frozen account/snapshot/FX evidence, separate report
+and cash-change reassessment/publication safeguards. Not intraday accounting/NAV.
+
+24 October: [P&L sources and coverage](pnl-source-coverage-20261024.md) — exact
+stored-component breakdown, explicit missing/zero states, contributing-position
+inspection and visible cash FX exclusion; no calculation or authority change.
+
+24 October: [daily P&L Ops review](pnl-ops-review-20261024.md) — full-result
+business labels, compact component report, frozen-input inspection and contextual
+publication confirmation; numerical evidence and authority remain unchanged.
+
 23 October: [external CSV tooling isolation](csv-tooling-isolation-20261023.md) —
 source-specific scripts/tests are optional tooling, not product packages or
 capability delivery. Existing operating data and evidence are unchanged.

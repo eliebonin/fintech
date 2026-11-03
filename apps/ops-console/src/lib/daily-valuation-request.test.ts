@@ -13,9 +13,21 @@ it('sends strict interest coverage only when explicitly selected',()=>{
  expect(dailyValuationRequest(form,{}).requireCompleteAccruals).toBeUndefined();
 });
 
+it('has no cash exclusion flag even if an obsolete control value is supplied',()=>{
+ const form=new FormData();form.set('includeCashBalances','on');
+ expect(dailyValuationRequest(form,{})).not.toHaveProperty('includeCashBalances');
+});
+
 it('unlocks only rejected validation while retaining uncertain/calculation retries',()=>{
  const invalid=valuationError({status:422},{code:'request.validation_failed',errors:[{location:['body','openingDate'],message:'Invalid date'}]});
  expect(invalid.message).toContain('openingDate: Invalid date');expect(invalid.validationRejected).toBe(true);
  expect(valuationError({status:422},{code:'valuation.blocked',detail:'Price missing'}).validationRejected).toBe(false);
  expect(valuationError({status:504},{detail:'Timeout'}).validationRejected).toBe(false);
+});
+
+it('distinguishes admitted-but-uncertain requests from explicit capacity rejection',()=>{
+ const busy=valuationError({status:429},{code:'workload.busy',detail:'Not started; retry after 5 seconds.',notStarted:true,retryAfterSeconds:5});
+ expect(busy.notStarted).toBe(true);expect(busy.retryAfterSeconds).toBe(5);
+ expect(valuationError({status:504},{detail:'Timeout',notStarted:true}).notStarted).toBe(false);
+ expect(valuationError({status:503},{detail:'Service unavailable'}).notStarted).toBe(false);
 });

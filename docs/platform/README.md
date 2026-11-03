@@ -1,5 +1,13 @@
 # Platform
 
+[Dataset governance and workload admission](dataset-rights-and-workload.md)
+explains strict missing-profile denial, invented-data origin and retryable
+capacity controls, with current defaults and deferred deployment isolation.
+
+[Local security setup](security-controls.md) documents separate database runtime/
+maintenance credentials, loopback Docker publishing, append-only audit, safe
+denials, nonce CSP and HTTPS cookies. Production authentication remains deferred.
+
 **Status:** Accepted  
 **Content type:** Platform index  
 **Owner:** Platform engineering team  

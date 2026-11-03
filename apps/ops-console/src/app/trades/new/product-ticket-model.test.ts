@@ -1,9 +1,17 @@
 import {describe,it,expect} from 'vitest';
-import {productAmount,swapBookingQuantity,buildProductPayload,type ProductTerms,type ProductDraft} from './product-ticket-model';
+import {productAmount,structuredAmounts,swapBookingQuantity,buildProductPayload,type ProductTerms,type ProductDraft} from './product-ticket-model';
 const common={effectiveFrom:'2026-09-01',priceCurrencyId:'currency',quoteFactor:'100',sourceReference:'Terms'};
 const note:ProductTerms={instrumentId:'note',name:'Note',kind:'STRUCTURED_PRODUCT',executionRoute:'OTC',bookingEligible:true,convention:{...common,kind:'STRUCTURED_PRODUCT',funding:'FULLY_FUNDED',quantityUnit:'NOMINAL',priceBasis:'PCT_OF_PAR',quantityMinimum:'1000',quantityIncrement:'1000',accrual:'NONE',otcAllowed:true}};
 const future:ProductTerms={instrumentId:'future',name:'Future',kind:'FUTURE',executionRoute:'LISTED',listingId:'listing',bookingEligible:true,convention:{...common,kind:'FUTURE',quoteFactor:'1',quantityUnit:'CONTRACTS',priceBasis:'INDEX_POINTS',settlementMethod:'CASH',monetaryMultiplier:'5',tickSize:'.25',allowNegativePrice:true,lastTradingAtUtc:'2027-03-19T13:30:00Z',finalSettlementDate:'2027-03-19'}};
 describe('exact product preview',()=>{
+  it('keeps missing CLEAN accrued consideration unknown and never adds accrued twice to DIRTY',()=>{
+    const draft={quantity:'100000',executionPrice:'98.5'} as ProductDraft;
+    const clean={...note,convention:{...note.convention,accrual:'CLEAN'}} as ProductTerms;
+    const dirty={...note,convention:{...note.convention,accrual:'DIRTY'}} as ProductTerms;
+    expect(structuredAmounts(clean,draft)).toEqual({quoted:'98500',consideration:null});
+    expect(structuredAmounts(clean,{...draft,accruedInterestAmount:'125.123456789012'})).toEqual({quoted:'98500',consideration:'98625.123456789012'});
+    expect(structuredAmounts(dirty,{...draft,accruedInterestAmount:'125.123456789012'})).toEqual({quoted:'98500',consideration:'98500'});
+  });
   it('prefills units, not the funding notional, and does not multiply leverage again',()=>{
     const swap={kind:'SWAP',convention:{kind:'SWAP',quantityUnit:'UNITS',priceBasis:'SWAP_VALUE_PER_UNIT',quoteFactor:'1'},swapDetails:{genericTerms:{quantityUnit:'UNITS',contractualUnits:'25000',contractualNotional:'206250000',notionalPerUnit:'8250',leverage:'1.5'}}} as ProductTerms;
     expect(swapBookingQuantity(swap)).toBe('25000');

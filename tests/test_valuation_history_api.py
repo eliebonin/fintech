@@ -48,6 +48,10 @@ def test_actual_publication_state_is_reported_but_unguarded_financials_are_not(c
     row=body['items'][0];assert row['status']=='COMPLETED' and row['batch_status']=='STAGED'
     assert row['batch_id']==str(batch) and row['evidence_access']=='DENIED'
     assert 'financial_summary' not in row and '999999' not in response.text
+    assert row['display']['strategy'] and str(ids['strategy']) not in row['display']['strategy']
+    detail=client.get('/v1/valuation/attempts/'+row['attempt_id'],headers=headers())
+    assert detail.status_code==200,detail.text
+    assert 'presentation' not in detail.json()['batch']
     assert client.get(path.replace('STAGED','PUBLISHED'),headers=headers()).json()['total']==0
 
 def test_read_only_strategy_is_available_without_run_authority(client,population):

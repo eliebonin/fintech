@@ -3,7 +3,7 @@
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Platform engineering  
-**Last reviewed:** 2026-10-16 (shared write-context remediation; capability limits retained)
+**Last reviewed:** 2026-10-30 (local identity containment; capability limits retained)
 
 [Feature register](../feature-register.md). Baseline: main `76f6292`. ALPHA is bounded local delivery, not production certification.
 
@@ -44,6 +44,12 @@ review; the matrix filters users and expands source-group evidence. Client filte
 do not resolve the unpaged backend-matrix limitation.
 
 ## F03 Context switching
+
+30 October [local identity safeguard](../../delivery/local-identity-safeguard-20261030.md)
+requires verified opaque sessions and guarded server-only operator bootstrap.
+Headers/signed tenant cookies no longer authenticate; implicit/non-local API
+startup is blocked. The local selector remains; production authentication and
+support-access policy remain deferred. [Configuration](../../platform/local-identity-safeguard.md).
 
 - **Desired:** Select platform admin or a tenant/user to test isolation.
 - **Status / backend / frontend:** ALPHA. Opaque expiring/revocable local sessions retain real actor and selected subject; `/select-context`, indicators and reset/recovery.

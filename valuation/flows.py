@@ -10,16 +10,18 @@ from positions.contracts import LedgerFact,PositionKey,PositionBucket
 from .economics import finite_decimal,evidence_hash,canonical_payload,MarketAttribution
 from .position_calculation import PositionLine
 from .fx import resolve_fx
+from security_master_schema.cash_products import QUOTED_WRAPPERS,cash_product_basis
 
 COMPONENTS=frozenset({'DIVIDEND','RESET','COUPON','CASHFLOW','BROKER_FEE','CUSTODY_FEE','MANAGEMENT_FEE','PERFORMANCE_FEE','TAX','OTHER_COST'})
 ENDPOINT='/v1/valuation/economic-flows'
+NOTE_COUPON_PRODUCTS=QUOTED_WRAPPERS|{'STRUCTURED_PRODUCT'}
 
 
-def flow_component(component,role,amount,fx):
+def flow_component(component,role,amount,fx,*,instrument_type='BOND'):
     finite_decimal(amount,'cash amount');finite_decimal(fx,'flow FX',positive=True)
     if component not in COMPONENTS or role not in {'INCOME','PAYMENT_ONLY'}:
         raise ValueError('Unsupported explicit economic flow classification')
-    if component=='COUPON' and role!='PAYMENT_ONLY':
+    if component=='COUPON' and role!='PAYMENT_ONLY' and instrument_type not in NOTE_COUPON_PRODUCTS:
         raise ValueError('Bond coupon receipts are payment-only; record earned interest as daily accrual')
     with localcontext() as ctx:
         ctx.prec=512
@@ -30,7 +32,7 @@ def book_flow(c,tenant,actor,payload,key):
     from security_master_schema.booking_controls import authorize_booking,lock_booking_strategy,find_booking_replay,record_booking_replay
     from security_master_schema.reference_visibility import require_visible
     authorize_booking(c,tenant,actor,strategy_id=payload['strategyId'])
-    amount=payload['amount'];flow_component(payload['component'],payload['recognitionRole'],amount,Decimal(1))
+    amount=payload['amount']
     if amount==0: raise ValueError('Book a nonzero cash amount; confirmed zero coverage is not a trade')
     if not payload['sourceReference'].strip() or payload['economicDate']>datetime.now(timezone.utc).date():
         raise ValueError('Source reference and nonfuture economic date required')
@@ -39,19 +41,25 @@ def book_flow(c,tenant,actor,payload,key):
     if replay: return replay
     lock_booking_strategy(c,tenant,payload['strategyId'])
     require_visible(c,tenant,payload['instrumentId'])
-    if not c.scalar(select(m.instrument.c.instrument_node_id).where(m.instrument.c.instrument_node_id==payload['instrumentId'])):
+    instrument_type=c.scalar(select(m.instrument_type.c.type_code).join(m.instrument).where(m.instrument.c.instrument_node_id==payload['instrumentId']))
+    if not instrument_type:
         raise ValueError('Economic flows must reference a canonical instrument')
+    if instrument_type=='ETP':
+        terms=c.execute(select(m.etp_terms).where(m.etp_terms.c.instrument_node_id==payload['instrumentId'])).mappings().all()
+        instrument_type,_=cash_product_basis(instrument_type,terms,payload['economicDate'])
+    flow_component(payload['component'],payload['recognitionRole'],amount,Decimal(1),instrument_type=instrument_type)
     if not c.scalar(select(m.currency.c.currency_id).where(m.currency.c.currency_id==payload['currencyId'],m.currency.c.status=='ACTIVE')):
         raise ValueError('Active flow currency required')
     effective=datetime.combine(payload['economicDate'],time(0),timezone.utc)
-    snapshot=canonical_payload(payload | dict(schemaVersion=1,kind='ECONOMIC_FLOW_BOOKING'))
+    financial=payload | (dict(instrumentType=instrument_type) if instrument_type in NOTE_COUPON_PRODUCTS else {})
+    snapshot=canonical_payload(financial | dict(schemaVersion=1,kind='ECONOMIC_FLOW_BOOKING'))
     identity=c.scalar(m.trade.insert().values(strategy_id=payload['strategyId'],trade_subject_reference_node_id=payload['instrumentId'],
         reference_instrument_node_id=payload['instrumentId'],trade_type=payload['component'],quantity=amount,quantity_unit='CURRENCY_AMOUNT',
         execution_price=Decimal(1),price_basis='CASH_AMOUNT',price_currency_id=payload['currencyId'],trade_datetime_utc=effective,
         settlement_date=payload.get('paymentDate'),booked_by_user_account_id=actor,created_by_user_account_id=actor,execution_channel='API',
         comment=payload['sourceReference']).returning(m.trade.c.trade_id))
     c.execute(m.trade_lifecycle_event.insert().values(trade_id=identity,sequence_no=1,event_type='BOOKED',event_datetime_utc=effective,
-        recorded_by_user_account_id=actor,event_payload=json.dumps(snapshot),payload_hash=digest,source_event_id=key))
+        recorded_by_user_account_id=actor,event_payload=json.dumps(snapshot),payload_hash=evidence_hash(financial),source_event_id=key))
     record_booking_replay(c,tenant,ENDPOINT,key,digest,identity)
     return identity
 
@@ -121,7 +129,11 @@ def load_economic_flows(c,request):
             or chain[0]['event_datetime_utc']!=row['trade_datetime_utc']):
             raise ValueError('Inconsistent frozen monetary cash-flow conventions')
         fx=resolve_fx(c,request,row['price_currency_id'],request.reporting_currency_id,row['trade_datetime_utc'].date())
-        component,base=flow_component(payload['component'],payload['recognitionRole'],row['quantity'],fx.rate)
+        if payload.get('instrumentType') is not None and (payload['instrumentType'] not in NOTE_COUPON_PRODUCTS
+                or chain[0]['payload_hash']!=evidence_hash({k:v for k,v in payload.items() if k not in ('kind','schemaVersion')})):
+            raise ValueError('Inconsistent frozen structured-note flow classification')
+        component,base=flow_component(payload['component'],payload['recognitionRole'],row['quantity'],fx.rate,
+            instrument_type=payload.get('instrumentType','BOND'))
         facts=tuple(LedgerFact(e['trade_lifecycle_event_id'],row['trade_id'],request.tenant_id,request.strategy_id,
             e['sequence_no'],e['event_type'],e['event_datetime_utc'],e['recorded_at_utc']) for e in chain)
         flows.append(EconomicFlow(row['trade_id'],row['reference_instrument_node_id'],row['trade_datetime_utc'].date(),component,

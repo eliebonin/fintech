@@ -112,11 +112,12 @@ def test_reporting_currency_requires_real_frozen_fx_not_one(valued):
         service().calculate(c,replace(request,reporting_currency_id=ids['usd_currency']))
 
 def test_missing_calendar_coverage_blocks_calculation(valued):
+    from dataclasses import replace
     c,request,_=valued
-    # Published reference dates cannot be deleted. Missing observations still
-    # exercise the safe missing-input path without modifying sealed evidence.
-    c.execute(m.market_data_observation.delete().where(m.market_data_observation.c.market_date==date(2026,10,1)))
-    with pytest.raises(service().ValuationBlocked): service().calculate(c,request)
+    # Ask beyond this fixture's sealed calendar. Never delete shared observation
+    # history: another committed synthetic result can legitimately reference it.
+    with pytest.raises(service().ValuationBlocked):
+        service().calculate(c,replace(request,closing_cutoff=request.closing_cutoff+timedelta(days=1)))
 
 def test_ambiguous_adjustment_basis_and_missing_input_block(valued):
     c,request,_=valued

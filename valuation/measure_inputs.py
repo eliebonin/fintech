@@ -14,13 +14,14 @@ from .position_measures import cash_security,bond,unit_swap,nominal_swap,linear_
 from .service import _selection
 from .fx import resolve_fx
 from positions.reconstruction import key_identity
+from security_master_schema.cash_products import QUOTED_WRAPPERS
 
 
 def measure_reason(product,name,status,*,contract_invalid=False,nominal=False):
     """Presentation metadata only; never infer support by parsing error prose."""
     if status in {'AVAILABLE','MULTI_CURRENCY'}:return None
     if status=='LOCAL_ONLY':return 'FX_UNAVAILABLE'
-    if product not in {'EQUITY','ETF','ETP','FUND','BOND','FUTURE','FX_FORWARD','SWAP','ACTIVELY_MANAGED_CERTIFICATE'}:return 'NOT_SUPPORTED_YET'
+    if product not in {'EQUITY','ETF','ETP','FUND','BOND','FUTURE','FX_FORWARD','SWAP','ACTIVELY_MANAGED_CERTIFICATE'}|QUOTED_WRAPPERS:return 'NOT_SUPPORTED_YET'
     if contract_invalid:return 'INVALID_CONTRACT'
     if name=='marketValue' and product in {'FUTURE','FX_FORWARD'}:return 'NOT_SUPPORTED_YET'
     if product=='SWAP' and nominal and name=='economicExposure':return 'NOT_SUPPORTED_YET'
@@ -86,7 +87,7 @@ def preview_measures(c,request,projection,descriptions,rows):
                 issues[role]=str(exc)
                 return None,currency
         try:
-            if product in ('EQUITY','ETF','ETP','FUND'):
+            if product in {'EQUITY','ETF','ETP','FUND'}|QUOTED_WRAPPERS:
                 subject=key.subject_id
                 if product=='FUND':
                     parents={p.get('instrumentId') or (p.get('valuationConventions') or {}).get('instrumentId') for p in proofs}
@@ -193,6 +194,7 @@ def preview_measures(c,request,projection,descriptions,rows):
                     raise ValueError('One compatible frozen generic swap contract is required')
                 g=generic[0]
                 from security_master_schema.swap_terms import GenericSwapTerms
+                if g.get('swapKind')=='RATE_EXCHANGE':raise ValueError('Rate-exchange position measures are not defined; supplied whole-mark P&L remains available')
                 GenericSwapTerms.model_validate(g)
                 cv=terms[0].get('convention') or {}
                 if (cv.get('kind')!='SWAP' or cv.get('quantityUnit')!=key.quantity_unit

@@ -3,7 +3,8 @@
 import asyncio
 from uuid import uuid4
 
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 import os
 from sqlalchemy import create_engine
 
@@ -29,17 +30,12 @@ def _app_and_headers():
     }
 
 
-def test_memberships_are_available_before_a_tenant_is_selected() -> None:
+def test_guarded_context_choices_are_available_before_tenant_selection() -> None:
     app, headers = _app_and_headers()
-    headers.pop("X-Tenant-Id")
-
-    response = asyncio.run(_request(app, "GET", "/v1/session/memberships", headers=headers))
-
+    from tests.api_client import operator_headers
+    response = asyncio.run(_request(app, "GET", "/v1/local-session/options", headers=operator_headers()))
     assert response.status_code == 200
-    assert [item["tenantCode"] for item in response.json()["data"]] == [
-        "PLATFORM_DEMO_TENANT",
-        "PLATFORM_SECOND_TENANT",
-    ]
+    assert {'PLATFORM_DEMO_TENANT','PLATFORM_SECOND_TENANT'} <= {item['code'] for item in response.json()['tenants']}
 
 
 def test_tenant_workspace_returns_the_active_membership_and_modules() -> None:

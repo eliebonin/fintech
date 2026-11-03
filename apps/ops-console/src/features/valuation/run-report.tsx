@@ -5,15 +5,16 @@ import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {valuationError} from '@/lib/daily-valuation-request';
 import {displayAmount,displayTime} from './presentation';
 import type {Attempt,Choice} from './types';
+import {ReferenceName} from './technical-reference';
 
 /** Calculation completion is not financial approval. Never infer publication. */
-export function runStatus(run:Pick<Attempt,'status'|'batch_status'|'publication_review_mode'|'source_health_status'>):string{
+export function runStatus(run:Pick<Attempt,'status'|'batch_status'|'publication_review_mode'|'source_health_status'|'required_inputs_complete'>):string{
  if(run.status==='RUNNING')return 'Running · Calculation in progress';
  if(run.status==='FAILED')return 'Failed · No result';
  const active=run.batch_status==='PUBLISHED'||run.batch_status==='STAGED';
  const warning=!active?'':run.source_health_status==='REASSESSMENT_REQUIRED'?' · Reassessment required':run.source_health_status==='UNKNOWN_LEGACY'?' · Legacy source proof unavailable':'';
  const publication=({STAGED:'Staged — not published',PUBLISHED:'Published',SUPERSEDED:'Superseded',CANCELLED:'Cancelled — not published'} as Record<string,string>)[run.batch_status??''];
- return `${run.status==='COMPLETED'?'Completed':run.status} · ${publication??'No result recorded'}${warning}${run.batch_status==='PUBLISHED'&&run.publication_review_mode==='SELF_REVIEWED'?' · Self-reviewed':''}`;
+ return `${run.status==='COMPLETED'?'Completed':run.status} · ${publication??'No result recorded'}${active&&run.required_inputs_complete===false?' · Incomplete':''}${warning}${run.batch_status==='PUBLISHED'&&run.publication_review_mode==='SELF_REVIEWED'?' · Self-reviewed':''}`;
 }
 type Filters={strategy_id:string;from_date:string;to_date:string;calculation_status:string;publication_status:string};
 function recentDates(){const today=new Date();const to=today.toISOString().slice(0,10);today.setUTCDate(today.getUTCDate()-13);return{from_date:today.toISOString().slice(0,10),to_date:to};}
@@ -57,9 +58,9 @@ export function RunReport({mode,strategies,policies,currencies,busy,revision,onO
   {loading?<p role="status">Loading matching recorded runs…</p>:searched?<>
    <p role="status">{total} matching recorded {mode==='results'?'results':'attempts'} · page {page+1}</p>
    {items.length?<div className="pnl-table-scroll"><table className="pnl-table"><caption>{mode==='results'?'Recorded valuation results':'Operational run report'} · closing valuation dates {applied.current?.from_date||'any'} → {applied.current?.to_date||'any'}</caption><thead><tr><th scope="col">Strategy / valuation period</th><th scope="col">Policy version</th>{mode==='results'?<th scope="col">Net P&amp;L / currency</th>:null}<th scope="col">Run time · London</th><th scope="col">Calculation / publication</th>{mode==='history'?<th scope="col">Failure summary</th>:null}<th scope="col">Inspect</th></tr></thead><tbody>{items.map(run=><tr key={run.attempt_id}>
-    <th scope="row">{strategies.find(s=>s.id===(run.strategy_id??run.request_payload?.strategy_id))?.label??run.strategy_id??run.request_payload?.strategy_id??'Not recorded'}<br/><small>{run.request_payload?.opening_cutoff?.slice(0,10)??'—'} → {run.valuation_date??run.request_payload?.closing_cutoff?.slice(0,10)??'—'}</small></th>
-    <td>{policies.find(p=>p.id===run.request_payload?.policy_id)?.label??run.request_payload?.policy_id??'Not recorded'}</td>
-    {mode==='results'?<td className="pnl-amount">{run.evidence_access==='DENIED'?'Restricted — display rights required':<>{displayAmount(run.financial_summary?.netPnl??run.financial_summary?.marketPnl)} {currencies.find(c=>c.id===run.financial_summary?.reportingCurrencyId)?.label??run.financial_summary?.reportingCurrencyId??''}</>}</td>:null}
+    <th scope="row"><ReferenceName id={run.strategy_id??run.request_payload?.strategy_id} label={run.display?.strategy??strategies.find(s=>s.id===(run.strategy_id??run.request_payload?.strategy_id))?.label} fallback="Strategy name unavailable"/><br/><small>{run.request_payload?.opening_cutoff?.slice(0,10)??'—'} → {run.valuation_date??run.request_payload?.closing_cutoff?.slice(0,10)??'—'}</small></th>
+    <td><ReferenceName id={run.request_payload?.policy_id} label={run.display?.policy??policies.find(p=>p.id===run.request_payload?.policy_id)?.label} fallback="Policy name unavailable"/></td>
+    {mode==='results'?<td className="pnl-amount">{run.evidence_access==='DENIED'?'Restricted — display rights required':<>{displayAmount(run.financial_summary?.netPnl??run.financial_summary?.marketPnl??undefined)} {run.display?.currency??currencies.find(c=>c.id===run.financial_summary?.reportingCurrencyId)?.label??'Currency name unavailable'}{run.required_inputs_complete===false?<small> Calculated subtotal · incomplete</small>:null}</>}</td>:null}
     <td>{displayTime(run.started_at)}</td><td><span className={`pnl-status pnl-status-${(run.batch_status??run.status).toLowerCase()}`}>{runStatus(run)}</span></td>
     {mode==='history'?<td>{run.failure_reason??run.error_code??'—'}</td>:null}<td><button disabled={busy||loading} onClick={()=>onOpen(run.attempt_id)}>{mode==='results'?'Open result':'View logs'}</button></td>
    </tr>)}</tbody></table></div>:<p>No matching recorded runs. No zero P&amp;L is inferred.</p>}

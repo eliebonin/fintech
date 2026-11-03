@@ -14,8 +14,8 @@ sys.path.insert(0,str(ROOT))
 
 def main():
     name="platform_fx_signoff_"+uuid4().hex
-    base=make_url(os.environ.get('TEST_DATABASE_ADMIN_URL',
-        'postgresql+psycopg://platform:platform_local_only@localhost:54329/postgres'))
+    from scripts.local_database_config import migration_url
+    base=make_url(migration_url(test_admin=True))
     admin=create_engine(base.set(database='postgres'),isolation_level="AUTOCOMMIT")
     with admin.connect() as c:c.execute(text(f'CREATE DATABASE "{name}"'))
     os.environ["DATABASE_URL"]=base.set(database=name).render_as_string(hide_password=False)

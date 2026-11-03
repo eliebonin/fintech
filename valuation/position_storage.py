@@ -17,6 +17,9 @@ def stage_line(c,attempt_id,calculation,line,*,facts,selections,executions,round
         openingCutoff=r.opening_cutoff,closingCutoff=r.closing_cutoff,policyId=r.policy_id,
         reportingCurrency=r.reporting_currency_id,facts=[asdict(f) for f in facts],
         selections=[selection_identity(s) for s in selections],splitAdjustments=adjustments,splitEvents=split_events)
+    if bucket.key.product_basis=='FUTURE':
+        identity.update(openingValue=None,closingValue=None,executionValue=None,
+            futuresVariation=line.settlement_variation,valueBasis='PRICE_VARIATION_NOT_CONTRACT_MTM')
     from .decisions import applied_decisions
     identity['appliedRules']=applied_decisions(canonical_payload(dict(selections=selections,
         identity=identity,
@@ -35,6 +38,7 @@ def stage_line(c,attempt_id,calculation,line,*,facts,selections,executions,round
         noMarketMarksRequired=bucket.opening_quantity==0 and bucket.closing_quantity==0))
     evidence['appliedRules']=identity['appliedRules']
     if bucket.key.product_basis=='FX_FORWARD':evidence['valueBasis']='UNDISCOUNTED_RATE_DIFFERENCE_NOT_MODEL_MTM'
+    if bucket.key.product_basis=='FUTURE':evidence['valueBasis']='PRICE_VARIATION_NOT_CONTRACT_MTM'
     attribution=c.execute(t.attribution.insert().values(tenant_id=r.tenant_id,strategy_id=r.strategy_id,
         attempt_id=attempt_id,position_key=key,subject_id=bucket.key.subject_id,value_date=r.closing_cutoff.date(),
         version=prior['version']+1 if prior else 1,supersedes_attribution_id=prior['attribution_id'] if prior else None,

@@ -7,7 +7,7 @@ Unknown legacy leg-only swaps deliberately remain unsupported.
 import json
 from decimal import Decimal, localcontext, Inexact
 from uuid import UUID
-from .swap_terms import GenericSwapTerms
+from .swap_terms import parse_swap_terms
 
 
 def frozen_swap_conventions(row, snapshot):
@@ -15,7 +15,7 @@ def frozen_swap_conventions(row, snapshot):
     try:
         economics=snapshot['economics'];context=economics['terms']
         details=context['swapDetails'];facts=details['sourceFacts']
-        terms=GenericSwapTerms.model_validate(details['genericTerms'])
+        terms=parse_swap_terms(details['genericTerms'])
         approved=facts['approvedDefinition'];generic=facts['genericDefinition']
         node=UUID(context['instrumentId']);definition=UUID(str(approved['instrument_definition_version_id']))
         basis='SWAP_VALUE_PER_UNIT' if terms.quantity_unit=='UNITS' else 'SWAP_VALUE_PER_NOTIONAL'
@@ -25,9 +25,11 @@ def frozen_swap_conventions(row, snapshot):
             or node!=UUID(str(approved['instrument_node_id'])) or approved['status']!='APPROVED'
             or UUID(str(approved['base_currency_id']))!=terms.notional_currency_id
             or UUID(str(generic['instrument_definition_version_id']))!=definition or generic['schema_version']!=terms.schema_version
-            or GenericSwapTerms.model_validate(generic['economics_payload'])!=terms
+            or parse_swap_terms(generic['economics_payload'])!=terms
             or context['maturityDate']!=terms.maturity_date.isoformat()):
             raise ValueError('Inconsistent frozen swap definition')
+        from .rate_swap_terms import RateSwapTerms,assert_materialized
+        if isinstance(terms,RateSwapTerms):assert_materialized(terms,facts['swapTerms'],facts['legs'])
         stored=facts['bookingConvention']
         if UUID(str(stored['instrument_node_id']))!=node:raise ValueError('Frozen swap convention identity differs')
         for convention in (context['convention'],json.loads(stored['convention_payload'])):

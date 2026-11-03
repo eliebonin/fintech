@@ -3,9 +3,15 @@
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Market-data engineering/operations  
-**Last reviewed:** 2026-10-23 (product/tooling separation)
+**Last reviewed:** 2026-10-28 (scoped bond quotation follow-up; prior broader review retained)
 
 [Feature register](../feature-register.md). Storage, display rights, valuation-use rights, policy eligibility and financial acceptance are separate states. Counts below are dated activation evidence, not a new live-DB audit.
+
+28 October [bond quote packages](../../delivery/bond-dirty-to-clean-20261028.md)
+extend the internal daily point contract with optional CLEAN/DIRTY designation
+and immutable observation-paired accrued per 100. Price and component share
+rights/currency/provenance; component-only corrections append new observations.
+This is not a new provider adapter or public tenant market-data upload screen.
 
 October 16 [query-efficiency follow-up](../../delivery/quality-reviews/2026-10-16-query-efficiency.md)
 batches licensing evidence, constrains resolver candidates to matching series and
@@ -39,6 +45,12 @@ a bounded local operator, not delivery of a general tenant FX upload interface.
 - **Evidence:** [Boundary](../../delivery/market-data-ingestion-boundary.md), [hardening](../../delivery/md-ingestion-hardening.md), [CLI](../../../apps/market_data_ingestor/yahoo.py), [dependency regressions](../../../tests/test_market_data_boundaries.py).
 
 ## F27 Licensing and scoped rights
+
+30 October [explicit governance follow-up](../../delivery/dataset-rights-and-workload-20261030.md)
+removes missing-profile/purpose fallback paths. Five exact invented seed datasets
+use explicit SYNTHETIC origin evidence; seven existing real profiles and their
+32 grants are unchanged. Migration 106 is locally active. F27 remains PARTIAL
+for rights administration/commercial qualification, not for a legacy-use bypass.
 
 - **Desired:** Layered provider/content-owner permissions by display/non-display/purpose, scope, timing and tenant, including COMEX versus NYMEX.
 - **Status / backend / frontend:** PARTIAL. Activity grants/prerequisites, dataset profiles, coverage packages/classification and scoped tenant grants enforced in selection/disclosure; source UI exposes safe scope summaries.
@@ -87,7 +99,8 @@ a bounded local operator, not delivery of a general tenant FX upload interface.
 
 - **Desired:** Strict explicit coverage or flexible EoD defaults with explicit exceptions, e.g. exchange closes plus London FX.
 - **Status / backend / frontend:** ALPHA. Immutable versioned rules/defaults, precedence, calendars, freshness, source eligibility and preview; `/market-data/policies`, identifiable version choices and compatibility messages.
-- **Cuts/trade-offs:** FLEXIBLE fills rule coverage only; a matched but missing/ineligible observation fails, not another fixing. SAME_DAY/zero stale sessions is distinct from explicitly allowed prior observations. Policy valuation context is not one global closing hour.
+- **Implementation boundary:** [29 October extraction](../../delivery/api-service-extraction-20261029.md) puts creation/versioning and command validation in `market_data.pricing_policies`/`pricing_policy_contracts`, shared with the FX setup operator. HTTP response/errors/audit remain API-owned. Support/status and policy-selection economics are unchanged.
+- **Cuts/trade-offs:** FLEXIBLE fills rule coverage only; a matched missing observation never silently substitutes another fixing. FAIL blocks; WARN/MANUAL_OVERRIDE can stage an explicitly incomplete valuation, with normal publication still blocked until supplied/reviewed marks and recalculation. Ineligible rights or conventions remain hard errors. SAME_DAY/zero stale sessions is distinct from explicitly allowed prior observations. Policy valuation context is not one global closing hour.
 - **Weaknesses:** Complex configuration and source/calendar stewardship remain operational responsibilities. Unsupported economics are not rescued by a policy.
 - **Remaining:** User acceptance and guided source/semantics configuration; retain original requested/used market dates and rule/version evidence. No hidden nearest/last tick substitution.
 - **Evidence:** [Flexible/strict semantics](../../delivery/flexible-pricing-policies.md), [form clarity](../../delivery/pricing-policy-rule-form-2026-10-09.md), [selection](../../../market_data/policy_selection.py).

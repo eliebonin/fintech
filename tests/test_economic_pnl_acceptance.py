@@ -13,7 +13,7 @@ from security_master_schema.demo_data import DEMO_IDS as ids
 from valuation import storage
 
 
-def add_bond(c,r,trade,maturity='2030-01-01'):
+def add_bond(c,r,trade,maturity='2030-01-01',*,coupon_type=None,convention_coupon_type=None):
     original=dict(c.execute(select(m.trade).where(m.trade.c.trade_id==trade)).mappings().one())
     listing=uuid4();node=dict(c.execute(select(m.financial_reference_node).where(m.financial_reference_node.c.reference_node_id==ids['hsbc_xlon_listing_node'])).mappings().one())
     c.execute(m.financial_reference_node.insert().values(**(node|dict(reference_node_id=listing,canonical_name='Synthetic bond listing',internal_code='BOND_'+listing.hex))))
@@ -26,7 +26,13 @@ def add_bond(c,r,trade,maturity='2030-01-01'):
     conventions=dict(instrumentDefinitionId=str(definition),instrumentId=str(ids['bond_instrument_node']),priceCurrencyId=str(ids['gbp_currency']),
         unitMultiplier='1',quoteFactor='100',productBasis='BOND',cleanExecutionAmount='98500',maturityDate=maturity)
     details=dict(priceType='DIRTY',cleanAmount='98500',dirtyAmount='99750',accruedInterestAmount='1250',settlementEvidence='SYNTHETIC')
-    snapshot=dict(schemaVersion=1,kind='PRODUCT_BOOKING',economics=dict(terms=dict(kind='BOND'),bondDetails=details),valuationConventions=conventions)
+    terms=dict(kind='BOND')
+    if coupon_type is not None:terms['couponType']=coupon_type
+    if convention_coupon_type is not None:conventions['couponType']=convention_coupon_type
+    if coupon_type=='ZERO':
+        conventions['cleanExecutionAmount']='99750'
+        details.update(cleanAmount='99750',accruedInterestAmount='0')
+    snapshot=dict(schemaVersion=1,kind='PRODUCT_BOOKING',economics=dict(terms=terms,bondDetails=details),valuationConventions=conventions)
     c.execute(m.trade_lifecycle_event.insert().values(trade_id=identity,sequence_no=1,event_type='BOOKED',event_datetime_utc=original['trade_datetime_utc'],
         recorded_by_user_account_id=ids['demo_user_account'],event_payload=json.dumps(snapshot)))
     series=uuid4();source=dict(c.execute(select(m.market_data_series).where(m.market_data_series.c.market_data_series_id==ids['market_data_series'])).mappings().one())
@@ -39,6 +45,64 @@ def add_bond(c,r,trade,maturity='2030-01-01'):
     c.execute(m.market_data_observation.insert().values(**(observation|dict(market_data_observation_id=uuid4(),market_data_series_id=series,market_date=stamp.date(),
         value=D('101'),market_data_vintage_id=None,received_at_utc=stamp,observed_at_utc=stamp,source_published_at_utc=stamp,source_observation_key='BOND_'+uuid4().hex))))
     return identity
+
+
+@pytest.mark.parametrize('strict',[False,True])
+def test_frozen_zero_coupon_terms_remove_missing_interest_without_rewriting_booking(valued,strict):
+    c,r,trade=valued
+    identity=add_bond(c,r,trade,coupon_type='ZERO')
+    raw=c.scalar(select(m.trade_lifecycle_event.c.event_payload).where(m.trade_lifecycle_event.c.trade_id==identity))
+    # Older real bookings retained coupon type only inside economics.terms.
+    assert 'couponType' not in json.loads(raw)['valuationConventions']
+    result=service().calculate(c,replace(r,require_complete_accruals=strict))
+    assert result.period.market_pnl==result.gross_pnl==D('1359.877')
+    assert result.evidence['accrualCoverage']['missingCount']==0
+    assert result.evidence['accrualCoverage']['notApplicableCount']==2
+    assert result.evidence['dailyAccrualInputs']==[]
+    assert 'DAILY_ACCRUAL_NOT_SUPPLIED_NOT_INCLUDED' not in result.evidence['limitations']
+    bond=next(line for line in result.period.lines if line.bucket.key.product_basis=='BOND')
+    assert 'ACCRUAL' not in bond.components()
+    assert all(item['kind']=='DAILY_ACCRUAL_NOT_APPLICABLE' for item in bond.economic_evidence)
+    assert c.scalar(select(m.trade_lifecycle_event.c.event_payload).where(m.trade_lifecycle_event.c.trade_id==identity))==raw
+    batch=staged(c,result.request,result)
+    view=storage.batch_view(c,r.tenant_id,batch)
+    assert view['summary']['accrualCoverage']['notApplicableCount']==2
+    item=next(item for item in view['items'] if item['subject_id']==bond.bucket.key.subject_id)
+    assert any(rule['code']=='DAILY_ACCRUAL_NOT_APPLICABLE' for rule in item['evidence']['appliedRules'])
+    storage.publish(c,r.tenant_id,batch,reviewer(c),'Frozen zero-coupon applicability and market bridge checked')
+
+
+def test_new_interest_after_zero_coupon_assessment_blocks_stale_publication(valued):
+    from valuation.accruals import record_accrual
+    c,r,trade=valued
+    add_bond(c,r,trade,coupon_type='ZERO')
+    result=service().calculate(c,r);batch=staged(c,r,result)
+    record_accrual(c,r.tenant_id,ids['demo_user_account'],dict(strategyId=r.strategy_id,
+        instrumentId=ids['bond_instrument_node'],inputType='DAILY_INTEREST',valueDate=date(2026,10,1),
+        currencyId=ids['gbp_currency'],dailyEarned=D('10')),str(uuid4()))
+    with pytest.raises(ValueError,match='supplied after zero-coupon applicability'):
+        storage.publish(c,r.tenant_id,batch,reviewer(c),'Must not discard later supplied input')
+    refreshed=service().calculate(c,r)
+    assert refreshed.gross_pnl==result.gross_pnl+D('10')
+    assert refreshed.evidence['accrualCoverage']['suppliedCount']==1
+    assert refreshed.evidence['accrualCoverage']['notApplicableCount']==1
+    assert refreshed.evidence['accrualCoverage']['missingCount']==0
+
+
+def test_current_zero_coupon_master_does_not_reclassify_unknown_booked_terms(valued):
+    c,r,trade=valued
+    add_bond(c,r,trade)
+    c.execute(m.bond_terms.update().where(m.bond_terms.c.instrument_node_id==ids['bond_instrument_node']).values(coupon_type='ZERO'))
+    result=service().calculate(c,r)
+    assert result.evidence['accrualCoverage']['missingCount']==2
+    assert result.evidence['accrualCoverage']['notApplicableCount']==0
+
+
+def test_conflicting_frozen_coupon_type_proofs_are_blocked(valued):
+    c,r,trade=valued
+    add_bond(c,r,trade,coupon_type='ZERO',convention_coupon_type='FIXED')
+    with pytest.raises(ValueError,match='frozen BOOKED'):
+        service().calculate(c,r)
 
 
 def test_dirty_execution_clean_mark_coupon_daily_accrual_stage_publish(valued):

@@ -9,6 +9,18 @@ The runtime is Next.js App Router/React in `apps/ops-console`. Server/BFF code c
 
 ## Runtime journeys
 
+[Incomplete-price review](../../delivery/incomplete-price-review-20261031.md)
+adds a compact required-input disclosure, unpriced investment/cash rows and the
+Review-tab manual-mark workflow. Exact quote requests retain frozen retries;
+independent approval never silently recalculates or publishes. Headline amounts
+are explicitly subtotals and unknown contributions are unavailable, never zero.
+
+
+[Shared instrument labels](../../architecture/security-master/instrument-display.md)
+use `InstrumentLabel` and the display sidecars on valuation, holdings, measure
+rows, trade history/detail headings, catalogue and booking search. Use the shared
+listing-anchor helper; do not put current labels inside frozen booking terms.
+
 [Page-specific contextual help](../../delivery/page-contextual-help-20261017.md)
 adds a native **How to use this page** disclosure to complex workflows. Curated
 `page-guides.ts` content explains purpose, steps, terms and workflow impact;

@@ -1,6 +1,6 @@
 """Principal-only closing economics; no arbitrary redemption-price defaults."""
 from decimal import localcontext
-from valuation.economics import finite_decimal
+from security_master_schema.evidence import finite_decimal
 
 
 def closing_movements(buckets,price):

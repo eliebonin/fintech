@@ -10,7 +10,7 @@ from security_master_schema.lifecycle_authority import require_lifecycle_operati
 from security_master_schema.strategy_access import require_strategy_action
 from security_master_schema.fx_forward_booking import fx_forward_terms_fingerprint
 from security_master_schema.fx_forward_reference import load_fx_forward_booking_terms
-from valuation.economics import canonical_payload,evidence_hash
+from security_master_schema.evidence import canonical_payload,evidence_hash
 from valuation.fx import resolve_fx
 from .fx_maturity import closing_economics,validated_override
 from .bond_service import lock,RedemptionConflict

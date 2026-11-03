@@ -17,7 +17,7 @@ def _base(c,tenant,batch_id):
 def request_component_change(c,tenant,base_id,attribution_id,actor,payload,key,*,real_operator_id=None):
     table=t.amendment
     digest=evidence_hash(dict(baseBatchId=base_id,attributionId=attribution_id,actor=actor,payload=payload))
-    from apps.reference_api.booking_controls import booking_lock_key
+    from security_master_schema.booking_controls import booking_lock_key
     c.execute(select(func.pg_advisory_xact_lock(booking_lock_key(tenant,'pnl-amendment',key))))
     old=c.execute(select(table).where(table.c.tenant_id==tenant,table.c.submission_key==key)).mappings().one_or_none()
     if old:
@@ -75,7 +75,9 @@ def approve_component_change(c,tenant,request_id,actor,comment,*,real_operator_i
     target=next(item for item in base['items'] if item['attribution_id']==row['base_attribution_id'])
     from .accruals import assert_current_accrual_versions
     assert_current_accrual_versions(c,tenant,base['items'])
-    if not target['position_key']: raise ValueError('Legacy trade-owned results require recalculation before amendment')
+    from .cash_fx_inputs import assert_cash_source_current
+    assert_cash_source_current(c,tenant,base)
+    if not target['position_key'] and not target.get('cash_account_id'): raise ValueError('Legacy trade-owned results require recalculation before amendment')
     components={k:Decimal(v) for k,v in target['components'].items()}
     with localcontext() as ctx:
         ctx.prec=512
@@ -96,11 +98,12 @@ def approve_component_change(c,tenant,request_id,actor,comment,*,real_operator_i
     storage._event(c,attempt,'STARTED','AMENDMENT',{'requestId':request_id,'baseBatchId':base['batch_id'],
         'contributorOperatorIds':sorted(map(str,base_operators.operators | requester.operators)),
         'operatorLineageComplete':base_operators.complete and requester.complete})
+    owner=(t.attribution.c.cash_account_id==target['cash_account_id']) & (t.attribution.c.cash_currency_id==target['cash_currency_id']) if target.get('cash_account_id') else t.attribution.c.position_key==target['position_key']
     last=c.scalar(select(func.max(t.attribution.c.version)).where(t.attribution.c.tenant_id==tenant,
-        t.attribution.c.strategy_id==base['strategy_id'],t.attribution.c.value_date==base['value_date'],t.attribution.c.position_key==target['position_key']))
+        t.attribution.c.strategy_id==base['strategy_id'],t.attribution.c.value_date==base['value_date'],owner))
     evidence=dict(target['evidence']);identity=dict(evidence['identity'],components=canonical_payload(components),amendment=canonical_payload(audit))
     evidence.update(identity=identity,amendment=canonical_payload(audit))
-    values={k:target[k] for k in ('tenant_id','strategy_id','trade_id','position_key','subject_id','value_date','method','currency_id','market_pnl')}
+    values={k:target[k] for k in ('tenant_id','strategy_id','trade_id','position_key','subject_id','cash_account_id','cash_currency_id','value_date','method','currency_id','market_pnl')}
     attribution=c.scalar(t.attribution.insert().values(**values,attempt_id=attempt,version=last+1,
         supersedes_attribution_id=target['attribution_id'],input_hash=evidence_hash(identity),gross_pnl=gross,net_pnl=net,
         components=canonical_payload(components),evidence=evidence).returning(t.attribution.c.attribution_id))
@@ -116,7 +119,7 @@ def approve_component_change(c,tenant,request_id,actor,comment,*,real_operator_i
         base_population_hash=base['base_population_hash'],summary=summary).returning(t.batch.c.batch_id))
     for item in base['items']:
         c.execute(t.item.insert().values(tenant_id=tenant,batch_id=revised,attribution_id=attribution if item['attribution_id']==target['attribution_id'] else item['attribution_id'],
-            trade_id=item['trade_id'],position_key=item['position_key']))
+            trade_id=item['trade_id'],position_key=item['position_key'],cash_account_id=item.get('cash_account_id'),cash_currency_id=item.get('cash_currency_id')))
     c.execute(t.batch.update().where(t.batch.c.batch_id==base['batch_id']).values(status='CANCELLED'))
     c.execute(t.review_event.insert().values(batch_id=base['batch_id'],actor_id=actor,action='CANCELLED',comment='Replaced by approved amendment candidate'))
     c.execute(t.review_event.insert().values(batch_id=revised,actor_id=actor,action='STAGED',comment=comment.strip()))

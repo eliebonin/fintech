@@ -112,13 +112,15 @@ def cash_booking_readiness_router(connection_dependency, assert_membership):
                context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(connection, context)
         data, total = search_cash_booking_listings(connection, context.tenant_id, q, limit, offset, asOfDate)
-        return CashBookingListingSearchResponse(data=data, meta=meta(context, limit=limit, offset=offset, total=total))
+        from .instrument_display import decorate_response
+        return decorate_response(connection,context.tenant_id,CashBookingListingSearchResponse(data=data, meta=meta(context, limit=limit, offset=offset, total=total)),[item.reference_node_id for item in data])
     @router.get('/v1/trades/cash-listings/{listing_id}', response_model=CashBookingListingResponse)
     def detail(listing_id: UUID, asOfDate: date = Query(default_factory=_utc_today),
                context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(connection, context)
         try:
-            return CashBookingListingResponse(data=get_cash_booking_listing(connection, context.tenant_id, listing_id, asOfDate), meta=meta(context))
+            from .instrument_display import decorate_response
+            return decorate_response(connection,context.tenant_id,CashBookingListingResponse(data=get_cash_booking_listing(connection, context.tenant_id, listing_id, asOfDate), meta=meta(context)),[listing_id])
         except RepositoryNotFound as error:
             raise HTTPException(404, str(error)) from error
     return router

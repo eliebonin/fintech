@@ -2,6 +2,7 @@
 
 Ops supplies assessed nominal and balance movements (coupon, bought/sold accrual,
 etc.). We validate the bridge instead of guessing earnings from a stock change.
+The accrued_balance_inputs module can also reconstruct local stocks from sources.
 """
 from decimal import Decimal,localcontext
 from dataclasses import dataclass,replace
@@ -29,14 +30,14 @@ def record_accrual(c,tenant,actor,payload,key,*,recorded_at=None,request_hash=No
     from sqlalchemy import select,func
     from security_master_schema import models as m
     from security_master_schema.tenancy import assert_tenant_owns_strategy
-    from apps.reference_api.product_booking import require_visible
+    from security_master_schema.reference_visibility import require_visible
     from . import tables as t
     from .economics import canonical_payload,evidence_hash
     assert_tenant_owns_strategy(c,tenant,payload['strategyId'])
     require_visible(c,tenant,payload['instrumentId'])
     instrument=c.execute(select(m.instrument,m.instrument_type.c.type_code).join(m.instrument_type).where(
         m.instrument.c.instrument_node_id==payload['instrumentId'])).mappings().one()
-    if instrument['type_code']!='BOND': raise ValueError('Daily interest requires a canonical bond')
+    if instrument['type_code'] not in ('BOND','STRUCTURED_PRODUCT'): raise ValueError('Daily interest requires a canonical bond or structured note')
     if not c.scalar(select(m.currency.c.currency_id).where(m.currency.c.currency_id==payload['currencyId'],m.currency.c.status=='ACTIVE')):
         raise ValueError('Active daily interest currency required')
     inputs=payload.get('inputs')
@@ -47,7 +48,7 @@ def record_accrual(c,tenant,actor,payload,key,*,recorded_at=None,request_hash=No
         if daily!=daily.quantize(Decimal('0.000000000001')) or abs(daily)>=Decimal('1e18'):
             raise ValueError('daily earned interest exceeds NUMERIC(30,12); no silent rounding')
     if inputs:
-        if instrument['base_currency_id']!=payload['currencyId']: raise ValueError('Reconciled balance currency must match the canonical bond')
+        if instrument['base_currency_id']!=payload['currencyId']: raise ValueError('Reconciled balance currency must match the canonical instrument')
         expected=accrual_amounts(inputs)
         if daily!=inputs['dailyEarned'] or payload.get('amounts')!=expected:
             raise ValueError('daily accrual amounts must equal the validated local/base bridge')
@@ -111,17 +112,29 @@ class MissingAccrualInput:
     instrument_id: object
     value_date: object
     position_keys: tuple
+    reason:str|None=None
+    input_id:object|None=None
+
+
+@dataclass(frozen=True)
+class NotApplicableAccrualInput:
+    instrument_id: object
+    value_date: object
+    position_keys: tuple
 
 
 @dataclass(frozen=True)
 class AccrualCoverage:
     inputs: tuple = ()
     missing: tuple = ()
+    not_applicable: tuple = ()
 
     def evidence(self,required):
         return dict(mode='REQUIRED' if required else 'OPTIONAL',suppliedCount=len(self.inputs),
             missingCount=len(self.missing),missing=[dict(instrumentId=str(i.instrument_id),
-                valueDate=i.value_date.isoformat()) for i in self.missing])
+                valueDate=i.value_date.isoformat(),**({'reason':i.reason} if i.reason else {})) for i in self.missing],
+            notApplicableCount=len(self.not_applicable),notApplicable=[dict(instrumentId=str(i.instrument_id),
+                valueDate=i.value_date.isoformat(),reason='ZERO_COUPON') for i in self.not_applicable])
 
 
 def load_accrual_inputs(c,request,position_projection):
@@ -129,20 +142,25 @@ def load_accrual_inputs(c,request,position_projection):
 
     Missing is never a confirmed zero. Invalid supplied evidence still fails.
     Coverage counts canonical bond/dates, not the number of traded listings.
+    Confirmed frozen ZERO terms exempt absent coupon inputs, never supplied facts.
     """
     from datetime import timedelta,date
     from uuid import UUID
     from positions.reconstruction import reconstruct
-    bonds={}
+    bonds={};coupon_types={};note_bases={}
     for bucket in position_projection.buckets:
-        if bucket.key.product_basis!='BOND': continue
+        if bucket.key.product_basis not in ('BOND','STRUCTURED_PRODUCT'): continue
         for fact in position_projection.facts:
             if fact.trade_id in bucket.trade_ids and fact.booking:
                 proof=fact.booking.product_evidence or {}
                 instrument=UUID(proof['instrumentId'])
+                if bucket.key.product_basis=='STRUCTURED_PRODUCT':
+                    basis=proof['notePriceType'];note_bases.setdefault(instrument,set()).add(basis)
+                    if basis!='CLEAN':continue
+                coupon_types[fact.trade_id]=proof.get('couponType')
                 maturity=proof.get('maturityDate')
-                if not maturity: raise ValueError('Frozen bond maturity required')
-                if bucket.closing_quantity and request.closing_cutoff.date()>=date.fromisoformat(maturity):
+                if not maturity and bucket.key.product_basis=='BOND': raise ValueError('Frozen bond maturity required')
+                if bucket.key.product_basis=='BOND' and bucket.closing_quantity and request.closing_cutoff.date()>=date.fromisoformat(maturity):
                     raise ValueError('Mature bond requires recorded supported redemption; no inferred final marks or cash')
                 bonds.setdefault(instrument,[])
                 if bucket.key not in bonds[instrument]: bonds[instrument].append(bucket.key)
@@ -150,7 +168,7 @@ def load_accrual_inputs(c,request,position_projection):
     start=request.opening_cutoff.date()+timedelta(days=1);end=request.closing_cutoff.date()
     if start>end: raise ValueError('Daily bond accrual requires an economic date interval')
     rows=read_accruals(c,request.tenant_id,request.strategy_id,start,end,request.information_cutoff)
-    known={(row['instrument_id'],row['value_date']):row for row in rows};results=[];missing=[]
+    known={(row['instrument_id'],row['value_date']):row for row in rows};results=[];missing=[];not_applicable=[]
     day=start
     while day<=end:
         # Coverage follows actual daily exposure, not every historical bond ever
@@ -162,7 +180,19 @@ def load_accrual_inputs(c,request,position_projection):
             active=[b for b in daily.buckets if b.key in keys]
             if not active: continue
             row=known.get((instrument,day))
+            if len(note_bases.get(instrument,()))>1:
+                # A canonical position-level amount cannot be allocated between
+                # unlike CLEAN and DIRTY listings without assessed allocation.
+                if request.require_complete_accruals:raise ValueError('Mixed note quotation bases require assessed interest allocation')
+                missing.append(MissingAccrualInput(instrument,day,tuple(b.key for b in active),'AMBIGUOUS_NOTE_INTEREST_ALLOCATION',row['input_id'] if row else None))
+                continue
             if row is None:
+                # Every contributing trade must confirm ZERO. A zero rate, unknown
+                # terms or mixed listing evidence cannot silently waive coverage.
+                types={coupon_types.get(trade) for bucket in active for trade in bucket.trade_ids}
+                if types=={'ZERO'}:
+                    not_applicable.append(NotApplicableAccrualInput(instrument,day,tuple(b.key for b in active)))
+                    continue
                 if request.require_complete_accruals:
                     raise ValueError(f'Missing assessed daily accrued-interest input for {instrument} on {day}')
                 missing.append(MissingAccrualInput(instrument,day,tuple(b.key for b in active)))
@@ -173,8 +203,11 @@ def load_accrual_inputs(c,request,position_projection):
             if source_amount is None or Decimal(source_amount)!=daily_amount or UUID(payload['currencyId'])!=currency:
                 raise ValueError('Typed daily interest differs from retained source evidence')
             if not payload.get('inputs'):
-                from .fx import resolve_fx
-                fx=resolve_fx(c,request,currency,request.reporting_currency_id,day)
+                from .accrued_balance import optional_interest_fx
+                fx=optional_interest_fx(c,request,currency,request.reporting_currency_id,day)
+                if isinstance(fx,str):
+                    missing.append(MissingAccrualInput(instrument,day,tuple(b.key for b in active),'DAILY_INTEREST_FX_UNAVAILABLE',row['input_id']))
+                    continue
                 with localcontext() as ctx:
                     ctx.prec=512
                     amounts=dict(dailyLocal=str(daily_amount),dailyBase=str(daily_amount*fx.rate))
@@ -194,10 +227,10 @@ def load_accrual_inputs(c,request,position_projection):
                 raise ValueError('Foreign accrued-interest inputs require matching frozen valuation policy/cut')
             results.append(AccrualInput(row['input_id'],instrument,day,row['revision'],payload,active[0].key))
         day+=timedelta(days=1)
-    return AccrualCoverage(tuple(results),tuple(missing))
+    return AccrualCoverage(tuple(results),tuple(missing),tuple(not_applicable))
 
 
-def attach_accruals(period,inputs,*,missing=()):
+def attach_accruals(period,inputs,*,missing=(),not_applicable=(),include_balance_fx=True):
     """One deterministic owner per canonical bond; never multiply by listing count."""
     lines=list(period.lines)
     for source in inputs:
@@ -207,11 +240,12 @@ def attach_accruals(period,inputs,*,missing=()):
         with localcontext() as ctx:
             ctx.prec=512
             for name,field in [('ACCRUAL','dailyBase'),('CARRY','receivableFx')]:
+                if name=='CARRY' and not include_balance_fx:continue
                 if field in source.payload['amounts']:
                     components[name]=components.get(name,Decimal(0))+Decimal(source.payload['amounts'][field])
         proof=dict(kind='DAILY_ACCRUAL',inputId=str(source.input_id),revision=source.revision,
             valueDate=source.value_date.isoformat(),payload=source.payload,
-            receivableFxComponent='CARRY' if 'receivableFx' in source.payload['amounts'] else None,
+            receivableFxComponent='CARRY' if include_balance_fx and 'receivableFx' in source.payload['amounts'] else None,
             allocation='ONCE_PER_CANONICAL_INSTRUMENT')
         lines[index]=replace(line,economic_components=components,economic_evidence=line.economic_evidence+(proof,))
     for source in missing:
@@ -219,8 +253,17 @@ def attach_accruals(period,inputs,*,missing=()):
             index=next((i for i,l in enumerate(lines) if l.bucket.key==key),None)
             if index is None: raise ValueError('Missing accrual coverage has no real position owner')
             line=lines[index]
-            proof=dict(kind='MISSING_DAILY_ACCRUAL',instrumentId=str(source.instrument_id),
+            proof=dict(kind='MISSING_DAILY_ACCRUAL_FX' if source.reason=='DAILY_INTEREST_FX_UNAVAILABLE' else 'MISSING_DAILY_ACCRUAL',instrumentId=str(source.instrument_id),
                 valueDate=source.value_date.isoformat(),status='NOT_SUPPLIED_NOT_INCLUDED')
+            if source.reason:proof.update(reason=source.reason,inputId=str(source.input_id))
+            lines[index]=replace(line,economic_evidence=line.economic_evidence+(proof,))
+    for source in not_applicable:
+        for key in source.position_keys:
+            index=next((i for i,l in enumerate(lines) if l.bucket.key==key),None)
+            if index is None: raise ValueError('Accrual applicability has no real position owner')
+            line=lines[index]
+            proof=dict(kind='DAILY_ACCRUAL_NOT_APPLICABLE',instrumentId=str(source.instrument_id),
+                valueDate=source.value_date.isoformat(),reason='ZERO_COUPON',couponType='ZERO',basis='FROZEN_BOOKING_TERMS')
             lines[index]=replace(line,economic_evidence=line.economic_evidence+(proof,))
     return replace(period,lines=tuple(lines))
 
@@ -233,14 +276,25 @@ def assert_current_accrual_versions(c,tenant,items):
     from . import tables as t
     for item in items:
         for evidence in item['evidence'].get('economicInputs',[]):
-            if evidence.get('kind')=='MISSING_DAILY_ACCRUAL':
+            if evidence.get('reason')=='AMBIGUOUS_NOTE_INTEREST_ALLOCATION':continue  # Whole-source revision guard still applies.
+            if evidence.get('kind')=='MISSING_DAILY_ACCRUAL_FX':
+                current=c.scalar(select(t.accrual_input.c.input_id).where(t.accrual_input.c.tenant_id==tenant,
+                    t.accrual_input.c.strategy_id==item['strategy_id'],t.accrual_input.c.instrument_id==UUID(evidence['instrumentId']),
+                    t.accrual_input.c.value_date==date.fromisoformat(evidence['valueDate']))
+                    .order_by(t.accrual_input.c.revision.desc()).limit(1))
+                if current!=UUID(evidence['inputId']):raise ValueError('Daily interest source changed; recalculate before publication')
+                continue
+            if evidence.get('kind') in {'MISSING_DAILY_ACCRUAL','DAILY_ACCRUAL_NOT_APPLICABLE'}:
                 supplied=c.scalar(select(t.accrual_input.c.input_id).where(t.accrual_input.c.tenant_id==tenant,
                     t.accrual_input.c.strategy_id==item['strategy_id'],
                     t.accrual_input.c.instrument_id==UUID(evidence['instrumentId']),
                     t.accrual_input.c.value_date==date.fromisoformat(evidence['valueDate']),
                     t.accrual_input.c.input_type=='DAILY_INTEREST',
                     t.accrual_input.c.recorded_at<=datetime.now(timezone.utc)).limit(1))
-                if supplied: raise ValueError('A previously missing daily accrued-interest input is now supplied; recalculate before publication')
+                if supplied:
+                    if evidence['kind']=='DAILY_ACCRUAL_NOT_APPLICABLE':
+                        raise ValueError('Daily interest was supplied after zero-coupon applicability was assessed; recalculate before publication')
+                    raise ValueError('A previously missing daily accrued-interest input is now supplied; recalculate before publication')
                 continue
             if evidence.get('kind')!='DAILY_ACCRUAL': continue
             payload=evidence['payload']

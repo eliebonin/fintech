@@ -5,6 +5,9 @@ vi.mock('react',async original=>({...await original<typeof import('react')>(),
  useState:(initial:unknown)=>{const i=h.cursor++;if(!(i in h.slots))h.slots[i]=initial;return[h.slots[i],(value:any)=>h.slots[i]=typeof value==='function'?value(h.slots[i]):value];},
  useRef:(initial:unknown)=>{const i=h.refCursor++;if(!(i in h.refs))h.refs[i]={current:initial};return h.refs[i];},useEffect:()=>{}}));
 import {RunReport,runStatus} from './run-report';
+it('distinguishes an incomplete candidate from a publishable staged result',()=>{
+ expect(runStatus({status:'COMPLETED',batch_status:'STAGED',required_inputs_complete:false} as any)).toBe('Completed · Staged — not published · Incomplete');
+});
 const strategies=[{id:'read-only',label:'Read-permitted strategy',canCalculate:false}],policies=[{id:'p',label:'EOD · v3'}];
 function find(node:any,predicate:(n:any)=>boolean):any{if(!node||typeof node!=='object')return;if(predicate(node))return node;for(const child of[node.props?.children].flat(Infinity)){const result=find(child,predicate);if(result)return result;}}
 const open=vi.fn();

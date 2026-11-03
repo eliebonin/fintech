@@ -15,16 +15,22 @@ from market_data.rights import load_rights
 from tooling.reconciliation_csv.reconciliation_fx import _put,TIMING
 
 
-def build_policy(strategy,cut,calendar,prices,fx,first,types):
+def build_policy(strategy,cut,calendar,prices,fx,first,types,*,include_fund_nav=False,fund_nav_calendar_id=None):
     from apps.reference_api.valuation_policy_contracts import PolicyCreate,PolicyRuleInput
-    return PolicyCreate(policyCode='RECON_EOD_'+str(strategy).replace('-',''),displayName='Imported EoD — source date only (personal reconciliation)',
+    products=[('BOND','CLOSE',prices),('ACTIVELY_MANAGED_CERTIFICATE','CLOSE',prices),
+        ('OPTION','CLOSE',prices),('SWAP','MARK',prices),('FX_FORWARD','FX_FORWARD',prices),(None,'FX_SPOT',fx)]
+    if include_fund_nav:
+        if fund_nav_calendar_id is None:raise ValueError('A published tenant valuation calendar is required for fund NAVs')
+        products.append(('FUND_SHARE_CLASS','NAV',prices))
+    return PolicyCreate(policyCode='RECON_EOD_'+str(strategy).replace('-',''),
+        displayName='Imported EoD — prior-day fund NAVs (personal reconciliation)' if include_fund_nav else 'Imported EoD — source date only (personal reconciliation)',
         strategyId=strategy,valuationCutId=cut,selectionMode='STRICT',validFrom=first,
         rules=[PolicyRuleInput(ruleSequence=i,datasetId=dataset,seriesType=kind,valueBasis='RAW',
             instrumentTypeId=types[product] if product else None,subjectType=None if product else 'FX_PAIR',
-            pricingConvention='EXPLICIT_TIME',pricingCutId=cut,marketCalendarId=calendar,selectionMethod='LAST_BEFORE_CUT',
-            pricingDateRule='SAME_DAY',maxStalenessBusinessDays=0,missingDataAction='FAIL')
-            for i,(product,kind,dataset) in enumerate((('BOND','CLOSE',prices),('ACTIVELY_MANAGED_CERTIFICATE','CLOSE',prices),
-                ('OPTION','CLOSE',prices),('SWAP','MARK',prices),('FX_FORWARD','FX_FORWARD',prices),(None,'FX_SPOT',fx)),1)])
+            pricingConvention='NAV_DATE' if kind=='NAV' else 'EXPLICIT_TIME',pricingCutId=None if kind=='NAV' else cut,marketCalendarId=fund_nav_calendar_id if kind=='NAV' else calendar,selectionMethod='LAST_BEFORE_CUT',
+            pricingDateRule='FIXED_LAG' if kind=='NAV' else 'SAME_DAY',lagBusinessDays=1 if kind=='NAV' else 0,
+            maxStalenessBusinessDays=0,missingDataAction='FAIL')
+            for i,(product,kind,dataset) in enumerate(products,1)])
 
 
 def _calendar(c,actor,first,last):
@@ -46,6 +52,22 @@ def _calendar(c,actor,first,last):
         m.market_calendar.c.status=='ACTIVE',m.market_calendar.c.tenant_id.is_(None)).order_by(m.market_calendar.c.version_no.desc())).mappings().first()
     if published:return published['market_calendar_id']
     return publish_reference_calendar(c,source['market_calendar_id'],actor,'Publish internal UTC date buckets for source-date-only EoD selection; no venue/fixing assertion.')
+
+
+def fund_nav_calendar_payload(strategy,first,last):
+    """Explicit reconciliation weekday baseline, not inferred fund holidays."""
+    from apps.reference_api.calendar_contracts import CalendarPublish
+    code='RECON_NAV_DATE_'+strategy.hex
+    return CalendarPublish(calendarCode=code,displayName='Imported NAV valuation weekdays — holiday calendar not supplied',
+        purpose='VALUATION',timezoneName='UTC',decisionTime='23:59:59',coverageFrom=first,coverageTo=last,
+        mode='WEEKDAYS',weekdays=[0,1,2,3,4],baseCalendarIds=[],
+        sourceReference='Owner-confirmed previous valuation-day NAV convention. Monday-Friday reconciliation baseline only; actual fund holidays require governed dates, never inferred from missing prices.')
+
+
+def _fund_nav_calendar(c,tenant,actor,strategy,first,last):
+    from apps.reference_api.calendar_service import publish_calendar
+    payload=fund_nav_calendar_payload(strategy,first,last)
+    return publish_calendar(c,tenant,actor,payload,payload.calendar_code+'_WEEKDAYS_V2').calendarId
 
 
 def _grant(c,tenant,actor,dataset,profile,first,declaration,*,create):
@@ -127,7 +149,7 @@ def _forward_aliases(c,tenant,strategy,dataset,profile,*,create):
     return aliases
 
 
-def prepare(c,tenant,actor,platform_actor,strategy,source_id,prices,fx,declaration):
+def prepare(c,tenant,actor,platform_actor,strategy,source_id,prices,fx,declaration,*,include_fund_nav=False):
     """Add separately attributable permission, date policy and unit normalization."""
     from market_data.history import require_admin
     from security_master_schema.strategy_access import require_strategy_action
@@ -143,7 +165,9 @@ def prepare(c,tenant,actor,platform_actor,strategy,source_id,prices,fx,declarati
         m.external_object_mapping.c.target_object_type=='STRATEGY',m.external_object_mapping.c.status=='VERIFIED',
         m.external_id_namespace.c.status=='ACTIVE',m.external_id_namespace.c.integration_source_system_id==source_id)):
         raise ValueError('Strategy is not owned by the retained source integration')
-    signature=sha256(json.dumps(dict(tenant=str(tenant),strategy=str(strategy),sourceId=str(source_id),prices=str(prices),fx=str(fx),declaration=declaration),sort_keys=True).encode()).hexdigest()
+    signature_fields=dict(tenant=str(tenant),strategy=str(strategy),sourceId=str(source_id),prices=str(prices),fx=str(fx),declaration=declaration)
+    if include_fund_nav:signature_fields['includeFundNav']=True
+    signature=sha256(json.dumps(signature_fields,sort_keys=True).encode()).hexdigest()
     c.execute(select(func.pg_advisory_xact_lock(int.from_bytes(sha256(('eligibility:'+str(strategy)).encode()).digest()[:8],'big',signed=True))))
     old=c.execute(select(m.access_audit_event.c.details).where(m.access_audit_event.c.tenant_id==tenant,m.access_audit_event.c.action=='RECONCILIATION_VALUATION_ELIGIBILITY',
         m.access_audit_event.c.details['strategyId'].as_string()==str(strategy))).scalars().all()
@@ -184,14 +208,21 @@ def prepare(c,tenant,actor,platform_actor,strategy,source_id,prices,fx,declarati
             m.valuation_cut.c.market_calendar_id==UUID(result['calendarId']))):raise ValueError('Retained source-date cut changed')
         if not c.scalar(select(m.valuation_policy.c.valuation_policy_id).where(m.valuation_policy.c.valuation_policy_id==UUID(result['policyId']),
             m.valuation_policy.c.tenant_id==tenant,m.valuation_policy.c.strategy_id==strategy,m.valuation_policy.c.status=='ACTIVE')):raise ValueError('Retained policy is unavailable')
-        return {k:UUID(v) if k in ('policyId','cutId','calendarId') else v for k,v in result.items()}
+        if include_fund_nav and not c.scalar(select(m.market_calendar.c.market_calendar_id).where(
+            m.market_calendar.c.market_calendar_id==UUID(result['fundNavCalendarId']),m.market_calendar.c.tenant_id==tenant,
+            m.market_calendar.c.calendar_kind=='VALUATION',m.market_calendar.c.sealed,m.market_calendar.c.status=='ACTIVE')):
+            raise ValueError('Retained fund NAV calendar is unavailable')
+        return {k:UUID(v) if k in ('policyId','cutId','calendarId','fundNavCalendarId') else v for k,v in result.items()}
     calendar=_calendar(c,platform_actor,first,last)
     code='RECON_EOD_'+strategy.hex
     cut=_put(c,m.valuation_cut,'valuation_cut_id',[m.valuation_cut.c.cut_code==code],dict(cut_code=code,display_name='Source-date EoD UTC bucket — not a market fixing',
         timezone_name='UTC',local_time=time.max.isoformat(),market_calendar_id=calendar,status='ACTIVE'))
     types=dict(c.execute(select(m.instrument_type.c.type_code,m.instrument_type.c.instrument_type_id)).all())
-    policy=create_policy(c,tenant,actor,build_policy(strategy,cut,calendar,prices,fx,first,types),code+'_V1')
+    nav_calendar=_fund_nav_calendar(c,tenant,actor,strategy,first,last) if include_fund_nav else None
+    policy=create_policy(c,tenant,actor,build_policy(strategy,cut,calendar,prices,fx,first,types,include_fund_nav=include_fund_nav,
+        fund_nav_calendar_id=nav_calendar),code+'_V1')
     result=dict(policyId=policy.valuationPolicyId,cutId=cut,calendarId=calendar,normalizedForwardSeries=len(aliases))
+    if nav_calendar:result['fundNavCalendarId']=nav_calendar
     audit(c,actor,tenant,'RECONCILIATION_VALUATION_ELIGIBILITY',dict(signature=signature,strategyId=str(strategy),sourceId=str(source_id),
         personalInstruction=declaration,calendarPublishedBy=str(platform_actor),rights=list(evidence),result={k:str(v) if isinstance(v,UUID) else v for k,v in result.items()}))
     return result

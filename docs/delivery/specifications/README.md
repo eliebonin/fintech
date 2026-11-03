@@ -9,6 +9,8 @@ Start with the [feature register](../../product/feature-register.md) for desired
 
 ## Collection (newest filename first, not priority order)
 
+- [Cash-booking service extraction — accepted trading-domain scope](cash-booking-service-extraction.md)
+- [API service extraction phases 1–3 — accepted implementation scope](api-service-extraction.md)
 - [Structured-product termsheet ingestion — approved design](../../superpowers/specs/2026-10-13-structured-product-termsheet-ingestion.md)
 - [Economic price requirements for valuation — proposed design](../../superpowers/specs/2026-10-09-valuation-price-basis.md)
 - [Tenant access administration — approved design](../../superpowers/specs/2026-10-09-tenant-access-administration.md)

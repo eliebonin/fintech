@@ -1061,6 +1061,8 @@ def load_demo_data(engine: Engine) -> None:
         from .mvp_demo_data import load_mvp_demo_data
 
         load_mvp_demo_data(connection)
+        from .synthetic_market_data import provision_seed_profiles
+        provision_seed_profiles(connection)
         _ensure_demo_definition_versions(connection)
         # Migrations run before fixture accounts exist in an empty database.
         # Only this loader-owned synthetic admin receives explicit operations.

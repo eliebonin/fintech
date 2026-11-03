@@ -181,10 +181,12 @@ def test_required_catalogue_needs_a_value_and_cannot_lose_last_entry(connection)
 def test_http_configuration_roundtrip_and_validation(connection):
     import asyncio
     from fastapi import FastAPI
-    from httpx import ASGITransport,AsyncClient
+    from httpx import AsyncClient,ASGITransport
+    from tests.api_client import router_fixture_identity
     from apps.reference_api.trade_configuration_routes import configuration_router
     from apps.reference_api.problem_details import configure_problem_details
     app=FastAPI();configure_problem_details(app)
+    router_fixture_identity(app)
     def dependency():yield connection
     app.include_router(configuration_router(dependency))
     headers={"X-Tenant-Id":str(TENANT),"X-User-Account-Id":str(ACTOR)}

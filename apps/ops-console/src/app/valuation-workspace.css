@@ -11,6 +11,12 @@
 .pnl-workspace .pnl-tab-panel { display:flex; flex-direction:column; gap:16px; min-width:0; }
 .pnl-workspace .pnl-tab-panel[hidden] { display:none; }
 .pnl-workspace .pnl-report-browser[hidden] { display:none; }
+.pnl-workspace .pnl-report-tabs { margin:10px 0 16px; background:#f7f9fc; border-radius:8px 8px 0 0; }
+.pnl-workspace .pnl-report-panel > h3 { margin:0; font-size:18px; }
+.pnl-workspace .pnl-tab-count { margin-left:8px; background:#fff1cd; color:#854d0e; border-radius:12px; padding:2px 7px; font-size:11px; }
+.pnl-workspace .pnl-event-list { padding-left:22px; }
+.pnl-workspace .pnl-event-list > li { padding:10px 0; border-top:1px solid #e8edf5; }
+.pnl-workspace .pnl-event-list time { display:block; color:#52627a; font-size:12px; margin:5px 0; }
 .pnl-workspace .pnl-publication-action { border:1px solid #9fbaf3; border-radius:10px; background:#f0f5ff; padding:16px; margin-bottom:16px; }
 .pnl-workspace .pnl-publication-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .pnl-workspace .pnl-publication-heading p { margin:5px 0 0; }
@@ -44,7 +50,16 @@
 .pnl-workspace .pnl-paged-choice { display:grid; align-content:start; gap:6px; min-width:0; }
 .pnl-workspace .pnl-paged-choice small { color:#52647f; }
 .pnl-workspace .pnl-paged-choice button { justify-self:start; font-size:12px; padding:5px 8px; }
-.pnl-workspace .pnl-calculation-form label :is(input,select) { width:100%; }
+.pnl-workspace .pnl-calculation-form label :is(input:not([type=checkbox]):not([type=radio]),select) { width:100%; }
+.pnl-workspace .pnl-recalculation-fields { grid-column:1/-1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:12px 20px; min-width:0; }
+.pnl-workspace .pnl-recalculation-fields p { margin:0 0 10px; }
+.pnl-workspace .pnl-calculation-options { grid-column:1/-1; display:grid; gap:16px; border-top:1px solid #e8edf5; padding-top:16px; min-width:0; }
+.pnl-workspace .pnl-calculation-option label { display:flex; align-items:flex-start; gap:9px; line-height:1.5; }
+.pnl-workspace .pnl-calculation-option input[type=checkbox] { width:18px; height:18px; flex:0 0 18px; margin:1px 0 0; }
+.pnl-workspace .pnl-calculation-option label span { min-width:0; font-weight:600; }
+.pnl-workspace .pnl-calculation-option p { margin:6px 0 0 27px; max-width:85ch; line-height:1.6; }
+.pnl-workspace .pnl-cash-calculation-note p { margin:6px 0 0; max-width:85ch; line-height:1.6; }
+@media (max-width:700px) { .pnl-workspace .pnl-recalculation-fields { grid-template-columns:minmax(0,1fr); } }
 .pnl-workspace .pnl-advanced { grid-column:1/-1; background:#f7f9fc; border-radius:8px; padding:12px; }
 .pnl-workspace .pnl-batch-toolbar { display:flex; align-items:end; gap:12px; flex-wrap:wrap; }
 .pnl-workspace .pnl-batch-toolbar label { margin:0; flex:1; min-width:260px; }
@@ -95,6 +110,9 @@
 .pnl-workspace .pnl-bridge :is(dd,dt) { margin:0; overflow-wrap:anywhere; }
 .pnl-workspace .pnl-pagination { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; }
 .pnl-workspace .pnl-pagination span { font-size:12px; color:#52627a; }
+.pnl-workspace .pnl-position-pagination { flex-wrap:wrap; }
+.pnl-workspace .pnl-position-pagination label { display:flex; align-items:center; gap:8px; font-size:12px; margin:0; }
+.pnl-workspace .pnl-position-pagination select { width:auto; min-width:75px; }
 .pnl-workspace .pnl-request-sidebar[hidden] { display:none; }
 .pnl-workspace .pnl-request-sidebar { min-width:0; }
 .pnl-workspace .pnl-amendments .pnl-panel-heading h3 { font-size:16px; }
@@ -114,7 +132,98 @@
 .pnl-workspace .pnl-decision-panel form { max-width:700px; margin:12px 0; }
 .pnl-workspace pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:360px; overflow:auto; font-size:11px; background:#f7f9fc; padding:12px; border-radius:8px; }
 .pnl-workspace .pnl-inputs .workspace-panel { border:0; padding:12px 0; box-shadow:none; margin:0; }
-@media (min-width:1700px) { .pnl-workspace .pnl-result-grid { grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr); } }
-@media (min-width:1250px) { .pnl-workspace .pnl-requests-hidden .pnl-result-grid { grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr); } }
+@media (min-width:1250px) { .pnl-workspace .pnl-report-panel .pnl-result-grid { grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr); } }
 @media (max-width:1150px) { .pnl-workspace .pnl-review-layout { grid-template-columns:minmax(0,1fr); }.pnl-workspace .pnl-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:700px) { .pnl-workspace .pnl-calculation-form fieldset { grid-template-columns:1fr; }.pnl-workspace .pnl-table-scroll table { min-width:620px; }.pnl-workspace .pnl-metrics strong { font-size:17px; }.pnl-workspace .pnl-bridge dl { grid-template-columns:1fr; } }
+
+/* Ops reviews compare a full-width report first, then inspect one position. */
+.pnl-workspace .pnl-result-grid { grid-template-columns:minmax(0,1fr); }
+.pnl-workspace .pnl-result-grid.pnl-inspector-closed { grid-template-columns:minmax(0,1fr); }
+.pnl-workspace .pnl-inspector[hidden] { display:none; }
+.pnl-workspace .pnl-review-summary { margin:12px 0 18px; }
+.pnl-workspace .pnl-position-filters { display:flex; flex-wrap:wrap; gap:12px 18px; align-items:end; }
+.pnl-workspace .pnl-position-filters label { display:grid; gap:5px; font-size:13px; min-width:160px; }
+.pnl-workspace .pnl-position-filters label:last-child { display:flex; align-items:center; padding-bottom:9px; }
+.pnl-workspace .pnl-position-filters input[type=checkbox] { width:auto; }
+.pnl-workspace table.pnl-ops-table { min-width:900px; }
+.pnl-workspace .pnl-ops-table :is(th,td) { padding:8px 10px; }
+.pnl-workspace .pnl-ops-table th[scope=row] { min-width:210px; max-width:320px; }
+.pnl-workspace .pnl-position-caption { display:block; margin-top:3px; color:#52627a; font-size:11px; }
+.pnl-workspace .pnl-ops-table .pnl-attention { text-align:left; max-width:160px; font-size:12px; color:#694000; }
+.pnl-workspace table.pnl-table.pnl-ops-table :is(th,td).pnl-instrument-type { text-align:center; max-width:160px; white-space:normal; }
+.pnl-workspace .pnl-manual-check { padding:16px; margin:12px 0 20px; border:1px solid #cddcf4; border-radius:8px; background:#f7faff; }
+.pnl-workspace .pnl-manual-check h4 { margin:0 0 8px; font-size:17px; }
+.pnl-workspace .pnl-manual-check p { font-size:13px; line-height:1.55; }
+.pnl-workspace .pnl-check-scroll { overflow-x:auto; margin:14px 0; }
+.pnl-workspace .pnl-check-table { width:100%; min-width:460px; }
+.pnl-workspace .pnl-check-table :is(th,td) { padding:9px 10px; vertical-align:top; white-space:normal; }
+.pnl-workspace .pnl-check-table thead th { position:static; text-align:left; text-transform:none; letter-spacing:normal; }
+.pnl-workspace .pnl-check-table tbody td { text-align:right; }
+.pnl-workspace .pnl-check-table thead th:not(:first-child) { text-align:right; }
+.pnl-workspace .pnl-check-exact { font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.pnl-workspace .pnl-check-conventions { display:flex; flex-wrap:wrap; gap:12px 28px; margin:16px 0; }
+.pnl-workspace .pnl-check-conventions :is(dt,dd) { margin:0; font-size:13px; }
+.pnl-workspace .pnl-check-conventions dt { color:#52627a; margin-bottom:4px; }
+.pnl-workspace .pnl-check-formula { border-left:3px solid #2f4fc7; padding:10px 14px; background:white; }
+.pnl-workspace .pnl-check-formula dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.pnl-workspace .pnl-check-formula :is(dt,dd) { margin:0; font-size:13px; }
+.pnl-workspace .pnl-inspector-proof { margin-top:20px; }
+.pnl-workspace .pnl-inspector-actions { display:flex; align-items:center; gap:10px; }
+.pnl-workspace .pnl-inspector-close { display:inline-flex; align-items:center; justify-content:center; width:32px; min-width:32px; height:32px; min-height:32px; padding:0; flex-shrink:0; border:1px solid #fecdd3; border-radius:8px; background:#fff1f2; color:#9f1239; font-size:23px; line-height:1; }
+.pnl-workspace .pnl-inspector-close:hover { background:#ffe4e6; border-color:#fda4af; }
+.pnl-workspace .pnl-inspector-close:focus-visible { outline:2px solid #9f1239; outline-offset:2px; }
+@media(max-width:600px) { .pnl-workspace .pnl-manual-check { padding:12px; }.pnl-workspace .pnl-check-formula dl { grid-template-columns:1fr; } }
+.pnl-workspace :is(.pnl-review-blocker,.pnl-review-warning) { padding:12px 16px; margin:12px 0; border-left:4px solid #b87900; background:#fffaed; }
+.pnl-workspace .pnl-review-blocker { border-color:#b42318; background:#fff3f1; }
+.pnl-workspace .pnl-coverage-review { margin:12px 0; border:1px solid #e2d6b7; border-radius:8px; background:#fffcf5; color:#694700; }
+.pnl-workspace .pnl-coverage-review > summary { padding:10px 14px; cursor:pointer; font-size:13px; }
+.pnl-workspace .pnl-coverage-content { padding:0 14px 12px; color:#334155; font-size:13px; }
+.pnl-workspace .pnl-coverage-content p { margin:0 0 8px; }
+.pnl-workspace .pnl-review-actions { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+.pnl-workspace button.pnl-review-note-link { min-height:28px; padding:3px 8px; border:1px solid #e2d6b7; border-radius:16px; background:#fffcf5; color:#694700; font-size:12px; white-space:nowrap; }
+.pnl-workspace .pnl-position-review-notes { margin:10px 0; padding:8px 12px; border-left:2px solid #b87900; font-size:13px; }
+.pnl-workspace .pnl-position-review-notes :is(h4,ul) { margin:4px 0; }
+.pnl-workspace :is(.pnl-review-blocker,.pnl-review-warning) p { margin:6px 0 0; }
+.pnl-workspace .pnl-technical-reference { border:0; padding:0; margin:5px 0; font-size:11px; font-weight:400; }
+.pnl-workspace .pnl-technical-reference summary { color:#52627a; cursor:pointer; }
+.pnl-workspace .pnl-technical-reference code { display:block; overflow-wrap:anywhere; white-space:normal; }
+.pnl-workspace .pnl-technical-reference button { margin:4px 8px 4px 0; font-size:11px; min-height:28px; }
+.pnl-workspace .pnl-fact-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px 20px; }
+.pnl-workspace .pnl-confirmation-summary { border:1px solid #b9c9e8; background:#f7f9fc; padding:16px; border-radius:8px; }
+.pnl-workspace .pnl-confirmation-summary dd { margin:4px 0 12px; font-weight:500; }
+.pnl-workspace table.pnl-input-comparison { min-width:760px; }
+.pnl-workspace .pnl-input-comparison :is(th,td) { padding:10px; text-align:left; vertical-align:top; }
+.pnl-workspace .pnl-input-comparison td:nth-child(2) { text-align:right; }
+.pnl-workspace .pnl-input-comparison .pnl-reference { display:block; margin-bottom:8px; }
+.pnl-workspace .pnl-inspector .pnl-input-comparison details { border:0; padding:4px 0; font-size:11px; }
+@media(max-width:700px) { .pnl-workspace .pnl-fact-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.pnl-workspace .pnl-position-filters label { width:100%; } }
+
+/* Source amounts are a disjoint breakdown, never extra subtotals to add to net. */
+.pnl-workspace .pnl-source-coverage { margin:0 0 18px; }
+.pnl-workspace .pnl-source-coverage .pnl-table-scroll { max-height:none; }
+.pnl-workspace .pnl-cash-gap { margin:0 0 14px; padding:10px 12px; border-left:4px solid #b87900; background:#fffaed; font-size:13px; line-height:1.6; }
+.pnl-workspace table.pnl-source-table { min-width:680px; }
+.pnl-workspace .pnl-source-table :is(td,th) { padding:8px 10px; vertical-align:top; }
+.pnl-workspace .pnl-source-table small { display:block; margin-top:3px; color:#52627a; font-size:11px; font-weight:400; max-width:430px; }
+.pnl-workspace .pnl-source-table :is(th:first-child,th:nth-child(3),.pnl-source-status,tfoot td:last-child) { text-align:left; }
+.pnl-workspace .pnl-source-table tfoot { background:#f7f9fc; font-weight:600; }
+.pnl-workspace .pnl-source-table tfoot td:last-child { font-size:12px; }
+.pnl-workspace .pnl-source-state { font-size:12px; font-weight:600; }
+.pnl-workspace .pnl-source-included { color:#166534; }
+.pnl-workspace :is(.pnl-source-partial,.pnl-source-missing_inputs) { color:#854d0e; }
+.pnl-workspace :is(.pnl-source-not_recorded,.pnl-source-not_assessed) { color:#52627a; }
+.pnl-workspace .pnl-source-coverage > details { margin-top:12px; font-size:12px; }
+.pnl-workspace .pnl-source-coverage dd { margin:4px 0; overflow-wrap:anywhere; }
+.pnl-workspace .pnl-source-filter { padding:10px; border:1px solid #b9c9e8; border-radius:6px; font-size:12px; }
+.pnl-workspace .pnl-source-filter button { min-height:32px; margin-left:6px; font-size:12px; }
+.pnl-workspace .pnl-panel-heading h3:focus { outline:2px solid #194fca; outline-offset:4px; }
+
+.pnl-workspace .pnl-cash-report { margin:0 0 18px; min-width:0; }
+.pnl-workspace .pnl-cash-report .pnl-table-scroll small { display:block; margin-top:4px; color:#52627a; font-size:11px; font-weight:400; }
+.pnl-workspace .pnl-cash-inspector { margin-top:16px; padding-top:12px; border-top:1px solid #dbe3ef; min-width:0; }
+.pnl-workspace .pnl-cash-inspector h4:focus { outline:2px solid #194fca; outline-offset:4px; }
+.pnl-mark-review details { margin-block: 1rem; }
+.pnl-mark-review fieldset { display: grid; gap: 1rem; border: 1px solid #dce4ef; border-radius: .5rem; padding: 1rem; }
+.pnl-mark-review label { display: grid; gap: .35rem; }
+.pnl-mark-review .pnl-mark-confirm { display: flex; align-items: flex-start; gap: .65rem; }
+.pnl-mark-review .pnl-mark-confirm input { flex: 0 0 auto; width: auto; margin-top: .2rem; }

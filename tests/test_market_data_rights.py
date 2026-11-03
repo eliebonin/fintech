@@ -61,6 +61,17 @@ def test_personal_declaration_is_never_commercial_permission():
     assert rights.evaluate_rights(profile, requirements, grants, 'DISPLAY', DAY, 'COMMERCIAL').allowed
 
 
+def test_invented_data_requires_explicit_origin_and_never_supplies_real_source_rights():
+    profile,requirements,grants=bundle()
+    profile['usage_scope']='SYNTHETIC'
+    for grant in grants:grant.update(usage_scope='SYNTHETIC',evidence_basis='SYNTHETIC_ORIGIN')
+    assert rights.evaluate_rights(profile,requirements,grants,'DISPLAY',DAY,'SYNTHETIC').allowed
+    for scope in ('PERSONAL','COMMERCIAL'):
+        profile['usage_scope']=scope
+        for grant in grants:grant['usage_scope']=scope
+        assert not rights.evaluate_rights(profile,requirements,grants,'DISPLAY',DAY,scope).allowed
+
+
 def test_valid_to_is_inclusive_but_blank_evidence_denies():
     profile, requirements, grants = bundle()
     for grant in grants:

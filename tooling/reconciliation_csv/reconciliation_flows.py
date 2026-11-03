@@ -7,17 +7,19 @@ from .reconciliation import source_id,document
 from .reconciliation_precision import native_decimal
 
 
-def mapped_flows(bundle,nodes):
+def mapped_flows(bundle,nodes,*,reference_overrides=None):
     known=[];blocked=[]
     for row in bundle.flows:
         reference=source_id(row.get('reference_instrument_id'))
-        if reference in nodes:known.append((row,nodes[reference]))
+        override=(reference_overrides or {}).get(row['trade_id'])
+        if override:known.append((row,override))
+        elif reference in nodes:known.append((row,nodes[reference]))
         else:blocked.append(dict(sourceTradeId=row['trade_id'],sourceReferenceId=reference or None,
             status='NOT_POSTED',reason='MISSING_REFERENCE' if not reference else 'REFERENCE_NOT_IN_IMPORTED_UNIVERSE'))
     return known,blocked
 
 
-def post_flows(c,bundle,tenant,actor,foundation,*,nodes=None):
+def post_flows(c,bundle,tenant,actor,foundation,*,nodes=None,reference_overrides=None):
     from sqlalchemy import select
     from security_master_schema import models as m
     from security_master_schema.booking_controls import authorize_booking
@@ -40,7 +42,7 @@ def post_flows(c,bundle,tenant,actor,foundation,*,nodes=None):
                 if key in nodes and nodes[key]!=UUID(value):raise ValueError('Ambiguous source reset reference')
                 nodes[key]=UUID(value)
     currencies=dict(c.execute(select(m.currency.c.currency_code,m.currency.c.currency_id).where(m.currency.c.status=='ACTIVE')).all())
-    known,blocked=mapped_flows(bundle,nodes);posted=[]
+    known,blocked=mapped_flows(bundle,nodes,reference_overrides=reference_overrides);posted=[]
     for row,node in known:
         with c.begin_nested():
             # A direct private node map must not adopt another tenant's instrument.
@@ -61,6 +63,6 @@ def post_flows(c,bundle,tenant,actor,foundation,*,nodes=None):
                 audit(c,actor,tenant,'RECONCILIATION_RESET_BOOKED',dict(bundleHash=bundle.digest,sourceId=str(foundation['sourceId']),
                     strategyId=str(foundation['strategyId']),sourcePayloadId=str(payload),sourceTradeId=row['trade_id'],tradeId=str(identity),
                     originalRow=dict(row),normalization=amount,recognition='DATED_RESET_INCOME_NOT_POSITION_OR_CASH_BALANCE',
-                    paymentConfirmed=False))
+                    paymentConfirmed=False,referenceResolution='EXACT_SOURCE_COMMENT_IDENTITY' if row['trade_id'] in (reference_overrides or {}) else 'SOURCE_REFERENCE_INSTRUMENT_ID'))
             posted.append(str(identity))
     return dict(postedFlows=len(posted),unpostedFlows=len(blocked),unposted=blocked)

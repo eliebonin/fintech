@@ -15,7 +15,8 @@ from security_master_schema import models as m
 def main():
     if os.environ.get('APP_ENV','local') not in {'local','test','development'}:
         raise SystemExit('Access personas are local-development fixtures only')
-    engine=create_engine(os.environ.get('DATABASE_URL','postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm'))
+    if not os.environ.get('DATABASE_URL'):raise RuntimeError('DATABASE_URL must be explicitly configured')
+    engine=create_engine(os.environ['DATABASE_URL'])
     with engine.begin() as c:
         # Serialize repeat runs without granting removed permissions again.
         from sqlalchemy import text

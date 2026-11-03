@@ -11,8 +11,8 @@ from market_data.history import require_admin
 from market_data.rights import load_rights
 from market_data.storage import insert_returning
 from market_data.calendar_store import publish_reference_calendar
-from apps.reference_api.valuation_policies import policy_view,create_policy
-from apps.reference_api.valuation_policy_contracts import PolicyCreate,PolicyRuleInput
+from market_data.pricing_policies import policy_definition,create_policy
+from market_data.pricing_policy_contracts import PolicyCreate,PolicyRuleInput
 
 
 def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,reference,*,review_existing_classification=False):
@@ -24,7 +24,7 @@ def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,ref
         raise PermissionError('Platform calendar publication authority required')
     if not reference.strip() or not 0 <= (end-start).days <= 30 or end>date.today():
         raise ValueError('Explicit owner reference and bounded historical period required')
-    old=policy_view(c,tenant,base_policy)
+    old=policy_definition(c,tenant,base_policy)
     identity=f'{tenant}:{actor}:{platform_actor}:{base_policy}:{start}:{end}:{reference}'
     if review_existing_classification: identity+=':EXPLICIT_CLASSIFICATION_REVIEW'
     digest=sha256(identity.encode()).hexdigest()
@@ -143,11 +143,11 @@ def prepare_fx_valuation(c,tenant,actor,platform_actor,base_policy,start,end,ref
             source_reference=f'Yahoo research declaration {licence}; '+('explicit weekend convention' if closed else 'validated exact completed UK sample')))
     calendar=publish_reference_calendar(c,draft,platform_actor,'Observed research sample dates only; not an authoritative FX holiday calendar')
     retained_rules=[r for r in old.rules if not (review_existing_classification and r.market_data_series_id==series['market_data_series_id'])]
-    rules=retained_rules+[PolicyRuleInput(ruleSequence=max(r.rule_sequence for r in old.rules+old.defaultRules)+1,
+    rules=retained_rules+[PolicyRuleInput(ruleSequence=max(r.rule_sequence for r in old.rules+old.default_rules)+1,
         subjectType='FX_PAIR',subjectReferenceNodeId=series['reference_node_id'],marketDataSeriesId=series['market_data_series_id'],
         datasetId=dataset['dataset_id'],seriesType='FX_SPOT',valueBasis='RAW',pricingConvention='EXPLICIT_TIME',pricingCutId=series['valuation_cut_id'],
         marketCalendarId=calendar,selectionMethod='LAST_BEFORE_CUT',maxStalenessBusinessDays=0)]
-    payload=PolicyCreate(policyCode=old.policyCode,displayName=old.displayName+' + EUR/GBP UK research FX',valuationCutId=old.valuationCutId,
-        strategyId=old.strategyId,validFrom=old.validFrom,validTo=old.validTo,selectionMode=old.selectionMode,rules=rules,defaultRules=old.defaultRules)
+    payload=PolicyCreate(policyCode=old.policy_code,displayName=old.display_name+' + EUR/GBP UK research FX',valuationCutId=old.valuation_cut_id,
+        strategyId=old.strategy_id,validFrom=old.valid_from,validTo=old.valid_to,selectionMode=old.selection_mode,rules=rules,defaultRules=old.default_rules)
     new=create_policy(c,tenant,actor,payload,key)
-    return {'policyId':new.valuationPolicyId,'basePolicyId':base_policy}
+    return {'policyId':new.policy_id,'basePolicyId':base_policy}

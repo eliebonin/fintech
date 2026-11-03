@@ -90,7 +90,7 @@ def post_option(c,bundle,tenant,actor,foundation,property_values):
         idempotencyKey='recon-standard-spx:'+bundle.digest+':20265')
     proposal=submit_option_proposal(c,tenant,actor,req)
     if proposal.status=='PENDING':proposal=decide_option_proposal(c,tenant,actor,proposal.proposal_id,'APPROVED',
-        'Owner confirmed embedded multiplier: source 2000 units = 20 standard contracts, multiplier 100. Cboe European/cash terms; standard monthly AM expiry inferred from SPX symbol, not broker-confirmed. '+SPEC)
+        'Owner confirmed embedded multiplier: source '+row['quantity']+' units = '+normalized['quantity']+' standard contracts, multiplier 100. Cboe European/cash terms; standard monthly AM expiry inferred from SPX symbol, not broker-confirmed. '+SPEC)
     if proposal.status!='APPROVED':raise ValueError('Standard option not approved')
     node=proposal.reference_node_id
     mic=m.market_venue_identifier

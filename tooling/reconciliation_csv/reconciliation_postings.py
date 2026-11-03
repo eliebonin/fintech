@@ -66,7 +66,7 @@ def booking_request(row,node,strategy,counterparty,source,context,properties):
         settlementTreatment='NO_SWAP_CASH_OR_PAYMENT_POSTING' if context.kind=='SWAP' else 'SOURCE_ACTUAL_DATE')
 
 
-def post_positions(c,bundle,tenant,actor,foundation,nodes,counterparties,property_values,*,instrument_ids=None):
+def post_positions(c,bundle,tenant,actor,foundation,nodes,counterparties,property_values,*,instrument_ids=None,request_factory=booking_request):
     from sqlalchemy import select,func
     from security_master_schema import models as m
     from security_master_schema.access_management import audit
@@ -119,7 +119,7 @@ def post_positions(c,bundle,tenant,actor,foundation,nodes,counterparties,propert
                     m.reference_node_scope.c.status=='ACTIVE')).one()
                 context=load_context(c,tenant,node,as_of=datetime.fromisoformat(row['trade_datetime_utc']).date())
                 if not context.booking_eligible:raise ValueError(context.ineligibility_message or 'Product not ready')
-                request,precision=booking_request(row,node,foundation['strategyId'],counterparties[company],foundation['sourceId'],context,properties)
+                request,precision=request_factory(row,node,foundation['strategyId'],counterparties[company],foundation['sourceId'],context,properties)
                 key='recon-trade:'+sha256(document(dict(sourceId=str(foundation['sourceId']),tradeId=row['trade_id']))).hexdigest()
                 detail=book(c,tenant,actor,request,key,context.kind,'reconciliation-import')
                 trade_id=detail.data.trade.trade_id
@@ -176,8 +176,8 @@ def prepare_position_metadata(c,bundle,tenant,actor,foundation,*,product_nodes=N
     for company in sorted({source_id(r.get('counterparty_id')) for r in bundle.positions if source_id(r['instrument_id']) in nodes}):
         if not company:raise ValueError('Missing source counterparty')
         organisation=apply_confirmed_company(c,bundle,tenant,actor,foundation,company,
-            'Northern Trust' if bundle.name=='FCAGF' and company=='21' else 'Unverified source company '+company,
-            confirmed=bundle.name=='FCAGF' and company=='21')
+            'Northern Trust' if bundle.name in ('FCAGF','FCPGF') and company=='21' else 'Unverified source company '+company,
+            confirmed=bundle.name in ('FCAGF','FCPGF') and company=='21')
         detail=organisation_detail(c,tenant,actor,organisation)
         # Preserve all existing selections; add only this import's source parties.
         if detail['policies']['COUNTERPARTY']['mode']=='CURATED' and not detail['roles']['COUNTERPARTY']:

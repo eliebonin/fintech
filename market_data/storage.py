@@ -102,9 +102,17 @@ def validate_series(c, *, listing, dataset_id, provider):
         raise ValueError('Existing series identity differs; explicit series review is required')
 
 
+def point_dimensions(point,parsed):
+    values={'SOURCE_FIELD':point.field,'VALUE_BASIS':point.value_basis,'TIMESTAMP_SEMANTICS':parsed.timestamp_semantics}
+    if point.bond_price_type:values.update(BOND_PRICE_TYPE=point.bond_price_type,QUOTE_FACTOR='100')
+    return values
+
+
 def validate_dimensions(c,listing_id,dataset_id,parsed):
-    expected={close_type(p.series_type):{'SOURCE_FIELD':p.field,'VALUE_BASIS':p.value_basis,
-        'TIMESTAMP_SEMANTICS':parsed.timestamp_semantics} for p in parsed.points}
+    expected={close_type(p.series_type):point_dimensions(p,parsed) for p in parsed.points}
+    if any(p.bond_price_type for p in parsed.points):
+        kind=c.scalar(select(m.instrument_type.c.type_code).select_from(m.listing.join(m.instrument).join(m.instrument_type)).where(m.listing.c.listing_node_id==listing_id))
+        if kind!='BOND':raise ValueError('Bond quote components require a canonical bond listing')
     series=c.execute(select(m.market_data_series).where(
         m.market_data_series.c.reference_node_id==listing_id,
         m.market_data_series.c.default_dataset_id==dataset_id,
@@ -114,7 +122,8 @@ def validate_dimensions(c,listing_id,dataset_id,parsed):
         stored=dict(c.execute(select(m.market_data_series_dimension.c.dimension_code,
             m.market_data_series_dimension.c.dimension_value).where(
             m.market_data_series_dimension.c.market_data_series_id==row['market_data_series_id'])).all())
-        if any(stored.get(k)!=v for k,v in expected[row['series_type']].items()):
+        if (any(stored.get(k)!=v for k,v in expected[row['series_type']].items())
+            or 'BOND_PRICE_TYPE' in stored and 'BOND_PRICE_TYPE' not in expected[row['series_type']]):
             raise ValueError('Existing series dimensions differ; explicit series review is required')
 
 
@@ -153,8 +162,7 @@ def publish_points(c, *, parsed, provider, dataset, listing, mapping, symbol,
                     m.series_measure_definition.c.measure_code == 'PRICE')),
                 expected_frequency_code='BUSINESS_DAILY', expected_market_calendar_id=listing['market_calendar_id'],
                 source_system_id=provider.source_system_id, is_official=False)
-            for dimension, value in (('SOURCE_FIELD', point.field), ('VALUE_BASIS', point.value_basis),
-                                     ('TIMESTAMP_SEMANTICS', parsed.timestamp_semantics)):
+            for dimension, value in point_dimensions(point,parsed).items():
                 c.execute(m.market_data_series_dimension.insert().values(market_data_series_id=series_id,
                     dimension_code=dimension, dimension_value=value))
         series_ids[point.series_type] = series_id
@@ -177,14 +185,23 @@ def publish_points(c, *, parsed, provider, dataset, listing, mapping, symbol,
             if identity in previous_points:
                 raise ValueError('Ambiguous current source observation')
             previous_points[identity] = row
-    pending = []
+    pending = [];pending_components=[]
+    from .bond_quote_store import load_quote_accruals,record_quote_accruals
+    from .bond_quotes import component_payload
+    from security_master_schema.evidence import evidence_hash
+    dirty=any(p.bond_price_type=='DIRTY' for p in parsed.points)
+    previous_components=load_quote_accruals(c,[row['market_data_observation_id'] for row in previous_points.values()]) if dirty and batched else {}
     for point in parsed.points:
         series_id = series_ids[point.series_type]
         key = f'{symbol}:{point.field}:{point.market_date.isoformat()}'
         previous = (previous_points.get((series_id, point.market_date)) if batched else c.execute(current.where(
             m.market_data_observation.c.market_data_series_id == series_id,
             m.market_data_observation.c.market_date == point.market_date)).mappings().one_or_none())
-        if previous and previous['value'] == point.value and previous['value_basis'] == point.value_basis:
+        component_same=True
+        if point.bond_price_type=='DIRTY':
+            old_component=(previous_components.get(previous['market_data_observation_id']) if batched else load_quote_accruals(c,[previous['market_data_observation_id']]).get(previous['market_data_observation_id'])) if previous else None
+            component_same=(old_component['component_hash'] if old_component else None)==(evidence_hash(component_payload(point.bond_quote_accrual)) if point.bond_quote_accrual else None)
+        if previous and previous['value'] == point.value and previous['value_basis'] == point.value_basis and component_same:
             report['duplicates'] += 1
             continue
         if previous and received_at < previous['received_at_utc']:
@@ -198,11 +215,23 @@ def publish_points(c, *, parsed, provider, dataset, listing, mapping, symbol,
             supersedes_observation_id=previous['market_data_observation_id'] if previous else None)
         if batched:
             pending.append(values)
+            pending_components.append(point.bond_quote_accrual)
         else:
-            c.execute(m.market_data_observation.insert().values(**values))
+            if point.bond_quote_accrual:
+                identifier=insert_returning(c,m.market_data_observation,'market_data_observation_id',**values)
+                record_quote_accruals(c,{identifier:point.bond_quote_accrual},received_at)
+            else:c.execute(m.market_data_observation.insert().values(**values))
         report['accepted'] += 1
     for offset in range(0, len(pending), 1000):
-        c.execute(m.market_data_observation.insert(), pending[offset:offset + 1000])
+        batch=pending[offset:offset+1000];components=pending_components[offset:offset+1000]
+        if any(components):
+            table=m.market_data_observation
+            returned=c.execute(table.insert().returning(table.c.market_data_observation_id,table.c.market_data_series_id,
+                table.c.market_date,table.c.source_observation_key),batch).mappings().all()
+            identities={(row['market_data_series_id'],row['market_date'],row['source_observation_key']):row['market_data_observation_id'] for row in returned}
+            record_quote_accruals(c,{identities[(row['market_data_series_id'],row['market_date'],row['source_observation_key'])]:component
+                for row,component in zip(batch,components) if component is not None},received_at)
+        else:c.execute(m.market_data_observation.insert(),batch)
 
 
 def finish_delivery(c, *, run_id, dataset_id, source_payload_id, delivery_key, digest,

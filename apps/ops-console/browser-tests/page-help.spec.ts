@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './console-check';
 
 test('page guidance opens with the keyboard and leaves policy drafts and requests untouched',async({page})=>{
  const writes:string[]=[];

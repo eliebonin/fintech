@@ -38,7 +38,7 @@ def normalize_booking(c,row,snapshot,event,*,currency_cache=None):
         if currency_cache is not None:currency_cache[pair]=codes
     base=codes[UUID(conventions['baseCurrencyId'])];quote=codes[UUID(conventions['priceCurrencyId'])]
     if base==quote or conventions['quoteConvention']!=f'{quote}_PER_{base}':raise PositionError('Forward quote direction mismatch')
-    from valuation.economics import finite_decimal,evidence_hash
+    from security_master_schema.evidence import finite_decimal,evidence_hash
     finite_decimal(agreed,'agreed forward rate',positive=True)
     maturity=None
     if kind=='FX_FORWARD_BOOKING':

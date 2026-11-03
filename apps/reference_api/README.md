@@ -20,6 +20,7 @@ Seeding/migration writes to the configured database; use it for explicit setup, 
 2. Start the API:
 
    ```powershell
+   .\.venv\Scripts\python.exe scripts/configure_local_access.py
    pnpm run dev:reference-api
    ```
 
@@ -27,9 +28,11 @@ The interactive OpenAPI document is available at `http://127.0.0.1:8000/docs`.
 Tenant endpoints require validated tenant/user context and active module/action
 authority. Platform endpoints instead require platform authority; local context
 selection issues opaque sessions retaining real actor/selected subject. The BFF
-propagates validated context, not a browser-chosen query tenant. Direct header trust
-is a local testing boundary; production deployment must verify identity claims
-server-side. See [access delivery](../../docs/delivery/tenant-access-administration.md).
+propagates validated context, not a browser-chosen query tenant. Protected calls
+require a valid opaque session; identity headers alone cannot authenticate.
+Bootstrap requires the configured server-only local operator key. Non-local
+startup is blocked until production authentication is implemented. See
+[setup and limits](../../docs/platform/local-identity-safeguard.md).
 
 ## Implemented endpoints
 

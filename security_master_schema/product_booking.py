@@ -39,7 +39,7 @@ def execution_amount(quantity, price, *, quantity_unit, price_basis, quote_facto
         quantity, price, quote_factor = map(Decimal, (quantity, price, quote_factor))
         if quantity <= 0 or quote_factor <= 0:
             raise ValueError('Quantity and quotation divisor must be positive.')
-        if price_basis == 'INDEX_POINTS':
+        if price_basis in ('INDEX_POINTS','UNDERLYING_UNIT'):
             if quantity_unit != 'CONTRACTS' or multiplier is None or Decimal(multiplier) <= 0:
                 raise ValueError('Explicit futures multiplier and contracts are required.')
             amount = quantity * price * Decimal(multiplier) / quote_factor

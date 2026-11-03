@@ -1,5 +1,267 @@
 # Feature implementation and test map
 
+3 November F38/F39 trade annotations:
+[ledger service](../../valuation/balance_trade_events.py),
+[HTTP adapter](../../apps/reference_api/balance_history_routes.py),
+[timeline](../../apps/ops-console/src/features/valuation/balance-trade-timeline.tsx),
+[backend scope/recognition tests](../../tests/test_balance_trade_events.py),
+[frontend grouping/contract tests](../../apps/ops-console/src/features/valuation/balance-trade-timeline.test.tsx)
+and [delivery/limits](../delivery/balance-trade-markers-20261103.md).
+Trade disclosure has its own action checks; it is not implied by valuation access.
+
+F38 external-data follow-up: [3 November accrual refresh and deferred fund scope](../delivery/daily-accrual-csv-refresh-20261103.md)
+uses the existing [isolated aggregator/poster](../../tooling/reconciliation_csv/reconciliation_accruals.py)
+and [native daily writer](../../valuation/accruals.py), verified by
+[posting/replay tests](../../tooling/reconciliation_csv/tests/test_reconciliation_accruals.py).
+No application import interface changed; fund share-class accrual support remains
+unimplemented pending semantic investigation.
+
+3 November F38/F39 exploration:
+[route](../../apps/ops-console/src/app/valuation/interest/explorer/page.tsx),
+[filters/report](../../apps/ops-console/src/features/valuation/balance-explorer.tsx),
+[scope-response checks](../../apps/ops-console/src/features/valuation/balance-explorer-model.ts),
+[UI regression](../../apps/ops-console/src/features/valuation/balance-explorer.test.tsx),
+[contract regression](../../apps/ops-console/src/features/valuation/balance-explorer-model.test.ts),
+[reused API access test](../../tests/test_balance_series_api.py) and
+[delivery/limits](../delivery/accrued-balance-explorer-20261103.md).
+
+3 November F38/F39 current entry points:
+[review service](../../valuation/interest_review.py),
+[typed review schema](../../valuation/interest_review_tables.py),
+[comparison model](../../valuation/interest_review_model.py),
+[HTTP adapter](../../apps/reference_api/interest_review_routes.py),
+[two-stage UI](../../apps/ops-console/src/features/valuation/interest-ops-review.tsx),
+[API permissions](../../tests/test_interest_review_api.py),
+[transactions/gaps/staleness](../../tests/test_interest_review_integration.py),
+[loaded UI regression](../../apps/ops-console/src/features/valuation/interest-ops-review-loaded.test.tsx)
+and [delivery/limits](../delivery/interest-daily-review-20261103.md).
+The older workspace references below are historical foundations, not the current
+main-page navigation.
+
+1 November F38/F39 Ops maintenance:
+[workspace](../../apps/ops-console/src/features/valuation/interest-register.tsx),
+[source editors](../../apps/ops-console/src/features/valuation/interest-input-editor.tsx),
+[exact payloads](../../apps/ops-console/src/features/valuation/interest-model.ts),
+[independent scoped loading](../../apps/ops-console/src/features/valuation/use-interest-data.ts),
+[retained transport](../../apps/ops-console/src/features/valuation/interest-api.ts),
+[filtered history API](../../apps/reference_api/balance_history_routes.py),
+[loading regressions](../../apps/ops-console/src/features/valuation/use-interest-data.test.ts),
+[To-date overview/range separation](../../apps/ops-console/src/features/valuation/interest-register-snapshot.test.tsx),
+[editor/pagination regressions](../../apps/ops-console/src/features/valuation/interest-input-editor.test.tsx),
+[native maintenance loop](../../tests/test_balance_history_api.py) and
+[delivery/limits](../delivery/interest-ops-workspace-20261101.md).
+
+1 November F38/F39 chart:
+[series GET](../../apps/reference_api/balance_history_routes.py),
+[viewer/table](../../apps/ops-console/src/features/valuation/balance-history-chart.tsx),
+[geometry](../../apps/ops-console/src/features/valuation/balance-chart-model.ts),
+[API/scope regression](../../tests/test_balance_series_api.py),
+[model tests](../../apps/ops-console/src/features/valuation/balance-chart-model.test.ts),
+[rendering tests](../../apps/ops-console/src/features/valuation/balance-history-chart.test.tsx)
+and [delivery](../delivery/accrued-balance-chart-20261101.md).
+
+31 October F38/F39 maintained accrued balances:
+[contracts](../../valuation/balance_history_contracts.py),
+[schema](../../valuation/balance_history_tables.py),
+[commands/reads](../../valuation/balance_history.py),
+[local/FX adapters](../../valuation/accrued_balance_inputs.py),
+[API](../../apps/reference_api/balance_history_routes.py),
+[workbench](../../apps/ops-console/src/features/valuation/interest-register.tsx),
+[migration 108](../../alembic/versions/20261031_108_maintained_accrued_balances.py),
+[financial/history tests](../../tests/test_balance_history_integration.py),
+[API scope tests](../../tests/test_balance_history_api.py) and
+[frontend tests](../../apps/ops-console/src/features/valuation/interest-register.test.tsx).
+See [delivery and limits](../delivery/maintained-accrued-balances-20261031.md).
+
+31 October F32/F37 [NAV convention correction](../delivery/fund-nav-lag-20261031.md):
+[optional configuration](../../tooling/reconciliation_csv/reconciliation_eligibility.py)
+and [lightweight boundary tests](../../tooling/reconciliation_csv/tests/test_fund_nav_convention.py)
+reuse existing NAV_DATE/FIXED_LAG selection. FCPGF policy v3 uses prior-session NAVs
+and independent current-day FX; no calculator or production API behavior changed.
+
+
+31 October F32/F37/F39 [delivery and limits](../delivery/incomplete-price-review-20261031.md):
+[missing-input population proof](../../valuation/price_inputs.py),
+[reviewed marks](../../valuation/mark_overrides.py),
+[decision health](../../valuation/mark_health.py),
+[migration 107](../../alembic/versions/20261031_107_reviewed_mark_overrides.py),
+[HTTP](../../apps/reference_api/mark_override_routes.py),
+[review UI](../../apps/ops-console/src/features/valuation/mark-override-review.tsx),
+[partial staging tests](../../tests/test_partial_price_staging.py),
+[manual-mark tests](../../tests/test_reviewed_mark_overrides.py),
+[cash FX tests](../../tests/test_partial_cash_prices.py) and
+[browser checks](../../apps/ops-console/browser-tests/missing-marks.spec.ts).
+Missing required marks block normal/self publication; optional interest/cash
+snapshots keep their separate nonblocking treatment. No source-value invention.
+
+
+30 October F27/F48: [strict rights](../../market_data/rights.py),
+[uniform display purpose](../../market_data/display_access.py),
+[explicit seed governance](../../security_master_schema/synthetic_market_data.py),
+[migration 106](../../alembic/versions/20261030_106_explicit_synthetic_rights.py),
+[admission](../../apps/reference_api/workload_admission.py) and
+[safe retry metadata](../../apps/ops-console/src/lib/server/workload-response.ts).
+[Missing-profile checks](../../tests/test_missing_dataset_profiles.py),
+[cross-worker/cancellation checks](../../tests/test_workload_concurrency.py),
+[no-effect busy checks](../../tests/test_workload_api.py) and
+[numerical acceptance](../../tests/test_valuation_acceptance.py) support
+[delivery evidence and explicit remaining scope](../delivery/dataset-rights-and-workload-20261030.md).
+
+30 October F48: [runtime-role boundary](../../security_master_schema/database_security.py),
+[local provisioner](../../scripts/configure_local_database.py),
+[audit migration 105](../../alembic/versions/20261030_105_access_audit_immutability.py),
+[safe security events](../../apps/reference_api/security_events.py),
+[browser policy](../../apps/ops-console/src/lib/security-headers.ts) and
+[cookie options](../../apps/ops-console/src/lib/server/session-cookie.ts).
+[Role/booking regression](../../tests/test_runtime_database_role.py),
+[audit regression](../../tests/test_access_audit_protection.py),
+[configuration/log regressions](../../tests/test_security_controls.py) and
+[browser acceptance](../../apps/ops-console/browser-tests/context-guard.spec.ts)
+support the [bounded delivery claims](../delivery/security-controls-20261030.md).
+
+30 October F03/F48: [local identity verifier](../../apps/reference_api/local_identity.py),
+[boundary](../../apps/reference_api/access_boundary.py), [startup settings](../../apps/reference_api/config.py),
+[BFF](../../apps/ops-console/src/lib/server/local-identity.ts) and
+[session-only context](../../apps/ops-console/src/lib/tenant-session.ts).
+[Offline regressions](../../tests/test_local_identity_safeguard.py) and
+[real session tests](../../tests/test_local_identity_sessions.py) distinguish
+local containment from deferred production login. [Evidence](../delivery/local-identity-safeguard-20261030.md).
+
+30 October F48: [dependency audit workflow](../../.github/workflows/dependency-security.yml)
+checks the complete pnpm/Python locks on PR/main/manual/weekly triggers. Targeted
+upgrades, generated-contract parity and compatibility results are recorded in
+[delivery evidence](../delivery/dependency-security-20261030.md); remote scheduled
+execution and production certification are separate claims.
+
+29 October F53: [preparation delivery](../delivery/regulatory-reporting-20261029.md)
+adds the dedicated Regulatory Reporting module and bounded preparation/review/
+export path. Regulatory submission/schema acceptance remains unimplemented;
+the [working-reference review](../research/transaction-reporting-reference-20261029.md)
+is design evidence, not proof of regulatory acceptance.
+
+29 October F38/F39 [review/display follow-up](../delivery/valuation-review-signals-20261029.md):
+[coverage classification](../../valuation/review_coverage.py),
+[stock projection](../../valuation/accrued_balance_presentation.py),
+[API decoration](../../apps/reference_api/valuation_presentation.py),
+[compact disclosure](../../apps/ops-console/src/features/valuation/coverage-review.tsx),
+[numerical/availability tests](../../tests/test_valuation_review_signals.py),
+[native stock evidence](../../tests/test_accrued_balance_integration.py) and
+[keyboard/mobile acceptance](../../apps/ops-console/browser-tests/valuation-review-signals.spec.ts).
+
+28 October F17/F27/F37–F39 [bond quote normalization](../delivery/bond-dirty-to-clean-20261028.md):
+[typed quote math](../../market_data/bond_quotes.py),
+[source-paired writer](../../market_data/bond_quote_store.py),
+[ingestion/corrections](../../market_data/storage.py),
+[normalizer](../../valuation/bond_prices.py),
+[publication check](../../valuation/bond_quote_review.py),
+[migration 103](../../alembic/versions/20261028_103_bond_quote_accrual.py),
+[inspector](../../apps/ops-console/src/features/valuation/bond-price-normalization.tsx),
+[native P&L tests](../../tests/test_bond_dirty_market_integration.py),
+[ingestion tests](../../tests/test_bond_quote_ingestion.py) and
+[browser check](../../apps/ops-console/browser-tests/bond-dirty-price.spec.ts).
+
+28 October F16/F37/F39 [linear futures extension](../delivery/linear-futures-extension-20261028.md):
+[capability](../../security_master_schema/future_economics.py),
+[booking/reference locks](../../apps/reference_api/product_booking.py),
+[frozen facts](../../security_master_schema/future_valuation.py),
+[variation/dimensions](../../valuation/futures_pnl.py),
+[numerical and lock-order tests](../../tests/test_linear_future_economics.py),
+[native booking](../../tests/test_linear_futures_api.py),
+[governed financial integration](../../tests/test_linear_futures_pnl_integration.py),
+[browser editor/inspection](../../apps/ops-console/browser-tests/linear-futures.spec.ts).
+No delivery/accounting engine or crypto monetary-preview expansion is implied.
+
+28 October F12/F36–F39 [ETP/spot-crypto P&L](../delivery/etp-spot-crypto-pnl-20261028.md):
+[shared classification](../../security_master_schema/cash_products.py),
+[native cash writer checks](../../trading/cash_reference.py),
+[financial adapter](../../positions/repository.py),
+[quantity-only adapter](../../positions/holdings_repository.py),
+[numerical tests](../../tests/test_cash_product_pnl.py),
+[native financial/review tests](../../tests/test_cash_product_pnl_integration.py)
+and [browser inspection](../../apps/ops-console/browser-tests/cash-product-pnl.spec.ts).
+These reuse security price/FX economics; no underlying payoff or token lifecycle
+model, automatic provider rights or crypto monetary-preview extension is implied.
+
+28 October F15/F37/F38/F39 [supplied whole-note P&L](../delivery/structured-note-pnl-20261028.md):
+[quotation/frozen evidence](../../security_master_schema/structured_note_valuation.py),
+[historical binding](../../positions/structured_note.py),
+[source quotation matching](../../valuation/structured_note_inputs.py),
+[optional CLEAN stock FX](../../valuation/structured_note_interest.py),
+[bounded migration 102](../../alembic/versions/20261028_102_structured_note_interest.py),
+[pure tests](../../tests/test_structured_note_valuation.py),
+[real-booking/publication tests](../../tests/test_structured_note_pnl_integration.py)
+and [browser inspection](../../apps/ops-console/browser-tests/structured-note-pnl.spec.ts).
+Lifecycle, generated detached note receivables and payoff pricing remain deferred.
+
+27 October F16/F37/F39 [futures daily P&L](../delivery/futures-daily-pnl-20261027.md):
+[frozen conventions](../../security_master_schema/future_valuation.py),
+[historical binding](../../positions/future.py), [bridge](../../valuation/futures_pnl.py),
+[real-booking/staging/publication tests](../../tests/test_futures_pnl_integration.py),
+[inspector](../../apps/ops-console/src/features/valuation/futures-pnl-inspection.tsx)
+and [browser check](../../apps/ops-console/browser-tests/futures-pnl.spec.ts).
+
+27 October F36–F40 [cross-layer review](../delivery/quality-reviews/2026-10-27-valuation-state-review.md)
+maps intent to current calculation, review UI, schema and focused evidence; it
+does not expand product support or certify operating financial results.
+
+27 October F38/F39 accrued stock:
+[replay](../../valuation/accrued_balance.py), [sources](../../valuation/accrued_balance_inputs.py),
+[storage](../../valuation/accrued_balance_storage.py), [source health](../../valuation/accrued_balance_health.py),
+[migration 101](../../alembic/versions/20261027_101_accrued_balance_fx.py),
+[integration regressions](../../tests/test_accrued_balance_integration.py),
+[inspector](../../apps/ops-console/src/features/valuation/accrued-balance-inspection.tsx),
+[browser acceptance](../../apps/ops-console/browser-tests/accrued-balance.spec.ts).
+[Current rules](../architecture/market-data-and-valuation/accrued-balance-fx.md).
+
+27 October F38 [full schedule delivery](../delivery/bond-cashflow-schedule-20261027.md):
+[typed contracts](../../lifecycle/coupon_contracts.py), [schema](../../lifecycle/coupon_tables.py),
+[service](../../lifecycle/coupon_service.py), [migration 100](../../alembic/versions/20261027_100_bond_cashflow_schedule.py),
+[editor/table](../../apps/ops-console/src/components/bond-cashflow-schedule.tsx),
+[contract checks](../../tests/test_bond_cashflow_contracts.py),
+[service checks](../../tests/test_bond_cashflow_schedule.py),
+[retained-receipt migration](../../tests/test_bond_cashflow_migration.py),
+[browser acceptance](../../apps/ops-console/browser-tests/bond-cashflow-schedule.spec.ts).
+Current [data/workflow reference](../architecture/trading-and-operations/bond-cashflow-schedules.md).
+
+26 October F07/F19/F39 [shared instrument display](../delivery/shared-instrument-display-20261026.md):
+[pure rules](../../security_master_schema/instrument_display.py),
+[visible bulk resolver](../../apps/reference_api/instrument_display.py),
+[shared React label](../../apps/ops-console/src/components/instrument-label.tsx),
+[policy tests](../../tests/test_instrument_display.py),
+[scope/batching/snapshot tests](../../tests/test_instrument_display_api.py),
+[holdings identifier search](../../tests/test_strategy_holdings_api.py),
+[render tests](../../apps/ops-console/src/components/instrument-label.test.tsx) and
+[browser identities/keyboard/mobile](../../apps/ops-console/browser-tests/instrument-display.spec.ts).
+Rules and remaining limits: [maintained policy](../architecture/security-master/instrument-display.md).
+
+26 October F39 [manual position check](../delivery/position-inspection-manual-check-20261026.md):
+[frozen-input worksheet](../../apps/ops-console/src/features/valuation/position-calculation.tsx),
+[inspector](../../apps/ops-console/src/features/valuation/result-workspace.tsx),
+[rendering edge cases](../../apps/ops-console/src/features/valuation/position-calculation.test.tsx)
+and [browser proof/navigation/layout checks](../../apps/ops-console/browser-tests/pnl-ops.spec.ts).
+No calculation/API change; technical evidence stays available under disclosure.
+Its [bond-label follow-up](../delivery/position-inspection-manual-check-20261026.md#bond-business-identifiers)
+uses [bulk current-ISIN projection](../../apps/reference_api/valuation_presentation.py)
+and [disposable metadata/visibility regressions](../../tests/test_valuation_presentation_api.py).
+
+26 October F39 instrument-type column/filter: [accessible type projection](../../apps/reference_api/valuation_presentation.py),
+[full-result selection](../../apps/ops-console/src/features/valuation/ops-review-model.ts),
+[table/filter](../../apps/ops-console/src/features/valuation/result-workspace.tsx),
+[metadata/visibility tests](../../tests/test_valuation_presentation_api.py),
+[selection tests](../../apps/ops-console/src/features/valuation/ops-review-model.test.ts),
+[render tests](../../apps/ops-console/src/features/valuation/result-workspace.test.tsx) and
+[isolated browser journeys](../../apps/ops-console/browser-tests/pnl-ops.spec.ts).
+See the [report follow-up](../delivery/valuation-report-tabs-20261026.md#instrument-type-column-and-filter-follow-up).
+
+26 October F38 [zero-coupon applicability](../delivery/zero-coupon-accrual-applicability-20261026.md):
+[original booked coupon terms](../../positions/repository.py),
+[coverage and publication guard](../../valuation/accruals.py),
+[calculation wiring](../../valuation/service.py),
+[applied rule](../../valuation/decisions.py),
+[offline edge cases](../../tests/test_zero_coupon_accruals.py) and
+[calculation/staging/publication acceptance](../../tests/test_economic_pnl_acceptance.py).
+No master-data guess, invented zero input or historical financial rewrite.
+
 23 October F37/F38 [optional daily accruals](../delivery/optional-bond-accruals-20261023.md):
 [coverage/consumer/publication guard](../../valuation/accruals.py),
 [strict request](../../apps/reference_api/valuation_contracts.py),
@@ -137,7 +399,7 @@ wholesale service decomposition.
 
 | ID | Backend implementation | Frontend route/component | Focused test evidence |
 | --- | --- | --- | --- |
-| [F12](features/product-booking.md#f12-plain-listed-cash) | [load_cash_booking_listing](../../apps/reference_api/cash_booking_integrity.py#L56); [book_listed_cash_trade](../../apps/reference_api/repository.py#L4988) | [Trade ticket](../../apps/ops-console/src/app/trades/new/trade-ticket.tsx); [booking page](../../apps/ops-console/src/app/trades/new/page.tsx) | [test_cash_booking_integrity.py](../../tests/test_cash_booking_integrity.py), [test_trade_booking_api.py](../../tests/test_trade_booking_api.py), [trade-ticket.test.tsx](../../apps/ops-console/src/app/trades/new/trade-ticket.test.tsx) |
+| [F12](features/product-booking.md#f12-plain-listed-cash) | [Shared cash command](../../trading/booking.py), [commands/results](../../trading/booking_contracts.py), [persistence](../../trading/booking_store.py), [locked eligibility](../../trading/cash_reference.py); API retains the detail adapter. | [Trade ticket](../../apps/ops-console/src/app/trades/new/trade-ticket.tsx); [booking page](../../apps/ops-console/src/app/trades/new/page.tsx) | [Native/API/file/audit parity](../../tests/test_trading_cash_booking.py), [fixed schemas](../../tests/test_cash_booking_contract_parity.py), [boundaries](../../tests/test_trading_boundaries.py), [test_cash_booking_integrity.py](../../tests/test_cash_booking_integrity.py), [test_trade_booking_api.py](../../tests/test_trade_booking_api.py), [trade-ticket.test.tsx](../../apps/ops-console/src/app/trades/new/trade-ticket.test.tsx) |
 | [F13](features/product-booking.md#f13-deliverable-fx-forwards) | [book_fx_forward_trade](../../apps/reference_api/fx_forward_booking.py#L133); [resolve_fx_forward_settlement](../../security_master_schema/fx_forward_booking.py#L48) | [FX forward ticket](../../apps/ops-console/src/app/trades/new/fx-forward-ticket.tsx) | [test_fx_forward_booking_api.py](../../tests/test_fx_forward_booking_api.py), [test_fx_forward_booking_rules.py](../../tests/test_fx_forward_booking_rules.py), [fx-forward-ticket.test.tsx](../../apps/ops-console/src/app/trades/new/fx-forward-ticket.test.tsx) |
 | [F14](features/product-booking.md#f14-listed-options) | [load](../../apps/reference_api/option_booking.py#L91), [search](../../apps/reference_api/option_booking.py#L118), [book](../../apps/reference_api/option_booking.py#L128); [execution validation](../../security_master_schema/option_booking.py#L28) | [Option ticket](../../apps/ops-console/src/app/trades/new/option-ticket.tsx); [option creation form](../../apps/ops-console/src/app/instruments/options/new/form.tsx) | [test_option_booking_api.py](../../tests/test_option_booking_api.py), [test_option_booking_rules.py](../../tests/test_option_booking_rules.py), [option-ticket-state.test.tsx](../../apps/ops-console/src/app/trades/new/option-ticket-state.test.tsx) |
 | [F15](features/product-booking.md#f15-structured-securities) | [structured-product draft validation](../../apps/reference_api/structured_product_contracts.py#L258); [structured-product materialization](../../apps/reference_api/repository.py#L3484) | [Autocall creation form](../../apps/ops-console/src/app/instruments/autocalls/new/form.tsx); [product ticket](../../apps/ops-console/src/app/trades/new/product-ticket.tsx) | [test_structured_product_api.py](../../tests/test_structured_product_api.py), [test_structured_product_draft.py](../../tests/test_structured_product_draft.py), [product-ticket-model.test.ts](../../apps/ops-console/src/app/trades/new/product-ticket-model.test.ts) [Seeded-note readiness](../delivery/termsheet-note-booking-readiness-2026-10-14.md): six PDF parent notes have approved unit/PCT_OF_PAR dirty OTC conventions; 15 focused tests and app readiness verified. [Terms & Schedule](../delivery/instrument-terms-schedule-2026-10-14.md): read-only approved structured schedules, distinct note/share dates and swap performance-reference look-through are available; lifecycle processing remains separate. |
@@ -153,17 +415,37 @@ wholesale service decomposition.
 | [F20](features/trade-operations.md#f20-governed-trade-properties) | [create_property](../../apps/reference_api/trade_configuration.py#L38), [retire_property](../../apps/reference_api/trade_configuration.py#L54), [replace_property](../../apps/reference_api/trade_configuration.py#L64); [validate_trade_annotations](../../apps/reference_api/trade_properties.py#L117) | [Trade configuration console](../../apps/ops-console/src/app/tenant-profile/trade-configuration/trade-configuration-console.tsx); [booking properties](../../apps/ops-console/src/app/trades/new/property-fields.tsx) | [test_trade_configuration.py](../../tests/test_trade_configuration.py), [test_trade_properties.py](../../tests/test_trade_properties.py), [trade-configuration-console.test.tsx](../../apps/ops-console/src/app/tenant-profile/trade-configuration/trade-configuration-console.test.tsx), [property-fields.test.tsx](../../apps/ops-console/src/app/trades/new/property-fields.test.tsx) |
 | [F21](features/trade-operations.md#f21-history-and-detail) | [list_booked_trades](../../apps/reference_api/repository.py#L4667), [get_booked_trade_detail](../../apps/reference_api/repository.py#L4824); [trade API](../../apps/reference_api/main.py#L1053) | [Trade history](../../apps/ops-console/src/app/trades/page.tsx); [trade detail](../../apps/ops-console/src/app/trades/%5BtradeId%5D/page.tsx) | [test_trade_history_api.py](../../tests/test_trade_history_api.py), [test_trade_history.py](../../tests/test_trade_history.py), [trade-history-page.test.tsx](../../apps/ops-console/src/app/trades/trade-history-page.test.tsx) |
 | [F22](features/trade-operations.md#f22-record-corrections) | [prepare_correction](../../apps/reference_api/trade_corrections.py#L65), [complete_correction](../../apps/reference_api/trade_corrections.py#L83), [cancel_booking](../../apps/reference_api/trade_corrections.py#L98); [lifecycle reconstruction](../../positions/reconstruction.py#L38) | [Correction controls](../../apps/ops-console/src/app/trades/record-correction-controls.tsx); [correction ticket](../../apps/ops-console/src/app/trades/new/page.tsx) | [test_trade_corrections.py](../../tests/test_trade_corrections.py), [test_cancelled_legacy_positions.py](../../tests/test_cancelled_legacy_positions.py), [record-correction-controls.test.tsx](../../apps/ops-console/src/app/trades/record-correction-controls.test.tsx) |
-| [F23](features/trade-operations.md#f23-historical-and-recognition-dates) | [frozen_recognition](../../apps/reference_api/valuation_recognition.py#L23); [iter_ledger_facts](../../positions/repository.py#L14) | [Recognition-date fields](../../apps/ops-console/src/app/trades/new/valuation-recognition-fields.tsx); [trade ticket](../../apps/ops-console/src/app/trades/new/trade-ticket.tsx) | [test_position_recognition.py](../../tests/test_position_recognition.py), [test_historical_booking.py](../../tests/test_historical_booking.py); no dedicated recognition-field component test located. |
+| [F23](features/trade-operations.md#f23-historical-and-recognition-dates) | [frozen_recognition](../../trading/recognition.py); [iter_ledger_facts](../../positions/repository.py#L14) | [Recognition-date fields](../../apps/ops-console/src/app/trades/new/valuation-recognition-fields.tsx); [trade ticket](../../apps/ops-console/src/app/trades/new/trade-ticket.tsx) | [test_position_recognition.py](../../tests/test_position_recognition.py), [test_historical_booking.py](../../tests/test_historical_booking.py), [native booking](../../tests/test_trading_cash_booking.py); no dedicated recognition-field component test located. |
 | [F24](features/trade-operations.md#f24-contractual-lifecycle) | Plain bonds: [redemption service](../../lifecycle/bond_service.py), [API](../../apps/reference_api/bond_redemption_routes.py), [ledger adapter](../../positions/repository.py), [applied rules](../../valuation/decisions.py). Separate parked [FX prototype](../../apps/reference_api/fx_delivery.py). | [Bond maturity workspace](../../apps/ops-console/src/components/bond-redemption-console.tsx); no general lifecycle notification dashboard. | [Service](../../tests/test_bond_redemption_service.py), [API](../../tests/test_bond_redemption_api.py), [financial calculation/staging](../../tests/test_bond_redemption_valuation.py). Other product lifecycles not covered. |
 
-## Market data
+## Booking and valuation follow-ups
+
+F18/F37 rate-exchange swaps: [strict terms/frozen leg checks](../../security_master_schema/rate_swap_terms.py),
+[native reference/completion helper](../../trading/rate_swaps.py),
+[HTTP creation adapter](../../apps/reference_api/swap_creation.py),
+[booking context](../../apps/reference_api/generic_swap_booking.py),
+[whole-mark proof](../../security_master_schema/swap_valuation.py),
+[native price/staging regressions](../../tests/test_rate_swap_booking.py),
+[creation form](../../apps/ops-console/src/components/rate-swap-creation-form.tsx)
+and [UI checks](../../apps/ops-console/src/components/rate-swap-creation-form.test.tsx).
+See [scope, assumptions and delivery](../delivery/rate-exchange-swaps-20261030.md).
+
+F12/F37 fund-unit movements: [native command](../../trading/position_movements.py),
+[shared typed proof](../../security_master_schema/quantity_movements.py),
+[daily bridge](../../valuation/position_calculation.py),
+[financial regressions](../../tests/test_fund_unit_movements.py),
+[authority/NAV/staging/cancellation](../../tests/test_fund_unit_movements_integration.py)
+and [UI cancellation eligibility](../../apps/ops-console/src/lib/trade-correction-model.test.ts).
+No new movement endpoint, ticket or template; unassessed reinvestment income
+remains partial coverage. See [delivery](../delivery/fund-unit-movements-20261030.md).
 
 F13/F37 rate-based FX-forward P&L: [frozen ledger adapter](../../positions/fx_forward.py),
 [contract-rate selection](../../valuation/forward_inputs.py), [rate-difference/FX bridge](../../valuation/position_calculation.py),
 [orchestration](../../valuation/service.py), [readable rules](../../valuation/decisions.py),
 [pure financial tests](../../tests/test_fx_forward_pnl.py), [real booking/staging/amendment/publication acceptance](../../tests/test_fx_forward_valuation.py)
 and [scope/value-basis documentation](../delivery/fx-forward-rate-pnl-20261014.md).
-Other derivatives and discounted forward model MTM remain unsupported.
+Discounted forward model MTM remains unsupported; other products have their own
+coverage and limits in the valuation section below.
 
 F24/F51 deliverable FX maturity follow-up: [product service and scoped ledger](../../lifecycle/fx_service.py),
 [rate economics](../../lifecycle/fx_maturity.py), [shared product-parameterized routes](../../apps/reference_api/bond_redemption_routes.py),
@@ -173,7 +455,10 @@ Evidence: [service/market-selection tests](../../tests/test_fx_maturity_service.
 [mock booking/API/scope journey](../../tests/test_fx_maturity_api.py) and
 [delivery limits](../delivery/fx-forward-maturity-20261014.md).
 This supersedes the bond-only F24/F51 implementation boundaries in earlier delivery
-records, but does not enable general FX-forward valuation or currency delivery.
+records. Maturity posting does not itself implement general FX-forward valuation
+or currency delivery.
+
+## Market data
 
 F33 reference-calendar addition: [reviewed import](../../market_data/reference_calendar_import.py),
 [local operator](../../scripts/import_reference_calendar.py),
@@ -191,7 +476,7 @@ F33 reference-calendar addition: [reviewed import](../../market_data/reference_c
 | [F29](features/market-data.md#f29-yahoo-historical-data) | [Yahoo fetch/parse](../../market_data/providers/yahoo/adapter.py#L30); [FX parser](../../market_data/providers/yahoo/fx_adapter.py#L21); [personal onboarding](../../market_data/providers/yahoo/onboarding.py#L23) | [Market-data explorer](../../apps/ops-console/src/app/market-data/explorer/page.tsx); no dedicated explorer chart test located. | [test_yahoo_market_data.py](../../tests/test_yahoo_market_data.py), [test_yahoo_fx.py](../../tests/test_yahoo_fx.py), [test_yahoo_market_data_onboarding.py](../../tests/test_yahoo_market_data_onboarding.py) |
 | [F30](features/market-data.md#f30-price-basis-and-raw-reconstruction) | [normalize_dataset](../../market_data/providers/yahoo/raw_prices.py#L162); [normalise_as_traded](../../market_data/price_basis.py#L33) | [Explorer](../../apps/ops-console/src/app/market-data/explorer/page.tsx); basis/date interaction has no dedicated page test located. | [test_yahoo_raw_prices.py](../../tests/test_yahoo_raw_prices.py), [test_price_basis.py](../../tests/test_price_basis.py), [test_yahoo_adjustment_evidence.py](../../tests/test_yahoo_adjustment_evidence.py) |
 | [F31](features/market-data.md#f31-corporate-actions) | [Yahoo event import](../../market_data/providers/yahoo/corporate_actions.py#L15); [reviewed ratio source/decision loading](../../market_data/split_replay.py), [position replay](../../positions/splits.py), [unrepresented-action/stale-mark guards](../../valuation/corporate_actions.py) | [Quantity adjustment inspector](../../apps/ops-console/src/features/valuation/result-workspace.tsx); decisions use an [operator command](../../scripts/review_share_ratio.py), not a general review UI. | [test_yahoo_corporate_actions.py](../../tests/test_yahoo_corporate_actions.py), [test_valuation_corporate_actions.py](../../tests/test_valuation_corporate_actions.py), [ratio arithmetic](../../tests/test_position_split_replay.py), [review/immutability/cutoffs/successors/storage](../../tests/test_split_replay_evidence.py) |
-| [F32](features/market-data.md#f32-pricing-policies) | [select_composite](../../market_data/policy_selection.py#L93); [policy compatibility](../../market_data/policy_compatibility.py#L68) | [Pricing policies](../../apps/ops-console/src/app/market-data/policies/page.tsx) | [test_flexible_pricing_policies.py](../../tests/test_flexible_pricing_policies.py), [test_composite_policy_resolution.py](../../tests/test_composite_policy_resolution.py), [test_pricing_policy_compatibility.py](../../tests/test_pricing_policy_compatibility.py); no dedicated page test located. |
+| [F32](features/market-data.md#f32-pricing-policies) | [Shared commands](../../market_data/pricing_policies.py), [command contracts](../../market_data/pricing_policy_contracts.py); [select_composite](../../market_data/policy_selection.py#L93); [policy compatibility](../../market_data/policy_compatibility.py#L68) | [Pricing policies](../../apps/ops-console/src/app/market-data/policies/page.tsx) | [Shared-command/API/authority parity](../../tests/test_pricing_policy_commands.py), [fixed schema/evidence vectors](../../tests/test_extraction_characterization.py), [test_flexible_pricing_policies.py](../../tests/test_flexible_pricing_policies.py), [test_composite_policy_resolution.py](../../tests/test_composite_policy_resolution.py), [test_pricing_policy_compatibility.py](../../tests/test_pricing_policy_compatibility.py); no dedicated page test located. |
 | [F33](features/market-data.md#f33-calendars) | [publish_calendar/assign_calendar](../../apps/reference_api/calendar_service.py#L55); [calendar composition](../../market_data/calendar_composition.py#L9) | [Calendar page](../../apps/ops-console/src/app/market-data/calendars/page.tsx) | [test_tenant_calendars.py](../../tests/test_tenant_calendars.py), [test_calendar_composition.py](../../tests/test_calendar_composition.py); no dedicated calendar-page test located. |
 | [F34](features/market-data.md#f34-inspection-and-validation) | [market_data_catalogue](../../apps/reference_api/market_data_workspace.py#L36); [audit_dataset](../../market_data/coverage.py#L41); [market-data resolver](../../security_master_schema/market_data_resolver.py) | [Workspace](../../apps/ops-console/src/app/market-data/page.tsx); [coverage](../../apps/ops-console/src/app/market-data/coverage/page.tsx); [explorer](../../apps/ops-console/src/app/market-data/explorer/page.tsx) | [test_market_data_workspace.py](../../tests/test_market_data_workspace.py), [test_market_data_coverage.py](../../tests/test_market_data_coverage.py), [market-data page test](../../apps/ops-console/src/app/market-data/page.test.tsx); no explorer chart/date-refresh test located. |
 | [F35](features/market-data.md#f35-tenant-time-series-upload) | Generic provider ingestion exists in [ingest_delivery](../../market_data/ingestion.py#L33); tenant self-service upload endpoint/workflow: none. | No tenant upload page or API route. | No tenant-upload workflow test located; generic ingestion tests do not verify tenant intake. |
@@ -273,6 +558,16 @@ October 14 F39 reporting: [SQL filter/count relation](../../valuation/history.py
 [report interaction tests](../../apps/ops-console/src/features/valuation/run-report.test.tsx),
 [delivery/activation/limits](../delivery/valuation-results-history-report-20261014.md).
 
+24 October F39 Ops review: [read-only metadata/component projections](../../apps/reference_api/valuation_presentation.py),
+[full-result filters/order](../../apps/ops-console/src/features/valuation/ops-review-model.ts),
+[summary](../../apps/ops-console/src/features/valuation/review-summary.tsx),
+[technical IDs](../../apps/ops-console/src/features/valuation/technical-reference.tsx),
+[frozen quantities](../../apps/ops-console/src/features/valuation/position-facts.tsx),
+[isolated projection tests](../../tests/test_valuation_presentation_api.py),
+[browser journey](../../apps/ops-console/browser-tests/pnl-ops.spec.ts),
+[delivery and limits](../delivery/pnl-ops-review-20261024.md). This changes review
+presentation, not financial formulas, frozen evidence or publication authority.
+
 | ID | Backend implementation | Frontend route/component | Focused test evidence |
 | --- | --- | --- | --- |
 | [F36](features/valuation-and-pnl.md#f36-position-reconstruction) | [iter_ledger_facts](../../positions/repository.py#L14); [reconstruct](../../positions/reconstruction.py#L68); [ratio replay](../../positions/splits.py), [reviewed source/decision loading](../../market_data/split_replay.py) | [Valuation page and position view](../../apps/ops-console/src/app/valuation/page.tsx); [quantity adjustment inspector](../../apps/ops-console/src/features/valuation/result-workspace.tsx) | [test_position_repository.py](../../tests/test_position_repository.py), [test_position_reconstruction.py](../../tests/test_position_reconstruction.py), [test_position_projection_scaling.py](../../tests/test_position_projection_scaling.py), [split arithmetic](../../tests/test_position_split_replay.py), [review/storage/scope safety](../../tests/test_split_replay_evidence.py) |
@@ -298,6 +593,13 @@ October 14 F39 reporting: [SQL filter/count relation](../../valuation/history.py
 
 ## Additional capabilities and phased deliveries
 
+26 October F49 [HTML/console integrity](../delivery/quality-reviews/2026-10-26-frontend-console-integrity.md):
+[shared diagnostic guard](../../apps/ops-console/browser-tests/console-check.ts),
+[native pattern regressions](../../apps/ops-console/browser-tests/console-integrity.spec.ts)
+and supplied-interest evidence in [P&L acceptance](../../apps/ops-console/browser-tests/pnl-ops.spec.ts)
+cover the reproduced markup and input-validation defects. No financial or
+authorization semantics changed; wider live/assistive acceptance remains open.
+
 F58's wider [design](../superpowers/specs/2026-10-16-tenant-organisations-design.md) remains phased.
 The [17 October trading-only delivery](../delivery/tenant-organisations-20261017.md) implements the register and counterparty/broker controls; directory/non-trading workflows remain pending.
 
@@ -307,11 +609,56 @@ The [17 October trading-only delivery](../delivery/tenant-organisations-20261017
 | [F57](features/valuation-and-pnl.md#f57-valuation-purpose-and-descriptive-tags) | Existing scope/status and strategy/date publication boundary only; controlled purpose lanes and descriptive tags not implemented. | No run-purpose selector or tag catalogue implemented. | No purpose-lane/tag workflow tests; user deferred specification and implementation on 2026-10-14. |
 | [F51](features/trade-operations.md#f51-tenant-lifecycle-handling-modes) | [Authority](../../security_master_schema/lifecycle_authority.py), [retained records](../../security_master_schema/lifecycle_tables.py), [plain-bond mode/posting service](../../lifecycle/bond_service.py), [migration 90](../../alembic/versions/20261014_90_bond_redemption.py). | [Group editor](../../apps/ops-console/src/components/tenant-access-console.tsx), [plain-bond workspace](../../apps/ops-console/src/components/bond-redemption-console.tsx), [allowlisted BFF](../../apps/ops-console/src/app/api/lifecycle/[...segments]/route.ts). | [Authority](../../tests/test_lifecycle_authority.py), [service](../../tests/test_bond_redemption_service.py), [UI initial state](../../apps/ops-console/src/components/bond-redemption-console.test.tsx), [BFF](../../apps/ops-console/src/app/api/lifecycle/[...segments]/route.test.ts). Plain-bond increment only; no operating financial browser posting. |
 | [F52](features/future-modules.md#f52-strategy-and-pre-trade-ucits-assessment) | No reviewed strategy-level UCITS or hypothetical proposed-trade assessment engine implemented. | No as-of strategy UCITS assessment or proposed-trade-list assessment workflow implemented. | No dedicated assessment workflow tests; specification and implementation are intentionally postponed. |
-| [F53](features/future-modules.md#f53-regulatory-reporting-across-jurisdictions) | No reviewed UK/FCA, EU or Swiss regulatory reporting production/submission workflow implemented. | No regulatory reporting administration, review or submission-status workspace implemented. | No dedicated regulatory reporting workflow tests; regimes, specification and implementation are intentionally postponed. |
+| [F53](features/regulatory-reporting.md) | [contracts/checks](../../regulatory_reporting/assessment.py), [scoped service](../../regulatory_reporting/service.py), [execution facts](../../regulatory_reporting/source.py), [retained tables](../../regulatory_reporting/tables.py), [audited API](../../apps/reference_api/regulatory_routes.py), migration 104. Preparation only; no official serializer/transport. | [workspace](../../apps/ops-console/src/features/regulatory-reporting/workspace.tsx), [server gate](../../apps/ops-console/src/app/regulatory-reporting/page.tsx), [BFF](../../apps/ops-console/src/app/api/regulatory-reporting/[[...segments]]/route.ts); readable review, entities and export history. | [pure controls](../../tests/test_regulatory_assessment.py), [disposable API](../../tests/test_regulatory_reporting_api.py), [BFF controls](../../apps/ops-console/src/app/api/regulatory-reporting/[[...segments]]/route.test.ts), [browser](../../apps/ops-console/browser-tests/regulatory-reporting.spec.ts). No live regulatory acceptance. |
 | [F54](features/future-modules.md#f54-ai-assisted-termsheet-parsing-and-instrument-creation) | No integrated ingestion delivered. Existing `validate_autocall_draft`, `submit_structured_product_proposal`, `decide_structured_product_proposal` and `find_proposal_replay` are reviewed foundations; [design](../superpowers/specs/2026-10-13-structured-product-termsheet-ingestion.md) approved and [execution plan](../superpowers/plans/2026-10-13-structured-product-termsheet-ingestion.md) proposed for review. | Existing `autocalls/new/form.tsx`, `schedule.ts`, `draft.ts` and `payload.ts` implement manual creation; assisted full-instrument hydration and unattended submission not implemented. | 26 focused draft/API-boundary tests passed 2026-10-13, plus offline contract probes; no integrated ingestion or real-termsheet acceptance tests yet. Foundation prioritized 2026-10-13. [All-four reviewed load](../delivery/all-reviewed-autocalls-loaded-2026-10-14.md): all four note/share bundles plus two Phoenix notes ACTIVE in app DB; 40 focused tests and replay/lookup verified. Explicit operator seed, not integrated AI ingestion. |
 | [F55](features/future-modules.md#f55-ai-assisted-portfolio-and-investment-idea-recommendations) | No reviewed AI recommendation workflow using portfolio/guideline context or textual investment ideas implemented. | No portfolio-guideline recommendation or text-to-idea recommendation workspace implemented. | No dedicated AI recommendation workflow tests; specification and implementation are intentionally postponed. |
 | [F56](features/future-modules.md#f56-option-and-structured-product-greeks-with-cross-asset-look-through-risk) | No reviewed option/structured-product Greeks engine or cross-asset sensitivity/look-through aggregation workflow implemented. | No Greeks, cross-asset risk or underlying look-through analytics workspace implemented. | No dedicated end-to-end Greeks/risk workflow tests; models, specification and implementation are intentionally postponed. |
 
 ## Maintenance rule
 
+24 October F39 [source coverage](../delivery/pnl-source-coverage-20261024.md):
+[response-only grouping](../../apps/reference_api/valuation_source_coverage.py),
+[table](../../apps/ops-console/src/features/valuation/source-coverage.tsx),
+[exact/coverage tests](../../tests/test_valuation_presentation.py) and
+[synthetic Ops journey](../../apps/ops-console/browser-tests/pnl-ops.spec.ts).
+That presentation-only delivery excluded cash FX. The later F39/F40
+[cash-FX extension](../delivery/cash-fx-pnl-20261025.md) supersedes that boundary:
+[formula](../../valuation/cash_fx.py), [scoped inputs](../../valuation/cash_fx_inputs.py),
+[typed storage](../../valuation/cash_fx_storage.py), [source health](../../valuation/cash_fx_health.py),
+[migration 99](../../alembic/versions/20261024_99_cash_fx_pnl.py),
+[account report](../../apps/ops-console/src/features/valuation/cash-fx-report.tsx),
+[storage checks](../../tests/test_cash_fx_storage.py),
+[revision/publication checks](../../tests/test_cash_fx_governance.py) and
+[browser acceptance](../../apps/ops-console/browser-tests/pnl-ops.spec.ts).
+Daily cash FX is always assessed and staged/published separately from investment MARKET;
+there is no opt-out flag. Missing entries remain visible and do not themselves
+block publication; obsolete cashless retry identities cannot replay as current.
+Coverage/hash/reassessment use only opening-through-closing snapshots; old history,
+unused accounts and days with neither snapshot do not create expected balances.
+Focused storage/governance regressions above pin disappearance and genuine
+one-sided gaps. Full cash-stock/fund NAV and intraday movement attribution remain unavailable.
+Display follow-up: [rounding boundary tests](../../apps/ops-console/src/features/valuation/presentation.test.ts)
+and [unknown/absence rendering tests](../../apps/ops-console/src/features/valuation/source-coverage.test.tsx).
+
 When implementation changes, update the affected capability record and this map in the same change. Keep implementation symbols, route/components and focused tests together. If no workflow, page or test exists, say so; do not use a schema, generic helper or unrelated test as evidence that the desired product workflow is delivered. Add and run tests according to the task's verification scope, then record actual execution separately from this static map.
+
+26 October F39: [position inspector](../../apps/ops-console/src/features/valuation/result-workspace.tsx)
+supports close/reopen with full-width table and keyboard focus restoration;
+[responsive rules](../../apps/ops-console/src/app/valuation-workspace.css),
+[component regression](../../apps/ops-console/src/features/valuation/result-workspace.test.tsx)
+and [three-viewport synthetic journey](../../apps/ops-console/browser-tests/pnl-ops.spec.ts)
+cover the boundary. No financial calculation, authority or publication change.
+
+26 October F39 [report tabs](../delivery/valuation-report-tabs-20261026.md):
+[controlled tabs/panels](../../apps/ops-console/src/features/valuation/report-tabs.tsx),
+[URL boundary](../../apps/ops-console/src/features/valuation/report-navigation.ts),
+[selected log](../../apps/ops-console/src/features/valuation/run-evidence.tsx) and
+[console integration](../../apps/ops-console/src/components/valuation-console.tsx).
+[Navigation tests](../../apps/ops-console/src/features/valuation/report-navigation.test.ts),
+[console transition/race checks](../../apps/ops-console/src/components/valuation-tabs.test.tsx)
+and the synthetic browser journeys above cover task separation, retained state,
+failed/no-result and denied disclosure. No new data/financial endpoints.
+The [result workspace](../../apps/ops-console/src/features/valuation/result-workspace.tsx)
+also offers 25/50/100/All position pagination after full-result filtering; its
+component/browser regressions cover default size, boundaries, filters, retained
+inspection and bounded fallback name lookups.

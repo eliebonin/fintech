@@ -59,7 +59,11 @@ def valuation_router(connection_dependency,membership,engine_factory,configure_t
                 if actor:
                     from valuation.self_publication import publication_authority
                     batch['publicationAuthority']=publication_authority(c,tenant,batch,actor,real_operator_id)
-        return canonical_payload(dict(attempt=dict(row),events=[dict(event) for event in events],batch=batch))
+                from .valuation_presentation import decorate_batch
+                batch=decorate_batch(c,tenant,batch)
+        from .valuation_presentation import decorate_runs
+        attempt=decorate_runs(c,tenant,[dict(row)])[0]
+        return canonical_payload(dict(attempt=attempt,events=[dict(event) for event in events],batch=batch))
 
     @router.get('/options',response_model=ValuationOptions)
     def options(context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
@@ -105,6 +109,7 @@ def valuation_router(connection_dependency,membership,engine_factory,configure_t
         for row in rows:
             if row['batch_id']:
                 row['source_health_status']=health.get(row['batch_id'],'UNKNOWN_LEGACY')
+                row['required_inputs_complete']=(batches.get(row['batch_id'],{}).get('summary') or {}).get('requiredInputsComplete',True)
         # Headline financial amounts require the same current DISPLAY evidence as
         # the detail endpoint. History metadata alone never releases those values.
         if results_only:
@@ -115,8 +120,14 @@ def valuation_router(connection_dependency,membership,engine_factory,configure_t
                     continue
                 try:assert_batch_display(c,context.tenant_id,batch)
                 except PermissionError:row['evidence_access']='DENIED'
-                else:row['financial_summary']={key:batch['summary'][key] for key in ('netPnl','grossPnl','marketPnl','reportingCurrencyId') if key in batch['summary']}
+                else:
+                    summary=batch['summary']
+                    row['financial_summary']={key:summary[key] for key in ('netPnl','grossPnl','marketPnl','reportingCurrencyId','totalsBasis') if key in summary}
+                    if summary.get('hasCalculatedContributions') is False:
+                        row['financial_summary'].update(netPnl=None,grossPnl=None,marketPnl=None)
         total=c.scalar(count)
+        from .valuation_presentation import decorate_runs
+        decorate_runs(c,context.tenant_id,rows)
         return dict(items=canonical_payload([dict(row) for row in rows]),scope='SUPPORTED_ECONOMIC_ALPHA',total=total,canManage=manage,actorId=actor)
 
     @router.get('/attempts/{attempt_id}',response_model=ValuationAttemptDetail)
@@ -152,7 +163,8 @@ def valuation_router(connection_dependency,membership,engine_factory,configure_t
             result=storage.batch_view(c,context.tenant_id,batch_id)
             from valuation.self_publication import publication_authority
             result['publicationAuthority']=publication_authority(c,context.tenant_id,result,actor,real_operator_id)
-            return canonical_payload(result)
+            from .valuation_presentation import decorate_batch
+            return canonical_payload(decorate_batch(c,context.tenant_id,result))
         except PermissionError as exc: raise ApiProblem(403,'valuation.evidence_forbidden','Evidence access denied',str(exc)) from exc
         except LookupError as exc: raise ApiProblem(404,'resource.not_found','Not found','Review batch not found.') from exc
         except ValueError as exc: raise ApiProblem(409,'valuation.review_conflict','Review cannot proceed',str(exc)) from exc
@@ -170,4 +182,6 @@ def valuation_router(connection_dependency,membership,engine_factory,configure_t
         return review(c,context,batch_id,payload,True,getattr(http_request.state,'real_actor_id',context.user_account_id),True)
     from .valuation_reassessment_routes import register_reassessment_routes
     register_reassessment_routes(router,authorize,connection_dependency,engine_factory,configure_transaction)
+    from .mark_override_routes import mark_override_router
+    router.include_router(mark_override_router(connection_dependency,authorize))
     return router

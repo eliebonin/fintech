@@ -14,8 +14,15 @@ def booking_key(booking: Booking, tenant_id, strategy_id) -> PositionKey:
     if booking.quantity_unit not in POSITION_UNITS.get(booking.product_basis,()):
         raise PositionError('Unsupported booking economics; frozen compatible product units required')
     if finite(booking.quantity,'quantity') == 0: raise PositionError('Booked quantity must be nonzero')
+    from security_master_schema.quantity_movements import movement_proof
+    movement=movement_proof(booking.product_evidence,product=booking.product_basis,price=booking.price,quantity=booking.quantity)
     for field in ('price','unit_multiplier','quote_factor'):
-        finite(getattr(booking,field),field,positive=not(field=='price' and booking.product_basis in ('SWAP','OPTION')))
+        finite(getattr(booking,field),field,positive=not(field=='price' and (movement or booking.product_basis in ('SWAP','OPTION','FUTURE','STRUCTURED_PRODUCT'))))
+    if booking.product_basis=='STRUCTURED_PRODUCT' and booking.price<0:raise PositionError('Funded note price must be non-negative')
+    if booking.product_basis=='FUTURE':
+        if booking.quantity!=booking.quantity.to_integral_value():raise PositionError('Futures bookings require whole contracts')
+        if booking.price<0 and (booking.product_evidence or {}).get('allowNegativePrice') is not True:
+            raise PositionError('Negative futures price requires frozen explicit permission')
     if booking.product_basis=='OPTION' and (booking.price<0 or booking.quantity!=booking.quantity.to_integral_value()):
         raise PositionError('Option bookings require whole contracts and a non-negative premium')
     if booking.product_basis=='SWAP' and booking.unit_multiplier!=1:

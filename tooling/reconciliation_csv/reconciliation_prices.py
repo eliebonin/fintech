@@ -19,7 +19,7 @@ from market_data.history import require_admin
 from market_data.rights import load_rights
 
 
-def normalize_prices(rows,instruments,*,amc_ids=()):
+def normalize_prices(rows,instruments,*,amc_ids=(),forward_orientations=None):
     points=[];seen=set();amcs=set(amc_ids)
     for row in rows:
         identifier=source_id(row['instrument_id']);day=date.fromisoformat(row['date'])
@@ -32,7 +32,7 @@ def normalize_prices(rows,instruments,*,amc_ids=()):
         elif identifier in amcs:
             if quote!='unit':raise ValueError('Confirmed unit AMC quote required')
             dimensions.update(AMC_PRICE_BASIS='UNIT_PRICE',QUOTE_FACTOR='1',QUANTITY_UNIT='UNITS')
-        elif kind=='DIVER OTC':
+        elif kind in ('DIVER OTC','EQUITY OTC','ASWAP'):
             if quote not in ('unit','unitlev','notional'):raise ValueError('Unsupported swap quote basis')
             nominal=quote=='notional';series_type='MARK'
             dimensions.update(SWAP_PRICE_BASIS='WHOLE_SWAP_MTM_PER_NOTIONAL' if nominal else 'WHOLE_SWAP_MTM_PER_UNIT',
@@ -41,16 +41,24 @@ def normalize_prices(rows,instruments,*,amc_ids=()):
             if identifier!='20265' or quote!='unit':raise ValueError('Confirmed standard option quote required')
             dimensions.update(OPTION_PRICE_BASIS='PREMIUM_POINTS',PREMIUM_MULTIPLIER='100',QUOTE_FACTOR='1',QUANTITY_UNIT='CONTRACTS')
         elif kind=='FXFWD':
-            if identifier not in ('20764','21105'):raise ValueError('Confirmed forward orientation required')
+            orientation=(forward_orientations or {}).get(identifier)
+            if orientation is None:
+                if identifier not in ('20764','21105'):raise ValueError('Confirmed forward orientation required')
+                orientation=('USD','GBP')
+            base,quote=orientation
+            if item['currency']!=quote:raise ValueError('Forward source quote currency differs from orientation')
             series_type='FORWARD_RATE';value_type='RATE';measure='FX_RATE'
-            dimensions.update(BASE_CURRENCY='USD',QUOTE_CURRENCY='GBP',QUOTE_CONVENTION='GBP_PER_USD',FORWARD_RATE_KIND='CONTRACT_OUTRIGHT_RATE')
+            dimensions.update(BASE_CURRENCY=base,QUOTE_CURRENCY=quote,QUOTE_CONVENTION=quote+'_PER_'+base,FORWARD_RATE_KIND='CONTRACT_OUTRIGHT_RATE')
+        elif kind=='FUND':
+            if quote!='unit':raise ValueError('Unit fund share-class quote required')
+            series_type='NAV';dimensions.update(FUND_PRICE_BASIS='UNIT_PRICE',QUOTE_FACTOR='1',QUANTITY_UNIT='UNITS')
         elif kind=='INDEX':
             if identifier in ('1396','1048'):
                 series_type='RATE';value_type='RATE';measure='RATE';dimensions['RATE_UNIT']='PERCENT_ANNUAL'
             else:series_type='INDEX_LEVEL';value_type='INDEX_LEVEL';measure='INDEX_LEVEL'
         else:raise ValueError('Unsupported source price product: '+kind)
         normalized=native_decimal(row['price'],scale=scale)
-        if Decimal(normalized['value'])<0 and kind not in ('DIVER OTC','INDEX'):raise ValueError('Unexpected negative non-swap price')
+        if Decimal(normalized['value'])<0 and kind not in ('DIVER OTC','EQUITY OTC','ASWAP','INDEX'):raise ValueError('Unexpected negative non-swap price')
         points.append(dict(sourceId=identifier,day=day,currency=item['currency'],seriesType=series_type,valueType=value_type,
             measure=measure,dimensions=dimensions,normalization=normalized,originalRow=dict(row)))
     if not points:raise ValueError('No source price observations')
@@ -60,7 +68,7 @@ def normalize_prices(rows,instruments,*,amc_ids=()):
 def _mappings(c,bundle,tenant,foundation,points):
     events=c.execute(select(m.access_audit_event.c.action,m.access_audit_event.c.details).where(m.access_audit_event.c.tenant_id==tenant,
         m.access_audit_event.c.action.in_(['RECONCILIATION_PRODUCTS_SEEDED','RECONCILIATION_ADDITIONAL_INSTRUMENTS_SEEDED',
-            'RECONCILIATION_BOND_BOOKING_PREPARED','RECONCILIATION_FORWARD_BOOKED','RECONCILIATION_OPTION_BOOKED']),
+            'RECONCILIATION_BOND_BOOKING_PREPARED','RECONCILIATION_FORWARD_BOOKED','RECONCILIATION_OPTION_BOOKED','RECONCILIATION_REFERENCE_MAP']),
         m.access_audit_event.c.details['sourceId'].as_string()==str(foundation['sourceId']),
         m.access_audit_event.c.details['bundleHash'].as_string()==bundle.digest,
         m.access_audit_event.c.details['strategyId'].as_string()==str(foundation['strategyId']))).mappings().all()
@@ -71,7 +79,9 @@ def _mappings(c,bundle,tenant,foundation,points):
         nodes[key]=value
     for event in events:
         data=event['details'];action=event['action']
-        if action=='RECONCILIATION_PRODUCTS_SEEDED':
+        if action=='RECONCILIATION_REFERENCE_MAP':
+            for identifier,node in data['nodes'].items():add(identifier,node)
+        elif action=='RECONCILIATION_PRODUCTS_SEEDED':
             for key in ('references','swaps'):
                 for identifier,node in data[key].items():add(identifier,node)
         elif action=='RECONCILIATION_ADDITIONAL_INSTRUMENTS_SEEDED':
@@ -96,8 +106,9 @@ def _mappings(c,bundle,tenant,foundation,points):
         node=selected[p['sourceId']]
         if p['seriesType']=='FORWARD_RATE':
             f=forwards.get(node)
-            if not f or f.base_currency_id!=currencies['USD'] or f.quote_currency_id!=currencies['GBP'] or p['currency']!='GBP':
-                raise ValueError('Forward rate must retain approved GBP-per-USD orientation')
+            dims=p['dimensions']
+            if not f or f.base_currency_id!=currencies[dims['BASE_CURRENCY']] or f.quote_currency_id!=currencies[dims['QUOTE_CURRENCY']] or p['currency']!=dims['QUOTE_CURRENCY']:
+                raise ValueError('Forward rate must retain its approved orientation')
         if node in native:
             target=native[node]
             if p['seriesType']!='FORWARD_RATE' and target.currency_code!=p['currency']:raise ValueError('Source/native quote currency differs')
@@ -106,7 +117,7 @@ def _mappings(c,bundle,tenant,foundation,points):
     return selected
 
 
-def import_prices(c,bundle,tenant,actor,foundation,operator):
+def import_prices(c,bundle,tenant,actor,foundation,operator,*,forward_orientations=None):
     from security_master_schema.reference_authority import require_reference_action
     from security_master_schema.strategy_access import require_strategy_action
     require_admin(c,tenant,actor);require_reference_action(c,tenant,actor,'REFERENCE_APPROVE')
@@ -118,7 +129,7 @@ def import_prices(c,bundle,tenant,actor,foundation,operator):
     if sha256(bundle.files['prices']).hexdigest()!=source['payload_sha256']:raise ValueError('Retained source price hash differs')
     c.execute(select(m.organisation).where(m.organisation.c.organisation_id==operator,m.organisation.c.status=='ACTIVE')).one()
     instruments={source_id(i['instrument_id']):i for i in bundle.tables['all_instruments']}
-    points=normalize_prices(bundle.tables['prices'],instruments,amc_ids=bundle.manifest['amcSourceIds'])
+    points=normalize_prices(bundle.tables['prices'],instruments,amc_ids=bundle.manifest['amcSourceIds'],forward_orientations=forward_orientations)
     nodes=_mappings(c,bundle,tenant,foundation,points)
     now=c.scalar(select(func.clock_timestamp()));today=governance_date()
     first,last=min(p['day'] for p in points),max(p['day'] for p in points)

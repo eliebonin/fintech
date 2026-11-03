@@ -10,6 +10,13 @@ from .booking_errors import RepositoryNotFound, InvalidWorkflowState, InvalidCat
 from .reference_authority import require_reference_action
 from .problem_details import current_api_version
 from .proposal_retries import find_proposal_replay, proposal_request_payload
+# Compatibility exports for callers pending their product-specific extraction.
+from trading.booking_store import (
+    CASH_BOOKING_ENDPOINT as _TRADE_BOOKING_ENDPOINT,
+    booking_fingerprint as _trade_booking_fingerprint,
+    booking_idempotency_lock_key as _trade_booking_idempotency_lock_key,
+    persist_trade_annotations,
+)
 
 from sqlalchemy import Connection, and_, cast, exists, func, insert, or_, select, String, true
 
@@ -188,6 +195,7 @@ def _decimal(value: Decimal | int | float | None) -> str:
 
 
 from security_master_schema.reference_visibility import joined_scope_clause as _visible_node_clause
+from security_master_schema.market_data_visibility import catalogue_subject_clause as _market_data_visible_node_clause
 
 
 def _base_instrument_select(tenant_id: UUID):
@@ -982,9 +990,11 @@ def search_instruments(connection: Connection, tenant_id: UUID, query: str, limi
             data.append(view)
     from .contracts import ApiMeta
 
+    from .instrument_display import load_instrument_displays
     return InstrumentSearchResponse(
         data=data,
         meta=ApiMeta(
+            instrumentDisplays=load_instrument_displays(connection,tenant_id,[item.instrument_id for item in data]),
             tenantContext=str(tenant_id),
             source="live-reference-api",
             apiVersion=api_version,
@@ -1161,6 +1171,7 @@ def search_reference_nodes(
     count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
     total = int(connection.execute(count_stmt).scalar_one())
     rows = connection.execute(stmt.order_by(rn.c.canonical_name, rn.c.reference_node_id).limit(limit).offset(offset)).mappings().all()
+    from .instrument_display import load_instrument_displays
     return ReferenceNodeSearchResponse(
         data=[
             ReferenceNodeOptionView(
@@ -1182,6 +1193,7 @@ def search_reference_nodes(
             for row in rows
         ],
         meta=ApiMeta(
+            instrumentDisplays=load_instrument_displays(connection,tenant_id,[row.reference_node_id for row in rows]),
             tenantContext=str(tenant_id),
             source="live-reference-api",
             apiVersion=api_version,
@@ -4423,43 +4435,13 @@ def _current_market_data_observation_clause(observation):
 def _market_data_display_entitlement_clause(dataset_id, tenant_id, series_id=None):
     from market_data.entitlements import tenant_series_entitlement_clause
     entitlement = m.tenant_dataset_entitlement.alias('display_entitlement')
-    # This subquery is nested inside the entitlement EXISTS. Explicit multi-level
-    # correlation keeps dataset_id tied to the outer observation/series, rather
-    # than adding that entire table to the profile lookup's FROM clause.
-    profiled = exists(select(1).select_from(m.dataset_access_profile).where(
-        m.dataset_access_profile.c.dataset_id == dataset_id)
-        .correlate_except(m.dataset_access_profile))
     return exists(select(1).select_from(entitlement).where(
         entitlement.c.dataset_id == dataset_id, entitlement.c.tenant_id == tenant_id,
         entitlement.c.status == 'ACTIVE', entitlement.c.valid_from <= governance_date(),
         or_(entitlement.c.valid_to.is_(None), entitlement.c.valid_to >= governance_date()),
-        or_(~profiled, entitlement.c.use_purpose == 'INTERNAL_REPORTING'),
-        tenant_series_entitlement_clause(dataset_id, series_id, tenant_id, None,
+        entitlement.c.use_purpose == 'INTERNAL_REPORTING',
+        tenant_series_entitlement_clause(dataset_id, series_id, tenant_id, 'INTERNAL_REPORTING',
             governance_date(), entitlement=entitlement)).correlate_except(entitlement))
-
-
-def _market_data_visible_node_clause(reference_node_id, tenant_id):
-    # Policy validation supplies literal UUIDs; catalogue reads supply columns.
-    # Preserve both contracts while building the same parameterized predicate.
-    if not hasattr(reference_node_id,'in_'):
-        from sqlalchemy import literal
-        reference_node_id=literal(reference_node_id,type_=m.financial_reference_node.c.reference_node_id.type)
-    def direct(node_id, suffix):
-        scope = m.reference_node_scope.alias('market_data_scope_' + suffix)
-        node = m.financial_reference_node.alias('market_data_node_' + suffix)
-        # An uncorrelated ACTIVE-ID set avoids a master-table rescan for every
-        # series. Tenant scopes and the separate listing-parent check below are
-        # unchanged. Equivalence is checked across subject/parent scope variants.
-        active=select(node.c.reference_node_id).where(node.c.status=='ACTIVE').cte().prefix_with('MATERIALIZED')
-        return and_(node_id.in_(select(active.c.reference_node_id)),
-            or_(~exists(select(1).select_from(scope).where(scope.c.reference_node_id == node_id)),
-                exists(select(1).select_from(scope).where(scope.c.reference_node_id == node_id,
-                    scope.c.status == 'ACTIVE', or_(scope.c.scope_type == 'SHARED_CANONICAL',
-                        and_(scope.c.scope_type == 'TENANT_PRIVATE', scope.c.owner_tenant_id == tenant_id))))))
-    listing = m.listing.alias('market_data_parent_listing')
-    return and_(direct(reference_node_id, 'subject'),
-        ~exists(select(1).select_from(listing).where(listing.c.listing_node_id == reference_node_id,
-            ~direct(listing.c.instrument_node_id, 'parent'))))
 
 
 def list_market_data_series(
@@ -4853,9 +4835,10 @@ def list_booked_trades(
     product_economics = load_product_economics(connection, [item.trade_id for item in result])
     for item in result:
         item.product_economics = product_economics.get(item.trade_id)
+    from .instrument_display import load_instrument_displays
     return TradeResponse(
         data=result,
-        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, limit=limit, offset=offset, total=total),
+        meta=ApiMeta(instrumentDisplays=load_instrument_displays(connection,tenant_id,[item.trade_subject_reference_node_id for item in result]),tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id, limit=limit, offset=offset, total=total),
     )
 
 
@@ -4980,47 +4963,8 @@ def get_booked_trade_detail(
                 for row in lifecycle_rows
             ],
         ),
-        meta=ApiMeta(tenantContext=str(tenant_id), source="live-reference-api", apiVersion=api_version, correlationId=correlation_id),
+        meta=listed.meta.model_copy(update={'limit':None,'offset':None,'total':None}),
     )
-
-
-_TRADE_BOOKING_ENDPOINT = "/v1/trades"
-
-
-def _trade_booking_fingerprint(payload: TradeBookingRequest, connection: Connection, tenant_id: UUID) -> str:
-    data = payload.model_dump(mode="json", by_alias=True)
-    # Omitted additive fields must not invalidate already-recorded retry keys.
-    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence', 'correction', 'valuationEffectiveDate', 'valuationOverrideReason'):
-        if data.get(field) is None: data.pop(field, None)
-    # Immutable definitions remain available after retirement, so replay can
-    # canonicalise values without reapplying today's booking eligibility.
-    from .trade_properties import normalize_property_value, TradeFieldError
-    identifiers = [item.definition_id for item in payload.properties]
-    definitions = {row["definition_id"]: row for row in connection.execute(
-        select(m.trade_property_definition).where(m.trade_property_definition.c.tenant_id == tenant_id)
-        .where(m.trade_property_definition.c.definition_id.in_(identifiers))
-    ).mappings()} if identifiers else {}
-    for item in data["properties"]:
-        definition = definitions.get(UUID(item["definitionId"]))
-        if definition is not None:
-            try:
-                item["value"] = normalize_property_value(item["value"], definition["value_type"], definition["choices"])
-            except ValueError as error:
-                raise TradeFieldError(f"properties.{item['definitionId']}", str(error)) from error
-    enriched = {"executingBrokerOrganisationId":None, "traderPersonId":None, "tradePurpose":"INVESTMENT", "marketActivity":None, "tagIds":[], "properties":[], "externalReferences":[]}
-    if all(data[key] == default for key, default in enriched.items()):
-        for key in enriched: data.pop(key)
-    else:
-        data["tagIds"] = sorted(data["tagIds"])
-        data["properties"] = sorted(data["properties"], key=lambda p:p["definitionId"])
-        data["externalReferences"] = sorted(data["externalReferences"], key=lambda r:(r["referenceType"], r["sourceSystemId"] or "", r["referenceValue"]))
-    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-
-def _trade_booking_idempotency_lock_key(tenant_id: UUID, idempotency_key: str) -> int:
-    from .booking_controls import booking_lock_key
-    return booking_lock_key(tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key)
 
 
 def book_listed_cash_trade(
@@ -5031,101 +4975,14 @@ def book_listed_cash_trade(
     idempotency_key: str,
     request_id: str,
 ) -> TradeDetailResponse:
-    """Create or replay one immutable listing-backed cash execution."""
-
-    from .booking_controls import authorize_booking
+    """Adapt the shared command to the existing API detail response atomically."""
+    from trading.booking import book_cash_trade
+    # Keep projection failure inside a savepoint too, even for direct callers.
     with connection.begin_nested():
-        authorize_booking(connection, tenant_id, actor_id,strategy_id=request.strategy_id)
-        return _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotency_key, request_id)
-
-
-def _book_listed_cash_trade(connection, tenant_id, actor_id, request, idempotency_key, request_id):
-    from .booking_controls import find_booking_replay, record_booking_replay
-    from .valuation_recognition import trade_values, frozen_recognition
-
-    fingerprint = _trade_booking_fingerprint(request, connection, tenant_id)
-    existing = find_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint)
-    if existing is not None:
-        replay = get_booked_trade_detail(connection, tenant_id, existing, current_api_version(), request_id)
-        if replay is None:
-            raise RepositoryNotFound("Booked trade does not exist")
-        return replay
-
-    from .booking_controls import validate_execution_date
-    validate_execution_date(request.trade_datetime)
-    from .trade_corrections import prepare_correction, complete_correction
-    prepare_correction(connection, tenant_id, request, 'CASH', actor=actor_id)
-    from .cash_booking_integrity import load_cash_booking_listing
-    listing_row = load_cash_booking_listing(connection, tenant_id, request.listing_id, request.trade_datetime.astimezone(timezone.utc).date())
-    from .booking_controls import lock_booking_strategy
-    strategy_id = lock_booking_strategy(connection, tenant_id, request.strategy_id)
-    from .trade_properties import validate_trade_annotations
-    annotation_values = validate_trade_annotations(connection, tenant_id, request)
-    trade_id = uuid4()
-    signed_quantity = request.quantity if request.side == "BUY" else -request.quantity
-    trade_datetime_utc = request.trade_datetime.astimezone(timezone.utc)
-    connection.execute(
-        insert(m.trade).values(
-            trade_id=trade_id,
-            trade_subject_reference_node_id=listing_row["listing_node_id"],
-            reference_instrument_node_id=listing_row["instrument_node_id"],
-            strategy_id=strategy_id,
-            trade_type="INVESTMENT",
-            trade_purpose=request.trade_purpose,
-            market_activity=request.market_activity,
-            trader_person_id=request.trader_person_id,
-            execution_price=request.execution_price,
-            price_basis="UNIT_PRICE",
-            price_currency_id=listing_row["trading_currency_id"],
-            quantity=signed_quantity,
-            quantity_unit="SHARES",
-            trade_datetime_utc=trade_datetime_utc,
-            **trade_values(request),
-            settlement_date=request.settlement_date,
-            booked_by_user_account_id=actor_id,
-            execution_channel="MANUAL_UI",
-            execution_venue_id=listing_row["market_venue_id"],
-            lifecycle_status="BOOKED",
-            created_by_user_account_id=actor_id,
-            comment=request.comment,
-        )
-    )
-    persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values)
-    connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(listing_row['booking_snapshot'] | frozen_recognition(request), sort_keys=True), recorded_by_user_account_id=actor_id))
-    record_booking_replay(connection, tenant_id, _TRADE_BOOKING_ENDPOINT, idempotency_key, fingerprint, trade_id)
-    complete_correction(connection, tenant_id, actor_id, request, trade_id)
-    result = get_booked_trade_detail(connection, tenant_id, trade_id, current_api_version(), request_id)
-    if result is None:
-        raise RepositoryNotFound("Booked trade does not exist")
-    return result
-
-
-def persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values):
-    """Shared persistence after tenant-governed annotations have been validated."""
-    party_role_id = None
-    if request.counterparty_organisation_id is not None:
-        party_role_id = uuid4()
-        connection.execute(insert(m.trade_party_role).values(trade_party_role_id=party_role_id, trade_id=trade_id, organisation_id=request.counterparty_organisation_id, role="COUNTERPARTY"))
-    if request.external_reference:
-        connection.execute(insert(m.trade_external_reference).values(trade_id=trade_id, trade_party_role_id=party_role_id, reference_type="SOURCE_TRADE_ID", reference_value=request.external_reference))
-    if request.executing_broker_organisation_id:
-        connection.execute(insert(m.trade_party_role).values(trade_id=trade_id, organisation_id=request.executing_broker_organisation_id, role="EXECUTING_BROKER"))
-    for index, reference in enumerate(request.external_references):
-        from sqlalchemy.exc import IntegrityError
-        from .trade_properties import TradeFieldError
-        try:
-            with connection.begin_nested():
-                connection.execute(insert(m.trade_external_reference).values(trade_id=trade_id, reference_type=reference.reference_type, reference_value=reference.reference_value, source_system_id=reference.source_system_id))
-        except IntegrityError as error:
-            if getattr(getattr(error.orig, "diag", None), "constraint_name", None) != "uq_trade_external_reference_source_value": raise
-            raise TradeFieldError(f"reference-{index}", "This source reference is already recorded. Check its namespace or value.") from error
-    for prop in annotation_values:
-        table = m.trade_property_reference if "record_version_id" in prop else m.trade_property_value
-        connection.execute(insert(table).values(trade_id=trade_id, tenant_id=tenant_id, **prop))
-    for tag_id in request.tag_ids:
-        connection.execute(insert(m.trade_tag_assignment).values(trade_id=trade_id, tenant_id=tenant_id, tag_id=tag_id))
-
-
+        booked=book_cash_trade(connection,tenant_id,actor_id,request,idempotency_key)
+        result=get_booked_trade_detail(connection,tenant_id,booked.trade_id,current_api_version(),request_id)
+        if result is None: raise RepositoryNotFound("Booked trade does not exist")
+        return result
 
 
 _MARKET_DATA_SNAPSHOT_ENDPOINT = "/v1/market-data-resolution-snapshots"

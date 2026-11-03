@@ -3,6 +3,13 @@ import {bookingCancellationEligibility,bookingCorrectionEligibility,bookingCorre
 import type {TradeDetailPayload} from './trades';
 const id='00000000-0000-7000-8000-000000000001',next='00000000-0000-7000-8000-000000000002';
 const detail={trade:{tradeId:id,lifecycleStatus:'BOOKED',tradeType:'INVESTMENT',strategyId:'strategy'},lifecycleEvents:[{sequenceNo:1,eventType:'BOOKED',eventPayload:JSON.stringify({schemaVersion:1,kind:'CASH_BOOKING'})}]} as TradeDetailPayload['data'];
+it('offers cancellation only for typed fund movements with retained proof',()=>{
+ const movement={...detail,trade:{...detail.trade,tradeType:'TRANSFER',executionPrice:'0.000000000000',quantity:'-2.000000000000'},lifecycleEvents:[{...detail.lifecycleEvents[0],eventPayload:JSON.stringify({schemaVersion:1,kind:'CASH_BOOKING',productBasis:'FUND',quantityMovement:{schemaVersion:1,kind:'TRANSFER',signedQuantity:'-2.000000000000',reason:'Owner classified',recognitionBasis:'POLICY_DAY_END',incomeRecognition:'NOT_APPLICABLE'}})}]};
+ expect(bookingCancellationEligibility(movement)).toEqual({eligible:true,sequenceNo:1,legacy:false});
+ expect(bookingCorrectionEligibility(movement).eligible).toBe(false);
+ for(const change of [{tradeType:'INVESTMENT'},{quantity:'-3'},{executionPrice:'100'},{lifecycleStatus:'CANCELLED'}])expect(bookingCancellationEligibility({...movement,trade:{...movement.trade,...change}}).eligible).toBe(false);
+ expect(bookingCancellationEligibility({...movement,lifecycleEvents:[{...movement.lifecycleEvents[0],eventPayload:'{}'}]}).eligible).toBe(false);
+});
 it('legacy cancellation rejects malformed evidence, missing history and new metadata',()=>{
  const legacy={...detail,lifecycleEvents:[{...detail.lifecycleEvents[0],eventPayload:'{}'}]};
  expect(bookingCancellationEligibility(legacy).eligible).toBe(true);

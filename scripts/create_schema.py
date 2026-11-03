@@ -10,7 +10,9 @@ from alembic.config import Config
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-database_url = os.environ.get("DATABASE_URL", "postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm")
+from scripts.local_database_config import migration_url
+database_url = migration_url()
+os.environ['DATABASE_URL']=database_url
 alembic_config = Config(str(project_root / "alembic.ini"))
 alembic_config.set_main_option("sqlalchemy.url", database_url)
 command.upgrade(alembic_config, "head")

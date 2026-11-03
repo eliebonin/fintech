@@ -12,6 +12,7 @@ from .access_management import membership_row
 from .tenant_workspace import resolve_tenant_workspace, require_tenant_action
 
 MODULE_DELIVERY = {
+    'REGULATORY_REPORTING': ('BOUNDED_ALPHA', 'UK transaction preparation/review and frozen preparation exports; no regulatory submission acceptance.'),
     'SECURITY_MASTER': ('BOUNDED_ALPHA', 'Governed instruments, listings and proposal workflow.'),
     'MARKET_DATA': ('BOUNDED_ALPHA', 'Governed EoD acquisition, policies and evidence; not a live terminal.'),
     'TRADING': ('BOUNDED_ALPHA', 'Supported booking profiles, history and corrections; not settlement/accounting.'),

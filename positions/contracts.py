@@ -10,7 +10,11 @@ class PositionError(ValueError):
 POSITION_UNITS={'EQUITY':frozenset({'SHARES','UNITS'}),'ETF':frozenset({'SHARES','UNITS'}),
     'FUND':frozenset({'UNITS'}),'BOND':frozenset({'NOMINAL'}),'CASH':frozenset({'CURRENCY_AMOUNT'}),
     'FX_FORWARD':frozenset({'CURRENCY_AMOUNT'}),'ACTIVELY_MANAGED_CERTIFICATE':frozenset({'UNITS','NOMINAL'}),
-    'SWAP':frozenset({'UNITS','NOMINAL'}),'OPTION':frozenset({'CONTRACTS'})}
+    'SWAP':frozenset({'UNITS','NOMINAL'}),'OPTION':frozenset({'CONTRACTS'}),'FUTURE':frozenset({'CONTRACTS'}),
+    'STRUCTURED_PRODUCT':frozenset({'UNITS','NOMINAL'})}
+from security_master_schema.cash_products import QUOTED_WRAPPERS
+POSITION_UNITS.update({product:frozenset({'SHARES','UNITS'}) for product in QUOTED_WRAPPERS})
+POSITION_UNITS['DIGITAL_ASSET']=frozenset({'SHARES','UNITS'})
 
 @dataclass(frozen=True)
 class ProjectionRequest:

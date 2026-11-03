@@ -89,7 +89,8 @@ def test_direct_cash_late_failure_rolls_back_booking_and_preserves_outer_transac
     before = connection.scalar(select(func.count()).select_from(m.trade))
     def fail_after_trade(*args):
         raise ValueError('forced late annotation failure')
-    monkeypatch.setattr(repository, 'persist_trade_annotations', fail_after_trade)
+    from trading import booking_store
+    monkeypatch.setattr(booking_store, 'persist_trade_annotations', fail_after_trade)
     with pytest.raises(ValueError, match='forced late annotation failure'):
         call_writer('CASH', connection, DEMO_IDS['demo_user_account'], str(uuid4()))
     assert connection.scalar(select(func.count()).select_from(m.trade)) == before

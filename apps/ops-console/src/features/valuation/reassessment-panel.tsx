@@ -3,8 +3,9 @@ import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {useState,type FormEvent} from 'react';
 import {displayAmount,displayTime} from './presentation';
 import type {SourceHealth,Choice} from './types';
+import {TechnicalReference} from './technical-reference';
 
-type Target={batchId:string;strategyId:string;valueDate:string;publicationStatus:string;sourceHealth:SourceHealth};
+type Target={batchId:string;strategyId:string;strategyLabel?:string;valueDate:string;publicationStatus:string;sourceHealth:SourceHealth};
 type Outcome={baseBatchId:string;status:string;currency?:string;attemptId?:string|null;reason?:string;comparison?:{old:{netPnl?:string;marketPnl?:string};new:{netPnl?:string;marketPnl?:string}}};
 /** Source health is operational metadata; never replace published figures locally. */
 export function ReassessmentPanel({batch,canCalculate,onOpen,strategies=[]}:{batch?:{batch_id:string;sourceHealth?:SourceHealth};canCalculate:boolean;onOpen:(attempt:string)=>unknown;strategies?:Choice[]}){
@@ -19,9 +20,10 @@ export function ReassessmentPanel({batch,canCalculate,onOpen,strategies=[]}:{bat
  return <section className="pnl-surface" aria-label="Valuation reassessment">
   <h3>{batch?health?.status==='UNKNOWN_LEGACY'?'Legacy source proof unavailable':'Reassessment required':'Affected valuations'}</h3>
   <p>Recorded financial results are unchanged. Recalculation creates a new staged candidate; review and publication remain separate. A warning does not by itself establish a financial error.</p>
-  {batch?<ul>{health?.changes.map((change,index)=><li key={index}>{change.reason} · trade {change.tradeId} · effective from {change.economicFrom} · recorded {displayTime(change.recordedAt)}</li>)}</ul>:<>
+  {health?.cashChanged?<p>Cash snapshots or uploaded coverage changed after this run. Review the cash input register and prepare a new staged calculation.</p>:null}
+  {batch?<ul>{health?.changes.map((change,index)=><li key={index}>{change.reason} · <a href={`/trades/${encodeURIComponent(change.tradeId)}`}>Open affected trade</a> · effective from {change.economicFrom} · recorded {displayTime(change.recordedAt)}<TechnicalReference id={change.tradeId} label="Trade ID"/></li>)}</ul>:<>
    <button type="button" disabled={busy||Boolean(pending)} onClick={()=>load()}>Find affected valuations</button>
-   {rows.length?<table className="pnl-table"><caption>Affected published and staged results</caption><thead><tr><th>Select</th><th>Strategy / valuation date</th><th>State / source health</th></tr></thead><tbody>{rows.map(row=><tr key={row.batchId}><td><input type="checkbox" aria-label={`Select ${row.valueDate} ${row.batchId}`} disabled={busy||Boolean(pending)||!canCalculate||strategies.find(s=>s.id===row.strategyId)?.canCalculate!==true} checked={selected.includes(row.batchId)} onChange={e=>setSelected(old=>e.target.checked?[...old,row.batchId]:old.filter(id=>id!==row.batchId))}/></td><td>{strategies.find(s=>s.id===row.strategyId)?.label??row.strategyId} · {row.valueDate}</td><td>{row.publicationStatus} · {row.sourceHealth.status==='UNKNOWN_LEGACY'?'Legacy source proof unavailable':'Reassessment required'}</td></tr>)}</tbody></table>:null}
+   {rows.length?<table className="pnl-table"><caption>Affected published and staged results</caption><thead><tr><th>Select</th><th>Strategy / valuation date</th><th>State / source health</th></tr></thead><tbody>{rows.map(row=><tr key={row.batchId}><td><input type="checkbox" aria-label={`Select ${row.valueDate} ${row.strategyLabel??'strategy'}`} disabled={busy||Boolean(pending)||!canCalculate||strategies.find(s=>s.id===row.strategyId)?.canCalculate!==true} checked={selected.includes(row.batchId)} onChange={e=>setSelected(old=>e.target.checked?[...old,row.batchId]:old.filter(id=>id!==row.batchId))}/></td><td>{row.strategyLabel??strategies.find(s=>s.id===row.strategyId)?.label??'Strategy name unavailable'} · {row.valueDate}</td><td>{row.publicationStatus} · {row.sourceHealth.status==='UNKNOWN_LEGACY'?'Legacy source proof unavailable':'Reassessment required'}</td></tr>)}</tbody></table>:null}
    <p>{total} affected results · page {offset/25+1}</p><button disabled={busy||offset===0||Boolean(pending)} onClick={()=>load(offset-25)}>Previous affected results</button><button disabled={busy||offset+25>=total||Boolean(pending)} onClick={()=>load(offset+25)}>Next affected results</button>
   </>}
   {!canCalculate?<p>Calculation permission is required to prepare replacements.</p>:<form onSubmit={submit}>

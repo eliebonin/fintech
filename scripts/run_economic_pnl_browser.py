@@ -21,8 +21,8 @@ sys.path.insert(0,str(ROOT))
 
 def main():
     name='platform_isolated_tests_browser_'+uuid4().hex
-    url=make_url(os.environ.get('TEST_DATABASE_ADMIN_URL',
-        'postgresql+psycopg://platform:platform_local_only@localhost:54329/postgres')).set(database='postgres')
+    from scripts.local_database_config import migration_url
+    url=make_url(migration_url(test_admin=True)).set(database='postgres')
     admin=create_engine(url,isolation_level='AUTOCOMMIT')
     with admin.connect() as c: c.execute(text(f'CREATE DATABASE "{name}"'))
     engine=None

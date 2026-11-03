@@ -1,22 +1,24 @@
 import React from 'react';
 import {afterEach,expect,it,vi} from 'vitest';
-const h=vi.hoisted(()=>({slots:[] as unknown[],cursor:0,refs:[] as unknown[],refCursor:0,effects:[] as (()=>unknown)[]}));
+const h=vi.hoisted(()=>({slots:[] as unknown[],cursor:0,refs:[] as unknown[],refCursor:0,effectCursor:0,effects:[] as (()=>unknown)[]}));
 // This repository has no DOM test runtime. Exercise the real component handlers
 // with persistent hook state; do not substitute valuation logic or child results.
 vi.mock('react',async original=>({...await original<typeof import('react')>(),
  useState:(initial:unknown)=>{const index=h.cursor++;if(!(index in h.slots))h.slots[index]=initial;
   return [h.slots[index],(value:unknown)=>h.slots[index]=typeof value==='function'?value(h.slots[index]):value];},
  useRef:(initial:unknown)=>{const index=h.refCursor++;if(!(index in h.refs))h.refs[index]={current:initial};return h.refs[index];},
- useEffect:(effect:()=>unknown)=>{if(!h.effects.length)h.effects.push(effect);}
+ useEffect:(effect:()=>unknown)=>{const index=h.effectCursor++;if(!(index in h.effects))h.effects[index]=effect;}
 }));
 import {ValuationConsole} from './valuation-console';
 import {RunReport} from '@/features/valuation/run-report';
 import {PagedValuationChoice} from '@/features/valuation/paged-choice';
+import {ResultWorkspace} from '@/features/valuation/result-workspace';
+import {ReportTabs} from '@/features/valuation/report-tabs';
 function find(node:any,predicate:(node:any)=>boolean):any{
  if(!node||typeof node!=='object')return;if(predicate(node))return node;
  for(const child of [node.props?.children].flat(Infinity)){const result=find(child,predicate);if(result)return result;}
 }
-const render=()=>{h.cursor=0;h.refCursor=0;return ValuationConsole({canCalculate:true,canReview:true,actorId:'operator'});};
+const render=()=>{h.cursor=0;h.refCursor=0;h.effectCursor=0;return ValuationConsole({canCalculate:true,canReview:true,actorId:'operator'});};
 const tab=(tree:any,id:string)=>find(tree,node=>node.props?.id===`pnl-${id}-tab`);
 const panel=(tree:any,id:string)=>find(tree,node=>node.props?.id===`pnl-${id}-panel`);
 const click=(id:string)=>tab(render(),id).props.onClick();
@@ -27,10 +29,15 @@ async function load(){
  vi.stubGlobal('fetch',vi.fn(async(path:string)=>Response.json(path.endsWith('/options')?
   {strategies:[{id:'s1',label:'Recorded strategy'},{id:'s2',label:'Draft strategy'}],policies:[{id:'p1',label:'Flexible EOD · v3',cutId:'cut'}],currencies:[{id:'gbp',label:'GBP'}]}:
   path.includes('?')?{items:[{...detail.attempt,request_payload:detail.batch.summary.request}],total:1}:detail)));
- render();h.effects[0]();await vi.waitFor(()=>expect(find(render(),n=>n.type===RunReport&&n.props.mode==='results').props.strategies).toHaveLength(2));
+ render();for(const effect of h.effects)effect();await vi.waitFor(()=>expect(find(render(),n=>n.type===RunReport&&n.props.mode==='results').props.strategies).toHaveLength(2));
  await find(render(),n=>n.type===RunReport&&n.props.mode==='results').props.onOpen('run');
 }
-afterEach(()=>{h.slots=[];h.cursor=0;h.refs=[];h.refCursor=0;h.effects=[];vi.unstubAllGlobals();});
+afterEach(()=>{h.slots=[];h.cursor=0;h.refs=[];h.refCursor=0;h.effects=[];h.effectCursor=0;vi.unstubAllGlobals();});
+it('always assesses cash and offers no cash exclusion control',()=>{
+ const tree=render();
+ expect(find(panel(tree,'input'),n=>n.props?.name==='includeCashBalances')).toBeUndefined();
+ expect(find(panel(tree,'input'),n=>n.props?.name==='requireCompleteAccruals')).toBeDefined();
+});
 it('separates input, results and history into labelled, locally mounted panels',()=>{
  const tree=render();
  for(const id of ['input','results','history']){
@@ -54,7 +61,30 @@ it('supports arrows, wrapping and Home/End with roving keyboard focus',()=>{
 it('opens recorded runs from history in Results, with their frozen policy version',async()=>{
  await load();click('history');await find(panel(render(),'history'),n=>n.type===RunReport).props.onOpen('run');
  expect(panel(render(),'results').props.hidden).toBe(false);
- expect(find(panel(render(),'results'),n=>n.type==='dd'&&n.props.children==='Flexible EOD · v3')).toBeDefined();
+ expect(find(panel(render(),'results'),n=>n.props?.label==='Flexible EOD · v3')).toBeDefined();
+ expect(find(render(),n=>n.type===ResultWorkspace).props.activeTab).toBe('logs');
+});
+it('keeps report selection when visiting the input draft and returning to Results',async()=>{
+ await load();expect(find(render(),n=>n.type===ResultWorkspace).props.activeTab).toBe('breakdown');
+ find(render(),n=>n.type===ResultWorkspace).props.onNavigate('review');
+ click('input');click('results');
+ expect(find(render(),n=>n.type===ResultWorkspace).props.activeTab).toBe('review');
+});
+it('does not replace a newer tab choice when a selected-result refresh finishes',async()=>{
+ await load();let release!:(response:Response)=>void;
+ vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(resolve=>{release=resolve;})));
+ const refresh=()=>find(render(),n=>n.type==='button'&&n.props.children==='Refresh selected result and review checks');
+ refresh().props.onClick();
+ find(render(),n=>n.type===ResultWorkspace).props.onNavigate('logs');
+ release(Response.json(detail));
+ await vi.waitFor(()=>expect(refresh().props.disabled).toBe(false));
+ expect(find(render(),n=>n.type===ResultWorkspace).props.activeTab).toBe('logs');
+});
+it('opens failed calculations on Logs without a staged financial result',async()=>{
+ await load();vi.stubGlobal('fetch',vi.fn(async()=>Response.json({...detail,attempt:{...detail.attempt,attempt_id:'failed',status:'FAILED'},batch:null})));
+ await find(render(),n=>n.type===RunReport&&n.props.mode==='results').props.onOpen('failed');
+ expect(find(render(),n=>n.type===ReportTabs).props.active).toBe('logs');
+ expect(find(render(),n=>n.type===ResultWorkspace)).toBeUndefined();
 });
 it('opens an authoritative calculation response in Results and releases the frozen retry',async()=>{
  await load();vi.stubGlobal('FormData',class{get(name:string){return ({openingDate:'2026-10-06',closingDate:'2026-10-07'} as Record<string,string>)[name];}});
@@ -69,7 +99,7 @@ it('does not replace recorded Results with an edited input draft',async()=>{
  expect(find(panel(render(),'input'),n=>n.type===PagedValuationChoice&&n.props.value==='s2')).toBeDefined();
 });
 it('prepares a linked corrected-input request in Input form without changing the result',async()=>{
- await load();click('results');find(render(),n=>n.type==='button'&&n.props.children==='Prepare corrected-input recalculation').props.onClick();
+ await load();click('results');find(find(render(),n=>n.type===ResultWorkspace).props.reviewContent,n=>n.type==='button'&&n.props.children==='Prepare corrected-input recalculation').props.onClick();
  expect(panel(render(),'input').props.hidden).toBe(false);
  expect(find(panel(render(),'input'),n=>n.props?.name==='recalculationReason').props.required).toBe(true);
  expect(find(panel(render(),'input'),n=>n.props?.name==='openingDate').props.defaultValue).toBe('2026-10-06');

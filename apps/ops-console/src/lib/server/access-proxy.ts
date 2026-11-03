@@ -2,11 +2,9 @@ import 'server-only';
 import {cookies} from 'next/headers';
 import {getActiveTenantContext} from '../tenant-session';
 import {referenceFetch} from '../reference-fetch';
+import {requireLocalMode,localOperatorKey} from './local-identity';
 
-export function requireLocalMode() {
-  if (process.env.NODE_ENV==='production' || !['local','test','development'].includes(process.env.APP_ENV??'local'))
-    throw new Error('Local context switching is disabled outside development');
-}
+export {requireLocalMode} from './local-identity';
 
 export function sameOrigin(request:Request) {
   const origin=request.headers.get('origin');
@@ -14,12 +12,18 @@ export function sameOrigin(request:Request) {
 }
 
 export async function accessProxy(path:string,init:RequestInit={},mode:'tenant'|'platform'|'operator'='tenant') {
+  requireLocalMode();
+  const api=new URL(process.env.REFERENCE_API_URL??'http://localhost:8000');
+  const target=new URL(path,api);
+  if(target.origin!==api.origin)throw new Error('Access credentials must stay on the configured API origin');
   const headers=new Headers(init.headers);
+  headers.delete('X-Local-Operator-Key');
   headers.set('Accept','application/json');
   headers.set('Content-Type','application/json');
   const token=(await cookies()).get('local_access_session')?.value;
   if (mode==='operator') {
-    requireLocalMode();
+    if(!['/v1/local-session','/v1/local-session/options'].includes(target.pathname))throw new Error('Local operator credentials are restricted to session bootstrap');
+    headers.set('X-Local-Operator-Key',localOperatorKey());
     headers.set('X-User-Account-Id',process.env.LOCAL_PLATFORM_OPERATOR_ID??'00000000-0000-7000-8000-000000000304');
   } else if (mode==='platform') {
     requireLocalMode();
@@ -35,5 +39,5 @@ export async function accessProxy(path:string,init:RequestInit={},mode:'tenant'|
     headers.set('X-Tenant-Id',context.tenantId);headers.set('X-User-Account-Id',context.userAccountId);
   }
   if (token) headers.set('X-Local-Access-Token',token);
-  return referenceFetch()(new URL(path,process.env.REFERENCE_API_URL??'http://localhost:8000'),{...init,headers,cache:'no-store'});
+  return referenceFetch()(target,{...init,headers,cache:'no-store',redirect:'error'});
 }

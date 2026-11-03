@@ -1,6 +1,8 @@
 import { resolveWorkspaceAccess } from "@/lib/server/workspace-access";
 import { WorkspaceUnavailable } from "@/components/workspace-unavailable";
-import Link from "next/link";
+import {InstrumentLabel} from "@/components/instrument-label";
+import Link from 'next/link';
+import type {InstrumentDisplay,InstrumentDisplays} from "@/lib/instrument-display";
 import { redirect } from "next/navigation";
 
 import { describeMvpError, getBookedTrades, getHistoryStrategies, type HistoryStrategy } from "@/lib/mvp-api-client";
@@ -11,12 +13,12 @@ import {canBookTrades} from '@/lib/instrument-authority';
 
 export const dynamic = "force-dynamic";
 
-function TradeRow({ trade, returnTo }: { trade: BookedTrade; returnTo: string }) {
+function TradeRow({ trade, returnTo, display }: { trade: BookedTrade; returnTo: string; display?:InstrumentDisplay|null }) {
   const swap=bookedSwapFacts(trade);
   const instrument = swap?trade.productEconomics!.terms.name:trade.instrumentName ?? trade.subjectName;
   return <tr>
     <td><strong>{formatTradeDateTime(trade.tradeDatetimeUtc)}</strong></td>
-    <td><Link className="trade-subject-link" href={`/trades/${encodeURIComponent(trade.tradeId)}?returnTo=${encodeURIComponent(returnTo)}`}><strong>{instrument}</strong></Link><small>{[trade.listingSymbol, trade.venueMic].filter(Boolean).join(" · ") || trade.instrumentType}</small></td>
+    <td><InstrumentLabel display={display??undefined} fallbackName={display===null?undefined:instrument} href={`/trades/${encodeURIComponent(trade.tradeId)}?returnTo=${encodeURIComponent(returnTo)}`}/></td>
     <td><strong>{trade.strategyCode}</strong><small>{trade.strategyName}</small></td>
     <td><span className="quality">{tradeDirection(trade.quantity)}</span>{trade.positionEffect?<small>{trade.positionEffect}</small>:null}</td>
     <td className="trade-numeric"><strong>{(trade.instrumentType==="FX_FORWARD"||trade.productEconomics?formatTradeExactDecimal:formatTradeNumber)(swap?(swap.bookedUnits??swap.bookedNotional):trade.quantity.replace(/^-/, ""))}</strong><small>{swap?(swap.bookedUnits!==undefined?`Booked units · UNITS`:`Booked nominal · ${trade.productEconomics!.terms.currency}`):trade.fxForwardEconomics?`Base amount · ${trade.fxForwardEconomics.baseCurrency}`:trade.quantityUnit}</small>{swap?.bookedUnits!==undefined?<small>Reference funding notional · {formatTradeExactDecimal(swap.bookedNotional)} {trade.productEconomics!.terms.currency}</small>:null}{swap?<small>Contractual notional · {formatTradeExactDecimal(swap.terms.contractualNotional)} {trade.productEconomics!.terms.currency}</small>:null}</td>
@@ -35,6 +37,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
   if (access.kind !== "ready") return <WorkspaceUnavailable forbidden={access.kind === "forbidden"} />;
   context = access.context; workspace = access.workspace;
   let trades: BookedTrade[] = [];
+  let displays:InstrumentDisplays|undefined;
   let strategies: HistoryStrategy[] = [];
   let total = 0;
   let error = "";
@@ -45,7 +48,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
       limit: query.pageSize, offset: (query.page - 1) * query.pageSize }),
     getHistoryStrategies(context),
   ]);
-  if (tradeResult.status === "fulfilled") { trades = tradeResult.value.data; total = tradeResult.value.meta.total ?? trades.length; }
+  if (tradeResult.status === "fulfilled") { displays=tradeResult.value.meta.instrumentDisplays; trades = tradeResult.value.data; total = tradeResult.value.meta.total ?? trades.length; }
   else error = describeMvpError(tradeResult.reason, "Trade history");
   if (strategyResult.status === "fulfilled") strategies = strategyResult.value.data;
   else strategyError = "Strategy choices could not be loaded. Your current filter is preserved; retry to load the choices.";
@@ -88,7 +91,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
     {strategyError ? <p className="error-panel" role="alert">{strategyError} <Link href={returnTo}>Retry</Link></p> : null}
     {error ? <div className="error-panel" role="alert">{error} <Link href={returnTo}>Retry</Link></div> : <>
       <section className="table-wrap trades-table-wrap" aria-label="Trade history results"><table className="trades-table"><caption className="trade-caption">{total} {filtered ? "matching" : "recorded"} trades · trade times in UTC</caption><thead><tr>{["Trade time (UTC)", "Instrument / listing", "Strategy", "Side", "Quantity", "Price / currency", "Settlement date", "Status"].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
-        <tbody>{trades.length ? trades.map((trade) => <TradeRow key={trade.tradeId} trade={trade} returnTo={returnTo} />) : <tr><td colSpan={8} className="empty-table">{!otherFilters && query.range === "14d" ? <>No trades in the last 14 days. <Link href={rangeHref("all")}>View all history</Link></> : !otherFilters && query.range === "30d" ? <>No trades in the last 30 days. <Link href={rangeHref("all")}>View all history</Link></> : filtered ? <>No trades match these filters. <Link href="/trades">Clear filters</Link> · <Link href={rangeHref("all")}>View all history</Link></> : <>No trades have been recorded for this tenant. {canBook?<Link href="/trades/new">Book your first trade</Link>:null}</>}</td></tr>}</tbody>
+        <tbody>{trades.length ? trades.map((trade) => <TradeRow key={trade.tradeId} trade={trade} display={displays?displays[trade.subjectReferenceNodeId]??null:undefined} returnTo={returnTo} />) : <tr><td colSpan={8} className="empty-table">{!otherFilters && query.range === "14d" ? <>No trades in the last 14 days. <Link href={rangeHref("all")}>View all history</Link></> : !otherFilters && query.range === "30d" ? <>No trades in the last 30 days. <Link href={rangeHref("all")}>View all history</Link></> : filtered ? <>No trades match these filters. <Link href="/trades">Clear filters</Link> · <Link href={rangeHref("all")}>View all history</Link></> : <>No trades have been recorded for this tenant. {canBook?<Link href="/trades/new">Book your first trade</Link>:null}</>}</td></tr>}</tbody>
       </table></section>
       <nav className="trade-pagination" aria-label="Trade history pagination"><span>{total ? (query.page - 1) * query.pageSize + 1 : 0}–{Math.min(query.page * query.pageSize, total)} of {total}</span>
         {query.page > 1 ? <Link href={historyHref(query, query.page - 1)}>Previous</Link> : <span aria-disabled="true">Previous</span>}

@@ -1,7 +1,8 @@
 """Readiness must describe the real writer boundary, without writes or row locks."""
 import asyncio
 from datetime import date, datetime, timezone
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport,ConnectionEngine
 from sqlalchemy import select, update, func, text
 from apps.reference_api.main import create_app
 from apps.reference_api.db import get_engine
@@ -11,12 +12,7 @@ from tests.test_cash_booking_integrity import connection, cloned_listing
 
 
 def request(c, path):
-    app = create_app()
-    route = next(r for r in app.routes if getattr(r, 'path', None) == '/v1/trades')
-    dependency = next(d.call for d in route.dependant.dependencies if d.call.__name__ == 'connection_dependency')
-    def injected():
-        yield c
-    app.dependency_overrides[dependency] = injected
+    app = create_app(engine=ConnectionEngine(c))
     async def run():
         async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
             return await client.get(path, headers={'X-Tenant-Id': str(ids['tenant']), 'X-User-Account-Id': str(ids['demo_user_account'])})

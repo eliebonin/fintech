@@ -16,6 +16,7 @@ from .repository import RepositoryNotFound, IdempotencyKeyConflict, InvalidWorkf
 from .trade_properties import TradeFieldError
 from .swap_creation_contracts import SwapProposalRequest
 from .amc_contracts import AmcProposalRequest
+from .instrument_display import decorate_response
 
 
 def product_booking_router(connection_dependency, membership):
@@ -38,7 +39,7 @@ def product_booking_router(connection_dependency, membership):
                context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(connection, context)
         items, total = service.search(connection, context.tenant_id, kind, route, q, limit, offset, as_of or governance_date())
-        return ProductBookingSearchResponse(data=items, meta=meta(context, total=total, limit=limit, offset=offset))
+        return decorate_response(connection,context.tenant_id,ProductBookingSearchResponse(data=items, meta=meta(context, total=total, limit=limit, offset=offset)),[item.listing_id or item.instrument_id for item in items])
 
     @router.get('/v1/trades/product-instruments/{instrument_id}', response_model=ProductBookingContextResponse)
     def detail(instrument_id: UUID, listing_id: UUID | None = Query(default=None, alias='listingId'),
@@ -47,7 +48,7 @@ def product_booking_router(connection_dependency, membership):
         authorized(connection, context)
         try: item = service.load_context(connection, context.tenant_id, instrument_id, listing_id, as_of)
         except RepositoryNotFound as error: raise HTTPException(404, str(error)) from error
-        return ProductBookingContextResponse(data=item, meta=meta(context))
+        return decorate_response(connection,context.tenant_id,ProductBookingContextResponse(data=item, meta=meta(context)),[item.listing_id or item.instrument_id])
 
     def booking(request, response, key, context, connection, kind):
         actor = authorized(connection, context)

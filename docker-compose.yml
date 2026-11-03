@@ -5,9 +5,11 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-platform_secm}
       POSTGRES_USER: ${POSTGRES_USER:-platform}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-platform_local_only}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
     ports:
-      - "54329:5432"
+      - "127.0.0.1:54329:5432"
+    secrets:
+      - postgres_admin_password
     volumes:
       - platform_security_master_postgres:/var/lib/postgresql
     healthcheck:
@@ -19,3 +21,7 @@ services:
 volumes:
   platform_security_master_postgres:
     name: ${POSTGRES_VOLUME_NAME:-platform_security_master_postgres}
+
+secrets:
+  postgres_admin_password:
+    file: ./.local-secrets/postgres-admin-password

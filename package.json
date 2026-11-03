@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.7.1",
   "pnpm": {
     "overrides": {
-      "@redocly/openapi-core": "1.34.19"
+      "@redocly/openapi-core": "1.34.22"
     }
   },
   "scripts": {
@@ -13,8 +13,8 @@
     "contract:generate": "pnpm --filter api-contracts generate",
     "contract:generate:check": "pnpm --filter api-contracts generate:check",
     "workspace:list": "pnpm -r list --depth -1",
-    "dev:reference-api": ".\\.venv\\Scripts\\python.exe -m uvicorn apps.reference_api.main:app --host 127.0.0.1 --port 8000 --reload",
-    "start:reference-api": ".\\.venv\\Scripts\\python.exe -m uvicorn apps.reference_api.main:app --host 127.0.0.1 --port 8000",
+    "dev:reference-api": ".\\.venv\\Scripts\\python.exe -m uvicorn apps.reference_api.main:app --env-file .env.local-access --host 127.0.0.1 --port 8000 --reload",
+    "start:reference-api": ".\\.venv\\Scripts\\python.exe -m uvicorn apps.reference_api.main:app --env-file .env.local-access --host 127.0.0.1 --port 8000",
     "dev:ops-console": "pnpm --filter ops-console dev",
     "build:ops-console": "pnpm --filter ops-console build",
     "test:ops-console": "pnpm --filter ops-console test",

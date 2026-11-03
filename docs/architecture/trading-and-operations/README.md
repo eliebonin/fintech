@@ -1,5 +1,9 @@
 # Trading and operations
 
+Current [bond cashflow schedules](bond-cashflow-schedules.md) cover sourced coupon
+and principal expectations separately from daily interest, actual coupon receipts
+and maturity-closing trades.
+
 **Status:** Accepted  
 **Content type:** Architecture index  
 **Owner:** Trading operations team  

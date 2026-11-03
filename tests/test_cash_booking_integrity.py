@@ -155,16 +155,12 @@ def test_locked_cash_scope_cannot_be_revoked_concurrently(connection):
 
 def test_http_cannot_book_foreign_private_listing(connection):
     import asyncio
-    from httpx import ASGITransport, AsyncClient
+    from httpx import AsyncClient
+    from tests.api_client import FixtureASGITransport as ASGITransport,ConnectionEngine
     from apps.reference_api.main import create_app
     change(connection, 'foreign_listing')
     before = connection.scalar(select(func.count()).select_from(m.trade))
-    app = create_app()
-    route = next(v for v in app.routes if getattr(v,'path',None) == '/v1/trades' and 'POST' in getattr(v,'methods',set()))
-    dependency = next(d.call for d in route.dependant.dependencies if d.call.__name__ == 'connection_dependency')
-    def injected():
-        yield connection
-    app.dependency_overrides[dependency] = injected
+    app = create_app(engine=ConnectionEngine(connection))
     async def run():
         async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
             return await client.post('/v1/trades', json=payload().model_dump(mode='json',by_alias=True), headers={

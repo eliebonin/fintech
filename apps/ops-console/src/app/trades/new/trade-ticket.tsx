@@ -1,5 +1,6 @@
 "use client";
 import {browserFetch as fetch} from '@/lib/browser-fetch';
+import {instrumentDisplayHref,type InstrumentDisplays} from '@/lib/instrument-display';
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -109,6 +110,7 @@ export function TradeTicket({ listing: initialListing, strategies, correction, c
   const retryKey = useRef(createIdempotencyKey());
   const [listing, setListing] = useState<TicketListing | undefined>(initialListing);
   const [listingQuery, setListingQuery] = useState("");
+  const [displays,setDisplays]=useState<InstrumentDisplays>();
   const [listingResults, setListingResults] = useState<CashBookingListingView[]>([]);
   const [searching, setSearching] = useState(false);
   const [draft, setDraft] = useState<EnrichedTicketDraft>(() => ({...createTicketDraft(),tradePurpose:"INVESTMENT",properties:{},tagIds:[],externalReferences:[]}));
@@ -180,7 +182,7 @@ export function TradeTicket({ listing: initialListing, strategies, correction, c
     if(!append){setListingResults([]);setSearched(false);setTotal(0);}
     try {
       const result = await searchCashBookingListingsFromBff(listingQuery.trim(),searchDate(),append?nextOffset.current:0);
-      if(serial===sequence.current){setListingResults(current=>append?[...current,...result.data]:result.data);setTotal(result.meta.total??result.data.length);nextOffset.current=(result.meta.offset??0)+(result.meta.limit??25);setSearched(true);}
+      if(serial===sequence.current){setListingResults(current=>append?[...current,...result.data]:result.data);setDisplays(current=>append?{...current,...result.meta.instrumentDisplays}:result.meta.instrumentDisplays??undefined);setTotal(result.meta.total??result.data.length);nextOffset.current=(result.meta.offset??0)+(result.meta.limit??25);setSearched(true);}
     } catch (caught) {
       if(serial===sequence.current)setError(caught instanceof Error ? caught.message : "Listings could not be searched.");
     } finally { if(serial===sequence.current)setSearching(false); }
@@ -242,7 +244,7 @@ export function TradeTicket({ listing: initialListing, strategies, correction, c
 
   if (!listing) return <main className="mvp-page"><header className="mvp-header"><div><p className="eyebrow">TRADE TICKET</p><h1>Book listed cash trade</h1><p className="muted">Search the active listing first. Its currency and venue will be locked before you enter the execution.</p></div><span className="synthetic-badge">STEP 1 OF 2</span></header>
     <form className="strategy-form" onSubmit={e=>searchListings(e)}><h2>Search cash listings</h2><label>Listing, ticker, ISIN, or venue<input aria-label="Search active listings" value={listingQuery} maxLength={250} onChange={event=>{setListingQuery(event.target.value);invalidateSearch();}} placeholder="e.g. HSBC, XLON, ticker" required /></label><label>Readiness date (UTC execution date)<input type="date" aria-label="Cash readiness date" value={searchDate()} required onChange={e=>{if(e.target.value)update('tradeDatetime',e.target.value+'T'+latestDraft.current.tradeDatetime.slice(11));invalidateSearch();}}/></label><button type="submit" disabled={searching}>{searching ? "Searching…" : "Search listings"}</button>{error ? <p className="strategy-error" role="alert">{error}</p> : null}</form>
-    <BookingSearchResults items={listingResults.map(candidate=>({id:candidate.referenceNodeId,instrumentId:candidate.parentReferenceNodeId??candidate.referenceNodeId,label:candidate.canonicalName,description:[candidate.tradingSymbol,candidate.venueName,candidate.tradingCurrency].filter(Boolean).join(' · '),bookingEligible:candidate.bookingEligible,readinessStatus:candidate.readinessStatus,ineligibilityMessage:candidate.ineligibilityMessage}))} loading={searching} searched={searched} total={total} hasMore={nextOffset.current<total} selectLabel="Select listing" loadMoreLabel="Load more listings" onSelect={id=>void selectListing(id)} onLoadMore={()=>void searchListings({preventDefault(){}} as FormEvent,true)}/>
+    <BookingSearchResults items={listingResults.map(candidate=>({id:candidate.referenceNodeId,instrumentId:candidate.parentReferenceNodeId??candidate.referenceNodeId,inspectionHref:instrumentDisplayHref(displays?.[candidate.referenceNodeId],candidate.referenceNodeId,candidate.parentReferenceNodeId??undefined),display:displays?.[candidate.referenceNodeId],label:displays===undefined?candidate.canonicalName:'Instrument name unavailable',description:[candidate.tradingSymbol,candidate.venueName,candidate.tradingCurrency].filter(Boolean).join(' · '),bookingEligible:candidate.bookingEligible,readinessStatus:candidate.readinessStatus,ineligibilityMessage:candidate.ineligibilityMessage}))} loading={searching} searched={searched} total={total} hasMore={nextOffset.current<total} selectLabel="Select listing" loadMoreLabel="Load more listings" onSelect={id=>void selectListing(id)} onLoadMore={()=>void searchListings({preventDefault(){}} as FormEvent,true)}/>
 
   </main>;
 

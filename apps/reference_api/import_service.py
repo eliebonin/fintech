@@ -10,8 +10,8 @@ from security_master_schema import models as m
 from security_master_schema.booking_controls import authorize_booking,lock_booking_strategy
 from security_master_schema.strategy_access import require_strategy_action,strategy_predicate
 from apps.reference_api.import_adapters.trades import descriptor,prepare
-from apps.reference_api.repository import book_listed_cash_trade
-from apps.reference_api.booking_errors import RepositoryNotFound
+from trading.booking import book_cash_trade
+from security_master_schema.errors import RepositoryNotFound
 
 
 class ImportConflict(ValueError):
@@ -142,11 +142,11 @@ def confirm(c,tenant,actor,job_id,review_hash,request_id):
         if result['status']=='REPLAY':
             receipt.append(dict(row=result['row'],sourceTradeId=result['sourceTradeId'],tradeId=result['tradeId'],outcome='ALREADY_BOOKED'))
             continue
-        from apps.reference_api.contracts import TradeBookingRequest
+        from trading.booking_contracts import TradeBookingRequest
         request=TradeBookingRequest.model_validate(result['payload'])
         row_key='import:'+digest([str(tenant),str(item['strategy_id']),item['source'],result['sourceTradeId']])
-        booked=book_listed_cash_trade(c,tenant,actor,request,row_key,request_id)
-        trade_id=booked.data.trade.trade_id
+        booked=book_cash_trade(c,tenant,actor,request,row_key)
+        trade_id=booked.trade_id
         c.execute(t.row.insert().values(tenant_id=tenant,strategy_id=item['strategy_id'],source=item['source'],
             source_trade_id=result['sourceTradeId'],payload_hash=result['payloadHash'],trade_id=trade_id,job_id=job_id))
         # Channel is provenance only; the ordinary writer retains frozen economics.

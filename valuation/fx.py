@@ -31,7 +31,7 @@ def conversion_rate(value, *, inverse=False):
     return rate
 
 
-def resolve_fx(c,request,source_currency_id,target_currency_id,economic_date):
+def resolve_fx(c,request,source_currency_id,target_currency_id,economic_date,*,allow_partial=False):
     if source_currency_id==target_currency_id:
         return FxConversion(source_currency_id,target_currency_id,Decimal(1),economic_date,None,{'method':'IDENTITY'})
     codes=dict(c.execute(select(m.currency.c.currency_id,m.currency.c.currency_code).where(
@@ -72,7 +72,8 @@ def resolve_fx(c,request,source_currency_id,target_currency_id,economic_date):
     if len(pairs)!=1: raise ValueError('Missing or ambiguous governed FX currency pair')
     rr=ResolutionRequest(request.tenant_id,pairs[0],request.policy_id,economic_date,request.cut_id,
         request.information_cutoff,'VALUATION',request.strategy_id)
-    selected=resolve_market_data(c,rr)
+    from .price_inputs import resolve_input
+    selected=resolve_input(c,rr,resolve_market_data,allow_partial=allow_partial)
     if selected.status!='SELECTED': raise ValueError(f'FX input selection blocked: {selected.exception_code or selected.status}')
     rule=c.execute(select(m.valuation_policy_rule).where(m.valuation_policy_rule.c.valuation_policy_rule_id==selected.policy_rule_id)).mappings().one()
     series=c.execute(select(s).where(s.c.market_data_series_id==selected.market_data_series_id)).mappings().one()

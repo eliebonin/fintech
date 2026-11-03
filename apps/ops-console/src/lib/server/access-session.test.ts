@@ -1,10 +1,11 @@
-import {afterEach,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 vi.mock('server-only',()=>({}));
 const h=vi.hoisted(()=>({token:undefined as string|undefined}));
 vi.mock('next/headers',()=>({cookies:async()=>({get:(name:string)=>name==='local_access_session'&&h.token?{value:h.token}:undefined})}));
 import {getActiveTenantContext} from '../tenant-session';
 import {forwardLocalSession} from './local-session-forward';
-afterEach(()=>{h.token=undefined;vi.unstubAllGlobals();});
+beforeEach(()=>vi.stubEnv('APP_ENV','test'));
+afterEach(()=>{h.token=undefined;vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 it('uses the backend-selected user, not the fixed demo account',async()=>{
  h.token='opaque-token';
@@ -20,6 +21,7 @@ it('forwards the opaque credential only to the private API origin',async()=>{
  const upstream=await forwardLocalSession('http://localhost:8000/v1/trades',{headers:{'X-Tenant-Id':'tenant-b'}});
  expect(new Headers(upstream?.headers).get('X-Local-Access-Token')).toBe('opaque-token');
  expect(new Headers(upstream?.headers).get('X-Tenant-Id')).toBe('tenant-b');
+ expect(upstream?.redirect).toBe('error');
  expect(await forwardLocalSession('https://example.org/',{headers:{Accept:'application/json'}})).toEqual({headers:{Accept:'application/json'}});
 });
 it('leaves browser-relative requests alone',async()=>{

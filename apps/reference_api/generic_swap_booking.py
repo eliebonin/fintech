@@ -3,10 +3,11 @@ from datetime import date
 from sqlalchemy import select
 from security_master_schema import models as m
 from .product_booking_contracts import SwapDetailsView
-from .swap_creation_contracts import GenericSwapTerms
+from .swap_creation_contracts import GenericSwapTerms,RateSwapTerms
+from security_master_schema.swap_terms import parse_swap_terms
 
 
-def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False) -> tuple[SwapDetailsView, date]:
+def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False,currency_locks=None) -> tuple[SwapDetailsView, date]:
     from .product_booking import CONVENTION, require_visible, lock_booking_currency
     from .swap_creation import validate_swap_references
 
@@ -14,7 +15,7 @@ def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lo
         statement = select(table).where(predicate).order_by(*table.primary_key.columns)
         return [dict(row) for row in connection.execute(statement.with_for_update() if lock else statement).mappings()]
 
-    locked_currency_id = lock_booking_currency(connection, instrument_id) if lock else None
+    locked_currency_id, _locked_currency_roles = (currency_locks if currency_locks is not None else lock_booking_currency(connection,instrument_id)) if lock else (None,frozenset())
     rows(m.financial_reference_node, m.financial_reference_node.c.reference_node_id == instrument_id)
     rows(m.reference_node_scope, m.reference_node_scope.c.reference_node_id == instrument_id)
     require_visible(connection, tenant_id, instrument_id)
@@ -29,7 +30,7 @@ def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lo
         m.swap_definition_version.c.instrument_definition_version_id == definition['instrument_definition_version_id'])
     if len(generic) != 1:
         raise ValueError('Approved generic swap economics are required.')
-    terms = GenericSwapTerms.model_validate(generic[0]['economics_payload'])
+    terms = parse_swap_terms(generic[0]['economics_payload'])
     if generic[0]['schema_version'] != terms.schema_version:
         raise ValueError('Generic swap schema version differs from approved economics.')
     instruments = rows(m.instrument, m.instrument.c.instrument_node_id == instrument_id)
@@ -39,6 +40,9 @@ def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lo
             definition[key] != instruments[0][key] for key in ('base_currency_id', 'instrument_type_id',
                 'issuer_organisation_id', 'effective_from', 'effective_to', 'sequence_no', 'asset_class')):
         raise ValueError('Generic swap differs from its current approved definition.')
+    rate_exchange=isinstance(terms,RateSwapTerms)
+    if rate_exchange and lock and {terms.quote_currency_id,terms.notional_currency_id,*[leg.currency_id for leg in terms.legs]}!=set(_locked_currency_roles):
+        raise ValueError('Rate-swap currency roles changed; reload the contract')
     if (definition['base_currency_id'] != terms.notional_currency_id
             or definition['effective_from'] != terms.effective_date
             or (definition['effective_to'] and as_of > definition['effective_to'])
@@ -57,6 +61,24 @@ def load_generic_swap_context(connection, tenant_id, instrument_id, as_of, *, lo
     dates = rows(m.instrument_dates, m.instrument_dates.c.instrument_node_id == instrument_id)
     swap_terms = rows(m.swap_terms, m.swap_terms.c.instrument_node_id == instrument_id)
     legs = rows(m.swap_leg, m.swap_leg.c.swap_instrument_node_id == instrument_id)
+    if rate_exchange:
+        from trading.rate_swaps import assert_materialized
+        if len(dates)!=1 or dates[0]['effective_date']!=terms.effective_date or dates[0]['maturity_date']!=terms.maturity_date:
+            raise ValueError('Rate-swap dates differ from approved terms')
+        assert_materialized(terms,swap_terms,legs)
+        conventions=rows(m.instrument_booking_convention,(m.instrument_booking_convention.c.instrument_node_id==instrument_id)&(m.instrument_booking_convention.c.effective_from<=as_of))
+        if not conventions:raise ValueError('Approved rate-swap booking convention required')
+        stored=max(conventions,key=lambda row:(row['effective_from'],row['version_no']))
+        convention=CONVENTION.validate_json(stored['convention_payload'])
+        if (convention.kind!='SWAP' or convention.price_currency_id!=terms.quote_currency_id or convention.quote_factor!=terms.quote_factor
+            or not convention.otc_allowed or convention.quantity_unit!=terms.quantity_unit
+            or convention.price_basis!=('SWAP_VALUE_PER_UNIT' if terms.quantity_unit=='UNITS' else 'SWAP_VALUE_PER_NOTIONAL')):
+            raise ValueError('Rate-swap quotation differs from approved terms')
+        facts.update(genericDefinition=generic[0],approvedDefinition=definition,instrument=instruments[0],swapReference=node,
+            dates=dates,swapTerms=swap_terms,legs=legs,bookingConvention=stored)
+        reference_ids={instrument_id,*[leg.rate_reference_id for leg in terms.legs],*[r['reference_node_id'] for r in facts['currencies'] if r['reference_node_id']]}
+        facts['referenceScopes']=[dict(r) for r in connection.execute(select(m.reference_node_scope).where(m.reference_node_scope.c.reference_node_id.in_(reference_ids)).order_by(*m.reference_node_scope.primary_key.columns)).mappings()]
+        return SwapDetailsView(effectiveDate=terms.effective_date,genericTerms=terms,sourceFacts=facts),terms.maturity_date
     expected_roles = {'PERFORMANCE', 'FUNDING'} if terms.funding_reference_id else {'PERFORMANCE'}
     if (len(dates) != 1 or dates[0]['effective_date'] != terms.effective_date
             or dates[0]['maturity_date'] != terms.maturity_date

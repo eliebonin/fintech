@@ -38,6 +38,10 @@ def test_actual_recalculation_freezes_retry_and_preserves_original_result(valued
     original=c.execute(select(m.trade).where(m.trade.c.trade_id==trade)).mappings().one()
     c.execute(m.trade_lifecycle_event.insert().values(trade_id=trade,sequence_no=2,event_type='CANCELLED',event_datetime_utc=original['trade_datetime_utc'],recorded_by_user_account_id=ids['demo_user_account'],event_payload='{}'))
     c.commit()
+    affected=call('GET',f'/v1/valuation/reassessments?strategy_id={r.strategy_id}')
+    assert affected.status_code==200,affected.text
+    selected=next(row for row in affected.json()['items'] if row['batchId']==str(batch))
+    assert selected['strategyLabel'] and str(r.strategy_id) not in selected['strategyLabel']
     body=dict(batchIds=[str(batch)],reason='Synthetic ledger correction',confirmRecalculation=True)
     key=str(uuid4())
     first=call('POST','/v1/valuation/reassessments/recalculate',body,headers={'Idempotency-Key':key})

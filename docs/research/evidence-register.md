@@ -1,5 +1,88 @@
 # Evidence register
 
+31 October missing-mark review: [guidance and application](../delivery/incomplete-price-review-20261031.md#guidance-and-design)
+links FCA/ESMA valuation guidance and WAI/GOV.UK form/review patterns. Governed
+partial Ops reports are not official NAVs; independent marked inputs require a
+new calculation and completeness before ordinary publication.
+
+
+30 October 2026 rights/admission: [guidance and scope choices](../platform/dataset-rights-and-workload.md#guidance-reviewed)
+apply OWASP default denial/resource guidance, PostgreSQL 18 session-lock cleanup,
+FastAPI lifespan and SQLAlchemy 2.1 engine disposal. Shared admission preserves
+synchronous workflows; it is not a claim of durable workers or OS job isolation.
+
+30 October 2026 database/audit/browser security: [primary guidance and application](../platform/security-controls.md#primary-guidance-reviewed)
+uses Docker publishing/secrets, PostgreSQL 18 privileges, Gitleaks default-rule
+inheritance, OWASP logging and Next.js nonce CSP. Local safeguards preserve
+existing economic behaviour; external retention, workload admission and production
+identity are separate work. [Bounded verification](../delivery/security-controls-20261030.md).
+
+30 October 2026 local identity containment: [guidance and application](../platform/local-identity-safeguard.md)
+uses OWASP REST/authentication and current Next.js authentication documentation.
+Mandatory local sessions, guarded bootstrap and non-local startup refusal are a
+temporary project safeguard. They do not replace deferred provider authentication.
+
+30 October 2026 dependency security: [primary advisories and implementation decisions](../delivery/dependency-security-20261030.md#primary-guidance-checked)
+cover Next.js/sharp, Certifi, pytest, pip-tools and the immutable PyPA audit action.
+Patched lockfiles and dated complete audits are evidence of this bounded fix,
+not general production security certification.
+
+29 October 2026 cash-booking extraction: [scope and research basis](../delivery/specifications/cash-booking-service-extraction.md#research-basis)
+reopens original service-layer guidance, SQLAlchemy 2.1 Core savepoints and
+FastAPI modular routing. Applied to a native command shared by HTTP/file callers,
+with explicit outer commit/audit ownership; no new repository framework or
+transport-specific result in the business service.
+
+29 October 2026 API boundary extraction: [accepted scope and source assessment](../delivery/specifications/api-service-extraction.md#basis-and-tradeoffs)
+uses original service-layer and incremental-migration guidance plus current
+SQLAlchemy 2.1 and FastAPI documentation. Recommendations are applied as a bounded
+policy-command pilot with Core transaction ownership retained; no mandatory new
+framework, microservices or regulatory requirement is inferred.
+
+29 October 2026 Regulatory Reporting implementation: [bounded delivery](../delivery/regulatory-reporting-20261029.md)
+applies the source/scope and Ops-workflow research below. Reopened FCA transaction
+reporting, SUP 17A/PERG 13 and MDP current-versus-2028 materials; Carbon table
+guidance informs compact review/pagination. Implementation choices and local
+preparation checks are not mandatory regulatory rules or submission acceptance.
+
+29 October 2026 reporting inclusion controls: [Ops decision/selection recommendation](transaction-reporting-reference-20261029.md#ops-inclusion-and-exclusion-replacing-an-ambiguous-checkbox)
+preserves manual discretion while separating reportability, data readiness and
+batch inclusion. Opened FCA scope/reconciliation guidance, Carbon selectable
+table guidance and GOV.UK status tags. Reasoned overrides, outstanding holds and
+frozen export membership are project recommendations; no UI or reporting engine
+has been implemented by this research.
+
+29 October 2026 regulatory reporting: [working-reference review](transaction-reporting-reference-20261029.md)
+traces user-supplied builder/API/UI intent without running external services.
+FCA transaction reporting, MDP connectivity/current versus 2028 draft materials,
+and entity-portal functions were opened/read. Reporting profile, reportability,
+product mapping, review and output separation are proposed project boundaries;
+the actual current portal/payload is unconfirmed. No regulatory acceptance claimed.
+
+27 October 2026 full bond schedules: [schedule recommendation](accrued-interest-fx-20261026.md#full-contractual-bond-schedule--27-october-2026)
+and [implemented reference](../architecture/trading-and-operations/bond-cashflow-schedules.md).
+Reopened OpenGamma Strata's resolved fixed-coupon bond documentation: periodic
+coupons and nominal payment are distinguished within one bond. Typed relational
+rows, exact original-nominal basis and migration design are project choices,
+not mandated database/accounting standards.
+
+27 October 2026 accrued-interest datasets: [three-dataset proposal](accrued-interest-fx-20261026.md#three-dataset-proposal--27-october-2026).
+Reopened GIPS 2020, current public NZ IAS 21 and UK DMO guidance. Recommended
+daily earnings, contractual schedules and reconstructed/supplied balances,
+linked to existing actual payments and trade-accrual movements. Research only;
+the exact dataset arrangement is a project choice, not a prescribed schema.
+
+26 October 2026 accrued-interest balance FX: [review and recommendations](accrued-interest-fx-20261026.md).
+Opened GIPS 2020 provision 2.A.10, current public NZ IAS 21 (January 2025,
+paragraphs 23/28) and UK DMO accrued-interest/payment guidance. Existing detailed
+stock-FX arithmetic and UI category are implemented; daily-only balance
+reconstruction and dedicated completeness reporting remain recommendations.
+
+26 October 2026 instrument display: [source/application register](../architecture/security-master/instrument-display.md#evidence-and-research).
+ANNA, ISO 18774:2024 public abstract, OpenFIGI and W3C table guidance were
+searched/opened. Identity/context separation and readable tables inform the
+implementation; exact label priorities and layout remain project UX decisions.
+
 17 October 2026 tenant organisation implementation: [research, application and limits](../delivery/tenant-organisations-20261017.md#research-used-for-implementation). Opened OWASP authorization guidance, PostgreSQL 18 explicit locking and GOV.UK tables; consulted installed Next 16.3.4 forms guidance. Applied existing request-level authority, shared tenant transaction locks, revision conflicts and semantic paged tables. Trading-only role scope and reuse of existing eligibility storage are project decisions, not a KYC/regulatory certification.
 
 16 October 2026 organisation directory and tenant roles: [source-backed design and applicability](../superpowers/specs/2026-10-16-tenant-organisations-design.md#source-backed-rationale). EDM Council FIBO, GLEIF Golden Copy/delta and LEI search guidance were opened/read in the preceding best-practice review. They support separating identity, relationships and sourced statuses; the tenant eligibility schema/UI and delivery sequence are project recommendations, not mandated regulatory controls. No application implementation is implied.

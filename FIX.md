@@ -1,9 +1,92 @@
 # Reviewed findings
 
+## Rate-exchange follow-up scope — 30 October 2026
+
+The [rate-exchange delivery](docs/delivery/rate-exchange-swaps-20261030.md) closes
+the four source posting exceptions with native, separately priced contracts.
+Its inferred scheduling/principal conventions and the existing bond-income versus
+total-return distinction are disclosed limitations, not confirmed legal terms.
+Generated flows, rate-swap monetary measures and full-portfolio financial
+acceptance remain outside this change; [F18](docs/product/features/product-booking.md#f18-generic-swaps)
+tracks that remaining scope. Focused regressions and live posting checks do not
+supersede the other open findings below.
+
+## SEC-RIGHTS-001 — Missing market-data profiles retain legacy use checks
+
+**Resolved · Confirmed (reproduced and regression-tested) · 30 October 2026.**
+Missing/unknown profiles now deny use; display purpose is consistently explicit
+in `market_data/rights.py`, `display_access.py` and catalogue SQL. Migration 106
+and the exact-identity seed provisioner govern five invented fixtures with
+SYNTHETIC origin evidence. All seven real profiles and 32 original grants were
+verified unchanged. Revocation/current-release and layered/scoped checks remain.
+No synthetic/personal evidence supplies commercial source rights. [Delivery and
+remaining rights-administration work](docs/delivery/dataset-rights-and-workload-20261030.md).
+
+## SEC-WORK-001 — Deployment workload isolation and durable processing
+
+**P2 locally; deployment capacity gate · Confirmed (static) · 30 October 2026.**
+**Admission implemented; remaining deployment work open.**
+`apps/reference_api/workload_admission.py` now provides nonblocking local/global/
+tenant capacity, shared PostgreSQL slots, cancellation/error cleanup and safe
+429/503 retries before domain effects. Separate control pools preserve ordinary
+and single-connection financial reads; numeric totals and complete populations
+are unchanged. [Evidence and defaults](docs/platform/dataset-rights-and-workload.md).
+Remaining: representative load/memory profiling, per-job OS CPU/RSS isolation,
+operator rate accounting and a durable queue/status/cancellation/recovery design.
+Client deadlines do not imply synchronous work stopped. Do not restore arbitrary
+trade caps, drop instruments or silently truncate financial results. Production
+capacity and untrusted deployment are not certified by local admission tests.
+
+## Resolved local controls — 30 October 2026
+
+Security-review findings 3/4/6/8 now have [implemented safeguards and evidence](docs/delivery/security-controls-20261030.md):
+loopback/password/runtime-role separation, real default secret rules, append-only
+access audit/safe denial logs and browser CSP/HTTPS cookie controls. Existing
+data/volume are retained. Trusted database/host administrators, external audit
+retention and production identity remain separate. Finding 5 and the admission
+portion of 7 have since been addressed above; deployment workload work remains.
+
+## SEC-DEP-001 — Vulnerable dependencies and recurring checks
+
+**Resolved for the reviewed locks · 30 October 2026.** Security-review point 2:
+targeted Next.js/Vitest/transitive and Certifi/pytest upgrades remove the known
+advisories. Complete-lock PR/main/manual/weekly checks fail on findings or scanner
+errors, with no advisory/development-package exclusions. See the
+[delivery evidence and limits](docs/delivery/dependency-security-20261030.md) and
+[maintenance reference](docs/platform/dependency-security.md). Remote workflow
+execution is not claimed before push. This closes neither other security
+findings nor future advisories; existing production/deployment gates remain.
+
+## REG-001 — Complete regulatory mapping and submission lifecycle
+
+**P2 · Policy decision · 29 October 2026.**
+[Reporting preparation checks](regulatory_reporting/assessment.py) and
+[retained exports](regulatory_reporting/service.py) intentionally implement local
+preparation, not all current RTS 22 field applicability or accepted serialization.
+Using this CSV directly as a regulator payload would be unsupported. Keep the
+PREPARATION_ONLY/UI boundary, confirm the actual receiving channel, then add
+versioned product/identity applicability, official schema validation, regulatory
+report references, acknowledgements and cancellation/reconciliation. Regression:
+accepted/rejected synthetic schema examples and anonymised accepted real outputs,
+including all supported product families and correction chains. No current
+regulatory acceptance is claimed. See [F53 limits](docs/product/features/regulatory-reporting.md).
+
+## REG-002 — Preparation/export scale assurance
+
+**P2 · Suspected · 29 October 2026.**
+[Execution population](regulatory_reporting/source.py) batches supporting queries
+but retains the complete selected scope in memory; the service assembles CSV,
+manifest and expected revisions synchronously. No arbitrary execution-count cap
+was added. Large scopes may exceed memory/request/transaction budgets; current
+fixtures establish correctness, not production capacity. Profile realistic
+cross-family volumes before choosing background preparation/streaming and retained
+server-side preview tokens. Regression: complete counts/membership/Decimal parity,
+source-change rejection and rights revocation under a large multi-page scope.
+
 **Status:** Open scoped findings  
 **Content type:** Review  
 **Owner:** Product and engineering  
-**Last reviewed:** 2026-10-16 (frontend and scoped backend remediation)
+**Last reviewed:** 2026-10-30 (identity/dependency safeguards; prior scoped findings retained)
 
 Analyzed root: `C:/Users/forte/Elie/projects/python/fintech`. The October 15 review
 maps backend/API modules and traces high-risk paths, extending earlier structured-
@@ -20,6 +103,62 @@ explanations; it does not revalidate every older structured-product finding.
 October 15 coupon-focused review: sourced schedules and payment confirmations now
 have dedicated immutable storage; this does not close broader receivable/accounting
 or source-impact gaps. See [delivery and verification limits](docs/delivery/bond-coupons-20261015.md).
+
+## Scoped follow-up — 25 October 2026
+
+28 October [DIRTY bond quotation follow-up](docs/delivery/bond-dirty-to-clean-20261028.md)
+closes the bounded daily-P&L normalization gap when matching source quoted
+accrued per 100 is provided. It does not infer missing quote evidence, generate
+daily interest, replace a strategy accrued balance or fix general market-data
+source-impact fanout. New normalized staged inputs are reselected before
+publication; older published evidence remains frozen. Broader reconciliation,
+scale, warning routing and derived-stock presentation findings remain open.
+
+28 October scoped [linear futures extension](docs/delivery/linear-futures-extension-20261028.md):
+blanket crypto/physical booking refusals are removed for the supported dated
+linear conventions, with actual asset-role validation and the same governed daily
+variation. Current-family changes cannot alter frozen booked arithmetic. This
+does not resolve FIX-VAL-003 independent portfolio/scale acceptance or delivery,
+assignment, margin-accounting and unsupported-contract scope. Verification is
+limited to the paths/tests recorded in the delivery, not an exhaustive review.
+
+31 October maintained-stock follow-up: [delivery and limits](docs/delivery/maintained-accrued-balances-20261031.md)
+replace implicit bond reconstruction during valuation with explicit source-verified
+history maintenance. Independent anchors, coupon receipts, checkpoint invalidation
+and a workbench are delivered. Missing history/native conversion remains disclosed;
+interest generation, background scheduling, bulk stock uploads and independent
+financial acceptance remain open. This does not close broader valuation findings.
+
+27 October accrued-stock follow-up: [delivery and limits](docs/delivery/accrued-balance-fx-20261027.md)
+add source-based balance replay, CARRY and scoped unpaid receivables. The earlier
+automatic-balance gap is addressed for complete daily history/assessed anchors;
+this does not close accrued-interest generation, currency-change assessment,
+coupon entitlement or payment reconciliation. Source-state checks conservatively
+require reassessment for new historical revisions, even if an anchor would make
+the amount unchanged. Optional FX absence classification is local and tested;
+it depends on documented resolver diagnostics and deliberately rethrows unknown
+structural failures rather than broadly suppressing errors.
+
+27 October schedule follow-up: the former coupon-only slice now supports
+[typed coupon and principal rows](docs/architecture/trading-and-operations/bond-cashflow-schedules.md),
+including principal-only zero bonds. The later stock-FX increment provides bounded
+accrued-stock reconstruction; entitlement, payment reconciliation and DCF-pricing
+remain open. Existing
+coupon receipts remain evidence, not extra income or proof of full settlement.
+Verification scope: [delivery](docs/delivery/bond-cashflow-schedule-20261027.md).
+
+### SCHEMA-DOC-001 — missing Python column comments (minor, open)
+
+`tests/test_schema_metadata.py::SchemaMetadataTests::test_every_schema_column_has_documentation`
+fails for **94 existing columns**, reproduced standalone and by evaluating committed
+`HEAD:security_master_schema/models.py` with the unchanged domain registrations.
+Affected tables: tenant organisation profiles, AMC terms, corporate-action replay
+decisions, bond/FX maturity policies/proposals/postings and four cash-balance
+columns. New migration-99 attribution/review cash-owner columns have comments.
+This is a metadata documentation gap, not missing columns or a financial/runtime
+failure. Deferred from the [cash-FX implementation](docs/delivery/cash-fx-pnl-20261025.md)
+to a targeted schema documentation cleanup; do not describe the broad test set as
+entirely green or suppress the check.
 
 ## Backend/API audit — 15 October 2026
 
@@ -113,26 +252,35 @@ FRONTEND-001–010 are addressed in the scope of their reviewed defects and boun
 
 **Resolution evidence — 2026-10-16:** No financial re-selection for currency display, coherent shell props and one bounded visible-label request. Backend SQL latency remains separate.
 
-## BACKEND-001 — P1 for deployment — Header identity is not production authentication
+## BACKEND-001 — P1 before deployment — Production authentication deferred
 
-**Evidence status:** Confirmed (static); accepted local-development boundary.
+**Evidence status:** Local containment verified; production identity remains open.
 
-- **Source/function:** [context](apps/reference_api/tenant_context.py),
-  `get_tenant_context`/`get_actor_context`; [boundary](apps/reference_api/access_boundary.py),
-  `authorization_boundary`; [sessions](security_master_schema/access_sessions.py).
-- **Trigger:** Expose this API to untrusted clients without a trusted identity
-  gateway. Without a local token, ordinary requests accept caller-supplied actor
-  and tenant headers. Setting a non-local environment disables local sessions;
-  it does not install authentication for ordinary endpoints.
-- **Impact/evidence:** An attacker who supplies an active privileged account ID
-  can impersonate that account at this boundary. Membership/action checks still
-  run, but against an unverified identity. No deployed exploit is claimed.
-- **Fix direction:** Verified authentication adapter, trusted-header stripping and
-  fail-closed non-local startup/deployment validation. Keep selected-user testing
-  explicitly local. A reverse proxy alone is insufficient without enforced trust.
-- **Regression:** Spoofed headers fail in non-local mode; verified identity cannot
-  select another actor/tenant; local session expiry, revocation and independence
-  checks continue to work. No production sign-off until this is tested end to end.
+30 October [safeguard delivery](docs/delivery/local-identity-safeguard-20261030.md)
+closes header-only local access: ordinary protected requests require an opaque
+verified session, identity headers cannot override it, and bootstrap requires a
+private configured operator capability. Legacy demo-user/signed-tenant identity
+is removed. API startup and protected requests fail closed outside explicit local
+modes or without configuration. The earlier header-impersonation finding describes
+the pre-safeguard code; no deployed exploit was claimed.
+
+- **Source/function:** [verifier](apps/reference_api/local_identity.py),
+  `verified_session`/`bootstrap_actor`; [settings](apps/reference_api/config.py),
+  `validate_local_identity`; [boundary](apps/reference_api/access_boundary.py),
+  [verified context](apps/reference_api/tenant_context.py) and
+  [session store](security_master_schema/access_sessions.py).
+- **Remaining trigger/impact:** Local context selection intentionally delegates
+  through a configured testing operator. It does not authenticate individual
+  external people. Exposing or relabelling local mode as a production deployment
+  would violate this boundary; production/staging startup is blocked.
+- **Fix direction:** Later integrate a maintained verified identity provider,
+  account mapping, secure sessions and production support-access policy. Preserve
+  current membership/module/action/strategy authority and real-operator review.
+- **Regression:** [offline configuration/spoofing](tests/test_local_identity_safeguard.py),
+  [real-session expiry/revocation/audit](tests/test_local_identity_sessions.py) and
+  [independent calculation/publication](tests/test_valuation_acceptance.py).
+  [Setup and limits](docs/platform/local-identity-safeguard.md). No production
+  authentication certification is claimed.
 
 ## BACKEND-002 — P2 — Nested initial-fixing evidence is not scoped/reconciled
 
@@ -284,6 +432,36 @@ FRONTEND-001–010 are addressed in the scope of their reviewed defects and boun
 
 ## BACKEND-009 — P3 — Domain/transport boundaries and legacy interfaces have drifted
 
+**Current status — 29 October, cash pilot:** Listed-cash command models,
+orchestration, persistence and its annotation/reference/recognition/correction
+helpers now have HTTP-free `trading` owners. API and file confirmation share that
+command, retaining API read DTOs and caller-owned audit/batch transactions. Fixed
+schema/hash/AST checks and focused direct/API/import/rollback regressions are in
+the [delivery](docs/delivery/cash-booking-service-extraction-20261029.md). The
+baseline generic-swap tuple/UUID lock comparison is also corrected without
+removing currency-drift checks. Other product writers, cancellation orchestration,
+reference/proposal services, catalogue/preview and metadata registration remain
+open. BACKEND-009 is still **partial**, with a completed cash slice.
+
+**Current status — 29 October, phases 1–3:** Selected reverse imports are removed:
+accrual visibility, amendment/bond-redemption locks and generic evidence helpers
+now use lower owners; pricing-policy creation/models and the Yahoo FX operator
+share `market_data` services. Preserved contracts, hash vectors, frozen economics,
+retry/lock behaviour, visibility and audit rollback are covered by the focused
+[delivery checks](docs/delivery/api-service-extraction-20261029.md). Non-HTTP policy
+creation now enforces the same explicit strategy-write scope before replay.
+No schema/operating-data change. BACKEND-009 remains **partial**: reference/booking
+orchestration, catalogue/preview adapters, central schema/resolver responsibilities
+and late intake metadata registration are still coupled. Do not read this pilot
+as a fully thin API or a repository-wide dependency DAG. New regressions include
+fixed command-schema/evidence vectors and shared-command/API/authority tests.
+
+**29 October pre-extraction inventory:** The [atlas baseline](docs/architecture/atlas/README.md)
+recorded the above edges before this implementation, API repository 5,211 lines,
+contracts 1,476, factory 1,244 and models 3,064. Complete runtime metadata matched
+the inspected live table/FK-pair/column-count structure at migration 104.
+Those are dated structural observations, not demonstrated financial failures.
+
 **Current status — 2026-10-16:** Reviewed lower errors/authority/visibility/controls/forward-loader and Future/Swap model extraction completed after explicit approval. All five reviewed service import guards are mandatory; API compatibility imports, complete OpenAPI and representative frozen JSON remain unchanged. Broader decomposition and remaining compatibility imports in `valuation/accruals.py`, `valuation/amendments.py` and `lifecycle/bond_service.py` remain open; BACKEND-009 is not blanket-closed. See [remediation evidence](docs/delivery/quality-reviews/2026-10-16-backend-remediation.md). The original finding below describes the pre-fix trigger.
 
 **Evidence status:** Confirmed (static); refactoring need, not itself a security exploit.
@@ -304,6 +482,21 @@ FRONTEND-001–010 are addressed in the scope of their reviewed defects and boun
   readers/helpers and do not delete retained evidence/schema compatibility blindly.
 - **Regression:** Architecture import checks plus contract parity for cash, bond,
   future, option, swap and forward bookings; existing hashes/replay identities stay stable.
+
+## TEST-001 — P3 — Valuation retry characterization has a stale expected identity
+
+**Confirmed (reproduced), 29 October 2026, before cash extraction.**
+[test_intraday_request_identity_preserves_existing_retry_keys](tests/test_recognition_retry_compatibility.py)
+compares a dataclass projection with `valuation.storage.request_identity`, but
+expects absent `calculation_contract` and an explicit false `require_complete_accruals`.
+The current implementation includes the calculation-contract version and omits
+the default optional-accrual flag. The offline baseline reproduces this mismatch;
+the neighbouring booking-fingerprint recognition check passes. No runtime defect
+is established by this stale assertion. Update the test against the documented
+active calculation contract in a valuation-focused change, including nondefault
+strict-accrual and contract-version identity cases; do not remove the calculation
+version or alter retained fingerprints merely to satisfy this older expectation.
+Cash extraction does not modify that implementation or this test.
 
 ## BACKEND-010 — P2 — Monetary preview does not use the calculation snapshot boundary
 
@@ -485,9 +678,84 @@ FRONTEND-001–010 are addressed in the scope of their reviewed defects and boun
 - **Regression:** [Bond valuation](tests/test_bond_redemption_valuation.py),
   `test_full_valuation_and_staging_keep_final_daily_interest_separate`.
 
+## FIX-VAL-005 — P2 — Partial-result and position Attention signals are incomplete
+
+**Status:** Resolved within the supported retained-coverage scope, 2026-10-29.
+[Delivery and verification](docs/delivery/valuation-review-signals-20261029.md):
+cash-only gaps mark new results partial; response/UI review covers interest FX,
+stock/FX/currency failures and anchor discrepancies. Compact disclosure and
+full-result Attention navigation retain missing-date evidence and existing
+publication behavior. Historical/disappeared cash scopes are not reintroduced.
+Original finding below records the 27 October snapshot; general source fanout
+and independent financial acceptance remain open separately.
+
+**Evidence status:** Confirmed (offline probes and static tracing, 2026-10-27).
+
+- **Source/function:** [calculation](valuation/service.py), `calculate_position`
+  `pnlCompleteness`; [presentation](apps/reference_api/valuation_presentation.py),
+  `component_display`; [fallback/filter](apps/ops-console/src/features/valuation/ops-review-model.ts),
+  `positionAttention`/`selectPositionRows`; [summary](apps/ops-console/src/features/valuation/review-summary.tsx).
+- **Trigger:** Cash coverage is PARTIAL/MISSING_INPUTS while interest coverage has
+  no missing entries; or an otherwise visible position has missing interest FX,
+  accrued-stock FX or an assessed-anchor bridge discrepancy only.
+- **Impact:** Cash-only omissions do not select the partial headline. Attention
+  does not identify the newer interest-FX/stock/reconciliation warnings, so its
+  filter can omit positions requiring review. Global coverage/stock notices and
+  the detailed inspector still disclose these cases; this finding does not
+  demonstrate incorrect financial amounts or absent retained evidence.
+- **Evidence:** An isolated evaluation of the actual completeness expression with
+  two missing cash inputs returned RECORDED_COMPONENTS. `component_display` with
+  MISSING_DAILY_ACCRUAL_FX and missing stock-FX evidence returned `attention=[]`.
+  Anchor differences are retained by replay/inspection but not routed to Attention.
+- **Fix direction:** One server-projected review-issue model and consistent
+  completeness scope for summary, coverage and Attention. Keep an authoritative
+  assessed anchor usable with its warning; do not create new publication blockers
+  or historic-account cash obligations merely to unify display statuses.
+- **Regression:** Cash-only partial coverage; local missing interest FX; missing
+  accrued stock/FX; anchor bridge discrepancy; identity/zero opening stock; normal
+  complete result. Assert identical issue counts/filter membership across summary,
+  table and inspector without altering totals or missing-data policy.
+
+## FIX-VAL-006 — P3 — Derived accrued stocks lack dual-currency stock presentation
+
+**Status:** Resolved as a read projection, 2026-10-29.
+[Delivery](docs/delivery/valuation-review-signals-20261029.md) adds exact
+opening/closing reporting amounts using frozen boundary FX or an unambiguous
+same-day/orientation retained conversion. Zero/identity and each missing boundary
+are explicit. Display uses scan formatting with exact proof; original retained
+stocks and CARRY are unchanged. No migration/current-FX fetch. Missing frozen
+inputs remain unavailable; this does not claim universal source coverage.
+Original finding below is retained as dated evidence.
+
+**Evidence status:** Confirmed (static feature gap, 2026-10-27).
+
+- **Source/function:** [schema](valuation/accrued_balance_tables.py), `register`;
+  [inspector](apps/ops-console/src/features/valuation/accrued-balance-inspection.tsx);
+  contrast [rich assessed input](valuation/accruals.py), `accrual_amounts`.
+- **Trigger:** Ops requests opening/closing accrued stock in strategy/reporting
+  currency for a source-derived balance, rather than a rich supplied input.
+- **Impact/evidence:** Dataset 3 retains native stocks, reporting currency, FX
+  and reporting CARRY; the inspector shows those values. Separate reporting stock
+  amounts are absent. Older detailed inputs retain balanceBase/openingBalanceBase,
+  so both paths do not yet equally meet the requested local/reporting-stock view.
+  Reporting CARRY and supplied daily earnings are already supported; this is not
+  evidence that those P&L components are missing or wrongly translated.
+- **Fix direction:** Expose explicit local/reporting stocks from frozen evidence
+  with independent availability. Decide whether a read projection is sufficient
+  before adding duplicate columns; never fetch current FX to redraw an old result.
+- **Regression:** Foreign/identity FX, missing optional FX, known zero opening,
+  late/partial coupon and negative stock; exact reporting amounts and currency
+  labels survive amendments/successors without recomputing published evidence.
+
 ## FIX-VAL-002 — P2 — Non-ledger source impact fan-out remains incomplete
 
 **Evidence status:** Confirmed (static scope limitation, 2026-10-14).
+
+**Rechecked 2026-10-27:** Ledger, window-bounded cash, daily-interest and actual
+coupon revisions now participate in source health/publication checks. Generalized
+market-observation, policy, calendar and corporate-action change fan-out remains
+outside these predicates. Preserve that distinction when reading the original
+finding below; CURRENT is not universal source recertification.
 
 - **Source/function:** [ledger impacts](valuation/ledger_impacts.py), `source_health`;
   [publication](valuation/storage.py), `publish`; [accruals](valuation/accruals.py),
@@ -507,7 +775,27 @@ FRONTEND-001–010 are addressed in the scope of their reviewed defects and boun
 
 ## FIX-VAL-003 — P2 — Independent numerical reconciliation/scale acceptance pending
 
+The [ETP/spot-crypto extension](docs/delivery/etp-spot-crypto-pnl-20261028.md) adds
+synthetic native-booking, price/FX, unit-label, calendar and publication cases.
+These close capability/fixture regressions, not the outstanding independent
+real-portfolio or concurrent-scale acceptance.
+
+28 October scoped follow-up: [structured-note delivery](docs/delivery/structured-note-pnl-20261028.md)
+adds hand-calculated and disposable real-booking cases plus report inspection.
+This does not close the independent real-portfolio/scale acceptance finding.
+Note lifecycle, detached coupon receivables and cross-quotation normalization
+remain explicitly deferred capabilities; missing optional interest is disclosed.
+
 **Evidence status:** Confirmed (verification limitation, 2026-10-14).
+
+**Rechecked 2026-10-27:** A further 73 offline tests passed in the state review.
+The latest accrued-stock delivery records 74 focused database/pure checks, 1,055
+frontend checks and two isolated browser cases. Earlier user-reported close
+agreement with the exported production process is encouraging, but those rounded
+comparisons excluded accrual/cash components and are not an independently retained
+complete economic-P&L acceptance set. Source replay still reads historical inputs;
+daily accrual coverage reconstructs the ledger per day, and report detail loads
+full evidence before client pagination. No representative load bound was measured.
 
 - **Source/function:** [methodology matrix](docs/architecture/market-data-and-valuation/valuation-methodology.md),
   [calculation](valuation/position_calculation.py), `attribute_projection`;

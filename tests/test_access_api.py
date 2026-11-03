@@ -3,7 +3,7 @@ import os
 from uuid import uuid4
 import pytest
 from sqlalchemy import create_engine
-from fastapi.testclient import TestClient
+from tests.api_client import FixtureTestClient as TestClient
 from security_master_schema.demo_data import DEMO_IDS
 from apps.reference_api.main import create_app
 from apps.reference_api.config import Settings
@@ -12,7 +12,7 @@ from apps.reference_api.config import Settings
 @pytest.fixture
 def client():
     engine=create_engine(os.environ['DATABASE_URL'])
-    client=TestClient(create_app(engine=engine,settings=Settings(os.environ['DATABASE_URL'],'test','test',DEMO_IDS['tenant'])))
+    client=TestClient(create_app(engine=engine,settings=Settings.from_environment()))
     yield client
     engine.dispose()
 
@@ -29,7 +29,7 @@ def test_platform_registry_is_independent_of_tenant_membership(client):
 
 
 def test_local_selected_user_cannot_inherit_platform_or_cross_tenant_access(client):
-    root={'X-User-Account-Id':str(DEMO_IDS['platform_admin_user_account'])}
+    root={'X-User-Account-Id':str(DEMO_IDS['platform_admin_user_account']),'X-Local-Operator-Key':os.environ['LOCAL_ACCESS_OPERATOR_KEY']}
     r=client.post('/v1/local-session',headers=root,json={'tenantId':str(DEMO_IDS['tenant']),'userId':str(DEMO_IDS['demo_user_account'])})
     assert r.status_code==201
     token=r.json()['token']
@@ -62,7 +62,7 @@ def test_member_can_read_but_cannot_book_or_manage_access(client):
 def test_selected_operator_and_subject_are_both_retained_in_write_evidence(client):
     from sqlalchemy import select
     from security_master_schema import models as m
-    root={'X-User-Account-Id':str(DEMO_IDS['platform_admin_user_account'])}
+    root={'X-User-Account-Id':str(DEMO_IDS['platform_admin_user_account']),'X-Local-Operator-Key':os.environ['LOCAL_ACCESS_OPERATOR_KEY']}
     r=client.post('/v1/local-session',headers=root,json={'tenantId':str(DEMO_IDS['tenant']),'userId':str(DEMO_IDS['demo_user_account'])})
     h=headers()|{'X-Local-Access-Token':r.json()['token']}
     result=client.post('/v1/strategies',headers=h,json={'strategyCode':'AUDIT_'+uuid4().hex,'displayName':'Audit test','strategyType':'FUND','baseCurrencyCode':'GBP'})
@@ -80,16 +80,16 @@ def test_expired_session_can_be_ended_without_changing_actor(client):
     from sqlalchemy import update
     from datetime import datetime, timezone, timedelta
     from security_master_schema import models as m
-    root={'X-User-Account-Id':str(DEMO_IDS['platform_admin_user_account'])}
+    root={'X-User-Account-Id':str(DEMO_IDS['platform_admin_user_account']),'X-Local-Operator-Key':os.environ['LOCAL_ACCESS_OPERATOR_KEY']}
     token=client.post('/v1/local-session',headers=root,json={}).json()['token']
     engine=create_engine(os.environ['DATABASE_URL'])
     with engine.begin() as c:
         c.execute(update(m.local_access_session).values(expires_at_utc=datetime.now(timezone.utc)-timedelta(days=1)))
     h=root|{'X-Local-Access-Token':token}
-    assert client.get('/v1/local-session',headers=h).status_code==403
+    assert client.get('/v1/local-session',headers=h).status_code==401
     assert client.delete('/v1/local-session',headers=h).status_code==200
     assert client.post('/v1/local-session',headers=root,json={}).status_code==201
-    assert client.delete('/v1/local-session',headers=headers()|{'X-Local-Access-Token':token}).status_code==403
+    assert client.delete('/v1/local-session',headers=headers()|{'X-Local-Access-Token':token}).status_code==401
     engine.dispose()
 
 

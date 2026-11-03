@@ -5,7 +5,8 @@ from sqlalchemy import select
 from security_master_schema import models as m
 from uuid import uuid4
 from datetime import datetime,timezone
-from httpx import ASGITransport,AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 from apps.reference_api.main import create_app
 from apps.reference_api.db import get_engine
 from security_master_schema.demo_data import DEMO_IDS as ids
@@ -152,7 +153,8 @@ def test_failed_calculation_has_durable_safe_attempt_and_no_financial_total():
 def test_failed_attempt_retains_real_operator_before_response_audit():
     from valuation import tables as t
     from uuid import UUID
-    root={'X-User-Account-Id':str(ids['platform_admin_user_account'])}
+    import os
+    root={'X-User-Account-Id':str(ids['platform_admin_user_account']),'X-Local-Operator-Key':os.environ['LOCAL_ACCESS_OPERATOR_KEY']}
     session=call('POST','/v1/local-session',{'tenantId':str(ids['tenant']),'userId':str(ids['demo_user_account'])},headers=root)
     assert session.status_code==201,session.text
     token=session.json()['token'];key=str(uuid4())

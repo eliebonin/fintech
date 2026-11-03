@@ -40,6 +40,17 @@ print('isolated')
     assert result.stdout.strip() == 'isolated'
 
 
+def test_pricing_policy_and_fx_operator_import_without_http():
+    result=run_without_api('''
+from market_data.pricing_policy_contracts import PolicyCreate, PolicyDefinition
+from market_data.pricing_policies import create_policy, policy_definition
+from apps.market_data_ingestor.yahoo_fx_valuation_setup import prepare_fx_valuation
+print('isolated')
+''')
+    assert result.returncode==0,result.stderr
+    assert result.stdout.strip()=='isolated'
+
+
 @pytest.mark.parametrize('entry', ['module', 'legacy_script'])
 def test_cli_help_runs_without_reference_api(entry):
     invocation = ("runpy.run_module('apps.market_data_ingestor.yahoo', run_name='__main__')"

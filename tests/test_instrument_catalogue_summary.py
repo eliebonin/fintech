@@ -1,5 +1,6 @@
 """Compact catalogue must stay bounded and retain tenant visibility."""
 from contextlib import contextmanager
+from unittest.mock import patch
 from sqlalchemy import event, select
 from apps.reference_api.db import get_engine
 from security_master_schema import models as m
@@ -32,7 +33,7 @@ def test_catalogue_queries_stay_bounded_as_page_size_grows():
         statements=[]
         def record(conn,cursor,sql,params,context,many): statements.append(sql)
         event.listen(c,'before_cursor_execute',record)
-        budgets=[]
+        budgets=[];base_budgets=[]
         for size in (1,25,100):
             statements.clear()
             response=request(c,'GET',f'/v1/instruments/catalogue?limit={size}&status=ACTIVE')
@@ -40,10 +41,19 @@ def test_catalogue_queries_stay_bounded_as_page_size_grows():
             assert response.json()['data']
             # The action boundary adds fixed membership/RLS queries. Catalogue
             # cost must remain constant, never become one query per instrument.
-            budgets.append(len(statements))
-            assert len(statements)<=12,len(statements)
+            actual=len(statements)
+            budgets.append(actual)
             assert not any('md.market_data_observation' in sql or 'licence_activity_grant' in sql for sql in statements)
-        assert len(set(budgets))==1,budgets
+            # Compare the same authorised HTTP boundary without the sidecar;
+            # do not bake an obsolete middleware overhead into this query test.
+            statements.clear()
+            with patch('apps.reference_api.instrument_catalogue.load_instrument_displays',return_value={}):
+                baseline=request(c,'GET',f'/v1/instruments/catalogue?limit={size}&status=ACTIVE')
+            assert baseline.status_code==200 and baseline.json()['data']==response.json()['data']
+            base_budgets.append(len(statements))
+            assert actual-len(statements) in (2,3),(actual,len(statements))
+        assert max(budgets)-min(budgets)<=1,budgets
+        assert len(set(base_budgets))==1,base_budgets
 
 
 def test_catalogue_summary_retains_filters_pages_and_empty_totals():

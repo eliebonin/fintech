@@ -54,7 +54,10 @@ def swap_mark_dimensions(projection,subject,cutoff):
 
 def supported_product(product,unit):
     from positions.contracts import POSITION_UNITS
-    expected={'EQUITY':'PRICE','ETF':'PRICE','FUND':'NAV','ACTIVELY_MANAGED_CERTIFICATE':'PRICE','BOND':'CLEAN_PLUS_ACCRUAL','CASH':'FX_ONLY','FX_FORWARD':'FORWARD_RATE_DIFFERENCE','SWAP':'WHOLE_SWAP_MARK','OPTION':'OPTION_PREMIUM'}
+    expected={'EQUITY':'PRICE','ETF':'PRICE','FUND':'NAV','ACTIVELY_MANAGED_CERTIFICATE':'PRICE','BOND':'CLEAN_PLUS_ACCRUAL','CASH':'FX_ONLY','FX_FORWARD':'FORWARD_RATE_DIFFERENCE','SWAP':'WHOLE_SWAP_MARK','OPTION':'OPTION_PREMIUM','FUTURE':'DAILY_PRICE_VARIATION','STRUCTURED_PRODUCT':'WHOLE_NOTE_MARK'}
+    from security_master_schema.cash_products import QUOTED_WRAPPERS
+    expected.update({product:'PRICE' for product in QUOTED_WRAPPERS})
+    expected['DIGITAL_ASSET']='PRICE'
     if product not in expected or unit not in POSITION_UNITS.get(product,()):
         raise ValueError(f'{product}/{unit} is not valuation-ready: explicit unit economics and final marks required')
     return expected[product]

@@ -1,6 +1,6 @@
 """Explicit financial storage precision; calculation evidence remains exact."""
 from decimal import Decimal, ROUND_HALF_EVEN, localcontext
-from .economics import MARKET, INCOME, COSTS, validate_totals
+from .economics import MARKET, CASH, INCOME, COSTS, validate_totals
 
 POLICY = {'version': 1, 'scale': 12, 'mode': 'ROUND_HALF_EVEN',
           'totals': 'SUM_ROUNDED_COMPONENTS'}
@@ -33,7 +33,7 @@ def rounded_result(components, *, market, gross, net):
         ctx.prec = 512
         stored = {k: storage_amount(v) for k, v in components.items()}
         rounded_market = sum((v for k, v in stored.items() if k in MARKET), Decimal(0))
-        rounded_gross = rounded_market + sum((v for k, v in stored.items() if k in INCOME), Decimal(0))
+        rounded_gross = rounded_market + sum((v for k, v in stored.items() if k in INCOME | CASH), Decimal(0))
         rounded_net = rounded_gross + sum((v for k, v in stored.items() if k in COSTS), Decimal(0))
         for value in (rounded_market, rounded_gross, rounded_net):
             storage_amount(value)

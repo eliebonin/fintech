@@ -10,7 +10,7 @@ from security_master_schema.lifecycle_authority import require_lifecycle_operati
 from positions.contracts import ProjectionRequest
 from positions.repository import iter_ledger_facts
 from positions.reconstruction import reconstruct
-from valuation.economics import canonical_payload,evidence_hash
+from security_master_schema.evidence import canonical_payload,evidence_hash
 from .bond_redemption import closing_movements
 
 
@@ -84,7 +84,7 @@ def prepare(c,tenant,actor,operator,strategy,instrument,expected):
 
 
 def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=None):
-    from apps.reference_api.booking_controls import booking_lock_key
+    from security_master_schema.booking_controls import booking_lock_key
     c.execute(select(func.pg_advisory_xact_lock(booking_lock_key(tenant,'bond-maturity',key))))
     # Match ordinary booking's instrument -> strategy lock order. Governance
     # changes coordinate through the instrument lock, avoiding stale source races.
@@ -140,7 +140,7 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
 
 
 def cancel(c,tenant,actor,operator,strategy,posting_id,reason,key):
-    from apps.reference_api.booking_controls import booking_lock_key
+    from security_master_schema.booking_controls import booking_lock_key
     c.execute(select(func.pg_advisory_xact_lock(booking_lock_key(tenant,'bond-maturity',key))))
     lock(c,tenant,strategy)
     proof=require_lifecycle_operation(c,tenant,actor,strategy,'CORRECT',policy(c,tenant,strategy)['mode'],real_operator=operator)

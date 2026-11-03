@@ -51,6 +51,8 @@ def strategy_app(monkeypatch, engine):
     monkeypatch.setattr(api, 'resolve_tenant_workspace', lambda *_: None)
     monkeypatch.setattr(api, 'require_tenant_action', lambda *_: None)
     from apps.reference_api import access_boundary
+    monkeypatch.setattr(access_boundary.access_sessions,'resolve',lambda *_args,**_kw:{
+        'actorId':str(IDENTIFIER),'userId':str(IDENTIFIER),'tenantId':str(IDENTIFIER)})
     monkeypatch.setattr(access_boundary, 'resolve_tenant_workspace', lambda *_: SimpleNamespace(permission_codes={'STRATEGY_CREATE','STRATEGY_WRITE'}))
     monkeypatch.setattr(api, 'create_strategy', lambda *_: StrategyView(
         strategyId=IDENTIFIER, tenantId=IDENTIFIER, strategyCode='BOUNDARY',
@@ -70,7 +72,7 @@ async def create(app, engine):
 
     async with AsyncClient(transport=ASGITransport(app=observed_app, raise_app_exceptions=False), base_url='http://test') as client:
         response = await client.post('/v1/strategies',
-            headers={'X-Tenant-Id': str(IDENTIFIER), 'X-User-Account-Id': str(IDENTIFIER)},
+            headers={'X-Tenant-Id': str(IDENTIFIER), 'X-User-Account-Id': str(IDENTIFIER),'X-Local-Access-Token':'synthetic-session'},
             json={'strategyCode': 'BOUNDARY', 'displayName': 'Boundary', 'strategyType': 'FUND'})
     return response, sent_outcomes
 

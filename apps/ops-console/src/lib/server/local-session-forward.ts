@@ -13,5 +13,7 @@ export async function forwardLocalSession(input: RequestInfo | URL, init?: Reque
   if (!token) return init;
   const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
   headers.set('X-Local-Access-Token', token);
-  return { ...init, headers };
+  // A custom credential header is not automatically stripped by fetch when it
+  // follows a redirect. Private API contracts do not require redirects.
+  return { ...init, headers, redirect:'error' };
 }

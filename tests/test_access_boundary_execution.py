@@ -20,6 +20,10 @@ class Engine:
 
 
 def app(monkeypatch,engine):
+    def session(c,token,*,environment):
+        user,tenant=token.split(':')
+        return {'actorId':user,'userId':user,'tenantId':tenant}
+    monkeypatch.setattr(boundary.access_sessions,'resolve',session)
     monkeypatch.setattr(boundary,'resolve_tenant_workspace',lambda *_:SimpleNamespace(permission_codes={'STRATEGY_READ','STRATEGY_CREATE'}))
     monkeypatch.setattr(boundary,'require_tenant_action',lambda *_:None)
     application=FastAPI()
@@ -36,7 +40,8 @@ def test_authorization_is_off_event_loop_and_has_transaction_budgets(monkeypatch
     async def run():
         event_loop_thread=get_ident()
         async with AsyncClient(transport=ASGITransport(app=application),base_url='http://test') as client:
-            result=await client.get('/v1/strategies',headers={'X-Tenant-Id':str(uuid4()),'X-User-Account-Id':str(uuid4())})
+            tenant,user=str(uuid4()),str(uuid4())
+            result=await client.get('/v1/strategies',headers={'X-Local-Access-Token':f'{user}:{tenant}'})
         assert result.status_code==200
         assert engine.threads and all(thread!=event_loop_thread for thread in engine.threads)
         assert len(engine.budgets)==2
@@ -54,7 +59,8 @@ def test_slow_request_body_does_not_hold_authorization_connection(monkeypatch):
             assert not engine.active, 'No authorization transaction may span await request.json()'
             yield b'}'
         async with AsyncClient(transport=ASGITransport(app=application),base_url='http://test') as client:
+            tenant,user=str(uuid4()),str(uuid4())
             result=await client.post('/v1/strategies',content=body(),headers={
-                'Content-Type':'application/json','X-Tenant-Id':str(uuid4()),'X-User-Account-Id':str(uuid4())})
+                'Content-Type':'application/json','X-Local-Access-Token':f'{user}:{tenant}'})
         assert result.status_code==200
     asyncio.run(run())

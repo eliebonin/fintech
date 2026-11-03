@@ -1,6 +1,7 @@
 """FastAPI application factory for canonical reference-data services."""
 
 from datetime import date
+from contextlib import asynccontextmanager
 from .resource_limits import governance_date
 from typing import Literal
 from uuid import UUID, uuid4
@@ -85,11 +86,37 @@ def _correlation_id(value: str | None) -> str:
     return current_request_id()
 
 
-def create_app(*, settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
+def create_app(*, settings: Settings | None = None, engine: Engine | None = None, workload_controller=None) -> FastAPI:
     resolved_settings = settings or Settings.from_environment()
-    app = FastAPI(title="Reference Data API", version=resolved_settings.api_version)
+    @asynccontextmanager
+    async def lifespan(app):
+        resolved_settings.validate_local_identity()
+        if engine is None:
+            # Explicitly injected test engines are a factory dependency, not an
+            # externally configurable authentication/privilege bypass.
+            from starlette.concurrency import run_in_threadpool
+            from security_master_schema.database_security import assert_runtime_role
+            def check_role():
+                with get_engine(resolved_settings).connect() as connection:
+                    assert_runtime_role(connection)
+            await run_in_threadpool(check_role)
+        try:yield
+        finally:
+            from starlette.concurrency import run_in_threadpool
+            await run_in_threadpool(app.state.workload_controller.close)
+    app = FastAPI(title="Reference Data API", version=resolved_settings.api_version,lifespan=lifespan)
     from .request_audit import AuditedRoute
     app.router.route_class = AuditedRoute
+    from .workload_admission import WorkloadAdmission,controller_from_settings
+    coordination_settings=resolved_settings
+    if engine is not None:
+        url=getattr(engine,'url',None) or getattr(getattr(getattr(engine,'connection',None),'engine',None),'url',None)
+        if url is not None:
+            from dataclasses import replace
+            coordination_settings=replace(resolved_settings,database_url=url.render_as_string(hide_password=False))
+    app.state.workload_controller=workload_controller or controller_from_settings(coordination_settings)
+    app.add_middleware(WorkloadAdmission,controller=app.state.workload_controller,
+        retry_after=resolved_settings.workload_retry_after)
     from .access_boundary import install_access_boundary
     install_access_boundary(app,lambda: engine or get_engine(resolved_settings),resolved_settings.environment,resolved_settings)
     # Starlette executes middleware last-added first. Correlation/error handling
@@ -140,6 +167,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
 
     from .import_routes import import_router
     app.include_router(import_router(connection_dependency,_assert_tenant_membership))
+    from .regulatory_routes import regulatory_router
+    app.include_router(regulatory_router(connection_dependency,_assert_tenant_membership))
 
     from .market_data_workspace import market_data_workspace_router
     from .access_routes import access_router
@@ -171,6 +200,10 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     from .calendar_routes import calendar_router
     from .valuation_input_routes import valuation_input_router
     app.include_router(valuation_input_router(connection_dependency, _assert_tenant_membership))
+    from .balance_history_routes import balance_history_router
+    app.include_router(balance_history_router(connection_dependency, _assert_tenant_membership))
+    from .interest_review_routes import interest_review_router
+    app.include_router(interest_review_router(connection_dependency, _assert_tenant_membership))
     from .cash_snapshot_routes import cash_snapshot_router
     app.include_router(cash_snapshot_router(connection_dependency, _assert_tenant_membership))
     from .bond_redemption_routes import bond_redemption_router
@@ -1133,8 +1166,7 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         actor_id = _assert_tenant_membership(connection, context)
         try:
             require_tenant_action(resolve_tenant_workspace(connection, context.tenant_id, actor_id, governance_date()), "TRADE_WRITE")
-            with connection.begin_nested():
-                result = book_listed_cash_trade(connection, context.tenant_id, actor_id, request, idempotency_key, current_request_id())
+            result = book_listed_cash_trade(connection, context.tenant_id, actor_id, request, idempotency_key, current_request_id())
         except TenantActionForbidden as exc:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant membership is not permitted to book trades") from exc
         except IdempotencyKeyConflict as exc:

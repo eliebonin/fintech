@@ -90,13 +90,14 @@ The more specific desired [strategy and pre-trade UCITS assessment](#f52-strateg
 
 ## F53 Regulatory reporting across jurisdictions
 
-- **Desired:** Support applicable regulatory reporting for the UK (including FCA reporting), EU jurisdictions and Switzerland, including daily reporting where applicable and comparable reporting workflows across those jurisdictions.
-- **Origin:** User-requested addition to the desired list on 12 October 2026. Requirements only; no specification or implementation requested yet.
-- **Status / backend / frontend:** NOT IMPLEMENTED. No reviewed regulatory report production/submission workflow or reporting administration workspace is implemented for this capability.
-- **Cuts/trade-offs:** Reporting scope and frequency must follow the relevant regime and reporting entity. The user's daily FCA reporting example is a desired use case, not a claim that every UK/EU/Swiss entity has the same daily obligation or report format.
-- **Weaknesses:** Applicable obligations, reporting entities, required data, formats, deadlines and submission channels have not yet been established for this desired capability.
-- **Remaining:** Identify the specific reports and jurisdictions, authoritative requirements, frequencies and reporting scope during later specification; then scope preparation, review, submission and correction/status evidence. No report template, automatic submission or reporting schedule is specified yet.
-- **Evidence / related capabilities:** User request recorded above; [fund operations](#f42-fund-operations), [UCITS/AIF controls](#f45-ucits-aif-and-liquidity-controls), and [strategy/pre-trade UCITS assessment](#f52-strategy-and-pre-trade-ucits-assessment). Regulatory reporting is a separate desired workflow; those foundations do not establish reporting delivery or regulatory acceptance.
+Moved to the dedicated [F53 capability record](regulatory-reporting.md).
+**PARTIAL:** UK transaction-report preparation, legal-entity assessment, reasoned
+review and immutable preparation exports are implemented. Official submission
+format/acceptance, transport, acknowledgements, regulatory corrections and the
+other jurisdictions remain unimplemented. See the capability record for explicit
+trade-offs, activation, code/test links and remaining work. The original
+[working-reference review](../../research/transaction-reporting-reference-20261029.md)
+remains dated design evidence, not regulatory acceptance.
 
 ## F54 AI-assisted termsheet parsing and instrument creation
 

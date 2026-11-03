@@ -6,13 +6,26 @@ from market_data.display_access import assert_dataset_display, EvidenceDisplayDe
 def batch_datasets(batch):
     datasets=set()
     try:
+        coverage=batch.get('summary',{}).get('inputCoverage') or {}
+        for row in coverage.get('unpricedPositions',[])+coverage.get('unpricedCashAccounts',[]):
+            for selection in row.get('selections',[]):
+                if selection.get('dataset_id'):datasets.add(UUID(str(selection['dataset_id'])))
         if not batch['items']:
             from .position_storage import valid_empty_summary
-            if valid_empty_summary(batch.get('summary',{})): return set()
+            from .price_inputs import valid_partial_summary
+            if valid_empty_summary(batch.get('summary',{})) or valid_partial_summary(batch.get('summary',{})): return datasets
             raise ValueError('Missing source population')
         for item in batch['items']:
             selections=item['evidence']['selections']
             if not selections:
+                if item.get('method')=='accrued-interest-receivable-fx-v1':
+                    from .accrued_balance_storage import valid_receivable_without_market_data
+                    if valid_receivable_without_market_data(item):continue
+                    raise ValueError('Missing accrued receivable FX source evidence')
+                if item.get('cash_account_id'):
+                    from .cash_fx_storage import valid_cash_without_market_data
+                    if valid_cash_without_market_data(item):continue
+                    raise ValueError('Missing cash FX source evidence')
                 from decimal import Decimal
                 evidence=item['evidence']; bucket=evidence.get('identity',{}).get('bucket',{})
                 if (item.get('position_key') and evidence.get('resultFormat')=='POSITION_V2'
@@ -36,6 +49,11 @@ def assert_batch_display(c, tenant, batch):
             for selection in item['evidence'].get('selections', []):
                 contexts.append((UUID(str(selection['dataset_id'])),
                     UUID(str(selection['market_data_series_id'])) if selection.get('market_data_series_id') else None))
+        coverage=batch.get('summary',{}).get('inputCoverage') or {}
+        for row in coverage.get('unpricedPositions',[])+coverage.get('unpricedCashAccounts',[]):
+            for selection in row.get('selections',[]):
+                if selection.get('dataset_id'):
+                    contexts.append((UUID(str(selection['dataset_id'])),UUID(str(selection['market_data_series_id'])) if selection.get('market_data_series_id') else None))
     except (KeyError,ValueError,TypeError) as exc:
         raise EvidenceDisplayDenied('Source coverage evidence is incomplete; disclosure cannot be authorised.') from exc
     assert_dataset_display(c,tenant,datasets,series_contexts=contexts)

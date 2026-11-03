@@ -46,7 +46,7 @@ def batch_operator_lineage(c, tenant, batch_id, _visited=None):
         t.batch.c.batch_id==batch_id)).mappings().one_or_none()
     if row is None: raise LookupError('Review batch not found')
     events=c.scalars(select(t.run_event.c.details).where(
-        t.run_event.c.attempt_id==row['attempt_id'],t.run_event.c.event_code=='STARTED')).all()
+        t.run_event.c.attempt_id==row['attempt_id'],t.run_event.c.event_code.in_(['STARTED','MARK_OVERRIDE_INPUTS']))).all()
     retained=[e for e in events if 'contributorOperatorIds' in e or 'realOperatorId' in e]
     if retained:
         operators=set()

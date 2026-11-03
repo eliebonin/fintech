@@ -13,7 +13,7 @@ CHUNK_SIZE=500
 
 def iter_ledger_facts(connection, request, *, subject_ids=None):
     assert_tenant_owns_strategy(connection,request.tenant_id,request.strategy_id)
-    after=None;currency_cache={}
+    after=None;currency_cache={};future_identity_cache={};note_identity_cache={}
     while True:
         query=select(m.trade).where(m.trade.c.strategy_id==request.strategy_id,
             # Flow records are validated separately, never as share positions.
@@ -51,7 +51,7 @@ def iter_ledger_facts(connection, request, *, subject_ids=None):
                     snapshot=json.loads(e['event_payload'] or '{}')
                     redemption=snapshot.get('lifecycleRedemption')
                     if row['trade_type']=='MATURITY_REDEMPTION':
-                        from valuation.economics import evidence_hash
+                        from security_master_schema.evidence import evidence_hash
                         if not redemption or e['payload_hash']!=evidence_hash(snapshot):
                             raise PositionError('Missing or inconsistent frozen maturity redemption evidence')
                         inputs=redemption['inputs'];proof=redemption['authority']
@@ -69,11 +69,29 @@ def iter_ledger_facts(connection, request, *, subject_ids=None):
                         snapshot=normalize_booking(connection,row,snapshot,e)
                     elif snapshot['kind']=='PRODUCT_BOOKING':
                         kind=snapshot['economics']['terms']['kind']
+                        if kind in ('FUTURE','STRUCTURED_PRODUCT'):
+                            if kind=='FUTURE':
+                                from .future import normalize_booking
+                                snapshot=normalize_booking(connection,row,snapshot,identity_cache=future_identity_cache)
+                            else:
+                                from .structured_note import normalize_booking
+                                snapshot=normalize_booking(connection,row,snapshot,identity_cache=note_identity_cache)
+                            definition=UUID(snapshot['instrumentDefinitionId']);parent=UUID(snapshot['instrumentId'])
+                            snapshots[e['trade_id']]=(snapshot,definition,parent)
+                            definitions.add(definition);parents.add(parent)
+                            continue
                         if kind=='SWAP':
                             from security_master_schema.swap_valuation import frozen_swap_conventions
                             snapshot=snapshot | dict(valuationConventions=frozen_swap_conventions(row,snapshot))
                         if kind not in ('BOND','ACTIVELY_MANAGED_CERTIFICATE','SWAP') or 'valuationConventions' not in snapshot:
                             raise PositionError('Unsupported booking economics; missing frozen product valuation conventions')
+                        if kind=='BOND':
+                            # Read the original booked terms, never today's security-master terms.
+                            frozen=snapshot['valuationConventions'];coupon=snapshot['economics']['terms'].get('couponType')
+                            if coupon is not None:
+                                if frozen.get('couponType') is not None and frozen['couponType']!=coupon:
+                                    raise PositionError('Conflicting frozen bond coupon types')
+                                snapshot=snapshot | dict(valuationConventions=frozen | dict(couponType=coupon))
                         if kind=='ACTIVELY_MANAGED_CERTIFICATE':
                             frozen=snapshot['valuationConventions'];convention=snapshot['economics']['terms']['convention']
                             from security_master_schema.amc_quotation import quotation_factors
@@ -126,11 +144,18 @@ def iter_ledger_facts(connection, request, *, subject_ids=None):
                     raise PositionError('Inconsistent frozen valuation recognition') from None
             if definition not in products or products[definition][0]!=parent: raise PositionError('Frozen definition identity mismatch')
             product=products[definition][1]
-            if product=='ETP':
-                term=next((x for x in etp.get(parent,[]) if x['effective_from']<=row['trade_datetime_utc'].date()),None)
-                product=term['etp_kind'] if term else None
+            if snapshot['kind']=='CASH_BOOKING':
+                from security_master_schema.cash_products import cash_product_basis
+                try:product,_=cash_product_basis(product,etp.get(parent,[]),row['trade_datetime_utc'].date(),snapshot)
+                except ValueError as exc:raise PositionError(str(exc)) from exc
+                if snapshot.get('quantityUnit') is not None and snapshot['quantityUnit']!=row['quantity_unit']:
+                    raise PositionError('Frozen cash quantity unit differs from booked trade')
             if product=='FUND_SHARE_CLASS': product='FUND'
-            if product not in {'EQUITY','ETF','FUND','BOND','FX_FORWARD','SWAP','OPTION','ACTIVELY_MANAGED_CERTIFICATE'}: raise PositionError('Unsupported booking product')
+            from security_master_schema.quantity_movements import movement_proof
+            try:movement_proof(snapshot,product=product,price=row['execution_price'],quantity=row['quantity'],trade_type=row['trade_type'])
+            except ValueError as exc:raise PositionError(str(exc)) from exc
+            from security_master_schema.cash_products import QUOTED_WRAPPERS
+            if product not in {'EQUITY','ETF','FUND','BOND','FX_FORWARD','SWAP','OPTION','FUTURE','STRUCTURED_PRODUCT','DIGITAL_ASSET','ACTIVELY_MANAGED_CERTIFICATE'}|QUOTED_WRAPPERS: raise PositionError('Unsupported booking product')
             try:
                 currency=UUID(snapshot['priceCurrencyId'])
                 price=row['execution_price']
@@ -148,13 +173,20 @@ def iter_ledger_facts(connection, request, *, subject_ids=None):
                         if (Decimal(details['cleanAmount'])!=clean_amount or Decimal(details['dirtyAmount'])!=clean_amount+accrual
                             or quoted!=(clean_amount if details['priceType']=='CLEAN' else clean_amount+accrual)):
                             raise PositionError('Frozen bond clean/dirty execution bridge mismatch')
-                booking=Booking(row['trade_id'],row['trade_subject_reference_node_id'],currency,row['quantity_unit'],
+                quantity_unit=row['quantity_unit']
+                if snapshot['kind']=='CASH_BOOKING':
+                    from security_master_schema.cash_products import canonical_cash_unit
+                    quantity_unit=canonical_cash_unit(product,quantity_unit)
+                    if quantity_unit!=row['quantity_unit']:
+                        snapshot=snapshot|dict(bookedQuantityUnit=row['quantity_unit'],normalizedQuantityUnit=quantity_unit,
+                            quantityUnitNormalization='CASH_SECURITY_UNIT_LABEL_ONLY_NO_RESCALING')
+                booking=Booking(row['trade_id'],row['trade_subject_reference_node_id'],currency,quantity_unit,
                     row['quantity'],price,Decimal(snapshot['unitMultiplier']),Decimal(snapshot['quoteFactor']),definition,product,
-                    day,basis,reason,snapshot if product in ('BOND','FUND','FX_FORWARD','SWAP','OPTION','ACTIVELY_MANAGED_CERTIFICATE') else None)
+                    day,basis,reason,snapshot if product in {'BOND','FUND','FX_FORWARD','SWAP','OPTION','FUTURE','STRUCTURED_PRODUCT','DIGITAL_ASSET','ACTIVELY_MANAGED_CERTIFICATE'}|QUOTED_WRAPPERS else None)
             except (KeyError,ValueError,TypeError) as exc: raise PositionError('Invalid frozen BOOKED conventions') from exc
             if product=='FX_FORWARD' and (snapshot['kind']!='FX_RATE_BOOKING' or row['quantity_unit']!='CURRENCY_AMOUNT'):
                 raise PositionError('Frozen forward units mismatch')
-            expected_basis=snapshot['priceBasis'] if product in ('SWAP','OPTION','ACTIVELY_MANAGED_CERTIFICATE') else 'PCT_OF_PAR' if product=='BOND' else 'RATE' if product=='FX_FORWARD' else 'UNIT_PRICE'
+            expected_basis=snapshot['priceBasis'] if product in ('SWAP','OPTION','FUTURE','STRUCTURED_PRODUCT','ACTIVELY_MANAGED_CERTIFICATE') else 'PCT_OF_PAR' if product=='BOND' else 'RATE' if product=='FX_FORWARD' else 'UNIT_PRICE'
             if currency!=row['price_currency_id'] or row['price_basis']!=expected_basis:
                 raise PositionError('Frozen booking price currency/basis is inconsistent')
             for e in chain:

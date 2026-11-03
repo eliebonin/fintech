@@ -7,7 +7,7 @@ from security_master_schema import models as m
 from security_master_schema.strategy_access import require_strategy_action
 from security_master_schema.reference_visibility import require_visible
 from security_master_schema.reference_authority import require_reference_action
-from valuation.economics import evidence_hash,canonical_payload
+from security_master_schema.evidence import evidence_hash,canonical_payload
 from . import coupon_tables as t
 from .coupon_contracts import PaymentCreate
 
@@ -35,15 +35,18 @@ def _existing(c,table,tenant,key,digest,actor,operator):
 
 
 def _schedule_view(c,header):
-    periods=[dict(r) for r in c.execute(select(t.period).where(t.period.c.schedule_id==header['schedule_id'])
-        .order_by(t.period.c.accrual_start,t.period.c.coupon_key)).mappings()]
-    return dict(header)|dict(periods=periods,coverage='EXPLICIT_SOURCED_ROWS_ONLY',scope='INFORMATIVE_CONTRACT_NOT_PAYMENT')
+    cashflows=[dict(r) for r in c.execute(select(t.cashflow).where(t.cashflow.c.schedule_id==header['schedule_id'])
+        .order_by(t.cashflow.c.payment_date,t.cashflow.c.cashflow_type,t.cashflow.c.cashflow_key)).mappings()]
+    currency=c.scalar(select(m.currency.c.currency_code).where(m.currency.c.currency_id==header['currency_id']))
+    return dict(header)|dict(cashflows=cashflows,currencyCode=currency,amountBasis='PER_100_ORIGINAL_NOMINAL',
+        coverage='EXPLICIT_SOURCED_ROWS_ONLY',scope='INFORMATIVE_CONTRACT_NOT_PAYMENT')
 
 
 def save_schedule(c,tenant,actor,payload,key,*,operator=None):
     require_reference_action(c,tenant,actor,'REFERENCE_APPROVE');operator=operator or actor
     _,terms=_bond(c,tenant,payload.instrument_id)
-    if terms['coupon_type']=='ZERO': raise ValueError('Zero-coupon bonds have no periodic coupon schedule')
+    if terms['coupon_type']=='ZERO' and any(r.cashflow_type=='COUPON' for r in payload.cashflows):
+        raise ValueError('Zero-coupon bonds permit principal cashflows only')
     approved=c.scalar(select(m.instrument_definition_version.c.instrument_definition_version_id).where(
         m.instrument_definition_version.c.instrument_node_id==payload.instrument_id,m.instrument_definition_version.c.is_current,
         m.instrument_definition_version.c.status=='APPROVED'))
@@ -69,7 +72,7 @@ def save_schedule(c,tenant,actor,payload,key,*,operator=None):
         calendar_id=payload.calendar_id,day_count_convention_id=payload.day_count_convention_id,
         business_day_convention=payload.business_day_convention,source_reference=payload.source_reference,reason=payload.reason,
         request_key=key,request_hash=digest,actor_id=actor,real_operator_id=operator).returning(t.schedule)).mappings().one()
-    c.execute(t.period.insert(),[p.model_dump()|dict(schedule_id=header['schedule_id']) for p in payload.periods])
+    c.execute(t.cashflow.insert(),[p.model_dump()|dict(schedule_id=header['schedule_id']) for p in payload.cashflows])
     return _schedule_view(c,header)
 
 
@@ -85,10 +88,11 @@ def read_schedule(c,tenant,actor,strategy,instrument,schedule_id=None):
 
 
 def _period(c,tenant,period_id):
-    row=c.execute(select(t.period,t.schedule.c.instrument_id,t.schedule.c.revision.label('schedule_revision'),t.schedule.c.currency_id.label('contract_currency_id'))
-        .join(t.schedule).where(t.period.c.period_id==period_id,t.schedule.c.tenant_id==tenant)).mappings().one_or_none()
+    row=c.execute(select(t.cashflow,t.schedule.c.instrument_id,t.schedule.c.revision.label('schedule_revision'),t.schedule.c.currency_id.label('contract_currency_id'))
+        .join(t.schedule).where(t.cashflow.c.cashflow_id==period_id,t.schedule.c.tenant_id==tenant)).mappings().one_or_none()
     if not row: raise LookupError('Coupon period unavailable')
     _bond(c,tenant,row['instrument_id'])
+    if row['cashflow_type']!='COUPON': raise ValueError('Principal cashflows cannot be confirmed as coupons')
     return row
 
 
@@ -100,6 +104,8 @@ def _latest_payments(tenant,strategy):
 def record_payment(c,tenant,actor,payload,key,*,operator=None,correction=False,reverse=False):
     action='TRADE_CORRECT' if correction or reverse else 'LIFECYCLE_BOOK'
     require_strategy_action(c,tenant,actor,action,payload.strategy_id);operator=operator or actor
+    from valuation.storage import input_revision_lock
+    input_revision_lock(c,tenant,payload.strategy_id)
     if correction and not payload.note.strip(): raise ValueError('A correction reason is required')
     period=_period(c,tenant,payload.period_id)
     if payload.payment_date>datetime.now(timezone.utc).date(): raise ValueError('Future dates are expected payments, not confirmed receipts')
@@ -151,8 +157,8 @@ def payment_report(c,tenant,actor,strategy,start,end,limit,offset):
     latest=_latest_payments(tenant,strategy)
     where=[latest.c.rank==1,latest.c.payment_date.between(start,end)]
     total=c.scalar(select(func.count()).select_from(latest).where(*where))
-    rows=[dict(r) for r in c.execute(select(latest,t.period.c.coupon_key,t.schedule.c.instrument_id,t.schedule.c.revision.label('schedule_revision'))
-        .join(t.period,latest.c.period_id==t.period.c.period_id).join(t.schedule,t.period.c.schedule_id==t.schedule.c.schedule_id)
+    rows=[dict(r) for r in c.execute(select(latest,t.cashflow.c.cashflow_key,t.schedule.c.instrument_id,t.schedule.c.revision.label('schedule_revision'))
+        .join(t.cashflow,latest.c.period_id==t.cashflow.c.cashflow_id).join(t.schedule,t.cashflow.c.schedule_id==t.schedule.c.schedule_id)
         .where(*where).order_by(latest.c.payment_date.desc(),latest.c.payment_id).limit(limit).offset(offset)).mappings()]
     return rows,total
 

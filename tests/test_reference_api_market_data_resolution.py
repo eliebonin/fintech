@@ -4,7 +4,8 @@ import asyncio
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 import os
 from sqlalchemy import create_engine
 

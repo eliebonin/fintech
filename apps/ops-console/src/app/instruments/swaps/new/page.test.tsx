@@ -10,6 +10,11 @@ it('passes the selected tenant to creation within the existing workspace shell',
   const page=await NewSwapPage();expect(page.props.tenantName).toBe('Selected tenant');
   expect(page.props.children.props.children.at(-1).props.tenantId).toBe('selected');
 });
+it('offers the rate-exchange creation variant in the same authorized workspace',async()=>{
+  const page=await NewSwapPage({searchParams:Promise.resolve({kind:'RATE_EXCHANGE'})});
+  const form=page.props.children.props.children.at(-1);
+  expect(form.type.name).toBe('RateSwapCreationForm');expect(form.props.tenantId).toBe('selected');
+});
 it('enforces tenant-admin and security-master access and missing-session redirection',async()=>{
   h.workspace.mockResolvedValue({membershipRole:'TRADER',moduleCodes:['TRADING']});expect((await NewSwapPage()).props.children).toBeNull();
   h.workspace.mockResolvedValue({membershipRole:'TENANT_ADMIN',moduleCodes:[]});expect((await NewSwapPage()).props.children).toBeNull();

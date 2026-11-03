@@ -16,14 +16,14 @@ from sqlalchemy.engine import make_url
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-APP_URL = make_url(os.environ.get("TEST_DATABASE_ADMIN_URL",
-    "postgresql+psycopg://platform:platform_local_only@localhost:54329/postgres"
-)).set(database="platform_secm")
+from scripts.local_database_config import migration_url
+APP_URL = make_url(migration_url(test_admin=True)).set(database="platform_secm")
 
 
 def main():
     name = "platform_isolated_tests_" + uuid4().hex
     isolated = APP_URL.set(database=name)
+    print('Owned disposable test database:',name,flush=True)
     original = sqlalchemy.create_engine
     admin = original(APP_URL.set(database="postgres"), isolation_level="AUTOCOMMIT")
     engines = []
@@ -36,7 +36,9 @@ def main():
 
         def test_engine(url, *args, **kwargs):
             parsed = make_url(url)
-            if (parsed.host, parsed.port, parsed.database) == (APP_URL.host, APP_URL.port, APP_URL.database):
+            local={'localhost','127.0.0.1','::1'}
+            same_host=parsed.host==APP_URL.host or (parsed.host in local and APP_URL.host in local)
+            if same_host and (parsed.port,parsed.database)==(APP_URL.port,APP_URL.database):
                 url = isolated
             engine = original(url, *args, **kwargs)
             engines.append(engine)

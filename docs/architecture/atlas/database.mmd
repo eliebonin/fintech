@@ -1,0 +1,23 @@
+flowchart TB
+    NAV["nav · 21<br/>P&L and review"]
+    REG["reg · 5<br/>Reporting preparation"]
+    TRD["trd · 31<br/>Strategies, ledger, cash, lifecycle, imports"]
+    MD["md · 27<br/>Observations and selection evidence"]
+    TEN["ten · 21<br/>Access, ownership, policies"]
+    SECM["secm · 86<br/>Instruments, entities, terms"]
+    ING["ing · 4<br/>Sources and provenance"]
+    CAL["cal · 4<br/>Calendars and sessions"]
+    FEE["fee · 3<br/>Fee configuration"]
+    CFG["cfg · 2<br/>Mapping configuration"]
+    NAV --> TRD
+    NAV --> MD
+    REG --> TRD
+    REG --> TEN
+    TRD --> TEN
+    TRD --> SECM
+    MD --> SECM
+    MD --> ING
+    MD --> CAL
+    SECM --> ING
+    FEE --> TRD
+    CFG --> ING

@@ -159,7 +159,7 @@ def test_http_replacement_and_stale_conflict_for_every_supported_product(kind,re
 
 
 def test_late_replacement_failure_rolls_back_both_records(c,monkeypatch):
-    from apps.reference_api import trade_corrections as service
+    from trading import corrections as service
     first=original(c);before=c.scalar(select(func.count()).select_from(m.trade))
     real_append=service._append
     def fail_second(*args,**kwargs):

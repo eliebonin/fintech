@@ -128,7 +128,7 @@ def test_mock_bond_coupon_to_publication_and_corrected_successor(client, valued,
     with c.begin():
         counts = tuple(c.scalar(select(func.count()).select_from(table)) for table in (m.trade, m.cash_balance))
     receipt = ok('POST', '/v1/lifecycle/coupons/payments', dict(strategyId=strategy,
-        periodId=schedule['periods'][0]['period_id'], paymentDate='2026-10-01', amount='1000', currencyId=gbp,
+        periodId=schedule['cashflows'][0]['cashflow_id'], paymentDate='2026-10-01', amount='1000', currencyId=gbp,
         cashAccountId=account, sourceReference='Mock coupon bank receipt', note='Already earned through daily interest',
         confirmPayment=True), status=201)
     assert receipt['effects'] == dict(additionalInterestPnl='0', cashBalanceUpdated=False,

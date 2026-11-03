@@ -21,7 +21,7 @@ def test_coupon_api_permissions_payment_report_and_retained_corrections(client):
     first=client.post('/v1/lifecycle/coupons/schedules',headers=h|{'Idempotency-Key':key},json=json_schedule())
     assert first.status_code==201,first.text
     assert client.post('/v1/lifecycle/coupons/schedules',headers=h|{'Idempotency-Key':key},json=json_schedule()).json()['schedule_id']==first.json()['schedule_id']
-    period=first.json()['periods'][0]['period_id']
+    period=first.json()['cashflows'][0]['cashflow_id']
     assert client.post('/v1/lifecycle/coupons/schedules',headers=reader|{'Idempotency-Key':str(uuid4())},json=json_schedule()).status_code==403
     target=f"strategyId={ids['strategy']}&instrumentId={ids['bond_instrument_node']}"
     assert client.get('/v1/lifecycle/coupons/schedule?'+target,headers=reader).status_code==200
@@ -63,10 +63,10 @@ def test_foreign_coupon_period_is_not_visible_through_known_uuid(client):
     assert response.status_code==201,response.text
     with get_engine().begin() as c:
         header=dict(c.execute(select(t.schedule).where(t.schedule.c.schedule_id==response.json()['schedule_id'])).mappings().one())
-        period=dict(c.execute(select(t.period).where(t.period.c.schedule_id==header['schedule_id'])).mappings().first())
+        period=dict(c.execute(select(t.cashflow).where(t.cashflow.c.schedule_id==header['schedule_id'])).mappings().first())
         foreign=uuid4();foreign_period=uuid4()
         c.execute(t.schedule.insert().values(**(header|dict(schedule_id=foreign,tenant_id=ids['second_tenant'],revision=1,supersedes_schedule_id=None,request_key=uuid4().hex))))
-        c.execute(t.period.insert().values(**(period|dict(period_id=foreign_period,schedule_id=foreign))))
+        c.execute(t.cashflow.insert().values(**(period|dict(cashflow_id=foreign_period,schedule_id=foreign))))
     path=f"/v1/lifecycle/coupons/schedule?strategyId={ids['strategy']}&instrumentId={ids['bond_instrument_node']}&scheduleId={foreign}"
     assert client.get(path,headers=reader).status_code==404
     data=dict(strategyId=str(ids['strategy']),periodId=str(foreign_period),paymentDate='2026-10-01',amount='1',

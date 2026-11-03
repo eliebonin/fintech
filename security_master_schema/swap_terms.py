@@ -131,3 +131,13 @@ class GenericSwapTerms(BaseModel):
         with localcontext() as context:
             context.prec=512;context.traps[Inexact]=True
             return quantity*self.notional_per_unit if self.quantity_unit=='UNITS' else quantity
+
+
+# The original performance contract and its serialized bytes stay unchanged.
+from .rate_swap_terms import RateSwapTerms
+SwapTerms=GenericSwapTerms|RateSwapTerms
+
+
+def parse_swap_terms(payload):
+    if isinstance(payload,(GenericSwapTerms,RateSwapTerms)):return payload
+    return RateSwapTerms.model_validate(payload) if isinstance(payload,dict) and payload.get('swapKind')=='RATE_EXCHANGE' else GenericSwapTerms.model_validate(payload)

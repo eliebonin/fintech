@@ -9,15 +9,11 @@ from security_master_schema.demo_data import DEMO_IDS
 from tests.test_market_data_ingestion import setup_dataset, ingest
 
 
-def test_profiled_observations_do_not_change_unrelated_legacy_entitlement():
+def test_profiled_observations_do_not_change_unrelated_explicit_display_entitlement():
     with get_engine().connect() as c:
         tx = c.begin()
         try:
             legacy_dataset = DEMO_IDS['multi_asset_dataset']
-            c.execute(m.tenant_dataset_entitlement.update().where(
-                m.tenant_dataset_entitlement.c.tenant_id == DEMO_IDS['tenant'],
-                m.tenant_dataset_entitlement.c.dataset_id == legacy_dataset,
-            ).values(use_purpose='VALUATION'))
             before = _load_market_data(c, DEMO_IDS['tenant'], [DEMO_IDS['bond_instrument_node']])
             assert before
             dataset, namespace, listing = setup_dataset(c)
@@ -26,9 +22,9 @@ def test_profiled_observations_do_not_change_unrelated_legacy_entitlement():
                 m.market_data_observation.c.dataset_id == legacy_dataset,
                 _market_data_display_entitlement_clause(m.market_data_observation.c.dataset_id, DEMO_IDS['tenant']),
             )
-            assert list(c.scalars(legacy_ids)), 'An unrelated profiled dataset must not suppress legacy observations'
+            assert list(c.scalars(legacy_ids)), 'An unrelated dataset must not suppress an explicit reporting entitlement'
             assert _load_market_data(c, DEMO_IDS['tenant'], [DEMO_IDS['bond_instrument_node']]) == before
-            # Profiled datasets still require INTERNAL_REPORTING, independently of legacy datasets.
+            # All datasets require INTERNAL_REPORTING; valuation is a separate use.
             c.execute(m.tenant_dataset_entitlement.insert().values(
                 tenant_id=DEMO_IDS['tenant'], dataset_id=dataset,
                 use_purpose='VALUATION', valid_from=date(2026, 10, 1)))

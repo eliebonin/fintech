@@ -7,7 +7,8 @@ from security_master_schema.market_data_resolver import resolve_market_data,Reso
 
 def select_forward_rate(c,request,subject,cutoff,conventions):
     rr=ResolutionRequest(request.tenant_id,subject,request.policy_id,cutoff.date(),request.cut_id,request.information_cutoff,'VALUATION',request.strategy_id)
-    selected=resolve_market_data(c,rr)
+    from .price_inputs import resolve_input
+    selected=resolve_input(c,rr,resolve_market_data)
     if selected.status!='SELECTED':raise ValueError(f'Forward contract-rate input blocked: {selected.exception_code or selected.status}')
     s=c.execute(select(m.market_data_series).where(m.market_data_series.c.market_data_series_id==selected.market_data_series_id)).mappings().one()
     rule=c.execute(select(m.valuation_policy_rule).where(m.valuation_policy_rule.c.valuation_policy_rule_id==selected.policy_rule_id)).mappings().one()

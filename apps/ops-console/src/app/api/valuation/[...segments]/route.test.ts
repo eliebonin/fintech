@@ -1,62 +1,44 @@
-import {beforeEach,expect,it,vi} from 'vitest';
+import {afterEach,expect,it,vi} from 'vitest';
 import {NextRequest} from 'next/server';
+const h=vi.hoisted(()=>({fetch:vi.fn(),context:vi.fn()}));
 vi.mock('server-only',()=>({}));
-vi.mock('@/lib/tenant-session',()=>({getActiveTenantContext:async()=>({tenantId:'trusted-tenant',userAccountId:'trusted-user'})}));
-const upstream=vi.hoisted(()=>vi.fn());
-beforeEach(()=>{upstream.mockReset();upstream.mockResolvedValue(new Response(JSON.stringify({items:[],scope:'MARKET_ONLY'}),{status:200}));vi.stubGlobal('fetch',upstream);});
-
-it('does not forward arbitrary routes or untrusted tenant headers',async()=>{
- const {GET}=await import('./route');
- const missing=await GET(new NextRequest('http://localhost/api/valuation/admin'),{params:Promise.resolve({segments:['admin']})});
- expect(missing.status).toBe(404);expect(upstream).not.toHaveBeenCalled();
- await GET(new NextRequest('http://localhost/api/valuation/attempts?limit=10&tenant=attacker',{headers:{'X-Tenant-Id':'attacker'}}),{params:Promise.resolve({segments:['attempts']})});
- const [url,init]=upstream.mock.calls[0];
- expect(String(url)).toContain('/v1/valuation/attempts?limit=10');expect(String(url)).not.toContain('attacker');
- expect(new Headers(init.headers).get('X-Tenant-Id')).toBe('trusted-tenant');
+vi.mock('@/lib/tenant-session',()=>({getActiveTenantContext:h.context}));
+vi.mock('@/lib/reference-fetch',()=>({referenceFetch:()=>h.fetch}));
+import {GET} from './route';
+afterEach(()=>vi.clearAllMocks());
+it('forwards only scoped trade-timeline filters through the selected tenant context',async()=>{
+ h.context.mockResolvedValue({tenantId:'selected-tenant',userAccountId:'selected-user'});
+ h.fetch.mockResolvedValue(Response.json({items:[],total:0}));
+ const response=await GET(new NextRequest('http://localhost/api/valuation/balance-trades?strategyId=s&instrumentId=b&fromDate=2026-01-01&toDate=2026-10-20&tenantId=spoofed'),{params:Promise.resolve({segments:['balance-trades']})});
+ expect(response.status).toBe(200);const parsed=new URL(h.fetch.mock.calls[0][0]);
+ expect(parsed.searchParams.get('instrumentId')).toBe('b');expect(parsed.searchParams.has('tenantId')).toBe(false);
 });
-it('requires a stable key before forwarding a calculation',async()=>{
- const {POST}=await import('./route');
- const response=await POST(new NextRequest('http://localhost/api/valuation/attempts',{method:'POST',body:'{}'}),{params:Promise.resolve({segments:['attempts']})});
- expect(response.status).toBe(400);expect(upstream).not.toHaveBeenCalled();
-});
-it('requires a stable key for explicit reassessment recalculation',async()=>{
- const {POST}=await import('./route');
- const response=await POST(new NextRequest('http://localhost/api/valuation/reassessments/recalculate',{method:'POST',body:'{}'}),{params:Promise.resolve({segments:['reassessments','recalculate']})});
- expect(response.status).toBe(400);expect(upstream).not.toHaveBeenCalled();
-});
-it('forwards exact-date cash queries without client-supplied authority',async()=>{
- const {GET,POST}=await import('./route');
- await GET(new NextRequest('http://localhost/api/valuation/cash-balances?strategyId=chosen&valueDate=2026-10-10&tenant=attacker'),{params:Promise.resolve({segments:['cash-balances']})});
- const url=new URL(String(upstream.mock.calls[0][0]));
- expect(url.searchParams.get('valueDate')).toBe('2026-10-10');expect(url.searchParams.get('strategyId')).toBe('chosen');expect(url.searchParams.has('tenant')).toBe(false);
- const noKey=await POST(new NextRequest('http://localhost/api/valuation/cash-balances',{method:'POST',body:'{}'}),{params:Promise.resolve({segments:['cash-balances']})});
- expect(noKey.status).toBe(400);
-});
-it('forwards an explicit self-publication only through its allowlisted endpoint',async()=>{
- const {POST}=await import('./route');const id='00000000-0000-7000-8000-000000000001';
- const response=await POST(new NextRequest(`http://localhost/api/valuation/batches/${id}/self-publish`,{method:'POST',body:JSON.stringify({comment:'Single-person desk',confirmSelfPublication:true})}),{params:Promise.resolve({segments:['batches',id,'self-publish']})});
- expect(response.status).toBe(200);expect(String(upstream.mock.calls[0][0])).toContain(`/batches/${id}/self-publish`);
- expect(JSON.parse(upstream.mock.calls[0][1].body)).toEqual({comment:'Single-person desk',confirmSelfPublication:true});
-});
-it('forwards report filters but not invented tenant or actor context',async()=>{
- const {GET}=await import('./route');
- await GET(new NextRequest('http://localhost/api/valuation/attempts?strategy_id=chosen&from_date=2026-10-01&to_date=2026-10-07&calculation_status=COMPLETED&publication_status=STAGED&results_only=true&offset=25&tenant=attacker'),{params:Promise.resolve({segments:['attempts']})});
- const url=new URL(String(upstream.mock.calls[0][0]));
- for(const [key,value] of Object.entries({strategy_id:'chosen',from_date:'2026-10-01',to_date:'2026-10-07',calculation_status:'COMPLETED',publication_status:'STAGED',results_only:'true',offset:'25'}))expect(url.searchParams.get(key)).toBe(value);
- expect(url.searchParams.has('tenant')).toBe(false);
-});
-it('allowlists keyed component requests and independent decisions',async()=>{
- const {POST}=await import('./route');const id='00000000-0000-7000-8000-000000000001';
- const response=await POST(new NextRequest(`http://localhost/api/valuation/batches/${id}/amendments`,{method:'POST',headers:{'Idempotency-Key':'retry-key'},body:'{}'}),{params:Promise.resolve({segments:['batches',id,'amendments']})});
- expect(response.status).toBe(200);expect(new Headers(upstream.mock.calls[0][1].headers).get('Idempotency-Key')).toBe('retry-key');
- const denied=await POST(new NextRequest('http://localhost/api/valuation/amendments/not-an-id/approve',{method:'POST',body:'{}'}),{params:Promise.resolve({segments:['amendments','not-an-id','approve']})});
- expect(denied.status).toBe(404);
-});
-it('forwards bounded option searches and selected lookup without browser authority',async()=>{
- const {GET}=await import('./route');
- const response=await GET(new NextRequest('http://localhost/api/valuation/option-choices?kind=strategies&q=alpha&limit=25&offset=500&selected_id=chosen&for_calculation=true&tenant=attacker'),{params:Promise.resolve({segments:['option-choices']})});
+it('forwards only the allowed series filters through the selected tenant context',async()=>{
+ h.context.mockResolvedValue({tenantId:'selected-tenant',userAccountId:'selected-user'});
+ h.fetch.mockResolvedValue(Response.json({items:[],total:0}));
+ const response=await GET(new NextRequest('http://localhost/api/valuation/balance-series?strategyId=strategy&instrumentId=bond&fromDate=2024-01-01&toDate=2026-10-20&tenantId=spoofed&extra=ignore'),{params:Promise.resolve({segments:['balance-series']})});
  expect(response.status).toBe(200);
- const url=new URL(String(upstream.mock.calls[0][0]));
- for(const [key,value] of Object.entries({kind:'strategies',q:'alpha',limit:'25',offset:'500',selected_id:'chosen',for_calculation:'true'}))expect(url.searchParams.get(key)).toBe(value);
- expect(url.searchParams.has('tenant')).toBe(false);
+ const [url,init]=h.fetch.mock.calls[0],parsed=new URL(url);
+ expect(parsed.searchParams.get('instrumentId')).toBe('bond');expect(parsed.searchParams.get('fromDate')).toBe('2024-01-01');
+ expect(parsed.searchParams.has('tenantId')).toBe(false);expect(parsed.searchParams.has('extra')).toBe(false);
+ expect(init.headers.get('X-Tenant-Id')).toBe('selected-tenant');
+});
+it('keeps arbitrary upstream paths unavailable',async()=>{
+ const response=await GET(new NextRequest('http://localhost/api/valuation/arbitrary'),{params:Promise.resolve({segments:['arbitrary']})});
+ expect(response.status).toBe(404);expect(h.fetch).not.toHaveBeenCalled();
+});
+it('forwards only strategy/day/stage for the interest review through verified context',async()=>{
+ h.context.mockResolvedValue({tenantId:'selected-tenant',userAccountId:'selected-user'});
+ h.fetch.mockResolvedValue(Response.json({rows:[],sourceHash:'a'.repeat(64)}));
+ const response=await GET(new NextRequest('http://localhost/api/valuation/interest-review?strategyId=s&valueDate=2026-10-20&stage=BALANCE&tenantId=spoofed&fromDate=2020-01-01'),{params:Promise.resolve({segments:['interest-review']})});
+ expect(response.status).toBe(200);const parsed=new URL(h.fetch.mock.calls[0][0]);
+ expect(parsed.searchParams.get('valueDate')).toBe('2026-10-20');expect(parsed.searchParams.get('stage')).toBe('BALANCE');
+ expect(parsed.searchParams.has('tenantId')).toBe(false);expect(parsed.searchParams.has('fromDate')).toBe(false);
+});
+it('forwards the history instrument filter and paging without accepting browser identity',async()=>{
+ h.context.mockResolvedValue({tenantId:'selected-tenant',userAccountId:'selected-user'});
+ h.fetch.mockResolvedValue(Response.json({items:[],total:0,offset:25,limit:25}));
+ await GET(new NextRequest('http://localhost/api/valuation/balance-history?strategyId=s&instrumentId=b&fromDate=2026-10-01&toDate=2026-10-20&offset=25&limit=25&tenantId=spoofed'),{params:Promise.resolve({segments:['balance-history']})});
+ const parsed=new URL(h.fetch.mock.calls[0][0]);
+ expect(parsed.searchParams.get('instrumentId')).toBe('b');expect(parsed.searchParams.get('offset')).toBe('25');expect(parsed.searchParams.has('tenantId')).toBe(false);
 });

@@ -5,7 +5,15 @@ import type {BookedTrade} from './trades';
 export function swapContextLabels(context:components['schemas']['ProductBookingContextView']):Record<string,string> {
   const swap=context.swapDetails,terms=swap?.genericTerms;
   if(!swap||!terms)return {};
-  const labels:Record<string,string>={[terms.performanceReferenceId]:swap.performanceReferenceName};
+  const labels:Record<string,string>={};
+  if('swapKind' in terms){
+    for(const [key,idField,labelField] of [['rateReferences','reference_node_id','canonical_name'],['currencies','currency_id','currency_code'],['dayCountConventions','day_count_convention_id','display_name']]){
+      const rows=swap.sourceFacts[key];if(!Array.isArray(rows))continue;
+      for(const row of rows)if(row&&typeof row==='object'&&typeof row[idField]==='string'&&typeof row[labelField]==='string')labels[row[idField]]=row[labelField];
+    }
+    return labels;
+  }
+  if(swap.performanceReferenceName)labels[terms.performanceReferenceId]=swap.performanceReferenceName;
   if(context.currency){labels[terms.notionalCurrencyId]=context.currency;labels[terms.quoteCurrencyId]=context.currency;}
   if(terms.fundingReferenceId&&swap.fundingReferenceName)labels[terms.fundingReferenceId]=swap.fundingReferenceName;
   for(const [key,idField] of [['returnProfile','return_profile_id'],['dayCountConvention','day_count_convention_id']]){

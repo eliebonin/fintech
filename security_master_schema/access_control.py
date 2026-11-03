@@ -4,6 +4,11 @@ Groups express job responsibilities; module entitlements remain the upper bound.
 No group name, legacy membership label or platform role implies tenant access.
 """
 ACTION_MODULES = {
+    'REPORTING_READ': frozenset({'REGULATORY_REPORTING'}),
+    'REPORTING_PREPARE': frozenset({'REGULATORY_REPORTING'}),
+    'REPORTING_REVIEW': frozenset({'REGULATORY_REPORTING'}),
+    'REPORTING_EXPORT': frozenset({'REGULATORY_REPORTING'}),
+    'REPORTING_CONFIGURE': frozenset({'REGULATORY_REPORTING'}),
     'STRATEGY_CREATE': frozenset({'TRADING', 'FUND_MANAGEMENT'}),
     'STRATEGY_READ': frozenset({'TRADING', 'FUND_MANAGEMENT'}),
     'STRATEGY_WRITE': frozenset({'TRADING', 'FUND_MANAGEMENT'}),

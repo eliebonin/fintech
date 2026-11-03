@@ -19,7 +19,7 @@
     "@mui/material": "^9.4.0",
     "@mui/material-nextjs": "^9.4.0",
     "api-contracts": "workspace:*",
-    "next": "^16.3.4",
+    "next": "^16.4.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
@@ -30,6 +30,6 @@
     "@types/react-dom": "^19.2.5",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }

@@ -7,6 +7,7 @@ from sqlalchemy import select, insert, update, delete, func
 from security_master_schema import models as m
 from .trade_properties import assert_trade_configurator, lock_trade_catalogue, TradeFieldError
 from .trade_configuration import ConfigurationConflict
+from trading.annotations import validate_reference, restrict_selection, assert_selection
 
 def audit(connection, tenant_id, actor_id, action, subject_id, reason, payload=None):
     if not reason.strip() or len(reason) > 2000: raise ValueError("A reason of at most 2000 characters is required.")
@@ -124,27 +125,6 @@ def change_record(connection, tenant_id, actor_id, catalogue_id, record_version_
         return record_view(row)
     return record_view({**old, "status":"RETIRED"})
 
-def validate_reference(connection, tenant_id, catalogue_id, record_version_id):
-    record, catalogue = m.reference_catalogue_record, m.reference_catalogue
-    if not connection.scalar(select(record.c.record_version_id).join(catalogue, record.c.catalogue_id == catalogue.c.catalogue_id).where(
-        record.c.record_version_id == record_version_id, catalogue.c.catalogue_id == catalogue_id, catalogue.c.tenant_id == tenant_id,
-        catalogue.c.status == "ACTIVE", record.c.status == "ACTIVE").with_for_update()):
-        raise ValueError("Select an active record from this field's tenant catalogue.")
-
-def restrict_selection(connection, tenant_id, role, statement, identity_column):
-    policy = m.trade_selection_policy
-    if connection.scalar(select(policy.c.version_no).where(policy.c.tenant_id == tenant_id, policy.c.role == role)) is not None:
-        member = m.trade_selection_member
-        column = member.c.person_id if role == "TRADER" else member.c.organisation_id
-        statement = statement.where(identity_column.in_(select(column).where(member.c.tenant_id == tenant_id, member.c.role == role)))
-    return statement
-
-def assert_selection(connection, tenant_id, role, identifier, field):
-    policy, member = m.trade_selection_policy, m.trade_selection_member
-    if connection.scalar(select(policy.c.version_no).where(policy.c.tenant_id == tenant_id, policy.c.role == role)) is None: return
-    column = member.c.person_id if role == "TRADER" else member.c.organisation_id
-    if not connection.scalar(select(member.c.member_id).where(member.c.tenant_id == tenant_id, member.c.role == role, column == identifier)):
-        raise TradeFieldError(field, "This record is not eligible for this tenant and trade role.")
 
 def selection_view(connection, tenant_id, actor_id, role):
     assert_trade_configurator(connection, tenant_id, actor_id)

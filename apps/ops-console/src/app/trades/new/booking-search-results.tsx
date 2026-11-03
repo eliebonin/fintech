@@ -1,11 +1,15 @@
 'use client';
 
 import {useState} from 'react';
+import {InstrumentLabel} from '@/components/instrument-label';
+import type {InstrumentDisplay} from '@/lib/instrument-display';
 
 export type BookingSearchItem = {
   id: string;
   instrumentId: string;
   label: string;
+  display?: InstrumentDisplay;
+  inspectionHref?: string;
   description?: string;
   bookingEligible: boolean;
   readinessStatus?: string | null;
@@ -56,11 +60,11 @@ export function ReadinessResults({items,loading,searched,total,onSelect,onLoadMo
       !ready.length&&!showUnavailable?'Matches found, but none of the loaded matches are ready to book. Show unavailable to inspect the reasons.':
       `${shown.length} shown · ${ready.length} ready · ${items.length-ready.length} unavailable in ${items.length} loaded matches.`}</p>
     {shown.length?<ul className="ticket-options">{shown.map(item=><li key={item.id}>
-      <div><strong>{item.label}</strong>{item.description?<p className="muted">{item.description}</p>:null}
+      <div><InstrumentLabel display={item.display} fallbackName={item.label}/>{item.description?<p className="muted">{item.description}</p>:null}
       <span className="quality">{readinessLabel(item)}</span>
       {readinessLabel(item)!==labels.READY?<p>{item.ineligibilityMessage??'Readiness has not been confirmed. Inspect the instrument configuration.'}</p>:null}</div>
       <div className="ticket-actions">{readinessLabel(item)===labels.READY?<button type="button" disabled={loading} onClick={()=>onSelect(item.id)}>{selectLabel}</button>:null}
-      <a href={`/instruments/${encodeURIComponent(item.instrumentId)}`}>Inspect instrument</a></div>
+      <a href={item.inspectionHref??`/instruments/${encodeURIComponent(item.instrumentId)}`}>Inspect instrument</a></div>
     </li>)}</ul>:null}
     {searched&&hasMore?<button type="button" disabled={loading} onClick={onLoadMore}>{loadMoreLabel}</button>:null}
     {searched&&hasMore?<p className="muted">More matches have not been checked yet. Load more even if this page has no ready instruments.</p>:null}

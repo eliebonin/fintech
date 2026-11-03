@@ -1,5 +1,10 @@
 # Instrument management — capability records
 
+26 October F07: [shared display policy](../../architecture/security-master/instrument-display.md)
+adds readable names, recognised identifiers and listing context to catalogue and
+main downstream read/selection views. Current labels remain outside financial
+snapshots; missing identifiers are explicit. See [delivery](../../delivery/shared-instrument-display-20261026.md).
+
 23 October F08/F09: [AMC delivery](../../delivery/amc-onboarding-20261023.md)
 adds native certificate creation, current-dependency approval and inspection.
 Shared security/booking machinery is reused; the draft fund page is not used

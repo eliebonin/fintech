@@ -3,11 +3,34 @@
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Engineering/platform operations  
-**Last reviewed:** 2026-10-17
+**Last reviewed:** 2026-10-30 (local identity and dependency follow-ups)
 
 [Feature register](../feature-register.md). Test pass, local activation, visual acceptance, financial reconciliation and production certification are different claims.
 
 ## F48 API and operational hardening
+
+30 October [shared admission](../../delivery/dataset-rights-and-workload-20261030.md)
+adds nonblocking process/global/tenant limits across workers, dedicated control
+connections, safe busy responses and preserved manual retry. Ordinary status
+reads and complete financial populations remain. F48 stays PARTIAL for durable
+workers, job OS budgets, production authentication and capacity acceptance.
+
+30 October [database/audit/browser controls](../../delivery/security-controls-20261030.md)
+separate the runtime login, preserve the database while restricting its port and
+credentials, enforce append-only access audit, log safe denials, activate default
+secret rules and add nonce CSP/HTTPS cookie safeguards. Missing profiles and
+admission are addressed by the follow-up above; external retention and production
+identity remain open. [Setup](../../platform/security-controls.md).
+
+30 October [local identity containment](../../delivery/local-identity-safeguard-20261030.md)
+requires sessions and guarded bootstrap, removes demo fallbacks and blocks
+non-local startup. It contains the local header-impersonation gap; production
+identity-provider integration remains a deployment blocker.
+
+30 October [dependency-security remediation](../../delivery/dependency-security-20261030.md)
+updates affected complete locks and adds read-only PR/main/manual/weekly audits.
+Local compatibility and advisory checks are distinct from remote execution and
+production security sign-off. [Maintenance](../../platform/dependency-security.md).
 
 October 16 [query-efficiency delivery](../../delivery/quality-reviews/2026-10-16-query-efficiency.md)
 records measured read-only gains, preserved authority/evidence boundaries and
@@ -16,11 +39,17 @@ remaining full-history/concurrency limits. No production-capacity certification.
 - **Desired:** Consistent authorized/replay-safe APIs, generated contracts, safe logs and scalable recovery/operations.
 - **Status / backend / frontend:** PARTIAL. Authority/tenant checks, budgets, transactions, idempotency, safe RFC problem responses/request IDs and generated OpenAPI/TypeScript; BFF stale-context/uncertain-result handling and readable operational errors.
 - **Cuts/trade-offs:** Synchronous local alpha, targeted resource budgets and compatibility aliases; independent operational evidence survives failed financial work. Tests reject the operating DB; CI migrates/seeds an isolated DB.
-- **Weaknesses:** Large API/repository files, history-scaling costs, supplemental audit durability, dependency warnings, no fully accepted distributed worker/SLO/deployment security model. A staged secret scan is not a full security audit.
+- **Weaknesses:** Large API/repository files, history-scaling costs, supplemental audit durability and no fully accepted distributed worker/SLO/deployment security model. Dependency advisories require recurring review; a clean dated audit or staged secret scan is not a full security audit.
 - **Remaining:** Production identity/audit/recovery/monitoring, representative performance acceptance and selective boundary decomposition. Preserve focused-first tests; broad runs use owned databases and accurately report failures/reruns.
 - **Evidence:** [API hardening](../../delivery/api-boundary-hardening.md), [merge verification](../../delivery/tenant-access-administration-progress.md#completed-remediation-verification), [CI](../../../.github/workflows/quality.yml), [error contract](../../../apps/reference_api/problem_details.py).
 
 ## F49 Frontend acceptance
+
+26 October [HTML/console integrity review](../../delivery/quality-reviews/2026-10-26-frontend-console-integrity.md)
+fixes supplied-interest disclosure nesting and group/import native validation
+patterns. Browser journeys now fail on application console warnings/errors and
+uncaught page errors. Source inventory and synthetic regression evidence remain
+distinct from every live-page/data combination and full assistive sign-off.
 
 October 17 [contextual workflow help](../../delivery/page-contextual-help-20261017.md)
 adds page-specific purpose/steps/terms/impact disclosures across complex workflows,

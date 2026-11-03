@@ -14,7 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from security_master_schema.demo_data import load_demo_data
 
 
-database_url = os.environ.get("DATABASE_URL", "postgresql+psycopg://platform:platform_local_only@localhost:54329/platform_secm")
+from scripts.local_database_config import migration_url
+database_url = migration_url()
+os.environ['DATABASE_URL']=database_url
 project_root = Path(__file__).resolve().parents[1]
 alembic_config = Config(str(project_root / "alembic.ini"))
 alembic_config.set_main_option("script_location", str(project_root / "alembic"))

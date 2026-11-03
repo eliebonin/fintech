@@ -17,7 +17,7 @@ redemption and dedicated convention-amendment UI remain deferred.
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Trading/reference engineering  
-**Last reviewed:** 2026-10-23 (scoped frozen swap valuation conventions follow-up)
+**Last reviewed:** 2026-10-28 (structured-note quote/accrued follow-up; other evidence remains dated)
 
 [Feature register](../feature-register.md). [Shared booking controls](../../delivery/booking-controls.md) apply across these paths. Creation, listing, booking, contractual lifecycle and valuation are separate capabilities.
 
@@ -29,12 +29,26 @@ This does not expand booking or valuation product coverage.
 
 ## F12 Plain listed cash
 
+30 October [typed fund-unit movements](../../delivery/fund-unit-movements-20261030.md)
+add internal TRANSFER/REINVESTMENT booking with frozen unit/type proof, existing
+authority and audited retries. Ordinary purchases still require positive prices.
+Movements generate neither cash nor income; native daily valuation separates
+principal from returns. Existing erroneous-record cancellation is available;
+movement entry UI, upload templates and purchase-ticket replacements are absent.
+
+28 October [cash-product P&L follow-up](../../delivery/etp-spot-crypto-pnl-20261028.md):
+generic ETP readiness now requires effective concrete terms and pins the selected
+term/kind. Native wrapper, token and fund bookings use UNITS; original SHARES
+labels are retained in ledger evidence and normalized only in the projections.
+Equity/ETF labels and cash booking authority/precision remain unchanged.
+
 - **Desired:** Book eligible generic or tenant-private listed cash instruments from the dedicated booking page.
 - **Status / backend / frontend:** ALPHA. Approved listing/definition/date/factor validation and frozen BOOKED economics; cash ticket with strategy, side, quantity, price/currency and settlement.
 - **Cuts/trade-offs:** Explicit eligible product allowlist; derivatives and bonds use separate tickets. Default T+2 business days is a convenience, not exchange-specific settlement certification.
 - **Weaknesses:** Advisory search does not cover every execution constraint; legacy records can lack frozen conventions.
 - **Remaining:** Broader cash-currency inventory support, robust market-specific settlement conventions and acceptance for new eligible subtypes. Legacy unproved records are cancel-only, not silently upgraded.
-- **Evidence:** [Enriched cash](../../delivery/enriched-trade-booking-alpha.md), [integrity](../../delivery/quality-reviews/2026-10-05-cash-and-approval-integrity.md), [writer eligibility](../../../apps/reference_api/cash_booking_integrity.py).
+- **Implementation boundary:** [29 October cash extraction](../../delivery/cash-booking-service-extraction-20261029.md) shares `trading.booking` between HTTP and file confirmation; its command models/store and required validators are independent of the API. Product scope, dates, frozen conventions and financial semantics are unchanged.
+- **Evidence:** [Enriched cash](../../delivery/enriched-trade-booking-alpha.md), [integrity](../../delivery/quality-reviews/2026-10-05-cash-and-approval-integrity.md), [writer eligibility](../../../trading/cash_reference.py), [native/API/file parity](../../../tests/test_trading_cash_booking.py).
 
 ## F13 Deliverable FX forwards
 
@@ -71,10 +85,22 @@ The listed-cash ticket intentionally excludes structured products.
 - **Status / backend / frontend:** ALPHA. Governed product/parent-component terms and approved unit/nominal convention; listed route or OTC ticket with counterparty. Creation templates cover bounded autocall/composed-option/range-accrual/supertracker shapes.
 - **Cuts/trade-offs:** ISIN presence does not determine listed versus OTC execution. Security booking is not a direct payoff-swap abstraction; a swap references an economic instrument (F18).
 - **Weaknesses:** Complex payoff/event modelling is not complete valuation, distribution or automated autocall/redemption operations.
-- **Remaining:** Template-specific lifecycle/payoff evaluation, maturity/final marks, model inputs and acceptance before valuation support.
+- **Remaining:** Template-specific lifecycle/payoff evaluation, generated maturity/redemption and model pricing. [Supplied whole-note P&L](../../delivery/structured-note-pnl-20261028.md) is supported with matching frozen CLEAN/DIRTY/NONE quotations, optional assessed CLEAN interest and explicit economic income; it does not require or implement a payoff-pricing engine. Existing booking maturity limits remain.
 - **Evidence:** [Booking delivery](../../delivery/structured-security-and-futures-booking-alpha.md), [terms research](../../../security-master-notes/27-structured-product-terms-and-coupon-memory.md), [draft/terms scope](../../../apps/reference_api/structured_product_contracts.py).
 
 ## F16 Futures
+
+28 October [linear crypto extension](../../delivery/linear-futures-extension-20261028.md)
+adds native UNDERLYING_UNIT booking and supplied-contract daily P&L for approved
+cash/physical crypto families. Original conventions and quote/asset role checks
+remain authoritative. Physical delivery processing is separate; the index-only
+monetary-preview scope below is not expanded.
+
+27 October [daily economic P&L](../../delivery/futures-daily-pnl-20261027.md)
+now supports the existing cash-settled index slice, with multiplier-once price
+variation and daily closing FX, original-booking evidence and staged publication.
+That initial increment did not expand crypto booking or prove contract MTM;
+the subsequent 28 October extension adds the bounded crypto booking/P&L scope.
 
 October 15 [monetary-measures follow-up](../../delivery/future-position-measures-20261015.md)
 adds governed current notional/exposure for the cash-settled index slice, not
@@ -82,9 +108,9 @@ contract MTM, futures P&L, margin or physical/crypto booking.
 
 - **Desired:** Future family → canonical expiry → listing, delivery-month letters/year width, supported months, currencies including crypto and multiplier-aware booking.
 - **Status / backend / frontend:** ALPHA. Family/expiry conventions, symbol previews, delivery terms, multipliers and governed listing workflow; grouped family/expiry creation and future ticket.
-- **Cuts/trade-offs:** Booking supports conventional cash-settled index outright futures, integer contracts, tick/cutoff and monetary multiplier. Physical/crypto terms are creation-only. Frozen unit/quote/monetary conventions prevent applying the contract multiplier twice.
-- **Weaknesses:** No physical/crypto booking, rolling, variation margin, expiry delivery, commodity-specific workflows, contract-MTM or futures P&L. Monetary exposure requires explicit exact-contract pricing/quote metadata and eligible policy/source coverage.
-- **Remaining:** Separate physical/crypto and settlement/valuation slices; exchange calendar/tick and contract-symbol maintenance; do not interpret a listing multiplier of one as missing the frozen family monetary multiplier.
+- **Cuts/trade-offs:** Booking supports dated linear index/crypto outright futures, integer contracts and explicit tick/cutoff/multiplier. Crypto UNDERLYING_UNIT supports CASH or PHYSICAL settlement terms; no delivery entries are generated. Frozen unit/quote/monetary conventions prevent applying the contract multiplier twice.
+- **Weaknesses:** No rolling, margin accounting, automatic expiry/delivery, inverse/quanto/perpetual/financing adapter or commodity/rate/currency-pair family models. Contract MTM remains unassessed; daily price variation is supported. Existing monetary exposure remains index-only. Exact-contract pricing/quote metadata and eligible policy/source coverage are required.
+- **Remaining:** Delivery/assignment and post-trading-cutoff lifecycle closure; additional family/reference/quotation models, clearing acceptance, exchange calendars/ticks and symbols; do not interpret a listing multiplier of one as missing the frozen family monetary multiplier.
 - **Evidence:** [Family/contract conventions](../../delivery/futures-creation-and-contract-conventions-alpha.md), [booking slice](../../delivery/structured-security-and-futures-booking-alpha.md), [product rules](../../../security_master_schema/product_booking.py).
 
 ## F17 Bonds
@@ -100,10 +126,17 @@ a public bond-upload template or automatic coupon/cash workflow.
 - **Status / backend / frontend:** ALPHA. Approved bond quotation/source conventions, signed accrued amounts and frozen clean/dirty settlement bridge; bond terms creation and dedicated ticket.
 - **Cuts/trade-offs:** CLEAN adds the supplied accrual to consideration; DIRTY already includes it and does not add it again. The separate accrual evidence explains the bridge. Trade settlement accrual is not daily P&L accrual.
 - **Weaknesses:** No automatic accrual schedule or coupon generation. [Ops-triggered full plain-bond principal redemption](../../delivery/plain-bond-redemption-20261014.md) is supported; partial/amortising/indexed/defaulted maturity and final-interest automation are not. Some sparse terms require enrichment before approval/booking.
-- **Remaining:** Automated accrued inputs and coupon/redemption when scoped; dirty market-mark normalization needs its own assessed per-nominal evidence, not a reused trade accrued amount.
+- **Remaining:** Automated accrued inputs and broader coupon/redemption when scoped. [DIRTY market normalization](../../delivery/bond-dirty-to-clean-20261028.md) now consumes exact source quoted accrual per 100; it never reuses trade accrued or generates missing provider inputs.
 - **Evidence:** [Bond booking](../../delivery/bond-booking-alpha.md), [economic inputs](../../delivery/economic-pnl-implementation-2026-10-09.md), [valuation capability checks](../../../valuation/product_inputs.py).
 
 ## F18 Generic swaps
+
+30 October [rate-exchange extension](../../delivery/rate-exchange-swaps-20261030.md)
+adds a separate two-floating-leg variant, current reference revalidation and
+guarded first-time completion of sourced non-tradable identities. Each component
+keeps its own trade, bank marks and P&L. The creation page offers both structures;
+booking/detail inspection renders explicit rate-leg facts. No curves, generated
+cashflows, general term amendments or rate-swap monetary measures are supplied.
 
 - **Desired:** Performance/funded reference, optional funding index, spread, contractual notional/currency, total/excess return, leverage and reset/termination terms; flexible booked notional and whole-swap quote.
 - **Status / backend / frontend:** ALPHA. Typed governed terms/legs, reference revalidation, contractual and booked nominal retained separately; optional unit-based contracts retain units plus exact reference notional/unit and derived booked notional. Counterparty and immutable quote-factor snapshot; generic creation and OTC booking ticket, unit-aware history/details. See [unit swap extension and seeded examples](../../delivery/mock-unit-swaps-20261015.md).

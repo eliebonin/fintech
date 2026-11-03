@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './console-check';
 const id='00000000-0000-7000-8000-000000000777';
 function fixture(legacy=false){return {organisationId:id,displayName:'Synthetic bank',legalName:'Synthetic bank Ltd',
  status:'ACTIVE',leis:[],label:null,internalCode:null,notes:null,versionNo:0,

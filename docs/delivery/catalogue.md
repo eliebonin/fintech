@@ -9,6 +9,14 @@ This directory is dated evidence, not a flat list of current promises. Read [fea
 
 ## Individual records
 
+- [Local identity containment: verified sessions, guarded bootstrap and deployment gate](local-identity-safeguard-20261030.md)
+
+- [Dependency-security point 2: targeted patches, complete audits and compatibility](dependency-security-20261030.md)
+
+- [Listed-cash trading domain: commands, native/file/API parity and rollback](cash-booking-service-extraction-20261029.md)
+
+- [API service extraction phases 1–3: shared evidence and pricing-policy pilot](api-service-extraction-20261029.md)
+
 - [Contextual page help: purpose, steps, terms and business/workflow effects](page-contextual-help-20261017.md)
 
 - [Project-wide frontend style/density review, policy tabs and contract navigation](quality-reviews/2026-10-17-frontend-visual-consistency.md)

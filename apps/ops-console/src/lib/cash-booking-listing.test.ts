@@ -7,6 +7,6 @@ it('refuses unknown types and unsupported products rather than defaulting to cas
     expect(isCashBookingListing({status:'ACTIVE',isTradable:true,instrumentType})).toBe(false);
 });
 it('retains the supported cash security and unit types',()=>{
-  for(const instrumentType of ['ETF','ETC','ETN','ETV','ETI','DIGITAL_ASSET','FUND','FUND_SHARE_CLASS','EXCHANGE_TRADED_VEHICLE','EXCHANGE_TRADED_CERTIFICATE'])
+  for(const instrumentType of ['ETF','ETP','ETC','ETN','ETV','ETI','DIGITAL_ASSET','FUND','FUND_SHARE_CLASS','EXCHANGE_TRADED_VEHICLE','EXCHANGE_TRADED_CERTIFICATE'])
     expect(isCashBookingListing({status:'ACTIVE',isTradable:true,instrumentType})).toBe(true);
 });

@@ -16,7 +16,7 @@ from security_master_schema import models as m
 from market_data.contracts import ListingContext
 from market_data.price_basis import normalise_as_traded
 from market_data.storage import insert_returning
-from valuation.economics import evidence_hash
+from security_master_schema.evidence import evidence_hash
 from .adapter import parse_delivery
 
 METHOD = 'YAHOO_SPLIT_TO_AS_TRADED_V1'

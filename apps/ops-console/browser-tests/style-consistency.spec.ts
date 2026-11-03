@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './console-check';
 
 test('native controls and organisation tables share compact, readable defaults',async({page})=>{
  await page.goto('/?mode=styles');

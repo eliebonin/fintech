@@ -1,4 +1,4 @@
-"""Governed booking of funded structured securities and cash-settled index futures."""
+"""Governed booking of funded securities and dated linear futures."""
 from datetime import date, datetime, timezone
 from security_master_schema.governance_clock import governance_date
 from .problem_details import current_api_version
@@ -12,6 +12,7 @@ from sqlalchemy import select, exists, and_, or_, func
 from security_master_schema import models as m
 from security_master_schema.product_booking import execution_amount, validate_increment, bond_amounts, swap_reference_value
 from security_master_schema.fx_forward_booking import decimal_text
+from security_master_schema.future_economics import require_linear_future
 from .product_booking_contracts import (
     BookingConvention, ConventionProposalRequest, FutureProposalRequest, FutureFamilyProposalRequest, FutureFamilyView, FutureFamilySpecification,
     ProductBookingContextView, ProductTradeEconomicsView,
@@ -70,11 +71,13 @@ def validate_convention_references(connection, tenant, instrument_id, convention
     if convention.effective_from < instrument.effective_from:
         raise ProductBookingError('Convention cannot precede the instrument effective date.')
     if convention.kind == 'FUTURE':
+        require_linear_future(convention)
         future = connection.execute(select(m.future_terms).where(m.future_terms.c.instrument_node_id == instrument_id)).mappings().first()
         family = connection.execute(select(m.future_family).where(m.future_family.c.future_family_id == future.future_family_id)).mappings().first() if future else None
         specification = FutureFamilySpecification.model_validate_json(family.specification_payload) if family and family.specification_payload else None
-        if specification and specification.underlying_kind == 'CRYPTOASSET':
-            raise ProductBookingError('Crypto futures are creation-only; booking-convention amendment is deferred.')
+        if not family or family.status != 'ACTIVE':
+            raise ProductBookingError('An active approved futures family is required.')
+        validate_family_references(connection,tenant,family.underlying_reference_node_id,family.contract_currency_id,specification)
         if not future or future.settlement_method != convention.settlement_method or future.delivery_start_date != convention.delivery_start_date or future.delivery_end_date != convention.delivery_end_date:
             raise ProductBookingError('Convention changes cannot alter canonical futures delivery terms.')
         if specification:
@@ -113,8 +116,8 @@ def submit_proposal(connection, tenant, actor, request):
         validate_amc_references(connection,tenant,request)
         kind='CREATE_AMC'
     elif isinstance(request, SwapProposalRequest):
-        from .swap_creation import validate_swap_references
-        validate_swap_references(connection, tenant, request.terms)
+        from .swap_creation import validate_swap_request
+        validate_swap_request(connection, tenant, request)
         kind = 'CREATE_SWAP'
     elif isinstance(request, ConventionProposalRequest):
         validate_convention_references(connection, tenant, request.instrument_id, request.convention)
@@ -133,21 +136,25 @@ def submit_proposal(connection, tenant, actor, request):
     return get_reference_data_proposal(connection, tenant, proposal_id)
 
 
-def validate_family_references(connection, tenant, underlying_id, currency_id, specification=None):
+def validate_family_references(connection, tenant, underlying_id, currency_id, specification=None, *, lock=False):
     require_visible(connection, tenant, underlying_id)
     if specification and specification.underlying_kind == 'CRYPTOASSET':
-        asset = connection.execute(select(m.currency).where(m.currency.c.reference_node_id == underlying_id,
-            m.currency.c.status == 'ACTIVE', m.currency.c.currency_kind.in_(['CRYPTOASSET', 'STABLECOIN']))).mappings().first()
+        asset_stmt=select(m.currency).where(m.currency.c.reference_node_id == underlying_id,
+            m.currency.c.status == 'ACTIVE', m.currency.c.currency_kind.in_(['CRYPTOASSET', 'STABLECOIN']))
+        asset = connection.execute(asset_stmt.with_for_update() if lock else asset_stmt).mappings().first()
         if not asset or asset.currency_id != specification.contract_size_currency_id:
             raise ProductBookingError('Contract-size currency must be the governed underlying cryptoasset.')
-        if not connection.scalar(select(m.crypto_asset_terms.c.instrument_node_id).where(
+        terms_stmt=select(m.crypto_asset_terms.c.instrument_node_id).where(
             m.crypto_asset_terms.c.instrument_node_id == underlying_id, m.crypto_asset_terms.c.is_current,
-            m.crypto_asset_terms.c.status == 'ACTIVE')):
+            m.crypto_asset_terms.c.status == 'ACTIVE')
+        if not connection.scalar(terms_stmt.with_for_update() if lock else terms_stmt):
             raise ProductBookingError('An active governed cryptoasset is required.')
-    elif not connection.scalar(select(m.index_terms.c.index_node_id).where(
-        m.index_terms.c.index_node_id == underlying_id, m.index_terms.c.status == 'ACTIVE')):
-        raise ProductBookingError('Select an active index or an explicitly configured cryptoasset family.')
-    currency = connection.execute(select(m.currency).where(m.currency.c.currency_id == currency_id, m.currency.c.status == 'ACTIVE')).mappings().first()
+    else:
+        index_stmt=select(m.index_terms.c.index_node_id).where(m.index_terms.c.index_node_id == underlying_id,m.index_terms.c.status == 'ACTIVE')
+        if not connection.scalar(index_stmt.with_for_update() if lock else index_stmt):
+            raise ProductBookingError('Select an active index or an explicitly configured cryptoasset family.')
+    currency_stmt=select(m.currency).where(m.currency.c.currency_id == currency_id, m.currency.c.status == 'ACTIVE')
+    currency = connection.execute(currency_stmt.with_for_update() if lock else currency_stmt).mappings().first()
     if not currency: raise ProductBookingError('An active contract currency is required.')
     if currency.reference_node_id: require_visible(connection, tenant, currency.reference_node_id)
 
@@ -269,17 +276,40 @@ def decide_proposal(connection, tenant, actor, proposal_id, decision, reason):
 
 
 def lock_booking_currency(connection, instrument_id):
-    """Acquire the common currency phase before contract/source identity rows."""
-    currency_id = connection.scalar(select(m.instrument.c.base_currency_id).where(
-        m.instrument.c.instrument_node_id == instrument_id))
-    if currency_id is not None:
-        connection.execute(select(m.currency).where(m.currency.c.currency_id == currency_id).with_for_update()).all()
-    return currency_id
+    """Lock quote/asset currency roles in UUID order before contract rows.
+
+    Reversed crypto pairs must not acquire the same currency locks in opposite
+    orders. A later role change is refused before taking a new currency lock.
+    """
+    statement=select(m.instrument.c.base_currency_id,m.instrument_type.c.type_code,m.future_family.c.specification_payload).select_from(
+        m.instrument.join(m.instrument_type,m.instrument_type.c.instrument_type_id==m.instrument.c.instrument_type_id)
+        .outerjoin(m.future_terms,m.future_terms.c.instrument_node_id==m.instrument.c.instrument_node_id)
+        .outerjoin(m.future_family,m.future_family.c.future_family_id==m.future_terms.c.future_family_id)).where(m.instrument.c.instrument_node_id==instrument_id)
+    record=connection.execute(statement).mappings().one_or_none()
+    currency_id=record['base_currency_id'] if record else None
+    currencies={currency_id} if currency_id is not None else set()
+    if record and record['specification_payload']:
+        try:specification=FutureFamilySpecification.model_validate_json(record['specification_payload'])
+        except ValueError:specification=None # Context validation retains the precise refusal.
+        if specification and specification.contract_size_currency_id:currencies.add(specification.contract_size_currency_id)
+    # Rate swaps lock the full currency population before any contract rows.
+    # A GBP/USD contract must not acquire its other currency after another
+    # request has already locked the same pair in the reverse order.
+    payload=connection.scalar(select(m.swap_definition_version.c.economics_payload).join(m.instrument_definition_version,
+        m.instrument_definition_version.c.instrument_definition_version_id==m.swap_definition_version.c.instrument_definition_version_id).where(
+        m.instrument_definition_version.c.instrument_node_id==instrument_id,m.instrument_definition_version.c.is_current,m.instrument_definition_version.c.status=='APPROVED')) if record and record['type_code']=='SWAP' else None
+    if isinstance(payload,dict) and payload.get('swapKind')=='RATE_EXCHANGE':
+        from security_master_schema.rate_swap_terms import RateSwapTerms
+        rate_terms=RateSwapTerms.model_validate(payload)
+        currencies.update({rate_terms.quote_currency_id,rate_terms.notional_currency_id}|{leg.currency_id for leg in rate_terms.legs})
+    for role in sorted(currencies):
+        connection.execute(select(m.currency).where(m.currency.c.currency_id==role).with_for_update()).all()
+    return currency_id,frozenset(currencies)
 
 
 def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None, lock=False):
     as_of = as_of or governance_date()
-    locked_currency_id = lock_booking_currency(connection, instrument_id) if lock else None
+    locked_currency_id,locked_currency_roles = lock_booking_currency(connection, instrument_id) if lock else (None,frozenset())
     if lock:
         # Lock the canonical instrument before reading conventions and listing projections.
         for table, key, value in [(m.financial_reference_node, 'reference_node_id', instrument_id),
@@ -407,7 +437,7 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
             if listing_id or not convention.otc_allowed:
                 raise ValueError('This swap slice requires an approved OTC convention, without a listing.')
             from .swap_booking import load_swap_context
-            details, maturity = load_swap_context(connection, tenant, instrument_id, as_of, lock=lock)
+            details, maturity = load_swap_context(connection, tenant, instrument_id, as_of, lock=lock,currency_locks=(locked_currency_id,locked_currency_roles) if lock else None)
             values.update(swapDetails=details, maturityDate=maturity)
         else:
             future = connection.execute(select(m.future_terms).where(m.future_terms.c.instrument_node_id == instrument_id)).mappings().one_or_none()
@@ -417,21 +447,28 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
                 require_visible(connection, tenant, display_family.family_node_id)
                 underlying = require_visible(connection, tenant, display_family.underlying_reference_node_id)
                 values.update(underlyingId=underlying.reference_node_id, underlyingName=underlying.canonical_name)
-            if not future or future.settlement_method != 'CASH' or convention.price_basis != 'INDEX_POINTS':
-                raise ValueError('This futures contract is creation-only. Physical/crypto trade booking is deferred.')
+            require_linear_future(convention)
+            if not future or future.settlement_method != convention.settlement_method or future.delivery_start_date != convention.delivery_start_date or future.delivery_end_date != convention.delivery_end_date:
+                raise ValueError('Canonical futures delivery terms differ from approved booking conventions.')
             family_stmt = select(m.future_family).where(m.future_family.c.future_family_id == future.future_family_id)
             family = connection.execute(family_stmt.with_for_update() if lock else family_stmt).mappings().one()
             if lock:
                 for ref in (family.family_node_id, family.underlying_reference_node_id):
                     for table in (m.financial_reference_node, m.reference_node_scope):
                         connection.execute(select(table).where(table.c.reference_node_id == ref).with_for_update()).all()
-                connection.execute(select(m.index_terms).where(m.index_terms.c.index_node_id == family.underlying_reference_node_id).with_for_update()).all()
             require_visible(connection, tenant, family.family_node_id)
             require_visible(connection, tenant, family.underlying_reference_node_id)
             if family.status != 'ACTIVE' or family.contract_currency_id != convention.price_currency_id:
                 raise ValueError('Active matching futures family is required.')
-            if not connection.scalar(select(m.index_terms.c.index_node_id).where(m.index_terms.c.index_node_id == family.underlying_reference_node_id, m.index_terms.c.status == 'ACTIVE')):
-                raise ValueError('Only governed index futures are supported.')
+            specification=FutureFamilySpecification.model_validate_json(family.specification_payload) if family.specification_payload else None
+            if specification:
+                for field in ('price_basis','settlement_method','contract_size','contract_size_currency_id','monetary_multiplier','quote_factor','tick_size','allow_negative_price'):
+                    if getattr(convention,field)!=getattr(specification,field):raise ValueError('Convention differs from approved futures family economics.')
+                if lock and specification.contract_size_currency_id and specification.contract_size_currency_id not in locked_currency_roles:
+                    raise ValueError('Futures currency roles changed during booking; reload the contract.')
+            elif convention.price_basis!='INDEX_POINTS' or convention.settlement_method!='CASH':
+                raise ValueError('Legacy futures families require an approved specification for asset-unit quotations.')
+            validate_family_references(connection,tenant,family.underlying_reference_node_id,family.contract_currency_id,specification,lock=lock)
             if as_of > convention.last_trading_at_utc.astimezone(timezone.utc).date(): raise ValueError('Contract is past its trading cutoff.')
             dates = connection.execute(select(m.instrument_dates).where(m.instrument_dates.c.instrument_node_id == instrument_id)).mappings().one_or_none()
             if not dates or dates.final_settlement_date != convention.final_settlement_date or dates.last_trading_date != convention.last_trading_at_utc.astimezone(timezone.utc).date() or future.last_trade_date != dates.last_trading_date:
@@ -457,9 +494,8 @@ def load_context(connection, tenant, instrument_id, listing_id=None, as_of=None,
                 # Explaining a refusal must not re-raise malformed legacy facts
                 # or make them look eligible. Visibility was checked above.
                 values.update(readinessStatus='NOT_READY', ineligibilityMessage='Futures family configuration is invalid. Inspect its approved specification before booking.')
-            else:
-                if future and (future.settlement_method == 'PHYSICAL' or (specification and specification.underlying_kind == 'CRYPTOASSET')):
-                    values.update(readinessStatus='CREATION_ONLY', ineligibilityMessage='Physical/crypto futures can be created and inspected, but trade booking is not supported in this alpha.')
+            # Otherwise preserve the actual refusal (missing listing, stale
+            # dates, inactive underlying); asset class is not a capability.
     # Presentation-only metadata is added after the execution fingerprint was
     # calculated. It does not change existing saved economics or retry facts.
     if values.get('bookingEligible'):
@@ -526,7 +562,7 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             raise ProductBookingError('Approved terms changed. Reselect for the execution date.', code='product.terms_changed')
         convention = terms.convention
         bond_details = None
-        if kind != 'BOND' and any(value is not None for value in (request.price_type, request.accrued_interest_amount, request.settlement_evidence)):
+        if kind not in ('BOND','STRUCTURED_PRODUCT') and any(value is not None for value in (request.price_type, request.accrued_interest_amount, request.settlement_evidence)):
             raise ProductBookingError('Bond-only fields are not accepted for this product.', 'priceType')
         if kind == 'BOND':
             if not request.price_type or request.accrued_interest_amount is None or not request.settlement_evidence or not request.settlement_evidence.strip():
@@ -568,6 +604,23 @@ def book(connection, tenant, actor, request, key, kind, request_id):
                 price_basis=convention.price_basis, quote_factor=convention.quote_factor,
                 denomination=getattr(convention, 'denomination', None), multiplier=getattr(convention, 'monetary_multiplier', None))
         except ValueError as error: raise ProductBookingError(str(error), 'executionPrice') from error
+        structured_details=None;amount_kind=None
+        if kind=='STRUCTURED_PRODUCT':
+            if request.price_type is not None and request.price_type!=convention.accrual:
+                raise ProductBookingError('Trade price type must match the approved note quotation.', 'priceType')
+            accrued=request.accrued_interest_amount
+            if convention.accrual=='NONE' and accrued is not None:
+                raise ProductBookingError('This note has no separate accrued-interest convention.', 'accruedInterestAmount')
+            quoted=amount
+            if convention.accrual=='CLEAN' and accrued is not None:
+                with localcontext() as ctx:
+                    ctx.prec=512
+                    amount+=accrued
+                if amount<0:raise ProductBookingError('Security consideration cannot be negative.', 'accruedInterestAmount')
+            amount_kind='QUOTED_AMOUNT_EXCLUDING_UNASSESSED_ACCRUAL' if convention.accrual=='CLEAN' and accrued is None else 'CONSIDERATION'
+            structured_details=dict(priceType=convention.accrual,quotedAmount=decimal_text(quoted),
+                accruedInterestAmount=decimal_text(accrued) if accrued is not None else None,
+                considerationAmount=None if amount_kind=='QUOTED_AMOUNT_EXCLUDING_UNASSESSED_ACCRUAL' else decimal_text(amount))
         trade_id = uuid4()
         venue = connection.scalar(select(m.listing.c.market_venue_id).where(m.listing.c.listing_node_id == request.listing_id)) if request.listing_id else None
         connection.execute(m.trade.insert().values(trade_id=trade_id, trade_subject_reference_node_id=request.listing_id or request.instrument_id,
@@ -579,10 +632,10 @@ def book(connection, tenant, actor, request, key, kind, request_id):
             market_activity=request.market_activity, trader_person_id=request.trader_person_id,
             booked_by_user_account_id=actor, created_by_user_account_id=actor, comment=request.comment, **trade_values(request)))
         persist_trade_annotations(connection, tenant, trade_id, request, annotations)
-        economics = ProductTradeEconomicsView(terms=terms, amount=decimal_text(dirty if kind == 'BOND' else amount), bondDetails=bond_details,
+        economics = ProductTradeEconomicsView(terms=terms, amount=decimal_text(dirty if kind == 'BOND' else amount), bondDetails=bond_details,structuredDetails=structured_details,
             bookedNotional=terms.swap_details.generic_terms.booked_reference_notional(request.quantity) if kind == 'SWAP' and terms.swap_details.generic_terms else None,
             bookedUnits=request.quantity if kind=='SWAP' and convention.quantity_unit=='UNITS' else None,
-            amountKind='ENTRY_REFERENCE_VALUE' if kind == 'SWAP' else 'REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION',
+            amountKind=amount_kind or ('ENTRY_REFERENCE_VALUE' if kind == 'SWAP' else 'REFERENCE_CONTRACT_VALUE' if kind == 'FUTURE' else 'CONSIDERATION'),
             direction=None if kind in {'FUTURE', 'SWAP'} else ('PAY' if request.side == 'BUY' else 'RECEIVE'))
         valuation_conventions={}
         if kind=='ACTIVELY_MANAGED_CERTIFICATE':

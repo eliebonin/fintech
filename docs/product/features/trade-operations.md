@@ -1,5 +1,10 @@
 # Trade operations — capability records
 
+26 October F19: [shared instrument labels](../../delivery/shared-instrument-display-20261026.md)
+cover trade history/detail headings and four booking searches, without changing
+booking context DTOs, submitted payloads or frozen economics. Existing SQL search
+semantics and readiness gates remain; current names do not replace booking evidence.
+
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Trading operations/engineering  
@@ -35,6 +40,11 @@
 - **Evidence:** [History delivery](../../delivery/trade-history-alpha.md), [correction delivery](../../delivery/historical-booking-and-record-corrections-alpha.md), [detail route](../../../apps/ops-console/src/app/trades/[tradeId]/page.tsx).
 
 ## F22 Record corrections
+
+29 October [cash extraction](../../delivery/cash-booking-service-extraction-20261029.md)
+moves shared linked-replacement helpers to `trading.corrections`; cancellation
+orchestration/HTTP remain in the existing adapter. Correction rules and support
+status are unchanged.
 
 - **Desired:** Cancel an erroneous booking or atomically replace it, with reason, concurrency controls and original facts retained.
 - **Status / backend / frontend:** ALPHA. Append-only CANCELLED/SUPERSEDED/replacement evidence, sequence/replay guards and scoped authority; supported trade detail actions and correction-prefilled ticket. Unproved legacy bookings have cancel-only recovery.

@@ -20,8 +20,12 @@ No “implemented” label implies commercial data rights, universal instrument 
 
 1. **Understand the platform** — [system overview](architecture/system-overview.md), [security master](architecture/security-master/README.md), [market data and valuation](architecture/market-data-and-valuation/README.md), and [tenancy](architecture/tenancy-and-entitlements/README.md).
 2. **Build or integrate** — [API](platform/api/README.md), [frontend](platform/frontend/README.md), and [data and schema](platform/data-and-schema/README.md).
+   [Visual architecture atlas](architecture/atlas/README.md): current database,
+   code and data-flow diagrams, exact dependency register and coupling assessment.
 3. **Operate data** — [product onboarding](product/onboarding/README.md), [trading and operations](architecture/trading-and-operations/README.md), and [integration/data rights](architecture/integrations-and-data-rights/README.md).
 4. **Evaluate product modules** — [fintech modules](product/fintech-modules/README.md).
+   [Regulatory Reporting](product/features/regulatory-reporting.md) documents the
+   first UK transaction-preparation slice and the unimplemented submission work.
 5. **Plan delivery** — [specifications](delivery/specifications/README.md), [implementation plans](delivery/implementation-plans/README.md), [quality reviews](delivery/quality-reviews/README.md), [decisions](governance/decisions/README.md), and [research](research/evidence-register.md).
 
 ## Code-adjacent documentation

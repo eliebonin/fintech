@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Protocol
+from .bond_quotes import BondQuoteAccrual
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,8 @@ class DailyPoint:
     value: Decimal
     value_basis: str
     series_type: str
+    bond_price_type: str | None = None
+    bond_quote_accrual: BondQuoteAccrual | None = None
 
 
 @dataclass(frozen=True)

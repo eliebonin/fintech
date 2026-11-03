@@ -66,7 +66,7 @@ export type InstrumentRecord = {
   taxonomy: string[];
   notes: string;
   optionTerms?: OptionInstrumentTerms | null;
-  genericTerms?: components['schemas']['GenericSwapTerms-Output'] | null;
+  genericTerms?: components['schemas']['GenericSwapTerms-Output'] | components['schemas']['RateSwapTerms-Output'] | null;
   amcTerms?: components['schemas']['AmcInstrumentTermsView'] | null;
 };
 

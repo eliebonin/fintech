@@ -36,6 +36,12 @@ retired home P&L demo is not supported.
 
 ## Local run
 
+Browser journeys use a [shared console check](browser-tests/console-check.ts)
+for HTML/hydration/runtime diagnostics. Deliberate HTTP failure probes keep their
+individual recovery/status assertions. See the
+[26 October console review](../../docs/delivery/quality-reviews/2026-10-26-frontend-console-integrity.md)
+for fixes, verification and the limits of the coverage.
+
 The seed command below migrates/writes the configured local DB. Run it only for
 explicit setup, not on every app restart. This documentation review did not run
 it or restart services. Tests use [isolated databases](../../docs/delivery/README.md#safe-postgresql-verification).

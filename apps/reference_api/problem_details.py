@@ -38,6 +38,9 @@ class ProblemDetails(BaseModel):
     code: str
     request_id: str = Field(serialization_alias="requestId")
     errors: list[ValidationIssue] | None = None
+    retryable: bool | None = None
+    not_started: bool | None = Field(default=None,serialization_alias='notStarted')
+    retry_after_seconds: int | None = Field(default=None,serialization_alias='retryAfterSeconds',ge=1)
 
 
 class ApiProblem(Exception):
@@ -105,6 +108,12 @@ def configure_problem_details(app: FastAPI) -> None:
             _api_version.reset(version_token)
 
         response.headers["X-Request-ID"] = request_id
+        response.headers['X-Content-Type-Options']='nosniff'
+        response.headers['Referrer-Policy']='no-referrer'
+        response.headers['X-Frame-Options']='DENY'
+        if response.status_code in {401,403}:
+            from .security_events import record_denial
+            record_denial(request,response.status_code)
         route = request.scope.get("route")
         route_path = getattr(route, "path", '<unmatched>')
         LOGGER.info(
@@ -220,14 +229,25 @@ def configure_problem_details(app: FastAPI) -> None:
                 "code": {"type": "string"},
                 "requestId": {"type": "string", "format": "uuid"},
                 "errors": {"type": "array", "items": {"$ref": "#/components/schemas/ValidationIssue"}},
+                "retryable": {"type":"boolean"},
+                "notStarted": {"type":"boolean","description":"True only when admission rejected the request before its domain operation started."},
+                "retryAfterSeconds": {"type":"integer","minimum":1},
             },
         }
 
-        for path_item in schema.get("paths", {}).values():
+        from .workload_admission import workload_kind
+        import re
+        for path,path_item in schema.get("paths", {}).items():
             for method, operation in path_item.items():
                 if method.lower() not in {"get", "put", "post", "delete", "patch", "head", "options"}:
                     continue
                 responses = operation.setdefault("responses", {})
+                representative=re.sub(r'\{[^/}]+\}','00000000-0000-4000-8000-000000000001',path)
+                if workload_kind(method.upper(),representative):
+                    for busy_status in ('429','503'):
+                        responses[busy_status]={'description':'Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.',
+                            'headers':{'Retry-After':{'schema':{'type':'string','pattern':'^[0-9]+$'},'description':'Seconds before a manual unchanged retry.'}},
+                            'content':{'application/problem+json':{'schema':{'$ref':'#/components/schemas/ProblemDetails'}}}}
                 for status_code, description in _OPENAPI_PROBLEM_RESPONSES.items():
                     response = responses.setdefault(str(status_code), {"description": description})
                     response.setdefault("description", description)
@@ -251,6 +271,8 @@ def _problem_response(
     type_slug: str,
     errors: list[ValidationIssue] | None = None,
 ) -> JSONResponse:
+    if status_code in {401,403}:
+        request.state.security_reason=code
     problem = ProblemDetails(
         type=f"{_PROBLEM_BASE_URI}/{type_slug}",
         title=title,

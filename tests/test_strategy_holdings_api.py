@@ -35,6 +35,12 @@ def test_positions_net_all_trades_before_pagination_and_explain_running_quantity
     assert body['items'][0]['instrumentTypeLabel']=='Equities'
     assert body['items'][0]['contractDate'] is None and body['items'][0]['attentionCode'] is None
     position=body['items'][0]
+    display=body['instrumentDisplays'][position['subjectId']]
+    assert display['instrumentId']==str(ids['hsbc_instrument_node'])
+    assert display['identifier']=={'scheme':'TICKER','value':'HSD'}
+    matched=client.get(f'/v1/strategies/{strategy}/positions',params=dict(asOf='2026-09-30',q='HSD',limit=1),headers=headers())
+    assert matched.status_code==200,matched.text
+    assert matched.json()['total']==1 and matched.json()['items'][0]['positionId']==position['positionId']
     detail=client.get(f"/v1/strategies/{strategy}/positions/{position['positionId']}/movements",params=dict(asOf='2026-09-30',informationCutoff=body['informationCutoff'],limit=2),headers=headers())
     assert detail.status_code==200,detail.text
     assert detail.json()['total']==3 and len(detail.json()['items'])==2

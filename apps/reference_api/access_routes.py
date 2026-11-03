@@ -137,19 +137,19 @@ def access_router(connection_dependency, environment):
     def select_context(payload:ContextSelect,actor=Depends(get_actor_context),
             token:str|None=Header(default=None,alias='X-Local-Access-Token'),c=Depends(connection_dependency,scope='function')):
         def command():
-            if token:
-                old=sessions.resolve(c,token,environment=environment)
-                if old['actorId']!=str(actor.user_account_id):
-                    raise PermissionError('Only the real platform operator can change this testing context')
             new=sessions.start(c,actor.user_account_id,payload.tenantId,payload.userId,environment=environment)
             if token:
-                sessions.revoke(c,token,environment=environment)
+                sessions.end(c,actor.user_account_id,token,environment=environment)
             return {'token':new,'context':sessions.resolve(c,new,environment=environment)}
         return run(command)
 
     @router.get('/v1/local-session')
     def current(token:str=Header(alias='X-Local-Access-Token'),c=Depends(connection_dependency,scope='function')):
-        return run(lambda: sessions.resolve(c,token,environment=environment))
+        try:
+            return sessions.resolve(c,token,environment=environment)
+        except PermissionError as exc:
+            raise ApiProblem(401,'authentication.required','Authentication required',
+                'Testing session expired, revoked or invalid; select a context again') from exc
 
     @router.delete('/v1/local-session')
     def end_context(actor=Depends(get_actor_context),token:str|None=Header(default=None,alias='X-Local-Access-Token'),
@@ -164,8 +164,6 @@ def access_router(connection_dependency, environment):
             c=Depends(connection_dependency,scope='function')):
         def read():
             sessions.local_only(environment)
-            if token and sessions.resolve(c,token,environment=environment)['actorId']!=str(actor.user_account_id):
-                raise PermissionError('Only the real platform operator can select contexts')
             return service.platform_view(c,actor.user_account_id)
         return run(read)
 

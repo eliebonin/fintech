@@ -3,6 +3,11 @@
 **Status:** Implemented; focused verification recorded below.
 **Date:** 23 October 2026
 
+**Current-status follow-up (26 October):** [Confirmed zero-coupon applicability](zero-coupon-accrual-applicability-20261026.md)
+now distinguishes absent coupon inputs from missing applicable interest, using
+original frozen booked terms. Supplied inputs and publication safeguards remain.
+The verification below records the original 23 October delivery, not that follow-up.
+
 ## Agreed behaviour
 
 Daily interest is optional by default in economic position P&L. Every supplied

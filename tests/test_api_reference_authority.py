@@ -4,7 +4,8 @@ from contextlib import contextmanager
 from uuid import uuid4
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 from sqlalchemy import select, update, delete, func
 
 from apps.reference_api.main import create_app

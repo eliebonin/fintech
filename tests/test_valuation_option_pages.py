@@ -2,7 +2,8 @@
 import asyncio
 from uuid import uuid4
 from sqlalchemy import select
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 from tests.test_access_management import connection
 from tests.test_api_reference_authority import BoundEngine
 from apps.reference_api.main import create_app

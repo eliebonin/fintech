@@ -4,7 +4,8 @@ import asyncio
 import os
 from uuid import uuid4
 
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 from sqlalchemy import create_engine, text
 
 from apps.reference_api.main import create_app
@@ -42,15 +43,17 @@ async def _get(path: str, headers: dict[str, str]):
 
 
 def test_tenant_api_requires_an_active_membership() -> None:
-    response = asyncio.run(
-        _get(
-            "/v1/instruments/search?q=HSBC",
-            {
-                "X-Tenant-Id": str(uuid4()),
-                "X-User-Account-Id": str(DEMO_IDS["demo_user_account"]),
-            },
-        )
-    )
+    from httpx import ASGITransport as RawTransport
+    from tests.api_client import operator_headers
+    async def forged_tenant():
+        async with AsyncClient(transport=RawTransport(app=create_app()),base_url='http://test') as client:
+            session=await client.post('/v1/local-session',headers=operator_headers(),json={
+                'tenantId':str(DEMO_IDS['tenant']),'userId':str(DEMO_IDS['demo_user_account'])})
+            assert session.status_code==201,session.text
+            return await client.get('/v1/instruments/search?q=HSBC',headers={
+                'X-Local-Access-Token':session.json()['token'],'X-Tenant-Id':str(uuid4()),
+                'X-User-Account-Id':str(DEMO_IDS['demo_user_account'])})
+    response=asyncio.run(forged_tenant())
     assert response.status_code == 403
     assert response.json()["code"] == "authorization.forbidden"
     assert response.json()["detail"] == "The request is not permitted."

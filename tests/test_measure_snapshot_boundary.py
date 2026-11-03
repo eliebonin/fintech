@@ -1,6 +1,6 @@
 """Two-connection changes cannot mix financial reads or bypass current rights."""
 from sqlalchemy import update
-from fastapi.testclient import TestClient
+from tests.api_client import FixtureTestClient as TestClient
 from tests.test_valuation_service import valued
 from apps.reference_api.main import create_app
 from apps.reference_api.db import get_engine

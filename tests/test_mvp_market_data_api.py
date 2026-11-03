@@ -3,7 +3,8 @@
 import asyncio
 from uuid import uuid5
 
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 
 from apps.reference_api.main import create_app
 from security_master_schema.demo_data import DEMO_IDS

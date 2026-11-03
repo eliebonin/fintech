@@ -233,7 +233,13 @@ export function submitAmcProposal(context:EquityProposalOptions,request:componen
 export function submitSwapProposal(context:EquityProposalOptions,request:components['schemas']['SwapProposalRequest']) {
   return postBookedTrade<components['schemas']['ReferenceDataProposalResponse']>('/v1/instruments/swap-proposals',request,context,crypto.randomUUID());
 }
-export async function getSwapTermsLabels(context:EquityProposalOptions,terms:components['schemas']['GenericSwapTerms-Output']):Promise<Record<string,string>> {
+export async function getSwapTermsLabels(context:EquityProposalOptions,terms:components['schemas']['GenericSwapTerms-Output']|components['schemas']['RateSwapTerms-Output']):Promise<Record<string,string>> {
+  if('swapKind' in terms){
+    const [references,currencies,days]=await Promise.all([
+      Promise.all([...new Set(terms.legs.map(l=>l.rateReferenceId))].map(id=>searchReferenceNodes(id,{...context,nodeType:'RATE_INDEX',referenceLevel:'ECONOMIC'}).then(r=>r.data.filter(n=>n.referenceNodeId===id)).catch(()=>[]))),
+      listCurrencies(context,['REGULAR']).catch(()=>undefined),listDayCountConventions(context).catch(()=>undefined)]);
+    return Object.fromEntries([...references.flat().map(r=>[r.referenceNodeId,r.canonicalName]),...(currencies?.data??[]).flatMap(g=>g.items).map(c=>[c.currencyId,c.currencyCode]),...(days?.data??[]).map(d=>[d.dayCountConventionId,d.displayName])]);
+  }
   const [performance,funding,currencies,profiles,dayCounts]=await Promise.all([
     searchReferenceNodes(terms.performanceReferenceId,{...context,nodeType:['INSTRUMENT','INDEX'],referenceLevel:'ECONOMIC'}).catch(()=>undefined),
     terms.fundingReferenceId?searchReferenceNodes(terms.fundingReferenceId,{...context,nodeType:'RATE_INDEX',referenceLevel:'ECONOMIC'}).catch(()=>undefined):undefined,

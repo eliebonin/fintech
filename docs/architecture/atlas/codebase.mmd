@@ -1,0 +1,33 @@
+flowchart TB
+    WEB["apps/ops-console<br/>Browser UI"]
+    BFF["Next.js server / BFF<br/>Validated session context"]
+    API["apps/reference_api<br/>Audited routes + business services"]
+    CLI["apps/market_data_ingestor<br/>Operator-run acquisition"]
+    SHARED["security_master_schema<br/>Models, access, evidence, booking, resolver"]
+    MARKET["market_data + positions<br/>Data, policy commands and reconstruction"]
+    TRADING["trading<br/>Cash command, validation and booking store"]
+    FINANCE["valuation + lifecycle<br/>P&L, review, interest, maturity"]
+    REPORTS["regulatory_reporting + data_imports<br/>Report preparation and file intake"]
+    SQL["PostgreSQL<br/>SQLAlchemy + Alembic"]
+    WEB -->|"HTTP"| BFF
+    BFF -->|"HTTP"| API
+    API --> SHARED
+    API --> MARKET
+    API --> TRADING
+    API --> FINANCE
+    API --> REPORTS
+    CLI --> MARKET
+    CLI --> SHARED
+    MARKET --> SHARED
+    TRADING --> SHARED
+    TRADING --> SQL
+    FINANCE --> MARKET
+    FINANCE --> SHARED
+    REPORTS --> SHARED
+    SHARED --> SQL
+    MARKET --> SQL
+    FINANCE --> SQL
+    REPORTS --> SQL
+    SHARED -.->|"pricing resolver"| MARKET
+    classDef hotspot fill:#fff1d6,stroke:#b27b18,color:#282417
+    class API,SHARED hotspot

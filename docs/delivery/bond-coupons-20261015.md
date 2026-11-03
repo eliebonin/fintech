@@ -52,3 +52,9 @@ publication and correction/recalculation. It also records an intermittent rebook
 rejection; this is not browser acceptance or an unconditional reliability sign-off.
 
 [Design and authoritative references](../superpowers/specs/2026-10-15-bond-coupons-design.md), [plan](../superpowers/plans/2026-10-15-bond-coupons.md). Announcement, entitlement and receipt are distinct; this schema is a project choice, not an accounting certification.
+# Current extension
+
+27 October: the coupon-only schedule is extended by the
+[full bond cashflow schedule](bond-cashflow-schedule-20261027.md). The dated
+verification below describes the original slice; current names/contracts are in
+the [maintained reference](../architecture/trading-and-operations/bond-cashflow-schedules.md).

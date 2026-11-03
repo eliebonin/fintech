@@ -5,7 +5,7 @@ from typing import Annotated, Literal, Any
 from uuid import UUID
 from pydantic import BaseModel, Field, StrictBool, field_validator, model_validator
 from .contracts import TradeBookingRequest, ApiMeta
-from .swap_creation_contracts import GenericSwapTerms
+from .swap_creation_contracts import GenericSwapTerms,SwapTerms
 # Compatibility exports: shared economics are owned below the HTTP layer.
 from security_master_schema.booking_conventions import ConventionBase, FutureConvention
 
@@ -18,7 +18,7 @@ class StructuredConvention(ConventionBase):
     denomination: Decimal | None = Field(default=None, gt=0, max_digits=30, decimal_places=12)
     quantity_minimum: Decimal = Field(alias='quantityMinimum', gt=0, max_digits=30, decimal_places=12)
     quantity_increment: Decimal = Field(alias='quantityIncrement', gt=0, max_digits=30, decimal_places=12)
-    accrual: Literal['NONE', 'DIRTY']
+    accrual: Literal['NONE', 'CLEAN', 'DIRTY']
     otc_allowed: StrictBool = Field(alias='otcAllowed')
 
     @model_validator(mode='after')
@@ -187,15 +187,15 @@ class ProductBookingRequest(TradeBookingRequest):
 
 
 class SwapDetailsView(BaseModel):
-    performance_reference_id: UUID = Field(alias='performanceReferenceId')
-    performance_reference_name: str = Field(alias='performanceReferenceName')
-    performance_direction: Literal['PAY', 'RECEIVE'] = Field(alias='performanceDirection')
-    return_profile_code: str = Field(alias='returnProfileCode')
+    performance_reference_id: UUID | None = Field(default=None,alias='performanceReferenceId')
+    performance_reference_name: str | None = Field(default=None,alias='performanceReferenceName')
+    performance_direction: Literal['PAY', 'RECEIVE'] | None = Field(default=None,alias='performanceDirection')
+    return_profile_code: str | None = Field(default=None,alias='returnProfileCode')
     funding_reference_id: UUID | None = Field(default=None, alias='fundingReferenceId')
     funding_reference_name: str | None = Field(default=None, alias='fundingReferenceName')
     funding_direction: Literal['PAY', 'RECEIVE'] | None = Field(default=None, alias='fundingDirection')
     funding_spread: Decimal | None = Field(default=None, alias='fundingSpread')
-    generic_terms: GenericSwapTerms | None = Field(default=None, alias='genericTerms')
+    generic_terms: SwapTerms | None = Field(default=None, alias='genericTerms')
     effective_date: date = Field(alias='effectiveDate')
     source_facts: dict[str, Any] = Field(alias='sourceFacts')
     model_config = dict(populate_by_name=True)
@@ -246,13 +246,22 @@ class BondTradeDetailsView(BaseModel):
     model_config = dict(populate_by_name=True, extra='forbid')
 
 
+class StructuredTradeDetailsView(BaseModel):
+    price_type: Literal['NONE','CLEAN','DIRTY'] = Field(alias='priceType')
+    quoted_amount: str = Field(alias='quotedAmount')
+    accrued_interest_amount: str | None = Field(default=None,alias='accruedInterestAmount')
+    consideration_amount: str | None = Field(default=None,alias='considerationAmount')
+    model_config = dict(populate_by_name=True,extra='forbid')
+
+
 class ProductTradeEconomicsView(BaseModel):
     booked_units: Decimal | None = Field(default=None,alias='bookedUnits',gt=0,exclude_if=lambda value:value is None)
     booked_notional: Decimal | None = Field(default=None, alias='bookedNotional', gt=0,
         exclude_if=lambda value: value is None)
     bond_details: BondTradeDetailsView | None = Field(default=None, alias='bondDetails')
+    structured_details: StructuredTradeDetailsView | None = Field(default=None,alias='structuredDetails',exclude_if=lambda value:value is None)
     terms: ProductBookingContextView
     amount: str
-    amount_kind: Literal['CONSIDERATION', 'REFERENCE_CONTRACT_VALUE', 'ENTRY_REFERENCE_VALUE'] = Field(alias='amountKind')
+    amount_kind: Literal['CONSIDERATION', 'QUOTED_AMOUNT_EXCLUDING_UNASSESSED_ACCRUAL', 'REFERENCE_CONTRACT_VALUE', 'ENTRY_REFERENCE_VALUE'] = Field(alias='amountKind')
     direction: Literal['PAY', 'RECEIVE'] | None = None
     model_config = dict(populate_by_name=True)

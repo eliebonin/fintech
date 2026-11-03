@@ -3,11 +3,15 @@
 **Status:** Maintained dated-evidence index  
 **Content type:** Review index  
 **Owner:** Engineering/architecture  
-**Last reviewed:** 2026-10-17
+**Last reviewed:** 2026-10-27
 
 Reviews are findings/evidence at a date, not permanent open issues after fixes. [Feature records](../../product/feature-register.md) own current gaps. No historical report certifies the entire current codebase.
 
 ## Current reconciliation and merge
+
+- [P&L valuation: achieved versus intended — October 27](2026-10-27-valuation-state-review.md):
+  frontend, calculation and schema traceability; supported economics, review
+  signal gaps, source-impact boundaries and focused verification.
 
 - [Frontend visual consistency/density — October 17](2026-10-17-frontend-visual-consistency.md):
   shared presentation, policy task tabs, structured-product outline, keyboard skip

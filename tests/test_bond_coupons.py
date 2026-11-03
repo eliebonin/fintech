@@ -10,7 +10,7 @@ from security_master_schema.demo_data import DEMO_IDS as ids
 def schedule_data(**changes):
     return dict(instrumentId=ids['bond_instrument_node'],expectedRevision=0,sourceReference='Synthetic bond terms',
         reason='Initial sourced schedule',confirmSchedule=True,
-        periods=[dict(couponKey='2026-10',accrualStart='2026-04-01',accrualEnd='2026-10-01',paymentDate='2026-10-01',
+        cashflows=[dict(cashflowKey='2026-10',cashflowType='COUPON',accrualStart='2026-04-01',accrualEnd='2026-10-01',paymentDate='2026-10-01',
                       couponRate='0.02',amountPer100='1')])|changes
 
 
@@ -26,14 +26,14 @@ def test_coupon_periods_preserve_unknown_amount_zero_and_explicit_adjusted_dates
     from pydantic import ValidationError
     base=schedule_data()
     model=ScheduleCreate.model_validate(base)
-    assert model.periods[0].amount_per_100==1
-    floating=base|dict(periods=[dict(couponKey='FLOAT',accrualStart='2026-04-01',accrualEnd='2026-10-01',
-        paymentDate='2026-09-30',rateFormula='SONIA + contractual spread')])
-    assert ScheduleCreate.model_validate(floating).periods[0].amount_per_100 is None
-    assert ScheduleCreate.model_validate(base|dict(periods=[base['periods'][0]|dict(amountPer100='0')])).periods[0].amount_per_100==0
-    for row in [base['periods'][0]|dict(amountPer100=1.2),base['periods'][0]|dict(accrualEnd='2026-01-01')]:
-        with pytest.raises(ValidationError): ScheduleCreate.model_validate(base|dict(periods=[row]))
-    with pytest.raises(ValidationError): ScheduleCreate.model_validate(base|dict(periods=base['periods']*2))
+    assert model.cashflows[0].amount_per_100==1
+    floating=base|dict(cashflows=[dict(cashflowKey='FLOAT',cashflowType='COUPON',accrualStart='2026-04-01',accrualEnd='2026-10-01',
+        paymentDate='2026-09-30',amountFormula='SONIA + contractual spread')])
+    assert ScheduleCreate.model_validate(floating).cashflows[0].amount_per_100 is None
+    assert ScheduleCreate.model_validate(base|dict(cashflows=[base['cashflows'][0]|dict(amountPer100='0')])).cashflows[0].amount_per_100==0
+    for row in [base['cashflows'][0]|dict(amountPer100=1.2),base['cashflows'][0]|dict(accrualEnd='2026-01-01')]:
+        with pytest.raises(ValidationError): ScheduleCreate.model_validate(base|dict(cashflows=[row]))
+    with pytest.raises(ValidationError): ScheduleCreate.model_validate(base|dict(cashflows=base['cashflows']*2))
 
 
 def test_schedule_versions_and_payments_are_immutable_and_financially_inert(valued):
@@ -49,7 +49,7 @@ def test_schedule_versions_and_payments_are_immutable_and_financially_inert(valu
     with pytest.raises(ValueError,match='revision changed'):
         s.save_schedule(c,r.tenant_id,ids['demo_user_account'],ScheduleCreate.model_validate(schedule_data()),str(uuid4()))
     key=str(uuid4())
-    payload=PaymentCreate.model_validate(dict(strategyId=r.strategy_id,periodId=saved['periods'][0]['period_id'],paymentDate='2026-10-01',
+    payload=PaymentCreate.model_validate(dict(strategyId=r.strategy_id,periodId=saved['cashflows'][0]['cashflow_id'],paymentDate='2026-10-01',
         amount='1000',currencyId=ids['gbp_currency'],sourceReference='Synthetic custodian payment 1',note='Receipt only',confirmPayment=True))
     receipt=s.record_payment(c,r.tenant_id,ids['demo_user_account'],payload,key)
     assert receipt['amount']==D(1000) and receipt['status']=='CONFIRMED'
@@ -58,7 +58,7 @@ def test_schedule_versions_and_payments_are_immutable_and_financially_inert(valu
         s.record_payment(c,r.tenant_id,ids['demo_user_account'],payload,str(uuid4()))
     newer=s.save_schedule(c,r.tenant_id,ids['demo_user_account'],ScheduleCreate.model_validate(schedule_data(expectedRevision=1,reason='Corrected schedule')),str(uuid4()))
     assert newer['revision']==2
-    assert receipt['period_id']==saved['periods'][0]['period_id']
+    assert receipt['period_id']==saved['cashflows'][0]['cashflow_id']
     corrected=payload.model_copy(update={'amount':D(900),'supersedes_payment_id':receipt['payment_id'],'note':'Corrected statement'})
     correction=s.record_payment(c,r.tenant_id,ids['demo_user_account'],corrected,str(uuid4()),correction=True)
     assert correction['revision']==2 and correction['logical_payment_id']==receipt['logical_payment_id']
@@ -89,7 +89,7 @@ def test_payment_confirmation_does_not_change_existing_interest_pnl(valued):
     before=calculate_position(c,r)
     contract=s.save_schedule(c,r.tenant_id,ids['demo_user_account'],ScheduleCreate.model_validate(schedule_data()),str(uuid4()))
     s.record_payment(c,r.tenant_id,ids['demo_user_account'],PaymentCreate.model_validate(dict(strategyId=r.strategy_id,
-        periodId=contract['periods'][0]['period_id'],paymentDate='2026-10-01',amount='1000',currencyId=ids['gbp_currency'],
+        periodId=contract['cashflows'][0]['cashflow_id'],paymentDate='2026-10-01',amount='1000',currencyId=ids['gbp_currency'],
         sourceReference='Synthetic received coupon',confirmPayment=True)),str(uuid4()))
     after=calculate_position(c,r)
     assert after.gross_pnl==before.gross_pnl

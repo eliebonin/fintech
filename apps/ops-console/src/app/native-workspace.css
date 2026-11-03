@@ -170,6 +170,8 @@
 .workspace-tabs {display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid #dbe3ef;margin:20px 0}
 .workspace-tabs [role="tab"] {border:0;border-bottom:3px solid transparent;border-radius:8px 8px 0 0;background:transparent;color:#52627a;padding:10px 16px;min-height:44px;font:inherit;font-weight:600;cursor:pointer}
 .workspace-tabs [role="tab"][aria-selected="true"] {border-bottom-color:#1f5eff;color:#194fca;background:#edf3ff}
+.workspace-route-tabs a {display:inline-flex;align-items:center;border-bottom:3px solid transparent;border-radius:8px 8px 0 0;color:#52627a;padding:10px 16px;min-height:44px;font:inherit;font-weight:600;text-decoration:none}
+.workspace-route-tabs a[aria-current="page"] {border-bottom-color:#1f5eff;color:#194fca;background:#edf3ff}
 .workspace-tab-panel[hidden] {display:none}
 .workspace-tab-panel {min-width:0}
 .workspace-outline {display:flex;align-items:center;flex-wrap:wrap;gap:8px 20px;margin:20px 0;padding:14px 16px;border:1px solid #dbe3ef;border-radius:12px;background:white;font-size:14px;line-height:1.6}

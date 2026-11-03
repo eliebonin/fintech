@@ -1,4 +1,5 @@
 import type {TradeDetailPayload,TradeLifecycleEvent} from './trades';
+import {parseBookingDecimal} from './booking-decimal';
 export type BookingCorrection={tradeId:string;expectedSequenceNo:number;reason:string};
 export type BookingProduct='CASH'|'FX_FORWARD'|'OPTION'|'STRUCTURED_PRODUCT'|'FUTURE'|'BOND'|'SWAP'|'ACTIVELY_MANAGED_CERTIFICATE';
 const products:BookingProduct[]=['CASH','FX_FORWARD','OPTION','STRUCTURED_PRODUCT','FUTURE','BOND','SWAP','ACTIVELY_MANAGED_CERTIFICATE'];
@@ -20,7 +21,7 @@ export function bookingCorrectionEligibility(detail:TradeDetailPayload['data']):
  const no={eligible:false,sequenceNo:events.at(-1)?.sequenceNo??0};
  if(detail.trade.lifecycleStatus!=='BOOKED'||detail.trade.tradeType!=='INVESTMENT'||!events.length||events.length>2||events.some((event,index)=>event.sequenceNo!==index+1)||events[0].eventType!=='BOOKED')return no;
  const first=payload(events[0]);
- if(first?.schemaVersion!==1)return no;
+ if(first?.schemaVersion!==1||first.quantityMovement!==undefined)return no;
  const kind=first.kind==='PRODUCT_BOOKING'?first.economics?.terms?.kind:({CASH_BOOKING:'CASH',FX_FORWARD_BOOKING:'FX_FORWARD',OPTION_BOOKING:'OPTION'} as Record<string,string>)[first.kind];
  if(!products.includes(kind))return no;
  if(events.length===2){const links=bookingCorrectionLinks(events[1]);if(events[1].eventType!=='CORRECTED'||payload(events[1])?.action!=='REPLACES_BOOKING'||!links||links.replacementTradeId!==detail.trade.tradeId||links.originalTradeId===detail.trade.tradeId||!links.reason.trim())return no;}
@@ -33,6 +34,15 @@ export function bookingCancellationEligibility(detail:TradeDetailPayload['data']
  const events=detail.lifecycleEvents,first=events[0],value=first&&payload(first);
  const empty=first&&(first.eventPayload==null||first.eventPayload===''||(value&&Object.keys(value).length===0));
  const trade=detail.trade;
+ // Movement records can be cancelled, never replaced by the purchase ticket.
+ // Backend authority and complete frozen-evidence validation remain definitive.
+ const movement=value?.quantityMovement;
+ if(['TRANSFER','REINVESTMENT'].includes(trade.tradeType)&&events.length===1&&first.sequenceNo===1&&first.eventType==='BOOKED'&&trade.lifecycleStatus==='BOOKED'){
+   const quantity=parseBookingDecimal(String(trade.quantity)),proofQuantity=parseBookingDecimal(String(movement?.signedQuantity)),price=parseBookingDecimal(String(trade.executionPrice));
+   const valid=value?.schemaVersion===1&&value.kind==='CASH_BOOKING'&&value.productBasis==='FUND'&&movement?.schemaVersion===1&&movement.kind===trade.tradeType&&movement.recognitionBasis==='POLICY_DAY_END'&&typeof movement.reason==='string'&&!!movement.reason.trim()&&
+    movement.incomeRecognition===(trade.tradeType==='REINVESTMENT'?'UNASSESSED':'NOT_APPLICABLE')&&!!quantity&&quantity.value!==BigInt(0)&&!!proofQuantity&&quantity.value===proofQuantity.value&&quantity.scale===proofQuantity.scale&&price?.value===BigInt(0)&&(trade.tradeType!=='REINVESTMENT'||quantity.value>BigInt(0));
+   return {eligible:!!valid,sequenceNo:first.sequenceNo,legacy:false};
+ }
  const validTime=!first?.eventDatetimeUtc||Date.parse(first.eventDatetimeUtc)===Date.parse(trade.tradeDatetimeUtc);
  const legacyRecognition=trade.valuationDateBasis==='LEGACY_UTC_TRADE_DATE'||(!trade.valuationEffectiveDate&&!trade.valuationDateBasis);
  const eligible=trade.lifecycleStatus==='BOOKED'&&trade.tradeType==='INVESTMENT'&&events.length===1&&first.sequenceNo===1&&first.eventType==='BOOKED'&&!!empty&&validTime&&

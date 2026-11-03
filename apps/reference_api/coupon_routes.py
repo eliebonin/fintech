@@ -1,4 +1,4 @@
-"""Sourced coupon schedules and payment evidence; never new interest income."""
+"""Full bond cashflow schedules and coupon receipts; never new interest income."""
 from datetime import date
 from uuid import UUID
 from fastapi import Depends, Header, Query, Request
@@ -15,7 +15,7 @@ from .problem_details import ApiProblem
 
 
 def coupon_router(connection_dependency, membership):
-    router = APIRouter(prefix='/v1/lifecycle/coupons', tags=['Bond coupons'])
+    router = APIRouter(prefix='/v1/lifecycle/coupons', tags=['Bond schedules and coupons'])
 
     def call(c, context, request, operation):
         actor = membership(c, context)
@@ -27,7 +27,7 @@ def coupon_router(connection_dependency, membership):
         except LookupError as exc:
             raise ApiProblem(404, 'coupon.not_found', 'Not found', str(exc)) from exc
         except ValueError as exc:
-            raise ApiProblem(422, 'coupon.invalid', 'Coupon evidence rejected', str(exc)) from exc
+            raise ApiProblem(422, 'coupon.invalid', 'Bond schedule or coupon evidence rejected', str(exc)) from exc
 
     @router.get('/options', response_model=dict[str, object])
     def options(request: Request, strategyId: UUID | None = None,

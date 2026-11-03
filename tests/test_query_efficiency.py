@@ -140,7 +140,10 @@ def test_history_projection_preserves_disclosure_and_batches_headers(valued):
         minimal=storage.batch_disclosure_views(c,r.tenant_id,[batch])[batch]
     assert len(statements)==2
     assert minimal['summary']==full['summary']
-    assert minimal['items']==[{key:item[key] for key in ('position_key','evidence')} for item in full['items']]
+    # Typed ownership is part of disclosure proof since cash-account attribution;
+    # retaining it must not release financial components before DISPLAY checks.
+    assert minimal['items']==[{key:item[key] for key in ('position_key','evidence','cash_account_id','cash_currency_id','method','currency_id')} for item in full['items']]
+    assert all('net_pnl' not in item and 'components' not in item for item in minimal['items'])
     assert_batch_display(c,r.tenant_id,minimal)
     c.execute(m.tenant_dataset_entitlement.update().where(m.tenant_dataset_entitlement.c.tenant_id==r.tenant_id)
         .values(status='SUSPENDED'))
@@ -161,7 +164,8 @@ def test_batched_history_health_matches_detailed_health_and_detects_late_changes
     headers=[header,header|dict(batch_id=uuid4(),summary={}),header|dict(batch_id=uuid4(),summary={'ledgerSource':{'version':2}})]
     with sql_reads(c) as statements:
         actual=source_health_statuses(c,headers)
-    assert len(statements)==1
+    # Ledger, cash and accrued/coupon source proofs are independently batched.
+    assert len(statements)==3
     assert actual=={headers[0]['batch_id']:'CURRENT',headers[1]['batch_id']:'UNKNOWN_LEGACY',headers[2]['batch_id']:'UNKNOWN_LEGACY'}
     c.execute(t.ledger_change.insert().values(tenant_id=r.tenant_id,strategy_id=r.strategy_id,trade_id=trade,
         economic_from=r.closing_cutoff.date(),reason='Synthetic late change',actor_id=ids['demo_user_account'],

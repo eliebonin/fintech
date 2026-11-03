@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './console-check';
 const options={strategies:[{id:'strategy',label:'Synthetic strategy',canCalculate:true}],currencies:[{id:'gbp',label:'GBP'}],policies:[],accounts:[],bonds:[],permissions:{REFERENCE_APPROVE:true,LIFECYCLE_BOOK:true}};
 
 test('paged choices retain an off-page selection and search the server beyond the first page',async({page})=>{
@@ -50,7 +50,7 @@ for(const strict of [false,true])test(`actual valuation ticket selects a version
  await expect.poll(()=>input.locator('form').first().evaluate(form=>(form as HTMLFormElement).checkValidity())).toBe(true);
  await input.getByRole('button',{name:'Calculate and stage',exact:true}).click();await expect(page.getByRole('tab',{name:'Results',exact:true})).toHaveAttribute('aria-selected','true');
  if(strict)await expect(page.getByText('Accrual not supplied—not included.',{exact:true})).toHaveCount(0);
- else {await expect(page.getByText('Accrual not supplied—not included.',{exact:true})).toBeVisible();await page.getByText('Missing daily interest dates',{exact:true}).click();await expect(page.getByRole('link',{name:'bond',exact:true})).toBeVisible();}
+ else {await expect(page.getByText('Input coverage to review',{exact:true})).toBeVisible();await page.getByRole('button',{name:'View input details',exact:true}).click();await expect(page.getByText('Accrual not supplied—not included.',{exact:true})).toBeVisible();await page.getByText('Missing daily interest dates',{exact:true}).click();await expect(page.getByRole('link',{name:'Bond name unavailable',exact:true})).toBeVisible();}
  await expect(page.getByText('Completed · Staged — not published',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Publish valuation',exact:true}).click();
  await page.getByRole('button',{name:'Confirm publication',exact:true}).click();expect(posts).toEqual(['calculate']);
  await page.getByRole('textbox',{name:'Review decision'}).fill('Synthetic independent review');await page.getByRole('button',{name:'Confirm publication',exact:true}).click();
@@ -60,6 +60,21 @@ test('twenty visible positions request their authorized labels in one bounded ca
  const urls:string[]=[];
  await page.route('**/api/market-data/references?**',async r=>{urls.push(r.request().url());const ids=new URL(r.request().url()).searchParams.get('ids')?.split(',')??[];await r.fulfill({json:{labels:Object.fromEntries(ids.map((id,i)=>[id,`Synthetic name ${i+1}`]))}});});
  await page.goto('/?mode=labels');await expect(page.getByRole('link',{name:'Synthetic name 1',exact:true})).toBeVisible();expect(urls).toHaveLength(1);expect(new URL(urls[0]).searchParams.get('ids')?.split(',')).toHaveLength(20);
+});
+
+test('all position rows retain authorized labels through batches of at most twenty IDs',async({page})=>{
+ const requests:string[][]=[];
+ await page.route('**/api/market-data/references?**',async route=>{
+  const ids=new URL(route.request().url()).searchParams.get('ids')?.split(',')??[];requests.push(ids);
+  if(ids.length>20)return route.fulfill({status:400,json:{error:{code:'INVALID_REFERENCE_IDS'}}});
+  return route.fulfill({json:{labels:Object.fromEntries(ids.map(id=>[id,`Synthetic ${id.slice(-12)}`]))}});
+ });
+ await page.goto('/?mode=labels&many=true');
+ await page.getByRole('combobox',{name:'Positions per page',exact:true}).selectOption('all');
+ await expect(page.getByRole('table',{name:'Position attribution',exact:true}).locator('tbody tr')).toHaveCount(127);
+ await expect(page.getByRole('link',{name:/^Synthetic /})).toHaveCount(127);
+ expect(requests.every(ids=>ids.length>0&&ids.length<=20)).toBe(true);
+ expect(new Set(requests.flat()).size).toBe(127);
 });
 test('cash loading and failures never claim an empty register',async({page})=>{
  await page.route('**/api/valuation/options',r=>r.fulfill({json:options}));

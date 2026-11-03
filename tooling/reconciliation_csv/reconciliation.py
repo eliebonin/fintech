@@ -15,6 +15,8 @@ import re
 
 KINDS=('strategy_info','currencies','trades','all_instruments','bonds','swaps',
        'prices','fx_rates','cash_balances','accrued_interests')
+OPTIONAL_KINDS=('funds','options','futures','structured','structured_composition',
+                'barriers','indices','instrument_types','instruments','bond_schedules')
 
 
 def source_id(value):
@@ -32,6 +34,14 @@ def document(value):
     return json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode('utf-8')
 
 
+def source_trade_active(row):
+    """Older export variants omit activity; explicit flags must be unambiguous."""
+    if 'active' not in row:return True
+    flag=str(row['active']).strip().casefold()
+    if flag not in ('true','false'):raise ValueError('Invalid source trade activity flag')
+    return flag=='true'
+
+
 @dataclass(frozen=True)
 class Bundle:
     name:str
@@ -45,11 +55,16 @@ class Bundle:
     digest:str
 
 
-def load_bundle(directory,name,as_of,*,excluded_trade_ids=(),amc_ids=()):
+def load_bundle(directory,name,as_of,*,excluded_trade_ids=(),amc_ids=(),include_details=False):
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}',name):raise ValueError('Invalid bundle name')
-    files={};tables={};excluded=set(excluded_trade_ids);amcs=set(amc_ids)
-    for kind in KINDS:
-        raw=(Path(directory)/f'{name}-{as_of}-{kind}.csv').read_bytes()
+    files={};tables={};variants={};excluded=set(excluded_trade_ids);amcs=set(amc_ids)
+    kinds=list(KINDS)+[k for k in OPTIONAL_KINDS if include_details and (Path(directory)/f'{name}-{as_of}-{k}.csv').exists()]
+    for kind in kinds:
+        path=Path(directory)/f'{name}-{as_of}-{kind}.csv'
+        if kind=='fx_rates' and not path.exists():
+            path=Path(directory)/f'{name}-{as_of}-fx.csv'
+            variants[kind]='CURRENCY_IDS_FX_FILE'
+        raw=path.read_bytes()
         if len(raw)>4*1024*1024:raise ValueError('Source file exceeds bounded seed size')
         reader=csv.DictReader(StringIO(raw.decode('utf-8-sig'),newline=''))
         if not reader.fieldnames or len(reader.fieldnames)!=len(set(reader.fieldnames)):
@@ -64,18 +79,28 @@ def load_bundle(directory,name,as_of,*,excluded_trade_ids=(),amc_ids=()):
     strategy=strategies[0];sid=source_id(strategy['strategy_id'])
     currencies={source_id(r['currency_id']):r['currency'] for r in tables['currencies']}
     if len(currencies)!=len(tables['currencies']):raise ValueError('Duplicate source currency IDs')
+    if variants.get('fx_rates'):
+        for row in tables['fx_rates']:
+            for side in ('base','quote'):
+                code=currencies.get(source_id(row.get(side+'_currency_id')))
+                if not code:raise ValueError('Unknown FX currency identifier')
+                if row.get(side+'_currency') and row[side+'_currency']!=code:
+                    raise ValueError('FX currency code conflicts with source identifier')
+                row[side+'_currency']=code
     base=currencies.get(source_id(strategy['strategy_currency_id']))
     if not base:raise ValueError('Unknown strategy currency')
     instruments={source_id(r['instrument_id']):r for r in tables['all_instruments']}
     if len(instruments)!=len(tables['all_instruments']):raise ValueError('Duplicate source instrument IDs')
     trades=tables['trades']
     if len({r['trade_id'] for r in trades})!=len(trades):raise ValueError('Duplicate trade IDs')
-    positions=[];flows=[];removed=[];dates=[]
+    positions=[];flows=[];removed=[];inactive=[];dates=[]
     for row in trades:
         if source_id(row['strategy_id'])!=sid:raise ValueError('Trade belongs to a different strategy')
         day=datetime.fromisoformat(row['trade_datetime_utc']).date()
         if day>as_of:raise ValueError('Trade after bundle cutoff')
+        active=source_trade_active(row)
         if row['trade_id'] in excluded:removed.append(row['trade_id']);continue
+        if not active:inactive.append(row['trade_id']);continue
         iid=source_id(row['instrument_id'])
         if iid not in instruments:raise ValueError('Missing instrument for source trade')
         for field in ('quantity','price'):
@@ -92,7 +117,8 @@ def load_bundle(directory,name,as_of,*,excluded_trade_ids=(),amc_ids=()):
         for row in tables[kind]:
             if datetime.fromisoformat(row[field]).date()>as_of:raise ValueError(f'{kind} after bundle cutoff')
     retained_ids={r['trade_id'] for r in positions}
-    if any(r['trade_id'] not in retained_ids for r in tables['accrued_interests']):raise ValueError('Accrual refers to an unavailable position trade')
+    known_accrual_ids=retained_ids|set(inactive)
+    if any(r['trade_id'] not in known_accrual_ids for r in tables['accrued_interests']):raise ValueError('Accrual refers to an unavailable position trade')
     for row in tables['swaps']:
         for field in ('instrument_id','funded_instrument_id','funding_instrument_id'):
             if row.get(field) and source_id(row[field]) not in instruments:raise ValueError('Missing swap dependency')
@@ -111,6 +137,8 @@ def load_bundle(directory,name,as_of,*,excluded_trade_ids=(),amc_ids=()):
         financialPostingStatus='NOT_POSTED',marketDataRights='NOT_INFERRED_FROM_FILE_POSSESSION',
         limitations=['FINAL_OPEN_INSTRUMENT_UNIVERSE_ONLY','NO_CORPORATE_ACTION_EXPORT','NO_EXPECTED_PNL_EXPORT',
             'INSTRUMENT_TERMS_AND_QUOTE_SEMANTICS_REQUIRE_MAPPING','SOURCE_DATE_NOT_PUBLICATION_TIME'])
+    if variants:manifest['sourceSchemaVariants']=variants
+    if inactive:manifest['inactiveTradeIds']=sorted(inactive)
     digest=sha256(document(manifest)).hexdigest()
     return Bundle(name,as_of,files,tables,positions,flows,bonds,manifest,digest)
 

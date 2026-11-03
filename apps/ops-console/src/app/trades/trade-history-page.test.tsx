@@ -65,8 +65,14 @@ describe("trade history rendered pages", () => {
     const Page=TradeDetailPage;
     const detailHtml=renderToStaticMarkup(<DetailContent detail={{trade:current,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
     fakeApi([current],1,current);const pageHtml=renderToStaticMarkup(await Page({params:Promise.resolve({tradeId:'trade-1'}),searchParams:Promise.resolve({})}));
-    expect(detailHtml).toContain('<h2>Swap at booking</h2>');expect(detailHtml).not.toContain('CURRENT');expect(pageHtml).toContain('<h1>Swap at booking</h1>');expect(pageHtml).not.toContain('CURRENT');
+    expect(detailHtml).toMatch(/<h2>[\s\S]*?Swap at booking[\s\S]*?<\/h2>/);expect(detailHtml).not.toContain('CURRENT');expect(pageHtml).toContain('<h1>Swap at booking</h1>');expect(pageHtml).not.toContain('CURRENT');
   },15000);
+  it('does not replace resolved missing labels with current master names, while preserving booking evidence',()=>{
+    const current={...genericTrade,instrumentName:'CURRENT instrument name',subjectName:'CURRENT subject name'};
+    const html=renderToStaticMarkup(<DetailContent display={null} detail={{trade:current,parties:[],fees:[],externalReferences:[],lifecycleEvents:[]}}/>);
+    expect(html).toContain('Instrument name unavailable');expect(html).not.toContain('CURRENT');
+    expect(html).toContain('Swap at booking');expect(html).toContain('booking snapshot');
+  });
   it('shows both generic nominal amounts and labels the immutable entry value in history',async()=>{
     fakeApi([{...genericTrade,quantity:'-500000'}]);const Page=TradeHistoryPage;const html=renderToStaticMarkup(await Page({searchParams:Promise.resolve({range:'all'})}));
     for(const value of ['Swap at booking','<strong>400,000</strong>','Booked nominal','Contractual notional','1,000,000 GBP','SWAP_VALUE_PER_NOTIONAL · GBP','Entry reference value','-8,000 GBP'])expect(html).toContain(value);

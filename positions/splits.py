@@ -3,6 +3,7 @@ from datetime import datetime, time, timezone
 from decimal import Decimal
 from collections import defaultdict
 from .contracts import PositionError, SplitAdjustment, ExposureInterval, ExecutionEffect
+from security_master_schema.cash_products import RATIO_SECURITIES
 
 
 def visible_splits(events, request):
@@ -34,8 +35,8 @@ def replay_bucket(key, bookings, actual, events, request):
     Execution notionals retain original signed quantity and price. Deferred
     recognition carries intervening ratios, never adds old units after a split.
     """
-    if key.product_basis not in {'EQUITY','ETF'} or key.quantity_unit not in {'SHARES','UNITS'}:
-        raise PositionError('Share-ratio replay supports equity/ETF units only')
+    if key.product_basis not in RATIO_SECURITIES or key.quantity_unit not in {'SHARES','UNITS'}:
+        raise PositionError('Unit-ratio replay requires equity/ETF or quoted-wrapper units')
     actual_rows=defaultdict(list)
     for f in bookings: actual_rows[actual[f.event_id].effective_at].append(f)
     for event in events:

@@ -26,7 +26,7 @@ export default async function ValuationPage() {
           <div>
             <h1>P&amp;L validation</h1>
             <p className="muted">Inspect positions, review changes and publish with recorded review authority.</p>
-            <p><Link href="/valuation/cash-balances">Manage dated cash balances</Link></p>
+            <p><Link href="/valuation/cash-balances">Manage dated cash balances</Link> · <Link href="/valuation/interest">Interest &amp; accrued balances</Link></p>
           </div>
           <span className="synthetic-badge">{enabled ? "ECONOMIC P&L ALPHA" : "ACCESS RESTRICTED"}</span>
         </header>

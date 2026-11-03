@@ -5,3 +5,22 @@ export function futureSymbol(root:string,month:string,digits:1|2):string {
 }
 export function deliveryMonths(cycle:string,custom:number[]):number[]{return cycle==='MONTHLY'?Array.from({length:12},(_,i)=>i+1):cycle==='QUARTERLY'?[3,6,9,12]:[...custom].sort((a,b)=>a-b);}
 export function allowedFutureMonth(month:string,allowed:number[]):boolean{return /^\d{4}-(0[1-9]|1[0-2])$/.test(month)&&allowed.includes(Number(month.slice(5)));}
+
+type FutureConvention=Extract<NonNullable<import('api-contracts').components['schemas']['ProductBookingContextView']['convention']>,{kind:'FUTURE'}>;
+type FamilySpecification=NonNullable<import('api-contracts').components['schemas']['FutureFamilyView']['specification']>;
+
+/** Copy approved economics; amendments do not redefine the family or delivery. */
+export function buildFutureConvention(fields:Record<string,string>,negative:boolean,base?:FutureConvention|FamilySpecification|null):FutureConvention {
+  const current=base&&'kind' in base?base:undefined;
+  const settlement=base?.settlementMethod??'CASH';
+  return {kind:'FUTURE',quantityUnit:'CONTRACTS',effectiveFrom:fields.effectiveFrom,sourceReference:fields.sourceReference,
+    priceCurrencyId:current?.priceCurrencyId??fields.priceCurrencyId,
+    priceBasis:base?.priceBasis??'INDEX_POINTS',settlementMethod:settlement,
+    contractSize:base?.contractSize??null,contractSizeCurrencyId:base?.contractSizeCurrencyId??null,
+    monetaryMultiplier:base?.monetaryMultiplier??fields.monetaryMultiplier,quoteFactor:base?.quoteFactor??fields.quoteFactor,
+    tickSize:base?.tickSize??fields.tickSize,allowNegativePrice:base?.allowNegativePrice??negative,
+    lastTradingAtUtc:current?.lastTradingAtUtc??fields.lastTradingAtUtc,
+    finalSettlementDate:current?.finalSettlementDate??fields.finalSettlementDate,
+    deliveryStartDate:settlement==='PHYSICAL'?(current?.deliveryStartDate??fields.deliveryStartDate):null,
+    deliveryEndDate:settlement==='PHYSICAL'?(current?.deliveryEndDate??fields.deliveryEndDate):null};
+}

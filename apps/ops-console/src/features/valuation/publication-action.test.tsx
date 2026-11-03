@@ -2,6 +2,12 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {expect,it,vi} from 'vitest';
 import {PublicationAction} from './publication-action';
+it('blocks missing required prices even when self-publication is authorised',()=>{
+ const html=renderToStaticMarkup(<PublicationAction status="STAGED" stagedBy="maker" actorId="maker" canReview canSelfPublish requiresSelfReview requiredInputsComplete={false} busy={false} onPublish={()=>{}}/>);
+ expect(html).toMatch(/<button[^>]*disabled=""/);
+ expect(html).toContain('missing required price marks');
+ expect(html).not.toContain('Confirm valuation publication');
+});
 it('offers a visible publication action for an independent reviewer without submitting anything',()=>{
  const publish=vi.fn();const html=renderToStaticMarkup(<PublicationAction status="STAGED" stagedBy="maker" actorId="reviewer" canReview busy={false} onPublish={publish}/>);
  expect(html).toContain('Publish valuation');expect(html).toContain('aria-expanded="false"');expect(publish).not.toHaveBeenCalled();

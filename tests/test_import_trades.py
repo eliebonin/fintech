@@ -7,7 +7,8 @@ from openpyxl import load_workbook
 import pytest
 from sqlalchemy import create_engine,select,func
 from uuid import uuid4,UUID
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 from apps.reference_api.main import create_app
 from security_master_schema.demo_data import DEMO_IDS
 from security_master_schema import models as m
@@ -59,13 +60,13 @@ def test_mid_batch_failure_rolls_back_every_trade_identity_and_receipt(connectio
     c=connection;tenant=DEMO_IDS['tenant'];actor=DEMO_IDS['demo_user_account']
     job=service.submit(c,tenant,actor,ImportCreate.model_validate(file_body(str(uuid4()))),str(uuid4()))
     review=service.validate(c,tenant,actor,UUID(job['jobId']))
-    before=c.scalar(select(func.count()).select_from(m.trade));writer=service.book_listed_cash_trade;calls=0
+    before=c.scalar(select(func.count()).select_from(m.trade));writer=service.book_cash_trade;calls=0
     def fail_second(*args,**kwargs):
         nonlocal calls
         calls+=1
         if calls==2:raise RuntimeError('injected second-row failure')
         return writer(*args,**kwargs)
-    monkeypatch.setattr(service,'book_listed_cash_trade',fail_second)
+    monkeypatch.setattr(service,'book_cash_trade',fail_second)
     with pytest.raises(RuntimeError,match='second-row'):
         with c.begin_nested():service.confirm(c,tenant,actor,UUID(job['jobId']),review['reviewHash'],'failure-test')
     assert c.scalar(select(func.count()).select_from(m.trade))==before

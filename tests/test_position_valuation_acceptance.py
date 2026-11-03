@@ -3,7 +3,8 @@ import asyncio
 from dataclasses import replace
 from datetime import timedelta
 from uuid import uuid4
-from httpx import AsyncClient,ASGITransport
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 from tests.test_valuation_service import valued
 from apps.reference_api.main import create_app
 from apps.reference_api.db import get_engine

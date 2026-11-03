@@ -27,7 +27,8 @@ def _lock(c, tenant, strategy, day):
 
 
 def population_hash(rows):
-    return evidence_hash({'population':sorted([(str(row.get('position_key') or row['trade_id']),str(row['attribution_id'])) for row in rows])})
+    from .cash_fx_storage import cash_owner
+    return evidence_hash({'population':sorted([(cash_owner(row) if row.get('cash_account_id') else str(row.get('position_key') or row['trade_id']),str(row['attribution_id'])) for row in rows])})
 
 
 def _event(c, attempt_id, event_code, stage, details):
@@ -35,8 +36,8 @@ def _event(c, attempt_id, event_code, stage, details):
 
 
 def request_identity(request):
-    """Keep pre-date-mode retry identities stable; daily mode is explicit."""
-    values = asdict(request)
+    """Version execution semantics, including valuation-window cash coverage."""
+    values = dict(asdict(request),calculation_contract='economic-pnl-bond-clean-v1')
     if not values.get('daily'): values.pop('daily', None)
     if not values.get('require_complete_accruals'): values.pop('require_complete_accruals',None)
     for key in ('predecessor_batch_id','recalculation_reason'):
@@ -122,7 +123,9 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
     """Select immutable versions without modifying the official population."""
     if mode!='AUTHORITATIVE':
         raise ValueError('This alpha requires a complete authoritative population; incremental staging is deferred')
+    from .rounding import rounded_result
     request=calculation.request;day=request.closing_cutoff.date()
+    cash=calculation.cash if calculation.projection is not None else None
     _lock(c,request.tenant_id,request.strategy_id,day)
     attempt=c.execute(select(t.attempt).where(t.attempt.c.attempt_id==attempt_id,t.attempt.c.tenant_id==request.tenant_id).with_for_update()).mappings().one_or_none()
     if not attempt or attempt['strategy_id']!=request.strategy_id or attempt['initiated_by']!=actor:
@@ -139,14 +142,20 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
             _event(c,attempt_id,'COMPLETED','STAGING',{'batchId':prior['batch_id'],'reused':True})
         return prior['batch_id']
     official=published(c,request.tenant_id,request.strategy_id,day)
+    from .accrued_balance_storage import retain_balances,stage_receivable
+    if calculation.projection is not None:retain_balances(c,attempt_id,calculation)
     selected={}
+    cash_owners={}
     stored_totals={'market':Decimal(0),'gross':Decimal(0),'net':Decimal(0)}
     from collections import defaultdict
     facts_by_trade=defaultdict(list); selections_by_subject=defaultdict(list); executions_by_key=defaultdict(list)
+    fx_by_currency=defaultdict(list);accrued_fx_by_instrument=defaultdict(list)
     if calculation.projection is not None:
         for fact in calculation.projection.facts: facts_by_trade[fact.trade_id].append(fact)
         for selection in calculation.evidence['selections']:
             selections_by_subject[selection.get('valuation_position_subject_id',selection['subject_reference_node_id'])].append(selection)
+            if selection.get('input_role')=='FX':fx_by_currency[selection.get('valuation_source_currency_id')].append(selection)
+            if selection.get('valuation_accrued_instrument_id'):accrued_fx_by_instrument[selection['valuation_accrued_instrument_id']].append(selection)
         for execution in calculation.projection.executions:
             executions_by_key[execution.key].append(execution)
     for line in calculation.period.lines:
@@ -162,10 +171,13 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
             for name in stored_totals: stored_totals[name]+=rounded[name]
         if calculation.projection is not None:
             from .position_storage import stage_line
+            instruments={p.get('instrumentId') or p.get('payload',{}).get('instrumentId') for p in line.economic_evidence}
+            source_selections=selections_by_subject[str(line.bucket.key.subject_id)]+fx_by_currency[str(line.bucket.key.currency_id)]
+            for instrument in instruments:source_selections+=accrued_fx_by_instrument[instrument]
+            source_selections=list({evidence_hash(s):s for s in source_selections}.values())
             position,attribution=stage_line(c,attempt_id,calculation,line,
                 facts=[fact for trade in line.bucket.trade_ids for fact in facts_by_trade[trade]],
-                selections=selections_by_subject[str(line.bucket.key.subject_id)]+[s for s in calculation.evidence['selections']
-                    if s.get('input_role')=='FX' and s.get('valuation_source_currency_id')==str(line.bucket.key.currency_id)],
+                selections=source_selections,
                 executions=executions_by_key[line.bucket.key],rounded=rounded)
             selected[position]=attribution
             continue
@@ -188,6 +200,28 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
             supersedes_attribution_id=previous['attribution_id'] if previous else None,method=METHOD,input_hash=digest,
             currency_id=request.reporting_currency_id,market_pnl=rounded['market'],gross_pnl=rounded['gross'],net_pnl=rounded['net'],
             components=canonical_payload(rounded['components']),evidence=evidence).returning(t.attribution.c.attribution_id)).scalar_one()
+    for line in calculation.receivables if calculation.projection is not None else ():
+        if not any(day.amount is not None for day in line.days):continue
+        rounded=rounded_result({'CARRY':line.amount},market=Decimal(0),gross=line.amount,net=line.amount)
+        owner,identity=stage_receivable(c,attempt_id,calculation,line,rounded)
+        selected[owner]=identity
+        with localcontext() as ctx:
+            ctx.prec=512
+            for name in stored_totals:stored_totals[name]+=rounded[name]
+    cash_total=None
+    if cash is not None:
+        from .cash_fx_storage import stage_cash_line,cash_owner
+        cash_total=Decimal(0) if cash.lines else None
+        for line in cash.lines:
+            rounded=rounded_result(line.components(),market=Decimal(0),gross=line.amount,net=line.amount)
+            owner=dict(cash_account_id=line.account_id,cash_currency_id=line.currency_id)
+            key=cash_owner(owner)
+            selected[key]=stage_cash_line(c,attempt_id,calculation,line,rounded)
+            cash_owners[key]=owner
+            with localcontext() as ctx:
+                ctx.prec=512
+                cash_total+=rounded['components']['CASH_FX']
+                for name in stored_totals:stored_totals[name]+=rounded[name]
     old_staged=c.execute(select(t.batch.c.batch_id).where(t.batch.c.tenant_id==request.tenant_id,t.batch.c.strategy_id==request.strategy_id,
         t.batch.c.value_date==day,t.batch.c.status=='STAGED')).scalars().all()
     for old in old_staged:
@@ -203,20 +237,36 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
         marketPnl=stored_totals['market'],openingValue=calculation.period.opening_value,closingValue=calculation.period.closing_value,
         grossPnl=stored_totals['gross'],netPnl=stored_totals['net'],marketRoundingAdjustment=market_rounding,
         executionValue=calculation.period.execution_value,reportingCurrencyId=request.reporting_currency_id,
-        request=asdict(request),ledgerSource=calculation.evidence.get('ledgerSource'),limitations=calculation.evidence['limitations'],blockingValidation=[],inputHash=calculation.input_hash,
+        request=asdict(request),ledgerSource=calculation.evidence.get('ledgerSource'),limitations=calculation.evidence['limitations'],
+        blockingValidation=['REQUIRED_PRICE_INPUTS_MISSING'] if calculation.evidence.get('requiredInputsComplete') is False else [],inputHash=calculation.input_hash,
+        inputCoverage=calculation.evidence.get('inputCoverage'),requiredInputsComplete=calculation.evidence.get('requiredInputsComplete',True),
+        markOverrideInputs=list({proof['requestId']:proof for s in calculation.evidence.get('selections',[])
+            if (proof:=(s.get('pricing_evidence') or {}).get('manualOverride'))}.values()),
+        totalsBasis='PRICED_POSITIONS_SUBTOTAL' if calculation.evidence.get('requiredInputsComplete') is False else 'RECORDED_COMPONENTS',
+        hasCalculatedContributions=bool(selected),
         accrualCoverage=calculation.evidence.get('accrualCoverage'),
+        accruedBalanceCoverage=calculation.evidence.get('accruedBalanceCoverage'),
+        accruedBalanceSource=calculation.evidence.get('accruedBalanceSource'),pnlCompleteness=calculation.evidence.get('pnlCompleteness'),
+        cashCoverage=cash.coverage if cash else None,cashFxPnl=cash_total,
         resultFormat='POSITION_V2' if calculation.projection is not None else 'TRADE_V1',
         positionEvidence=({ 'engine':calculation.projection.engine_version,'inputHash':calculation.projection.input_hash,
             'completeKnowledge':calculation.projection.complete_knowledge,'factsScanned':calculation.projection.facts_scanned,
             'bucketCount':len(calculation.projection.buckets),'executionCount':len(calculation.projection.executions),
             'requiredMarkCount':calculation.evidence['requiredMarkCount']} if calculation.projection is not None else None)))
+    if calculation.projection is not None and any(b.key.product_basis=='FUTURE' for b in calculation.projection.buckets):
+        summary.update(futuresVariationPnl=canonical_payload(calculation.period.settlement_variation),
+            investmentValueScope='EXCLUDES_FUTURES_NOTIONAL_AND_UNASSESSED_MTM')
     batch=c.execute(t.batch.insert().values(tenant_id=request.tenant_id,strategy_id=request.strategy_id,staged_by=actor,attempt_id=attempt_id,
         value_date=day,status='STAGED',mode=mode,input_hash=calculation.input_hash,base_population_hash=population_hash(official),summary=summary)
         .returning(t.batch.c.batch_id)).scalar_one()
     for owner,attribution in selected.items():
-        ownership={'position_key':owner} if calculation.projection is not None else {'trade_id':owner}
+        ownership=cash_owners.get(owner) or ({'position_key':owner} if calculation.projection is not None else {'trade_id':owner})
         c.execute(t.item.insert().values(tenant_id=request.tenant_id,batch_id=batch,attribution_id=attribution,**ownership))
     c.execute(t.review_event.insert().values(batch_id=batch,actor_id=actor,action='STAGED',comment='Calculated P&L attribution staged for review'))
+    mark_makers={s['pricing_evidence']['manualOverride']['requestedOperatorId'] for s in calculation.evidence.get('selections',[])
+        if (s.get('pricing_evidence') or {}).get('manualOverride')}
+    if mark_makers:
+        _event(c,attempt_id,'MARK_OVERRIDE_INPUTS','CALCULATION',dict(contributorOperatorIds=sorted(mark_makers)))
     c.execute(t.attempt.update().where(t.attempt.c.attempt_id==attempt_id).values(status='COMPLETED',completed_at=datetime.now(timezone.utc)))
     _event(c,attempt_id,'COMPLETED','STAGING',{'batchId':batch,'attributionCount':len(selected)})
     return batch
@@ -233,11 +283,12 @@ def batch_disclosure_views(c,tenant,batch_ids,*,include_evidence=True):
     headers={row['batch_id']:dict(row,items=[]) for row in c.execute(select(t.batch).where(
         t.batch.c.tenant_id==tenant,t.batch.c.batch_id.in_(set(batch_ids)))).mappings()}
     if headers and include_evidence:
-        for row in c.execute(select(t.item.c.batch_id,t.attribution.c.position_key,t.attribution.c.evidence)
+        for row in c.execute(select(t.item.c.batch_id,t.attribution.c.position_key,t.attribution.c.evidence,
+                t.attribution.c.cash_account_id,t.attribution.c.cash_currency_id,t.attribution.c.method,t.attribution.c.currency_id)
                 .join(t.attribution,t.attribution.c.attribution_id==t.item.c.attribution_id)
                 .where(t.item.c.tenant_id==tenant,t.item.c.batch_id.in_(headers))
                 .order_by(t.attribution.c.trade_id)).mappings():
-            headers[row['batch_id']]['items'].append(dict(position_key=row['position_key'],evidence=row['evidence']))
+            headers[row['batch_id']]['items'].append({key:row[key] for key in ('position_key','evidence','cash_account_id','cash_currency_id','method','currency_id')})
     return headers
 
 
@@ -277,6 +328,17 @@ def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None,self_pub
     if not isinstance(comment,str) or not comment.strip() or len(comment)>2000: raise ValueError('Review explanation required')
     if header['status']=='PUBLISHED': return batch_id
     if header['status']!='STAGED': raise ValueError('Batch is no longer staged')
+    from .price_inputs import assert_complete_prices
+    assert_complete_prices(header['summary'])
+    from .mark_overrides import assert_current_marks
+    assert_current_marks(c,tenant,batch_view(c,tenant,batch_id))
+    # Preserve precise per-input diagnostics before the broader source-state
+    # check, which also covers coupon revisions and reconstructed history.
+    candidate=batch_view(c,tenant,batch_id)['items']
+    from .accruals import assert_current_accrual_versions
+    assert_current_accrual_versions(c,tenant,candidate)
+    from .bond_quote_review import assert_current_normalized_bond_quotes
+    assert_current_normalized_bond_quotes(c,tenant,header,candidate)
     from .ledger_impacts import assert_batch_ledger_current
     assert_batch_ledger_current(c,tenant,batch_id)
     if c.scalar(select(t.amendment.c.request_id).where(t.amendment.c.base_batch_id==batch_id,t.amendment.c.status=='PENDING').limit(1)):
@@ -284,9 +346,8 @@ def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None,self_pub
     if header['summary'].get('blockingValidation'): raise ValueError('Blocking validation must be resolved before publication')
     # Review the exact selected versions, not just a stored UI summary. This is
     # also a guard against incomplete population edits before publication.
-    candidate=batch_view(c,tenant,batch_id)['items']
-    from .accruals import assert_current_accrual_versions
-    assert_current_accrual_versions(c,tenant,candidate)
+    from .cash_fx_inputs import assert_cash_source_current
+    assert_cash_source_current(c,tenant,header)
     if not candidate:
         from .position_storage import valid_empty_summary
         if not valid_empty_summary(header['summary']): raise ValueError('Empty-population publication is not enabled')
@@ -302,7 +363,11 @@ def publish(c, tenant, batch_id, actor, comment,*,real_operator_id=None,self_pub
             rounding=sum((Decimal(row['evidence'].get('storageRounding',{}).get('adjustments',{}).get('market','0')) for row in candidate),Decimal(0))
             if rounding!=Decimal(summary.get('marketRoundingAdjustment','0')):
                 raise ValueError('Review rounding adjustment and immutable evidence do not reconcile')
-            if selected_total!=values['marketPnl'] or selected_total!=values['closingValue']-values['openingValue']-values['executionValue']+rounding:
+            from .futures_pnl import retained_variation
+            variation=retained_variation(candidate)
+            if variation!=Decimal(summary.get('futuresVariationPnl','0')):
+                raise ValueError('Review futures variation and retained inputs do not reconcile')
+            if selected_total!=values['marketPnl'] or selected_total!=values['closingValue']-values['openingValue']-values['executionValue']+variation+rounding:
                 raise ValueError('Review summary and selected attribution do not reconcile')
             for column,label in [('gross_pnl','grossPnl'),('net_pnl','netPnl')]:
                 expected=sum((row[column] for row in candidate),Decimal(0))

@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {accessProxy,requireLocalMode,sameOrigin} from '@/lib/server/access-proxy';
+import {sessionCookieOptions} from '@/lib/server/session-cookie';
 
 export async function GET() {
   try {
@@ -17,8 +18,8 @@ export async function POST(request:NextRequest) {
     if (!response.ok) return NextResponse.json(result,{status:response.status});
     if (!result.token) return NextResponse.json({error:{message:'Context could not be verified.'}},{status:502});
     const output=NextResponse.json({context:result.context});
-    output.cookies.set('local_access_session',result.token,{httpOnly:true,sameSite:'strict',path:'/',maxAge:4*60*60});
-    output.cookies.set('active_tenant','',{httpOnly:true,path:'/',maxAge:0});
+    output.cookies.set('local_access_session',result.token,sessionCookieOptions(request,4*60*60));
+    output.cookies.set('active_tenant','',sessionCookieOptions(request,0));
     output.headers.set('X-Tenant-Context-Changed','1');
     return output;
   } catch {return NextResponse.json({error:{message:'Context switch failed; your existing context is unchanged.'}},{status:503});}
@@ -30,8 +31,8 @@ export async function DELETE(request:NextRequest) {
     const response=await accessProxy('/v1/local-session',{method:'DELETE'},'operator');
     if (!response.ok) return NextResponse.json(await response.json(),{status:response.status});
     const output=NextResponse.json({ended:true});
-    output.cookies.set('local_access_session','',{httpOnly:true,sameSite:'strict',path:'/',maxAge:0});
-    output.cookies.set('active_tenant','',{httpOnly:true,path:'/',maxAge:0});
+    output.cookies.set('local_access_session','',sessionCookieOptions(request,0));
+    output.cookies.set('active_tenant','',sessionCookieOptions(request,0));
     return output;
   } catch { return NextResponse.json({error:{message:'Unable to reset the local testing session.'}},{status:403}); }
 }

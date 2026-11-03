@@ -54,14 +54,17 @@ def test_empty_result_still_requires_a_real_tenant_policy(valued):
     r=replace(r,policy_id=uuid4(),opening_cutoff=r.opening_cutoff-timedelta(days=10),closing_cutoff=r.closing_cutoff-timedelta(days=10))
     with pytest.raises(ValueError,match='policy'): calculate_position(c,r)
 
-def test_closed_round_trip_without_prices_is_publishable(valued):
+def test_closed_round_trip_without_prices_is_publishable(valued,monkeypatch):
     c,r,trade=valued
     row=dict(c.execute(select(m.trade).where(m.trade.c.trade_id==trade)).mappings().one())
     ev=dict(c.execute(select(m.trade_lifecycle_event).where(m.trade_lifecycle_event.c.trade_id==trade)).mappings().one())
     sale=uuid4(); when=r.closing_cutoff-timedelta(hours=1)
     c.execute(m.trade.insert().values(**(row|dict(trade_id=sale,quantity=-row['quantity'],execution_price=Decimal('2.23'),trade_datetime_utc=when))))
     c.execute(m.trade_lifecycle_event.insert().values(**(ev|dict(trade_lifecycle_event_id=uuid4(),trade_id=sale,event_datetime_utc=when))))
-    c.execute(m.market_data_observation.delete().where(m.market_data_observation.c.market_date>=r.opening_cutoff.date()))
+    # Other isolated journeys may have retained immutable source snapshots.
+    # Assert that no price is requested instead of deleting shared evidence.
+    def unavailable(*args,**kwargs):raise AssertionError('A flat round trip must not request a market price')
+    monkeypatch.setattr('valuation.service._selection',unavailable)
     result=calculate_position(c,r)
     assert result.period.market_pnl==Decimal('0.1') and result.resolution_snapshot_ids==()
     batch=staged(c,r,result); view=storage.batch_view(c,r.tenant_id,batch)

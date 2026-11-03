@@ -3,6 +3,7 @@ import {getActiveTenantContext} from '@/lib/tenant-session';
 import {readBookingWrite} from '@/lib/booking-write-guard';
 import {referenceFetch} from '@/lib/reference-fetch';
 import {bffErrorResponse} from '@/lib/bff-error';
+import {forwardWorkloadHeaders} from '@/lib/server/workload-response';
 
 export const dynamic='force-dynamic';
 export async function GET(request:NextRequest,ctx:{params:Promise<{path:string[]}>}){return proxy(request,ctx);}
@@ -26,6 +27,6 @@ async function proxy(request:NextRequest,ctx:{params:Promise<{path:string[]}>}){
   });
   const headers=new Headers({'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});
   for(const name of ['Content-Type','Content-Disposition','X-Request-Id']){const value=response.headers.get(name);if(value)headers.set(name,value);}
-  return new NextResponse(response.body,{status:response.status,headers});
+  return forwardWorkloadHeaders(response,new NextResponse(response.body,{status:response.status,headers}));
  }catch(error){return bffErrorResponse(error,'Import service is unavailable. Check import history before retrying a booking.',request);}
 }

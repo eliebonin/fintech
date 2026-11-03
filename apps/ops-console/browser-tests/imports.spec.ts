@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './console-check';
 
 async function setup(page:Page,{invalid=false,uncertain=false}={}){
  const posts:{path:string;body:unknown;key:string|undefined}[]=[];let failed=false;

@@ -6,13 +6,18 @@ from uuid import UUID
 
 from sqlalchemy import select, or_
 from security_master_schema import models as m
-from .swap_creation_contracts import GenericSwapTerms, SwapProposalRequest
+from .swap_creation_contracts import GenericSwapTerms, RateSwapTerms, SwapProposalRequest
+from security_master_schema.swap_terms import parse_swap_terms,SwapTerms
 from .product_booking import ProductBookingError, require_visible, append_convention
 from .product_booking_contracts import SwapConvention
 
 
-def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, lock=False, as_of=None) -> dict:
+def validate_swap_references(connection, tenant_id, terms: SwapTerms, *, lock=False, as_of=None) -> dict:
     """Check canonical facts, locking source rows before rereading at approval."""
+    if isinstance(terms,RateSwapTerms):
+        from trading.rate_swaps import validate_references
+        try:return validate_references(connection,tenant_id,terms,lock=lock)
+        except ValueError as exc:raise ProductBookingError(str(exc)) from exc
     def rows(table, predicate):
         statement = select(table).where(predicate).order_by(*table.primary_key.columns)
         if lock:
@@ -115,10 +120,29 @@ def validate_swap_references(connection, tenant_id, terms: GenericSwapTerms, *, 
         creationReferenceType=creation_reference_type, creationInstrumentType=creation_instrument_type)
 
 
+def validate_swap_request(connection,tenant_id,request):
+    facts=validate_swap_references(connection,tenant_id,request.terms)
+    if request.existing_reference_id:
+        from trading.rate_swaps import validate_shell
+        try:validate_shell(connection,tenant_id,request.existing_reference_id,request.expected_reference_definition_id,request.terms)
+        except ValueError as exc:raise ProductBookingError(str(exc)) from exc
+    return facts
+
+
 def materialize_swap(connection, tenant_id, actor_id, request: SwapProposalRequest) -> UUID:
     """Write the entire approved canonical contract in the caller's transaction."""
     terms = request.terms
     facts = validate_swap_references(connection, tenant_id, terms, lock=True)
+    if isinstance(terms,RateSwapTerms):
+        from trading.rate_swaps import materialize
+        try:node=materialize(connection,tenant_id,actor_id,request,facts)
+        except ValueError as exc:raise ProductBookingError(str(exc)) from exc
+        append_convention(connection,node,SwapConvention(kind='SWAP',effectiveFrom=terms.effective_date,priceCurrencyId=terms.quote_currency_id,
+            quoteFactor=terms.quote_factor,sourceReference=terms.source_reference,quantityUnit=terms.quantity_unit,
+            priceBasis='SWAP_VALUE_PER_UNIT' if terms.quantity_unit=='UNITS' else 'SWAP_VALUE_PER_NOTIONAL',
+            quantityMinimum=Decimal(1) if terms.quantity_unit=='UNITS' else Decimal('1e-12'),
+            quantityIncrement=Decimal(1) if terms.quantity_unit=='UNITS' else Decimal('1e-12'),otcAllowed=True),actor_id)
+        return node
 
     def type_id(fact, key, code):
         if fact is None or fact['status'] != 'ACTIVE':
@@ -170,12 +194,11 @@ def inspection_terms(connection, tenant_id, instrument_id, definition_version):
             m.instrument_definition_version.c.status == 'APPROVED')).mappings().first()
     if row is None:
         return None
-    terms = GenericSwapTerms.model_validate(row.economics_payload)
+    terms = parse_swap_terms(row.economics_payload)
     require_visible(connection, tenant_id, instrument_id)
     try:
-        require_visible(connection, tenant_id, terms.performance_reference_id)
-        if terms.funding_reference_id:
-            require_visible(connection, tenant_id, terms.funding_reference_id)
+        references={leg.rate_reference_id for leg in terms.legs} if isinstance(terms,RateSwapTerms) else {terms.performance_reference_id,terms.funding_reference_id}-{None}
+        for ref in references:require_visible(connection,tenant_id,ref)
     except RepositoryNotFound:
         return None
     return terms

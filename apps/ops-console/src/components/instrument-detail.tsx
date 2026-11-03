@@ -121,7 +121,7 @@ export function InstrumentDetail({ instrument, standalone = false, futureTerms,s
             <TableHead><TableRow><TableCell>Venue</TableCell><TableCell>Symbol</TableCell><TableCell>Trading currency</TableCell><TableCell>Quote factor</TableCell><TableCell>{instrument.instrumentType==='FUTURE'?'Contracts per listed unit':'Unit multiplier'}</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
             <TableBody>
               {instrument.listings.map((listing) => (
-                <TableRow key={listing.listingId} hover>
+                <TableRow id={`listing-${listing.listingId}`} key={listing.listingId} hover>
                   <TableCell><Typography variant="body2" sx={{ fontWeight: 700 }}>{listing.marketVenueMic}</Typography><Typography variant="caption" color="text.secondary">{listing.venueName}</Typography></TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>{listing.tradingSymbol}</TableCell>
                   <TableCell>{listing.tradingCurrency}</TableCell>

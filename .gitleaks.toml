@@ -1,1 +1,4 @@
 title = "Reference Data API secret scanning"
+
+[extend]
+useDefault = true

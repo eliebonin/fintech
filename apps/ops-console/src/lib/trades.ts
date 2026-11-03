@@ -1,5 +1,5 @@
 export type BookedTrade = {
-  productEconomics?: {bookedNotional?:string|null;bookedUnits?:string|null;bondDetails?:Record<string,string>|null;terms:import('api-contracts').components['schemas']['ProductBookingContextView'];amount:string;amountKind:'CONSIDERATION'|'REFERENCE_CONTRACT_VALUE'|'ENTRY_REFERENCE_VALUE';direction?:'PAY'|'RECEIVE'|null}|null;
+  productEconomics?: {bookedNotional?:string|null;bookedUnits?:string|null;bondDetails?:Record<string,string>|null;structuredDetails?:{priceType:'NONE'|'CLEAN'|'DIRTY';quotedAmount:string;accruedInterestAmount?:string|null;considerationAmount?:string|null}|null;terms:import('api-contracts').components['schemas']['ProductBookingContextView'];amount:string;amountKind:'CONSIDERATION'|'QUOTED_AMOUNT_EXCLUDING_UNASSESSED_ACCRUAL'|'REFERENCE_CONTRACT_VALUE'|'ENTRY_REFERENCE_VALUE';direction?:'PAY'|'RECEIVE'|null}|null;
   positionEffect?: 'OPEN'|'CLOSE'|null;
   optionEconomics?: import('api-contracts').components['schemas']['OptionTradeEconomicsView']|null;
   fxForwardEconomics?: import("api-contracts").components["schemas"]["FxForwardTradeEconomicsView"] | null;
@@ -45,7 +45,7 @@ export type BookedTrade = {
 
 export type TradePayload = {
   data: BookedTrade[];
-  meta: { source: string; apiVersion: string; correlationId: string; total?: number };
+  meta: { source: string; apiVersion: string; correlationId: string; total?: number; instrumentDisplays?:import('./instrument-display').InstrumentDisplays };
 };
 
 export type TradeParty = {
@@ -108,7 +108,7 @@ export type TradeDetailPayload = {
     tags?: import("api-contracts").components["schemas"]["TradeTagView"][];
     traderName?: string | null;
   };
-  meta: { source: string; apiVersion: string; correlationId: string };
+  meta: { source: string; apiVersion: string; correlationId: string; instrumentDisplays?:import('./instrument-display').InstrumentDisplays };
 };
 
 export function formatTradeNumber(value: string | null, maximumFractionDigits = 4): string {

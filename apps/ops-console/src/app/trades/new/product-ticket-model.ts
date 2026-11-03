@@ -19,6 +19,15 @@ export function productAmount(terms:ProductTerms,quantity:string,price:string):s
   const c=terms.convention;if(!c)return '—';
   return exactBookingAmount([quantity,price,String(c.kind==='FUTURE'?c.monetaryMultiplier:c.priceBasis==='PCT_OF_PAR'&&c.quantityUnit==='UNITS'?c.denomination??'': '1')],String(c.quoteFactor));
 }
+/** CLEAN accrued is optional and unknown when absent; DIRTY already includes it. */
+export function structuredAmounts(terms:ProductTerms,draft:ProductDraft):{quoted:string;consideration:string|null} {
+  const quoted=productAmount(terms,draft.quantity,draft.executionPrice),cv=terms.convention;
+  if(cv?.kind!=='STRUCTURED_PRODUCT'||cv.accrual!=='CLEAN')return {quoted,consideration:quoted};
+  const q=part(quoted),a=part(draft.accruedInterestAmount??'');
+  if(!q||!a)return {quoted,consideration:null};
+  const scale=Math.max(q.scale,a.scale),value=q.value*BigInt(10)**BigInt(scale-q.scale)+a.value*BigInt(10)**BigInt(scale-a.scale);
+  return {quoted,consideration:formatBookingDecimal(value,scale)};
+}
 function aligned(value:string,step:string,minimum='0') {
   const parts=[value,step,minimum].map(text=>part(text));if(parts.some(v=>!v))return false;
   const [v,s,m]=parts as DecimalPart[],scale=Math.max(v.scale,s.scale,m.scale);
@@ -58,10 +67,11 @@ export function validateProductDraft(terms:ProductTerms,draft:ProductDraft,conte
     if(!draft.settlementEvidence?.trim())errors.push({field:'settlementEvidence',message:'Record the source confirming accrued interest and actual settlement eligibility.'});
     if(!terms.maturityDate||draft.settlementDate>=terms.maturityDate)errors.push({field:'settlementDate',message:'Settlement must precede bond maturity.'});
   }
+  if(c?.kind==='STRUCTURED_PRODUCT'&&draft.accruedInterestAmount&&!part(draft.accruedInterestAmount))errors.push({field:'accruedInterestAmount',message:'Enter an exact signed accrued amount, or leave it blank when unassessed.'});
   return errors;
 }
 export function buildProductPayload(terms:ProductTerms,draft:ProductDraft):ProductRequest {
-  return {...recognitionPayload(draft),...(terms.kind==='BOND'?{priceType:draft.priceType as 'CLEAN'|'DIRTY',accruedInterestAmount:draft.accruedInterestAmount,settlementEvidence:draft.settlementEvidence?.trim()}:{}),instrumentId:terms.instrumentId,listingId:terms.listingId??null,executionRoute:terms.executionRoute,
+  return {...recognitionPayload(draft),...(terms.kind==='BOND'?{priceType:draft.priceType as 'CLEAN'|'DIRTY',accruedInterestAmount:draft.accruedInterestAmount,settlementEvidence:draft.settlementEvidence?.trim()}:terms.convention?.kind==='STRUCTURED_PRODUCT'&&terms.convention.accrual!=='NONE'?{priceType:terms.convention.accrual,accruedInterestAmount:draft.accruedInterestAmount||null}:{}),instrumentId:terms.instrumentId,listingId:terms.listingId??null,executionRoute:terms.executionRoute,
     expectedTermsFingerprint:terms.termsFingerprint??'',strategyId:draft.strategyId,side:draft.side,quantity:draft.quantity,
     executionPrice:draft.executionPrice,tradeDatetime:draft.tradeDatetime,settlementDate:terms.kind==='FUTURE'||terms.kind==='SWAP'?null:draft.settlementDate,
     positionEffect:terms.kind==='FUTURE'?draft.positionEffect:null,tradePurpose:draft.tradePurpose,marketActivity:draft.marketActivity||null,

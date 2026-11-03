@@ -20,9 +20,10 @@ def test_accrual_mode_is_optional_by_default_and_strict_flag_is_a_boolean():
         with pytest.raises(ValidationError): ValuationCreate(**(payload()|dict(requireCompleteAccruals=value)))
 
 
-def test_old_default_request_retry_identity_is_preserved_but_strict_is_distinct():
+def test_default_retry_identity_uses_current_calculation_contract_and_strict_is_distinct():
     p=ValuationCreate(**payload());opening,closing=p.resolved_cutoffs()
     r=ValuationRequest(uuid4(),p.strategy_id,p.policy_id,p.cut_id,p.reporting_currency_id,opening,closing,p.information_cutoff)
-    old=asdict(r);old.pop('require_complete_accruals');old.pop('daily');old.pop('predecessor_batch_id');old.pop('recalculation_reason')
-    assert request_identity(r)==old
-    assert request_identity(replace(r,require_complete_accruals=True))==old|dict(require_complete_accruals=True)
+    expected=asdict(r);expected.pop('require_complete_accruals');expected.pop('daily');expected.pop('predecessor_batch_id');expected.pop('recalculation_reason')
+    expected['calculation_contract']='economic-pnl-bond-clean-v1'
+    assert request_identity(r)==expected
+    assert request_identity(replace(r,require_complete_accruals=True))==expected|dict(require_complete_accruals=True)

@@ -12,6 +12,9 @@ def test_reset_mapping_never_invents_an_instrument_for_missing_references():
     known,blocked=mapped_flows(bundle,{'10':node})
     assert [(r['trade_id'],n) for r,n in known]==[('known',node)]
     assert {r['sourceTradeId'] for r in blocked}=={'missing','closed'}
+    linked,remaining=mapped_flows(bundle,{'10':node},reference_overrides={'missing':node})
+    assert {r['trade_id'] for r,n in linked}=={'known','missing'}
+    assert [r['sourceTradeId'] for r in remaining]==['closed']
 
 
 def test_native_reset_is_dated_income_and_replay_does_not_duplicate_it(connection,tmp_path):

@@ -508,6 +508,7 @@ OPERATING_PROFILE_SEEDS: Sequence[dict[str, Any]] = (
 
 
 PLATFORM_MODULE_SEEDS: Sequence[dict[str, Any]] = (
+    {"module_code":"REGULATORY_REPORTING","display_name":"Regulatory Reporting","description":"Legal-entity assessment, transaction preparation and retained exports; no submission connectivity.","module_category":"OPERATIONS","status":"ACTIVE","sort_order":110},
     {"module_code": "SECURITY_MASTER", "display_name": "Security master", "description": "Governed canonical reference data, instruments, listings and identifiers.", "module_category": "REFERENCE_DATA", "status": "ACTIVE", "sort_order": 10},
     {"module_code": "MARKET_DATA", "display_name": "Market data", "description": "Series, observations, provenance and licensed dataset entitlement.", "module_category": "DATA", "status": "ACTIVE", "sort_order": 20},
     {"module_code": "TRADING", "display_name": "Trading", "description": "Booked economic events, parties, corrections and trade operations.", "module_category": "OPERATIONS", "status": "ACTIVE", "sort_order": 30},

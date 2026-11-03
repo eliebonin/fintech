@@ -7,6 +7,7 @@ from sqlalchemy import select, func, or_, exists
 from valuation import tables as t, storage
 from valuation.ledger_impacts import source_health
 from valuation.reassessment import recalculate
+from security_master_schema import models as m
 from security_master_schema.strategy_access import request_strategy_predicate, require_strategy_action
 from .tenant_context import get_tenant_context, TenantContext
 from .problem_details import ApiProblem, current_request_id
@@ -39,13 +40,17 @@ def register_reassessment_routes(router,authorize,connection_dependency,engine_f
         b=t.batch; change=t.ledger_change
         stale=exists(select(change.c.change_id).where(change.c.tenant_id==b.c.tenant_id,change.c.strategy_id==b.c.strategy_id,
             change.c.economic_from<=b.c.value_date,change.c.revision>func.coalesce(b.c.summary['ledgerSource']['revision'].as_integer(),-1)))
+        from valuation.cash_fx_health import cash_reassessment_predicate
+        from valuation.accrued_balance_health import balance_reassessment_predicate
         where=[b.c.tenant_id==context.tenant_id,b.c.status.in_(['STAGED','PUBLISHED']),
             request_strategy_predicate(c,context.tenant_id,'VALUATION_READ',b.c.strategy_id),
-            or_(b.c.summary['ledgerSource']['revision'].as_integer().is_(None),stale)]
+            or_(b.c.summary['ledgerSource']['revision'].as_integer().is_(None),stale,cash_reassessment_predicate(b),balance_reassessment_predicate(b))]
         if strategy_id: where.append(b.c.strategy_id==strategy_id)
-        rows=c.execute(select(b).where(*where).order_by(b.c.value_date.desc(),b.c.batch_id.desc()).limit(limit).offset(offset)).mappings()
+        rows=c.execute(select(b,m.strategy.c.display_name.label('strategy_name'),m.strategy.c.strategy_code).join(
+            m.strategy,m.strategy.c.strategy_id==b.c.strategy_id).where(*where,m.strategy.c.tenant_id==context.tenant_id)
+            .order_by(b.c.value_date.desc(),b.c.batch_id.desc()).limit(limit).offset(offset)).mappings()
         return dict(items=[dict(batchId=str(row['batch_id']),strategyId=str(row['strategy_id']),valueDate=row['value_date'].isoformat(),
-            publicationStatus=row['status'],sourceHealth=source_health(c,row)) for row in rows],
+            strategyLabel=f"{row['strategy_name']} · {row['strategy_code']}",publicationStatus=row['status'],sourceHealth=source_health(c,row)) for row in rows],
             total=c.scalar(select(func.count()).select_from(b).where(*where)))
 
     @router.post('/reassessments/recalculate',response_model=dict[str,object])

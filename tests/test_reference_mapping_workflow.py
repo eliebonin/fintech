@@ -1,7 +1,8 @@
 import asyncio
 from uuid import uuid4
 
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 
 from apps.reference_api.main import create_app
 from security_master_schema.demo_data import DEMO_IDS
@@ -56,8 +57,12 @@ def test_mapping_proposal_rejection_does_not_create_verified_mapping():
 
 
 def test_mapping_mutation_requires_an_active_actor_account():
-    response = asyncio.run(_request("POST", "/v1/reference-mapping-proposals", headers={"X-Tenant-Id": TENANT, "X-User-Account-Id": str(uuid4())}, json=_proposal_body()))
-
-    assert response.status_code == 403
-    assert response.json()["code"] == "authorization.forbidden"
-    assert response.json()["detail"] == "The request is not permitted."
+    # Unverified actor headers fail before account/tenant authority is consulted.
+    from httpx import ASGITransport as RawTransport
+    async def spoofed():
+        async with AsyncClient(transport=RawTransport(app=create_app()),base_url='http://test') as client:
+            return await client.post('/v1/reference-mapping-proposals',headers={
+                'X-Tenant-Id':TENANT,'X-User-Account-Id':str(uuid4())},json=_proposal_body())
+    response=asyncio.run(spoofed())
+    assert response.status_code == 401
+    assert response.json()["code"] == "authentication.required"

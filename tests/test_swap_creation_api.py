@@ -69,7 +69,8 @@ def submit(data):
 def decide(proposal_id, decision='APPROVED', tenant='tenant', app=None):
     if app is not None:
         import asyncio
-        from httpx import ASGITransport, AsyncClient
+        from httpx import AsyncClient
+        from tests.api_client import FixtureASGITransport as ASGITransport
         async def run():
             async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
                 return await client.post(f'/v1/reference-data-proposals/{proposal_id}/decision',

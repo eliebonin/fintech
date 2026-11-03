@@ -9,12 +9,16 @@ from .reconciliation_precision import native_decimal
 
 def aggregate_accruals(bundle):
     trades={r['trade_id']:r for r in bundle.positions};groups={};seen=set()
+    inactive=set(getattr(bundle,'manifest',{}).get('inactiveTradeIds',()))
     with localcontext() as context:
         context.prec=100
         for row in bundle.tables['accrued_interests']:
             identity=(row['trade_id'],row['value_date'])
             if identity in seen:raise ValueError('Duplicate source trade/day daily-interest input')
-            seen.add(identity);trade=trades[row['trade_id']]
+            seen.add(identity)
+            if row['trade_id'] in inactive:continue
+            if row['trade_id'] not in trades:raise ValueError('Accrual refers to an unavailable position trade')
+            trade=trades[row['trade_id']]
             instrument=source_id(row['instrument_id'])
             if source_id(trade['instrument_id'])!=instrument:raise ValueError('Accrual source trade/bond mismatch')
             key=(instrument,row['value_date'],trade['trade_currency'])
@@ -30,7 +34,7 @@ def aggregate_accruals(bundle):
         return result
 
 
-def post_accruals(c,bundle,tenant,actor,foundation):
+def post_accruals(c,bundle,tenant,actor,foundation,*,bond_nodes=None):
     from sqlalchemy import select
     from security_master_schema import models as m
     from security_master_schema.strategy_access import require_strategy_action
@@ -43,7 +47,7 @@ def post_accruals(c,bundle,tenant,actor,foundation):
         m.integration_source_system.c.tenant_id==tenant,m.integration_source_system.c.status=='ACTIVE',
         m.source_payload.c.external_message_reference==bundle.digest+':accrued_interests'))
     if not payload:raise ValueError('Owned retained daily-interest source required')
-    nodes={}
+    nodes=dict(bond_nodes or {})
     for proposal in c.execute(select(m.reference_data_proposal).where(m.reference_data_proposal.c.tenant_id==tenant,
         m.reference_data_proposal.c.source_system_id==foundation['sourceId'],m.reference_data_proposal.c.proposal_type=='CREATE_BOND',
         m.reference_data_proposal.c.status=='APPROVED')).mappings():

@@ -1,0 +1,29 @@
+flowchart TB
+    MASTER["Approved reference master<br/>Instruments and listings · secm"]
+    LEDGER["Governed booking<br/>Trades + lifecycle events · trd"]
+    PROVIDER["External provider deliveries"]
+    INGEST["Acquisition operators + adapters<br/>Rights, mapping, retained payloads"]
+    PRICES["Stored prices / FX / corporate actions<br/>md + secm + ing"]
+    POLICY["Policies, source priority, calendars<br/>ten + md + cal"]
+    SELECT["Select and freeze stored inputs"]
+    POSITION["Reconstruct positions<br/>Replay reviewed share transformations"]
+    OTHER["Dated cash, interest, coupon receipts<br/>Supplied / assessed economic inputs"]
+    LIFE["Ops-triggered maturity booking<br/>Exposure closure, payment separate"]
+    CALC["Calculate supported economic P&L<br/>valuation"]
+    STAGE["Stage candidate + retain logs<br/>nav"]
+    REVIEW["Ops review / controlled amendments<br/>Publish immutable version"]
+    REPORT["Entity assessment + execution review<br/>regulatory_reporting"]
+    EXPORT["Frozen preparation export · reg<br/>NOT submitted to FCA"]
+    MASTER -->|"ticket or reviewed trade file"| LEDGER
+    PROVIDER --> INGEST --> PRICES
+    MASTER --> INGEST
+    PRICES --> SELECT
+    POLICY --> SELECT
+    LEDGER --> POSITION
+    PRICES -->|"reviewed actions"| POSITION
+    POSITION --> CALC
+    SELECT --> CALC
+    OTHER --> CALC
+    CALC --> STAGE --> REVIEW
+    LEDGER --> REPORT --> EXPORT
+    LIFE -->|"closing trade"| LEDGER

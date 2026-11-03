@@ -62,6 +62,22 @@ def setup_files(c,tmp_path,*,forward=False):
     return foundation,prices['datasetId'],fx['datasetId']
 
 
+def test_nav_activation_pins_a_published_tenant_calendar_and_replays(connection,tmp_path):
+    from tooling.reconciliation_csv.reconciliation_eligibility import prepare
+    c=connection;foundation,prices,fx=setup_files(c,tmp_path)
+    source=[dict(r) for r in c.execute(select(m.market_data_observation).where(m.market_data_observation.c.dataset_id.in_([prices,fx]))).mappings()]
+    args=(c,ids['tenant'],ids['demo_user_account'],ids['platform_admin_user_account'],foundation['strategyId'],foundation['sourceId'],prices,fx,
+        'Test owner instruction: source-date-only personal fund valuation, no asserted dealing calendar or provider agreement.')
+    result=prepare(*args,include_fund_nav=True)
+    nav=c.execute(select(m.market_calendar).where(m.market_calendar.c.market_calendar_id==result['fundNavCalendarId'])).mappings().one()
+    assert nav['sealed'] and nav['tenant_id']==ids['tenant'] and nav['calendar_kind']=='VALUATION'
+    rule=c.execute(select(m.valuation_policy_rule).where(m.valuation_policy_rule.c.valuation_policy_id==result['policyId'],m.valuation_policy_rule.c.series_type=='NAV')).mappings().one()
+    assert rule['market_calendar_id']==nav['market_calendar_id']!=result['calendarId']
+    assert rule['pricing_date_rule']=='SAME_DAY' and rule['max_staleness_business_days']==0
+    assert prepare(*args,include_fund_nav=True)==result
+    assert [dict(r) for r in c.execute(select(m.market_data_observation).where(m.market_data_observation.c.dataset_id.in_([prices,fx]))).mappings()]==source
+
+
 def test_private_activation_replays_without_rewriting_source_or_granting_commercial_use(connection,tmp_path):
     from tooling.reconciliation_csv.reconciliation_eligibility import prepare
     from market_data.rights import load_rights

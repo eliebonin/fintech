@@ -2,7 +2,7 @@
 import os
 from uuid import uuid4
 from sqlalchemy import create_engine, select
-from fastapi.testclient import TestClient
+from tests.api_client import FixtureTestClient as TestClient
 from apps.reference_api.main import create_app
 from security_master_schema import access_management as am, models as m
 from security_master_schema.demo_data import DEMO_IDS as ids
@@ -32,7 +32,8 @@ def test_successful_creation_retains_real_operator_subject_request_and_resource(
     engine=create_engine(os.environ['DATABASE_URL'])
     try:
         with TestClient(create_app(engine=engine)) as client:
-            context=client.post('/v1/local-session',headers={'X-User-Account-Id':str(ids['platform_admin_user_account'])},
+            context=client.post('/v1/local-session',headers={'X-User-Account-Id':str(ids['platform_admin_user_account']),
+                'X-Local-Operator-Key':os.environ['LOCAL_ACCESS_OPERATOR_KEY']},
                 json={'tenantId':str(ids['tenant']),'userId':str(ids['demo_user_account'])})
             assert context.status_code==201
             response=client.post('/v1/strategies',headers={'X-Tenant-Id':str(ids['tenant']),

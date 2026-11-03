@@ -18,7 +18,9 @@ SCHEMAS = [
     (ConventionBase,'165c4b5b4ee73d906eb5812ee7aa7cbc0c514f5afc64dc6e7c83d3aca6654b5f','99e27b1d1f185d43b8251aa671af47ceca7be92be8a82db9ed7e04d39c1c5a78'),
     (FutureConvention,'04110631af8552ecf5dae81282ad0e97c6ef017a483d8fef7c0c65a80f519b04','1c2eb4d7052c300083c1e6315cde812a5c718d8053bca9def8d6b5f7e0975025'),
     (GenericSwapTerms,'95bad456785b350801dde301ce552b020572123adb73a17ade4c99d7408fe0af','87ff1d05296c5720b87d2fe1f9fcc25d3edb7a6e03d27379929b2a68f132e796'),
-    (SwapProposalRequest,'264289646014d5c1e589af3444e9bd9c52d8c9f5b94e301a205a65dd965702cf','600e226fcec5edfdde47873329a982f278577651df5d51ce27b626aa52259bb2'),
+    # 30 October: intentional additive rate-exchange union and guarded reference
+    # completion. The GenericSwapTerms baseline above remains unchanged.
+    (SwapProposalRequest,'a96622d6a632250284739c053c9759e1f5c1ddaaa5c23cafa05c15e8cac253d5','13b5302b2c9dc1fca472e9740f6817042cc242f9ccdb63e320d9bfd3554274a1'),
 ]
 
 

@@ -10,6 +10,8 @@ def register_valuation_tables(metadata):
     global attempt, run_event, attribution, batch, item, review_event, lineage, accrual_input, amendment
     global publication_policy, ledger_revision, ledger_change, reassessment_request
     uid=UUID(as_uuid=True)
+    from .accrued_balance_tables import register as register_balance
+    register_balance(metadata)
     # Wall-clock evidence time, not the start of a long financial transaction.
     now=text('clock_timestamp()')
     def key(name): return Column(name,uid,primary_key=True,server_default=text('uuidv7()'))
@@ -66,6 +68,8 @@ def register_valuation_tables(metadata):
     attribution=Table('pnl_attribution',metadata,key('attribution_id'),*scope(),
         Column('attempt_id',uid,nullable=False),Column('trade_id',uid,ForeignKey('trd.trade.trade_id')),
         Column('position_key',String(64)),Column('subject_id',uid,ForeignKey('secm.financial_reference_node.reference_node_id')),
+        Column('cash_account_id',uid,comment='Typed cash attribution owner; never an instrument or fabricated trade.'),
+        Column('cash_currency_id',uid,ForeignKey('secm.currency.currency_id'),comment='Native cash currency; currency_id remains the reporting currency.'),
         Column('value_date',Date,nullable=False),Column('version',Integer,nullable=False),
         Column('supersedes_attribution_id',uid,ForeignKey('nav.pnl_attribution.attribution_id')),
         Column('method',String(80),nullable=False),Column('input_hash',String(64),nullable=False),
@@ -76,7 +80,9 @@ def register_valuation_tables(metadata):
         ForeignKeyConstraint(['attempt_id','tenant_id'],['nav.valuation_attempt.attempt_id','nav.valuation_attempt.tenant_id']),
         UniqueConstraint('tenant_id','strategy_id','value_date','trade_id','version',name='uq_pnl_attribution_version'),
         UniqueConstraint('tenant_id','strategy_id','value_date','position_key','version',name='uq_pnl_position_version'),
-        CheckConstraint("(trade_id IS NOT NULL AND position_key IS NULL AND subject_id IS NULL) OR (trade_id IS NULL AND position_key IS NOT NULL AND subject_id IS NOT NULL)",name='ck_pnl_result_owner'),
+        ForeignKeyConstraint(['cash_account_id','strategy_id'],['trd.cash_account.cash_account_id','trd.cash_account.strategy_id'],name='fk_pnl_cash_strategy'),
+        UniqueConstraint('tenant_id','strategy_id','value_date','cash_account_id','cash_currency_id','version',name='uq_pnl_cash_version'),
+        CheckConstraint("((trade_id IS NOT NULL AND position_key IS NULL AND subject_id IS NULL) OR (trade_id IS NULL AND position_key IS NOT NULL AND subject_id IS NOT NULL)) AND cash_account_id IS NULL AND cash_currency_id IS NULL OR (trade_id IS NULL AND position_key IS NULL AND subject_id IS NULL AND cash_account_id IS NOT NULL AND cash_currency_id IS NOT NULL)",name='ck_pnl_result_owner'),
         UniqueConstraint('attribution_id','tenant_id',name='uq_pnl_attribution_scope'),CheckConstraint('version > 0',name='ck_pnl_attribution_version'),schema='nav')
     batch=Table('pnl_review_batch',metadata,key('batch_id'),*scope(),actor('staged_by'),
         Column('attempt_id',uid,nullable=False),Column('value_date',Date,nullable=False),Column('status',String(20),nullable=False),
@@ -91,11 +97,14 @@ def register_valuation_tables(metadata):
     item=Table('pnl_review_item',metadata,key('item_id'),Column('tenant_id',uid,nullable=False),Column('batch_id',uid,nullable=False),
         Column('attribution_id',uid,nullable=False),Column('trade_id',uid,ForeignKey('trd.trade.trade_id')),
         Column('position_key',String(64)),
+        Column('cash_account_id',uid,ForeignKey('trd.cash_account.cash_account_id'),comment='Cash account selected by this review item; exact ownership is checked against its attribution.'),
+        Column('cash_currency_id',uid,ForeignKey('secm.currency.currency_id'),comment='Native cash currency selected alongside the cash account.'),
         ForeignKeyConstraint(['batch_id','tenant_id'],['nav.pnl_review_batch.batch_id','nav.pnl_review_batch.tenant_id']),
         ForeignKeyConstraint(['attribution_id','tenant_id'],['nav.pnl_attribution.attribution_id','nav.pnl_attribution.tenant_id']),
         UniqueConstraint('batch_id','trade_id',name='uq_pnl_review_trade'),
         UniqueConstraint('batch_id','position_key',name='uq_pnl_review_position'),
-        CheckConstraint('(trade_id IS NULL) <> (position_key IS NULL)',name='ck_pnl_item_owner'),schema='nav')
+        UniqueConstraint('batch_id','cash_account_id','cash_currency_id',name='uq_pnl_review_cash'),
+        CheckConstraint('(((trade_id IS NULL) <> (position_key IS NULL)) AND cash_account_id IS NULL AND cash_currency_id IS NULL) OR (trade_id IS NULL AND position_key IS NULL AND cash_account_id IS NOT NULL AND cash_currency_id IS NOT NULL)',name='ck_pnl_item_owner'),schema='nav')
     lineage=Table('pnl_attribution_lineage',metadata,key('lineage_id'),
         Column('attribution_id',uid,ForeignKey('nav.pnl_attribution.attribution_id'),nullable=False),
         Column('trade_id',uid,ForeignKey('trd.trade.trade_id'),nullable=False),
@@ -161,7 +170,7 @@ def register_valuation_tables(metadata):
         'input_hash':'Canonical SHA256 of the effective financial inputs defining this attribution or review population.',
         'currency_id':'Reporting currency of the stored monetary P&L components and totals.',
         'market_pnl':'Clean price, FX and price/FX-cross movement; excludes income, fees and adjustments.',
-        'gross_pnl':'Market P&L plus separately attributed income flows; equals market P&L in the first market-only alpha.',
+        'gross_pnl':'Investment market P&L plus separately attributed cash FX and recognized income, before costs.',
         'net_pnl':'Gross P&L plus separately attributed signed costs/adjustments; no manual edit is permitted.',
         'components':'Exact decimal-string component amounts, reconciled to monetary totals before storage and by database trigger.',
         'evidence':'Immutable booked facts, selected input identities, calculation method and resolution snapshot lineage.',
@@ -193,6 +202,12 @@ def register_valuation_tables(metadata):
         'applied_batch_id':'Replacement staged candidate produced by an approved amendment.',
         'reviewed_at':'UTC recording time of the amendment decision.',
     }
+    from .mark_override_tables import register as register_mark_overrides
+    register_mark_overrides(metadata)
+    from .balance_history_tables import register as register_balance_history
+    register_balance_history(metadata)
+    from .interest_review_tables import register as register_interest_review
+    register_interest_review(metadata)
     for table in (attempt,run_event,attribution,batch,item,lineage,review_event,accrual_input,amendment):
         table.comment='Valuation/P&L evidence and review domain; operational attempts remain distinct from official financial selection.'
         for column in table.columns:

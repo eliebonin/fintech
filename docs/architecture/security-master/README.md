@@ -1,5 +1,9 @@
 # Security master
 
+[Instrument display policy](instrument-display.md) defines the shared readable
+names/identifiers used by the main API/frontend read and selection surfaces,
+separate from financial snapshots and underlying/contract identity.
+
 **Status:** Accepted  
 **Content type:** Architecture index  
 **Owner:** Security-master operations and architecture team  

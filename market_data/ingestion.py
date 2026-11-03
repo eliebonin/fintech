@@ -24,6 +24,15 @@ def validate_normalized(parsed,provider,start,end,received_at):
             if point.value!=point.value.quantize(Decimal('0.000000000001')):
                 raise ValueError('Normalized PRICE must match database precision')
         identity=(point.field,point.value_basis,parsed.timestamp_semantics)
+        if point.bond_price_type not in (None,'CLEAN','DIRTY') or point.bond_price_type and point.value_basis!='RAW':
+            raise ValueError('Explicit native RAW bond quotation type required')
+        if point.bond_quote_accrual is not None:
+            from .bond_quotes import validate_quote_accrual,clean_quote
+            validate_quote_accrual(point.bond_quote_accrual)
+            if point.bond_price_type!='DIRTY' or point.bond_quote_accrual.quote_settlement_date<point.market_date:
+                raise ValueError('Accrued component must belong to the same DIRTY quotation and settlement basis')
+            clean_quote(point.value,point.bond_quote_accrual.accrued_per_100)
+        identity=(*identity,point.bond_price_type)
         kind=close_type(point.series_type)
         if kind in dimensions and dimensions[kind]!=identity:
             raise ValueError('Inconsistent normalized series dimensions')

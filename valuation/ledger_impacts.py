@@ -52,6 +52,14 @@ def source_health_statuses(c, headers):
         (t.ledger_change.c.revision>frozen.c.revision)|(t.ledger_change.c.recorded_at>frozen.c.information_cutoff)).exists()
     for identity,stale in c.execute(select(frozen.c.batch_id,changed)):
         statuses[identity]='REASSESSMENT_REQUIRED' if stale else 'CURRENT'
+    from .cash_fx_health import cash_health_statuses
+    for identity,state in cash_health_statuses(c,headers).items():
+        if state!='CURRENT':statuses[identity]=state
+    from .accrued_balance_health import balance_health_statuses
+    for identity,state in balance_health_statuses(c,headers).items():
+        if state!='CURRENT':statuses[identity]=state
+    from .mark_health import mark_health_statuses
+    statuses.update(mark_health_statuses(c,headers))
     return statuses
 
 
@@ -63,7 +71,16 @@ def source_health(c, header):
         t.ledger_change.c.strategy_id==header['strategy_id'],t.ledger_change.c.economic_from<=header['value_date'],
         (t.ledger_change.c.revision>revision) | (t.ledger_change.c.recorded_at>info))
         .order_by(t.ledger_change.c.revision).limit(100)).mappings().all()
-    return {'status':'REASSESSMENT_REQUIRED' if changes else 'CURRENT',
+    from .cash_fx_health import cash_health_statuses
+    cash_state=cash_health_statuses(c,[header]).get(header['batch_id'],'CURRENT')
+    from .accrued_balance_health import balance_health_statuses
+    accrued_state=balance_health_statuses(c,[header]).get(header['batch_id'],'CURRENT')
+    from .mark_health import mark_health_statuses
+    mark_state=mark_health_statuses(c,[header]).get(header['batch_id'],'CURRENT')
+    return {'status':'REASSESSMENT_REQUIRED' if changes or 'REASSESSMENT_REQUIRED' in (cash_state,accrued_state,mark_state) else 'UNKNOWN_LEGACY' if accrued_state=='UNKNOWN_LEGACY' else cash_state,
+        'marksChanged':mark_state=='REASSESSMENT_REQUIRED',
+        'accruedBalanceChanged':accrued_state=='REASSESSMENT_REQUIRED',
+        'cashChanged':cash_state=='REASSESSMENT_REQUIRED',
         'changes':[{'revision':r['revision'],'tradeId':str(r['trade_id']),'economicFrom':r['economic_from'].isoformat(),
             'recordedAt':r['recorded_at'].isoformat(),'reason':r['reason']} for r in changes],
         'changesTruncated':len(changes)==100}
@@ -77,4 +94,4 @@ def batch_source_health(c, tenant_id, batch_id):
 
 def assert_batch_ledger_current(c, tenant_id, batch_id):
     if batch_source_health(c,tenant_id,batch_id)['status']!='CURRENT':
-        raise ValueError('Ledger inputs changed or lack revision proof; recalculate before publication')
+        raise ValueError('Ledger/cash inputs changed or lack revision proof; recalculate before publication')

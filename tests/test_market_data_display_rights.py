@@ -104,7 +104,8 @@ def test_resolution_does_not_treat_display_permission_as_non_display_right():
 
 def test_series_api_rejects_invalid_observation_page_bounds():
     import asyncio
-    from httpx import ASGITransport, AsyncClient
+    from httpx import AsyncClient
+    from tests.api_client import FixtureASGITransport as ASGITransport
     from apps.reference_api.main import create_app
     async def run():
         async with AsyncClient(transport=ASGITransport(app=create_app()), base_url='http://test') as client:

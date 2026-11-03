@@ -787,6 +787,7 @@ cash_account = Table(
     Column("account_type", String(40), nullable=False, comment="Cash account kind such as CUSTODY, MARGIN, SETTLEMENT, or INTERNAL_LEDGER."),
     Column("display_label", String(100), nullable=True, comment="Tenant-facing account label; not a sensitive external account number."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Lifecycle status of the cash account."),
+    UniqueConstraint('cash_account_id','strategy_id',name='uq_cash_account_strategy'),
     schema="trd",
 )
 
@@ -996,6 +997,9 @@ cash_balance = Table(
 
 
 # ten and ing: tenant scope plus controlled integration-boundary lineage.
+Index('ix_cash_balance_pnl_inputs',cash_balance.c.strategy_id,cash_balance.c.balance_as_of_date,
+    cash_balance.c.received_at_utc,postgresql_where=text("source_system_id='TENANT_EOD'"))
+
 tenant = Table(
     "tenant",
     metadata,
@@ -1483,11 +1487,11 @@ dataset_access_profile = Table(
     Column("licensee_organisation_id", UUID_V7, ForeignKey("secm.organisation.organisation_id"), nullable=False, comment="Actual contractual licensee or explicitly identified personal operator; not inferred from tenant ownership."),
     Column("external_id_namespace_id", UUID_V7, ForeignKey("ing.external_id_namespace.external_id_namespace_id"), nullable=True, comment="Exact source namespace allowed to publish this dataset when identifier-based ingestion is used."),
     Column("permitted_tenant_id", UUID_V7, ForeignKey("ten.tenant.tenant_id"), nullable=True, comment="Only permitted simulated tenant in personal scope; null may permit reviewed commercial entitlements."),
-    Column("usage_scope", String(20), nullable=False, comment="PERSONAL or COMMERCIAL operational scope; changing scope does not create activity grants."),
+    Column("usage_scope", String(20), nullable=False, comment="PERSONAL, COMMERCIAL or invented-data-only SYNTHETIC scope; changing scope does not create activity grants."),
     Column("provider_enabled", Boolean, nullable=False, server_default=text("false"), comment="Technical delivery activation; does not substitute for any required licence."),
     Column("activation_reference", Text, nullable=False, comment="Evidence for the delivery activation and declared operating scope."),
     Column("status", String(30), nullable=False, server_default=text("'DRAFT'"), comment="Profile state; only ACTIVE profiles permit use."),
-    CheckConstraint("usage_scope IN ('PERSONAL', 'COMMERCIAL')", name="ck_dataset_access_scope"),
+    CheckConstraint("usage_scope IN ('PERSONAL', 'COMMERCIAL','SYNTHETIC')", name="ck_dataset_access_scope"),
     CheckConstraint("usage_scope <> 'PERSONAL' OR permitted_tenant_id IS NOT NULL", name="ck_dataset_personal_tenant"),
     CheckConstraint("length(trim(activation_reference)) > 0", name="ck_dataset_activation_evidence"),
     schema="md",
@@ -1498,15 +1502,15 @@ licence_activity_grant = Table(
     Column("grant_id", UUID_V7, primary_key=True, server_default=UUID_V7_DEFAULT, comment="Immutable identifier of one effective activity grant."),
     Column("dataset_licence_assignment_id", UUID_V7, ForeignKey("md.dataset_licence_assignment.dataset_licence_assignment_id"), nullable=False, comment="Dataset-specific agreement assignment supplying this activity right."),
     Column("activity", String(30), nullable=False, comment="Controlled activity such as acquisition, storage, display or redistribution."),
-    Column("usage_scope", String(20), nullable=False, comment="PERSONAL or COMMERCIAL use covered by this grant."),
-    Column("evidence_basis", String(30), nullable=False, comment="CONTRACT, PERSONAL_DECLARATION or PERSONAL_RESEARCH_EXCEPTION; personal evidence is never provider permission or commercial clearance."),
-    Column("evidence_reference", Text, nullable=False, comment="Contract reference or attributable personal declaration supporting this grant."),
+    Column("usage_scope", String(20), nullable=False, comment="PERSONAL, COMMERCIAL or invented-data-only SYNTHETIC use covered by this grant."),
+    Column("evidence_basis", String(30), nullable=False, comment="CONTRACT, PERSONAL_DECLARATION, PERSONAL_RESEARCH_EXCEPTION or invented-data-only SYNTHETIC_ORIGIN; synthetic and personal evidence never establish commercial provider permission."),
+    Column("evidence_reference", Text, nullable=False, comment="Contract, attributable personal declaration or explicit invented-data origin supporting this grant."),
     Column("valid_from", Date, nullable=False, comment="Inclusive first permitted use date."),
     Column("valid_to", Date, nullable=True, comment="Inclusive last permitted use date, or null for open ended."),
     Column("status", String(30), nullable=False, server_default=text("'ACTIVE'"), comment="Grant state; only ACTIVE grants satisfy a prerequisite."),
     UniqueConstraint("dataset_licence_assignment_id", "activity", "usage_scope", "valid_from", name="uq_licence_activity_grant"),
     CheckConstraint("activity IN ('ACQUIRE', 'STORE', 'DISPLAY', 'NON_DISPLAY', 'CLIENT_REPORTING', 'REDISTRIBUTE', 'DERIVED_DATA')", name="ck_licence_grant_activity"),
-    CheckConstraint("usage_scope IN ('PERSONAL', 'COMMERCIAL') AND evidence_basis IN ('CONTRACT', 'PERSONAL_DECLARATION', 'PERSONAL_RESEARCH_EXCEPTION')", name="ck_licence_grant_basis"),
+    CheckConstraint("usage_scope IN ('PERSONAL', 'COMMERCIAL','SYNTHETIC') AND evidence_basis IN ('CONTRACT', 'PERSONAL_DECLARATION', 'PERSONAL_RESEARCH_EXCEPTION','SYNTHETIC_ORIGIN') AND ((usage_scope='SYNTHETIC') = (evidence_basis='SYNTHETIC_ORIGIN'))", name="ck_licence_grant_basis"),
     CheckConstraint("evidence_basis <> 'PERSONAL_RESEARCH_EXCEPTION' OR (usage_scope = 'PERSONAL' AND activity = 'ACQUIRE')", name="ck_personal_research_acquire_only"),
     CheckConstraint("usage_scope <> 'COMMERCIAL' OR evidence_basis = 'CONTRACT'", name="ck_licence_commercial_contract"),
     CheckConstraint("valid_to IS NULL OR valid_to >= valid_from", name="ck_licence_grant_period"),
@@ -1690,6 +1694,18 @@ market_data_observation = Table(
     Column("supersedes_observation_id", UUID_V7, ForeignKey("md.market_data_observation.market_data_observation_id"), nullable=True, comment="Prior observation superseded or corrected by this observation when applicable."),
     Column("source_payload_reference", String(500), nullable=True, comment="Pointer or opaque reference to retained source payload and lineage evidence."),
     schema="md",
+)
+
+market_data_bond_quote_accrual = Table(
+    'bond_quote_accrual',metadata,
+    Column('observation_id',UUID_V7,ForeignKey('md.market_data_observation.market_data_observation_id'),primary_key=True,comment='Exact DIRTY source price observation owning this immutable paired component; corrections use a new observation.'),
+    Column('accrued_interest_per_100',Numeric(30,12),nullable=False,comment='Signed accrued-interest price component per 100 nominal, quoted with this DIRTY price; not daily earnings or a strategy balance.'),
+    Column('quote_settlement_date',Date,nullable=False,comment='Provider quotation settlement date to which both DIRTY price and its accrued component refer.'),
+    Column('source_reference',Text,nullable=False,comment='Explicit provider/source evidence for this paired quote; dataset, currency, market date, licence and raw payload come from the owning observation.'),
+    Column('recorded_at_utc',DateTime(timezone=True),nullable=False,server_default=UTC_NOW,comment='UTC time the paired component became known; must be within the valuation information cutoff.'),
+    Column('component_hash',String(64),nullable=False,comment='SHA256 of canonical signed amount, quote settlement date and source reference, retained for immutable normalization proof.'),
+    CheckConstraint("length(trim(source_reference))>0 AND length(source_reference)<=1000 AND length(component_hash)=64 AND accrued_interest_per_100 > -1000000000000000000 AND accrued_interest_per_100 < 1000000000000000000",name='ck_bond_quote_accrual_content'),
+    schema='md',
 )
 
 market_data_price_basis_proof = Table(
@@ -3043,3 +3059,6 @@ fx_maturity_policy,fx_maturity_proposal,fx_maturity_posting=_register_lifecycle_
 
 from lifecycle.coupon_tables import register as _register_coupon_tables
 _register_coupon_tables(metadata)
+
+from regulatory_reporting.tables import register as _register_reporting_tables
+_register_reporting_tables(metadata)

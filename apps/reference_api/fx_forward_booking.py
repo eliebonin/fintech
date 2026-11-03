@@ -146,14 +146,16 @@ def fx_forward_booking_router(connection_dependency, assert_membership):
     def search(q: str = Query(default="", max_length=250), limit: int = Query(default=25, ge=1, le=100), offset: int = Query(default=0, ge=0), as_of: date | None = Query(default=None, alias="asOfDate"), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(context, connection)
         data, total = search_fx_forward_booking_instruments(connection, context.tenant_id, q, limit, offset, as_of)
-        return FxForwardBookingInstrumentSearchResponse(data=data, meta=meta(context, total=total, limit=limit, offset=offset))
+        from .instrument_display import decorate_response
+        return decorate_response(connection,context.tenant_id,FxForwardBookingInstrumentSearchResponse(data=data, meta=meta(context, total=total, limit=limit, offset=offset)),[item.instrument_id for item in data])
 
     @router.get("/v1/trades/fx-forward-instruments/{instrument_id}", response_model=FxForwardBookingInstrumentResponse)
     def instrument(instrument_id: UUID, as_of: date | None = Query(default=None, alias="asOfDate"), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         authorized(context, connection)
         try: data = get_fx_forward_booking_instrument(connection, context.tenant_id, instrument_id, as_of)
         except RepositoryNotFound as error: raise HTTPException(404, str(error)) from error
-        return FxForwardBookingInstrumentResponse(data=data, meta=meta(context))
+        from .instrument_display import decorate_response
+        return decorate_response(connection,context.tenant_id,FxForwardBookingInstrumentResponse(data=data, meta=meta(context)),[data.instrument_id])
 
     @router.post(ENDPOINT, response_model=TradeDetailResponse, status_code=201)
     def book(request: FxForwardBookingRequest, response: Response, idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=255), context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):

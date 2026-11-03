@@ -6,7 +6,7 @@ this function; provider payloads cannot self-assert a complete adjustment histor
 from datetime import date
 from sqlalchemy import select
 from security_master_schema import models as m
-from valuation.economics import evidence_hash
+from security_master_schema.evidence import evidence_hash
 from .price_basis import normalise_as_traded
 
 

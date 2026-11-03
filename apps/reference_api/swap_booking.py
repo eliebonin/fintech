@@ -4,7 +4,7 @@ from security_master_schema import models as m
 from .product_booking_contracts import SwapDetailsView
 
 
-def load_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False):
+def load_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False,currency_locks=None):
     """Return immutable source details; shared booking code supplies convention/identity."""
     from .product_booking import require_visible, instrument_row
 
@@ -15,7 +15,7 @@ def load_swap_context(connection, tenant_id, instrument_id, as_of, *, lock=False
         m.instrument_definition_version.c.is_current, m.instrument_definition_version.c.status == 'APPROVED')
     if connection.scalar(generic):
         from .generic_swap_booking import load_generic_swap_context
-        return load_generic_swap_context(connection, tenant_id, instrument_id, as_of, lock=lock)
+        return load_generic_swap_context(connection, tenant_id, instrument_id, as_of, lock=lock,currency_locks=currency_locks)
 
     def rows(table, predicate):
         statement=select(table).where(predicate).order_by(*table.primary_key.columns)

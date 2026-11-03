@@ -7,7 +7,7 @@ import pytest
 
 ROOT=Path(__file__).resolve().parents[1]
 PRODUCT=('apps/reference_api','apps/market_data_ingestor','security_master_schema',
-    'market_data','positions','valuation','lifecycle','data_imports','tests')
+    'market_data','positions','valuation','lifecycle','data_imports','trading','regulatory_reporting','tests')
 
 
 def test_product_and_its_tests_do_not_import_external_csv_tooling():

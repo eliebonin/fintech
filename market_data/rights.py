@@ -14,7 +14,7 @@ class RightsDecision:
 
 
 def evaluate_rights(profile, requirements, grants, activity: str, on_date: date, scope: str) -> RightsDecision:
-    if activity not in ACTIVITIES or scope not in {'PERSONAL', 'COMMERCIAL'}:
+    if activity not in ACTIVITIES or scope not in {'PERSONAL', 'COMMERCIAL','SYNTHETIC'}:
         return RightsDecision(False, 'Unsupported activity or scope')
     if not profile or profile['status'] != 'ACTIVE' or not profile['provider_enabled']:
         return RightsDecision(False, 'Dataset access is not activated')
@@ -26,7 +26,8 @@ def evaluate_rights(profile, requirements, grants, activity: str, on_date: date,
     evidence = []
     for requirement in applicable:
         # Reserved prerequisite: owner's intended purpose is not the provider's access permission.
-        allowed_bases = ({'CONTRACT'} if scope == 'COMMERCIAL' or requirement['requirement_code'] == 'AUTOMATED_SOURCE_ACCESS'
+        allowed_bases = ({'SYNTHETIC_ORIGIN'} if scope=='SYNTHETIC' else
+                         {'CONTRACT'} if scope == 'COMMERCIAL' or requirement['requirement_code'] == 'AUTOMATED_SOURCE_ACCESS'
                          else {'CONTRACT', 'PERSONAL_DECLARATION'})
         if (scope == 'PERSONAL' and activity == 'ACQUIRE'
                 and requirement['requirement_code'] == 'AUTOMATED_SOURCE_ACCESS'
@@ -75,6 +76,7 @@ def _load_rights(connection, dataset_id, activity, on_date, scope):
         return RightsDecision(False, 'Dataset is inactive or outside its effective dates')
     profile = connection.execute(select(m.dataset_access_profile).where(
         m.dataset_access_profile.c.dataset_id == dataset_id)).mappings().one_or_none()
+    if not profile:return RightsDecision(False,'Dataset access profile is missing')
     if profile:
         profile = dict(profile, dataset_code=dataset['dataset_code'])
     requirements = connection.execute(select(m.dataset_right_requirement).where(
@@ -91,7 +93,7 @@ def _load_rights(connection, dataset_id, activity, on_date, scope):
 
 
 def denied_display_datasets(connection, tenant_id, on_date: date, *, datasets=None):
-    """Legacy fixtures keep their current model; all profiled datasets are strict."""
+    """Every dataset needs explicit reviewed activity coverage."""
     return denied_activity_datasets(connection, tenant_id, on_date, ('DISPLAY',), datasets=datasets)
 
 
@@ -107,20 +109,25 @@ def _denied_activity_datasets(connection, tenant_id, on_date, activities, datase
     """Read layered rights once per population, not four times per activity.
 
     This is a fresh read unless the caller established an explicit, stable
-    resolution scope. Unprofiled legacy datasets retain their existing behavior.
+    resolution scope. Missing profiles and unknown requested datasets deny use.
     """
     from collections import defaultdict
     from sqlalchemy import select
     from security_master_schema import models as m
-    query = select(m.dataset_access_profile)
+    d,p=m.dataset,m.dataset_access_profile
+    query = select(p,d.c.dataset_id.label('source_dataset_id'),d.c.dataset_code,
+        d.c.status.label('source_status'),d.c.valid_from.label('source_valid_from'),
+        d.c.valid_to.label('source_valid_to')).select_from(d.outerjoin(p))
     if datasets is not None:
         if not datasets: return []
-        query = query.where(m.dataset_access_profile.c.dataset_id.in_(datasets))
-    profiles = connection.execute(query).mappings().all()
+        query = query.where(d.c.dataset_id.in_(datasets))
+    rows=connection.execute(query).mappings().all()
+    profiles=[r for r in rows if r['dataset_id'] is not None]
+    known={r['source_dataset_id'] for r in rows}
+    denied=[r['source_dataset_id'] for r in rows if r['dataset_id'] is None]
+    if datasets is not None:denied.extend(datasets-known)
     ids = [p['dataset_id'] for p in profiles]
-    if not ids: return []
-    sources = {r['dataset_id']: r for r in connection.execute(select(m.dataset).where(
-        m.dataset.c.dataset_id.in_(ids))).mappings()}
+    if not ids:return denied
     requirements = defaultdict(list)
     for row in connection.execute(select(m.dataset_right_requirement).where(
             m.dataset_right_requirement.c.dataset_id.in_(ids),
@@ -134,17 +141,15 @@ def _denied_activity_datasets(connection, tenant_id, on_date, activities, datase
             l.c.valid_from.label('licence_valid_from'), l.c.valid_to.label('licence_valid_to'))
             .select_from(g.join(a).join(l)).where(a.c.dataset_id.in_(ids),g.c.activity.in_(activities))).mappings():
         grants[(row['dataset_id'], row['activity'])].append(row)
-    denied = []
     for profile in profiles:
         identity = profile['dataset_id']
-        source = sources.get(identity)
         if (profile['permitted_tenant_id'] is not None and profile['permitted_tenant_id'] != tenant_id
-                or not source or source['status'] != 'ACTIVE' or source['valid_from'] > on_date
-                or source['valid_to'] is not None and source['valid_to'] < on_date):
-            # With no requested activities the old API only checked ownership.
-            if activities or profile['permitted_tenant_id'] not in (None,tenant_id): denied.append(identity)
+                or profile['status']!='ACTIVE' or not profile['provider_enabled']
+                or profile['source_status'] != 'ACTIVE' or profile['source_valid_from'] > on_date
+                or profile['source_valid_to'] is not None and profile['source_valid_to'] < on_date):
+            denied.append(identity)
             continue
-        enriched = dict(profile,dataset_code=source['dataset_code'])
+        enriched = dict(profile)
         if any(not evaluate_rights(enriched,requirements[(identity,activity)],grants[(identity,activity)],
                 activity,on_date,profile['usage_scope']).allowed for activity in activities):
             denied.append(identity)

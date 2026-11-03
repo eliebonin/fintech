@@ -1,4 +1,7 @@
+import {InstrumentLabel} from './instrument-label';
 import Link from 'next/link';
+import {instrumentDisplayHref} from '@/lib/instrument-display';
+import type {InstrumentDisplays} from '@/lib/instrument-display';
 import {formatTradeExactDecimal} from '@/lib/trades';
 import {MeasureDetails} from './strategy-measure-details';
 import {MeasureRowDisclosure} from './measure-row-disclosure';
@@ -6,10 +9,10 @@ import {MeasureCurrencyDisplay,MeasureAmount} from './measure-currency-display';
 
 export type ScalarMeasure={localAmount:string|null;currency:string|null;strategyAmount:string|null;strategyCurrency:string|null;status:string;reasonCode?:string};
 export type MonetaryMeasure=ScalarMeasure&{representation?:'CONTRACTUAL_CURRENCY_LEGS';legs?:Array<ScalarMeasure&{role:'BASE'|'QUOTE'}>};
-export type MeasureRow={positionId:string;instrumentId:string;name:string;instrumentType?:string;instrumentTypeLabel?:string;quantity:string;quantityUnit:string;
+export type MeasureRow={subjectId?:string;positionId:string;instrumentId:string;name:string;instrumentType?:string;instrumentTypeLabel?:string;quantity:string;quantityUnit:string;
  contractDate?:string|null;contractDateLabel?:string|null;attentionMessage?:string|null;measures:Record<string,MonetaryMeasure>;
  evidence:{issues?:Record<string,string>;route?:string}&Record<string,unknown>;evidenceHash:string};
-export type MeasureData={status:string;asOf:string;informationCutoff:string;total:number;limit:number;offset:number;reportingCurrency?:string;items:MeasureRow[]};
+export type MeasureData={instrumentDisplays?:InstrumentDisplays;status:string;asOf:string;informationCutoff:string;total:number;limit:number;offset:number;reportingCurrency?:string;items:MeasureRow[]};
 export type MeasurePolicy={id:string;label:string;strategyId?:string|null};
 type Display='local'|'strategy'|'both';
 
@@ -49,7 +52,7 @@ export function StrategyMeasures({strategyId,query,policies,data,error,canCalcul
    <p className="measure-display-note">Amounts shown to 2 decimals · Exact values in Inspect · Quantities are not rounded.</p>
    <div className="table-wrap measure-table-wrap" role="region" aria-label="Position monetary measures" tabIndex={0}><table className="strategy-positions-table measure-table"><caption className="sr-only">Position monetary measures grouped by instrument type, in server alphabetical order</caption><thead><tr><th scope="col">Instrument / listing</th><th scope="col" className="numeric">Quantity</th><th scope="col" className="numeric">Reference notional</th><th scope="col" className="numeric">Exposure / currency legs</th><th scope="col" className="numeric">Market value</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Inspect</span></th></tr></thead>
     {groups.map((group,index)=><tbody key={`${group.label}-${index}`}><tr className="strategy-position-group"><th scope="rowgroup" colSpan={7}>{group.label}</th></tr>{group.rows.map(row=>{const status=rowStatus(row);return <MeasureRowDisclosure key={row.positionId} name={row.name} details={<MeasureDetails row={row} strategyId={strategyId} query={query} informationCutoff={data.informationCutoff}/> }>
-     <th scope="row" className="measure-instrument"><Link href={`/instruments/${encodeURIComponent(row.instrumentId)}`}>{row.name}</Link>{row.contractDate?<small>{row.contractDateLabel??'Maturity'} · {row.contractDate}</small>:null}{row.attentionMessage?<small className="measure-warning">{row.attentionMessage}</small>:null}</th>
+     <th scope="row" className="measure-instrument"><InstrumentLabel display={data.instrumentDisplays?.[row.subjectId??row.instrumentId]} fallbackName={data.instrumentDisplays===undefined?row.name:undefined} href={instrumentDisplayHref(data.instrumentDisplays?.[row.subjectId??row.instrumentId],row.subjectId??row.instrumentId,row.instrumentId)}/>{row.contractDate?<small>{row.contractDateLabel??'Maturity'} · {row.contractDate}</small>:null}{row.attentionMessage?<small className="measure-warning">{row.attentionMessage}</small>:null}</th>
      <td className="numeric">{formatTradeExactDecimal(row.quantity)}<small className="strategy-position-unit">{row.quantityUnit}</small></td>
      {['referenceNotional','economicExposure','marketValue'].map(name=><td key={name} className="numeric"><MeasureAmount measure={row.measures[name]}/></td>)}
      <td><span className={`measure-status measure-status-${status.tone}`}>{status.label}</span>{Object.entries(row.evidence.issues??{}).filter(([key])=>key!=='dirtyPrice'||row.measures.marketValue.status==='UNAVAILABLE').map(([key,value])=><small key={key} className="measure-row-note">{value}</small>)}</td>

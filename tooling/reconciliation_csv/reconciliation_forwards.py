@@ -22,7 +22,7 @@ def forward_proposal(bundle,instrument,row,currencies,source,payload,*,base,quot
     return request,price
 
 
-def post_forwards(c,bundle,tenant,actor,foundation,companies,property_values,orientations):
+def post_forwards(c,bundle,tenant,actor,foundation,companies,property_values,orientations,*,orientation_evidence=None):
     from sqlalchemy import select
     from security_master_schema import models as m
     from security_master_schema.access_management import audit
@@ -52,7 +52,7 @@ def post_forwards(c,bundle,tenant,actor,foundation,companies,property_values,ori
         req,price=forward_proposal(bundle,instruments[identifier],row,currencies,foundation['sourceId'],payload,base=base,quote=quote)
         proposal=submit_fx_forward_proposal(c,tenant,actor,req)
         if proposal.status=='PENDING':proposal=decide_fx_forward_proposal(c,tenant,actor,proposal.proposal_id,'APPROVED',
-            'Owner confirmed source quantities are USD and rates GBP per USD; no inversion. Exact source and authorized truncation retained in audit. Deliverable maturity inferred from source dates.')
+            (orientation_evidence or 'Owner confirmed source quantities are USD and rates GBP per USD; no inversion.')+' Exact source and authorized truncation retained in audit. Deliverable maturity inferred from source dates.')
         if proposal.status!='APPROVED' or not proposal.instrument_id:raise ValueError('Forward proposal is not approved')
         node=proposal.instrument_id
         signed=Decimal(native_decimal(row['quantity'])['value'])
@@ -63,7 +63,7 @@ def post_forwards(c,bundle,tenant,actor,foundation,companies,property_values,ori
         request=FxForwardBookingRequest(instrumentId=node,strategyId=foundation['strategyId'],side='BUY' if signed>0 else 'SELL',
             quantity=signed.copy_abs(),tradeDatetime=execution,counterpartyOrganisationId=companies[source_id(row['counterparty_id'])],
             expectedTermsFingerprint=context.terms_fingerprint,properties=properties,tradePurpose='HEDGING',
-            comment='Private reconciliation. USD quantity, GBP per USD rate confirmed by owner; source currency labels retained in import evidence.',
+            comment=('Private reconciliation. '+orientation_evidence+' Source currency labels retained in import evidence.') if orientation_evidence else 'Private reconciliation. USD quantity, GBP per USD rate confirmed by owner; source currency labels retained in import evidence.',
             externalReferences=[dict(referenceType='SOURCE_TRADE_ID',referenceValue=row['trade_id'],sourceSystemId=str(foundation['sourceId']))])
         key='recon-fwd-trade:'+sha256(document(dict(source=str(foundation['sourceId']),trade=row['trade_id']))).hexdigest()
         detail=book_fx_forward_trade(c,tenant,actor,request,key,'reconciliation-import')

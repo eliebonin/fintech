@@ -9,7 +9,7 @@ from tests.test_product_booking_api import approve
 from tests.test_future_specification_rules import specification
 
 
-def test_physical_crypto_creation_keeps_existing_booking_closed():
+def test_physical_crypto_creation_still_requires_an_exact_approved_listing():
     code='BTC_'+uuid4().hex[:8].upper()
     spec=specification(contractSizeCurrencyId=str(DEMO_IDS['mvp_btc_currency']),deliveryMonths=[3,6,9,12])
     family_node=approve(request('POST','/v1/future-family-proposals',dict(canonicalName=code,familyCode=code,
@@ -33,9 +33,10 @@ def test_physical_crypto_creation_keeps_existing_booking_closed():
         assert terms.settlement_method=='PHYSICAL' and terms.delivery_start_date.isoformat()=='2027-03-19'
     context=request('GET',f'/v1/trades/product-instruments/{node}?asOfDate=2026-10-02')
     assert context.status_code==200 and context.json()['data']['bookingEligible'] is False
-    assert context.json()['data']['readinessStatus']=='CREATION_ONLY'
+    assert context.json()['data']['readinessStatus']=='NOT_READY'
+    assert 'listing' in context.json()['data']['ineligibilityMessage'].lower()
     assert context.json()['data']['contractMonth']=='2027-03-01'
-    assert request('POST','/v1/instrument-booking-convention-proposals',{'instrumentId':node,'convention':convention}).status_code==422
+    assert request('POST','/v1/instrument-booking-convention-proposals',{'instrumentId':node,'convention':convention}).status_code==201
 
 
 def test_crypto_currency_endpoint_is_available():

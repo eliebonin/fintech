@@ -14,6 +14,7 @@ from positions.reconstruction import canonical,key_identity
 from market_data.split_replay import load_reviewed_splits
 from .tenant_context import TenantContext,get_tenant_context
 from .problem_details import ApiProblem
+from .instrument_display import load_instrument_displays
 
 
 def snapshot(c,tenant,strategy,day,basis,information):
@@ -202,8 +203,13 @@ def strategy_workspace_router(connection_dependency,membership):
         limit:int=Query(25,ge=1,le=100),offset:int=Query(0,ge=0),context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         def operation():
             projection,descriptions,information=snapshot(c,context.tenant_id,strategy_id,asOf,basis,informationCutoff)
-            rows=[row for row in position_rows(projection,descriptions) if (includeClosed or row['direction']!='FLAT') and (not q or q.casefold() in (row['name']+' '+row['subjectId']).casefold())]
-            return dict(asOf=asOf,basis=basis,informationCutoff=information,total=len(rows),items=rows[offset:offset+limit],limit=limit,offset=offset)
+            rows=[row for row in position_rows(projection,descriptions) if includeClosed or row['direction']!='FLAT']
+            displays=load_instrument_displays(c,context.tenant_id,[row['subjectId'] for row in rows])
+            rows=[row for row in rows if not q or q.casefold() in ((displays[row['subjectId']].search_text if row['subjectId'] in displays else '')+' '+row['subjectId']).casefold()]
+            rows.sort(key=lambda row:(row['instrumentTypeLabel'].casefold(),displays[row['subjectId']].primary_name.casefold() if row['subjectId'] in displays else '',row['subjectId'],row['positionId']))
+            page=rows[offset:offset+limit]
+            return dict(asOf=asOf,basis=basis,informationCutoff=information,total=len(rows),items=page,limit=limit,offset=offset,
+                instrumentDisplays={row['subjectId']:displays[row['subjectId']].model_dump(mode='json',by_alias=True) for row in page if row['subjectId'] in displays})
         return run(c,context,strategy_id,'TRADE_READ',operation)
     @router.get('/{strategy_id}/positions/{position_id}/movements')
     def movements(strategy_id:UUID,position_id:str,asOf:date,basis:Literal['EXECUTED','VALUATION_RECOGNISED']='EXECUTED',
@@ -247,7 +253,9 @@ def strategy_workspace_router(connection_dependency,membership):
                 rows=measure_position_rows(c,request,projection,descriptions)
                 result=preview_measures(c,request,projection,descriptions,rows[offset:offset+limit])
             c.info['preview_release']=(context.tenant_id,actor,strategy_id,result)
-            return result|dict(total=len(rows),limit=limit,offset=offset,basis=basis)
+            displays=load_instrument_displays(c,context.tenant_id,[row['subjectId'] for row in rows[offset:offset+limit]])
+            return result|dict(total=len(rows),limit=limit,offset=offset,basis=basis,
+                instrumentDisplays={identity:value.model_dump(mode='json',by_alias=True) for identity,value in displays.items()})
         return run(c,context,strategy_id,'TRADE_READ',operation)
     @router.get('/{strategy_id}/calendars')
     def calendars(strategy_id:UUID,asOf:date,context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):

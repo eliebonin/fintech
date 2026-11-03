@@ -39,7 +39,8 @@ def holding_conventions(payload,unit):
 
 
 def load_holdings_facts(c,request):
-    facts=[]; descriptions={}; after=None; product_types={}
+    etp_history={}
+    facts=[]; descriptions={}; after=None; product_types={};definition_parents={}
     node=m.financial_reference_node; currency=m.currency
     while True:
         query=select(m.trade,node.c.canonical_name,currency.c.currency_code).join(node,
@@ -70,10 +71,11 @@ def load_holdings_facts(c,request):
                     definitions.add(UUID(payload['instrumentDefinitionId']))
         missing=definitions-product_types.keys()
         if missing:
-            product_types.update(dict(c.execute(select(m.instrument_definition_version.c.instrument_definition_version_id,
-                m.instrument_type.c.type_code).select_from(m.instrument_type.join(m.instrument_definition_version,
+            records=c.execute(select(m.instrument_definition_version.c.instrument_definition_version_id,
+                m.instrument_type.c.type_code,m.instrument_definition_version.c.instrument_node_id).select_from(m.instrument_type.join(m.instrument_definition_version,
                     m.instrument_definition_version.c.instrument_type_id==m.instrument_type.c.instrument_type_id))
-                .where(m.instrument_definition_version.c.instrument_definition_version_id.in_(missing))).all()))
+                .where(m.instrument_definition_version.c.instrument_definition_version_id.in_(missing))).all()
+            for identity,kind,parent in records:product_types[identity]=kind;definition_parents[identity]=parent
         for row in rows:
             identity=row['trade_id']; events=chains[identity]
             contract_date,contract_date_label=None,None
@@ -95,9 +97,22 @@ def load_holdings_facts(c,request):
                     if payload.get('kind')=='CASH_BOOKING' and payload.get('instrumentDefinitionId'):
                         definition=UUID(payload['instrumentDefinitionId'])
                         if not product_types.get(definition):raise PositionError('Missing booked instrument definition')
-                        product='ETF' if product_types[definition]=='ETP' else product_types[definition]
+                        original_type=product_types[definition]
+                        parent=definition_parents[definition] if original_type=='ETP' else None
+                        if original_type=='ETP' and parent not in etp_history:
+                            etp_history[parent]=c.execute(select(m.etp_terms).where(m.etp_terms.c.instrument_node_id==parent)).mappings().all()
+                        from security_master_schema.cash_products import cash_product_basis
+                        try:product,_=cash_product_basis(original_type,etp_history.get(parent,[]),row['trade_datetime_utc'].date(),payload)
+                        except ValueError as exc:raise PositionError(str(exc)) from exc
+                        if payload.get('quantityUnit') is not None and payload['quantityUnit']!=row['quantity_unit']:
+                            raise PositionError('Frozen cash quantity unit differs from booked trade')
                     if product=='FUND_SHARE_CLASS':product='FUND'
-                    booking=Booking(identity,row['trade_subject_reference_node_id'],row['price_currency_id'],row['quantity_unit'],
+                    from security_master_schema.quantity_movements import movement_proof
+                    try:movement_proof(payload,product=product,price=row['execution_price'],quantity=row['quantity'],trade_type=row['trade_type'])
+                    except ValueError as exc:raise PositionError(str(exc)) from exc
+                    from security_master_schema.cash_products import canonical_cash_unit
+                    quantity_unit=canonical_cash_unit(product,row['quantity_unit']) if payload.get('kind')=='CASH_BOOKING' else row['quantity_unit']
+                    booking=Booking(identity,row['trade_subject_reference_node_id'],row['price_currency_id'],quantity_unit,
                         row['quantity'],row['execution_price'],Decimal(str(multiplier)),Decimal(str(factor)),
                         UUID(payload['instrumentDefinitionId']) if payload.get('instrumentDefinitionId') else row['reference_instrument_node_id'] or row['trade_subject_reference_node_id'],
                         product,row['valuation_effective_date'])

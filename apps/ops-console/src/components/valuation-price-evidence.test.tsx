@@ -8,6 +8,12 @@ it('renders retained backend decisions without reinterpreting historic inputs',(
  expect(html).toContain('Applied rules');expect(html).toContain('Monday NAV with Tuesday FX.');expect(html).toContain('FUND_NAV_DATE');
 });
 
+it('compares frozen input values and their actual dates in a semantic table',()=>{
+ const html=renderToStaticMarkup(<ValuationPriceEvidence evidence={{identity:{openingCutoff:'2026-10-19T23:59:59Z',closingCutoff:'2026-10-20T23:59:59Z'},selections:[{valuation_date:'2026-10-20',selected_value:'101.123456789012',pricing_date_requested:'2026-10-20',pricing_date_used:'2026-10-19'}]}}/>);
+ expect(html).toContain('<caption>Frozen prices and FX');
+ expect(html).toContain('101.123456789012');expect(html).toContain('2026-10-19');
+});
+
 it('distinguishes original provider price from normalized valuation price',()=>{
  const html=renderToStaticMarkup(<ValuationPriceEvidence evidence={{selections:[{valuation_date:'2026-10-07',selected_value:'40',pricing_evidence:{priceBasis:{sourceBasis:'SPLIT_ADJUSTED',valuationValue:'80',valuationBasis:'AS_TRADED',factor:'0.5',anchorDate:'2026-10-08'}}}]}}/>);
  expect(html).toContain('Source price');expect(html).toContain('Valuation price');

@@ -6,10 +6,15 @@ from typing import Any, Literal, Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
-from .swap_creation_contracts import GenericSwapTerms
+from .swap_creation_contracts import GenericSwapTerms,SwapTerms
+from .instrument_display_contracts import InstrumentDisplayView
+# Identity re-exports preserve existing command consumers and API schemas.
+from trading.booking_contracts import (TradePropertyInput, TradeReferenceInput, CancelBookingRequest,
+    BookingCorrectionRequest, ValuationRecognitionFields, TradeBookingRequest)
 
 
 class ApiMeta(BaseModel):
+    instrument_displays:dict[str,InstrumentDisplayView]|None=Field(default=None,alias='instrumentDisplays',exclude_if=lambda value:value is None)
     tenant_context: str = Field(alias="tenantContext")
     source: str
     api_version: str = Field(alias="apiVersion")
@@ -326,8 +331,6 @@ class MarketDataSeriesResponse(BaseModel):
     meta: ApiMeta
 
 
-
-
 class FxForwardTradeEconomicsView(BaseModel):
     base_currency: str = Field(alias="baseCurrency")
     quote_currency: str = Field(alias="quoteCurrency")
@@ -463,22 +466,6 @@ class TradeResponse(BaseModel):
     meta: ApiMeta
 
 
-class TradePropertyInput(BaseModel):
-    definition_id: UUID = Field(alias="definitionId")
-    value: Annotated[StrictStr, Field(max_length=2000)] | StrictBool
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
-
-class TradeReferenceInput(BaseModel):
-    reference_type: Literal["SOURCE_TRADE_ID", "CLIENT_REFERENCE", "BROKER_REFERENCE"] = Field(alias="referenceType")
-    reference_value: str = Field(alias="referenceValue", min_length=1, max_length=500)
-    source_system_id: str | None = Field(default=None, alias="sourceSystemId", max_length=100)
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
-    @field_validator("reference_value")
-    @classmethod
-    def nonblank(cls, value):
-        if not value.strip(): raise ValueError("Reference is required.")
-        return value.strip()
-
 class TradePropertyDefinitionView(BaseModel):
     definition_id: UUID = Field(alias="definitionId")
     code: str
@@ -520,78 +507,6 @@ class TradePropertyValueView(TradePropertyDefinitionView):
     value: StrictStr | StrictBool
     display_value: str | None = Field(default=None, alias="displayValue")
     record_version: int | None = Field(default=None, alias="recordVersion")
-
-class CancelBookingRequest(BaseModel):
-    expected_sequence_no: int = Field(alias='expectedSequenceNo', ge=1)
-    reason: str = Field(min_length=1, max_length=1000)
-    model_config = ConfigDict(populate_by_name=True, extra='forbid')
-
-    @field_validator('reason')
-    @classmethod
-    def trim_reason(cls, value):
-        value=value.strip()
-        if not value: raise ValueError('A correction reason is required.')
-        return value
-
-
-class BookingCorrectionRequest(CancelBookingRequest):
-    trade_id: UUID = Field(alias='tradeId')
-
-
-class ValuationRecognitionFields(BaseModel):
-    """Platform-wide optional booking fields; never curated tenant properties."""
-    valuation_effective_date: date | None = Field(default=None, alias='valuationEffectiveDate')
-    valuation_override_reason: str | None = Field(default=None, alias='valuationOverrideReason', max_length=1000)
-
-    @model_validator(mode='after')
-    def validate_recognition(self):
-        from .valuation_recognition import recognition
-        recognition(self)
-        return self
-
-
-class TradeBookingRequest(ValuationRecognitionFields):
-    correction: BookingCorrectionRequest | None = None
-    listing_id: UUID = Field(alias="listingId")
-    strategy_id: UUID = Field(alias="strategyId")
-    side: Literal["BUY", "SELL"]
-    quantity: Decimal = Field(gt=0)
-    execution_price: Decimal = Field(alias="executionPrice", gt=0)
-    trade_datetime: datetime = Field(alias="tradeDatetime")
-    settlement_date: date = Field(alias="settlementDate")
-    counterparty_organisation_id: UUID | None = Field(default=None, alias="counterpartyOrganisationId")
-    external_reference: str | None = Field(default=None, alias="externalReference", max_length=500)
-    comment: str | None = Field(default=None, max_length=10000)
-    executing_broker_organisation_id: UUID | None = Field(default=None, alias="executingBrokerOrganisationId")
-    trader_person_id: UUID | None = Field(default=None, alias="traderPersonId")
-    trade_purpose: Literal["INVESTMENT", "REBALANCING", "HEDGING", "OTHER"] = Field(default="INVESTMENT", alias="tradePurpose")
-    market_activity: Literal["PRIMARY", "SECONDARY"] | None = Field(default=None, alias="marketActivity")
-    tag_ids: list[UUID] = Field(default_factory=list, alias="tagIds", max_length=100)
-    properties: list[TradePropertyInput] = Field(default_factory=list, max_length=1000)
-    external_references: list[TradeReferenceInput] = Field(default_factory=list, alias="externalReferences", max_length=20)
-
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
-
-    @field_validator("external_reference", "comment")
-    @classmethod
-    def _trim_optional_text(cls, value: str | None) -> str | None:
-        return value.strip() if value else None
-
-    def _validate_annotations(self) -> None:
-        if self.trade_purpose == "OTHER" and not self.comment: raise ValueError("OTHER purpose requires a comment.")
-        if self.external_reference and self.external_references: raise ValueError("Use legacy externalReference or structured references, not both.")
-        if len(set(self.tag_ids)) != len(self.tag_ids): raise ValueError("Duplicate tag IDs.")
-        if len({p.definition_id for p in self.properties}) != len(self.properties): raise ValueError("Duplicate property IDs.")
-        if len({(r.reference_type, r.source_system_id, r.reference_value) for r in self.external_references}) != len(self.external_references): raise ValueError("Duplicate external references.")
-
-    @model_validator(mode="after")
-    def _validate_dates_and_timezone(self) -> "TradeBookingRequest":
-        self._validate_annotations()
-        if self.trade_datetime.tzinfo is None or self.trade_datetime.utcoffset() is None:
-            raise ValueError("tradeDatetime must include a timezone offset")
-        if self.settlement_date < self.trade_datetime.astimezone(timezone.utc).date():
-            raise ValueError("settlementDate must not be before tradeDatetime")
-        return self
 
 
 class OptionBookingRequest(TradeBookingRequest):
@@ -804,7 +719,7 @@ class InstrumentView(BaseModel):
     taxonomy: list[str]
     notes: str
     option_terms: OptionInstrumentTermsView | None = Field(default=None, alias="optionTerms")
-    generic_terms: GenericSwapTerms | None = Field(default=None, alias="genericTerms")
+    generic_terms: SwapTerms | None = Field(default=None, alias="genericTerms")
     amc_terms: AmcInstrumentTermsView | None = Field(default=None,alias='amcTerms')
 
     model_config = ConfigDict(populate_by_name=True)

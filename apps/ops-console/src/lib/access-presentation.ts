@@ -2,6 +2,11 @@ import {accessLabel, type AccessGroup} from './access-administration';
 
 // Presentation only: the API remains authoritative for action and scope decisions.
 const actions:Record<string,[string,string]>={
+ REPORTING_READ:['View regulatory preparation','Read prepared transaction reports and history within permitted strategies.'],
+ REPORTING_PREPARE:['Prepare transaction reports','Retain execution facts for assessment within permitted strategies; no regulator submission.'],
+ REPORTING_REVIEW:['Review transaction reports','Amend reporting mappings and reasoned scope/hold decisions within permitted strategies.'],
+ REPORTING_EXPORT:['Export reporting preparation','Freeze/download preparation CSV and evidence within permitted strategies; exported is not submitted.'],
+ REPORTING_CONFIGURE:['Configure reporting entities','Maintain tenant-wide reporting legal entities and assessed regulatory status.'],
  STRATEGY_CREATE:['Create strategies','Create a strategy and choose its initial group access.'],
  STRATEGY_READ:['View strategies','Read strategy details within this group’s strategy scope.'],
  STRATEGY_WRITE:['Edit strategies','Update existing strategies within this group’s scope.'],

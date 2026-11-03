@@ -20,22 +20,22 @@ def effective_price_requirement(rule):
     return rule.get('price_requirement'), bool(rule.get('allow_split_conversion', False))
 
 
-def _positive(value):
+def _positive(value,*,allow_zero=False):
     try:
         value = Decimal(str(value))
     except (InvalidOperation, ValueError) as exc:
         raise ValueError('INVALID_PRICE_BASIS_PROOF') from exc
-    if not value.is_finite() or value <= 0:
+    if not value.is_finite() or value < 0 or value==0 and not allow_zero:
         raise ValueError('INVALID_PRICE_BASIS_PROOF')
     return value
 
 
 def normalise_as_traded(source_value, source_basis, proof, *, allow_split_conversion):
-    source_value = _positive(source_value)
+    source_value = _positive(source_value,allow_zero=True)
     factor = Decimal(1)
     frozen = dict(method='NATIVE_RAW')
     if source_basis=='RAW' and proof and proof.get('method')=='DERIVED_SPLIT_ONLY':
-        if _positive(proof['valuationValue'])!=source_value:
+        if _positive(proof['valuationValue'],allow_zero=True)!=source_value:
             raise ValueError('INVALID_DERIVED_RAW_LINEAGE')
         frozen=dict(method='DERIVED_RAW',derivation=proof)
     with localcontext() as ctx:
@@ -68,7 +68,9 @@ def normalise_as_traded(source_value, source_basis, proof, *, allow_split_conver
                 raise ValueError('INVALID_PRICE_BASIS_PROOF') from exc
         unrounded = source_value / factor
         rounded = unrounded.quantize(Decimal('0.000000000001'), rounding=ROUND_HALF_EVEN)
-        if not Decimal(0) < rounded < Decimal('1e18'):
+        # A quoted zero is evidence. A small nonzero rounded down to zero is
+        # precision loss, not a confirmed worthless security.
+        if not Decimal(0) <= rounded < Decimal('1e18') or source_value and rounded==0:
             raise ValueError('NORMALIZED_PRICE_OUT_OF_RANGE')
     evidence = frozen | dict(conversionVersion='as-traded-v1', sourceValue=str(source_value),
         sourceBasis=source_basis, valuationValue=str(rounded), valuationBasis='AS_TRADED',

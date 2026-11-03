@@ -15,6 +15,12 @@ rename stored data. See [deployment compatibility and verification](docs/deliver
 
 ## Local tenant access testing
 
+First complete [private database/runtime setup](docs/platform/security-controls.md#database-setup-and-maintenance).
+Then run `.\.venv\Scripts\python.exe scripts/configure_local_access.py` before
+the API/frontend launch commands. This writes matching ignored private bootstrap
+configuration without printing its key. Headers alone cannot authenticate.
+See [local setup and limits](docs/platform/local-identity-safeguard.md).
+
 Open `/select-context` to choose platform administration or a tenant/user.
 See [tenant administration, permissions, seed and verification](docs/delivery/tenant-access-administration.md).
 

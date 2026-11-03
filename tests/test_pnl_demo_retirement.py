@@ -1,7 +1,8 @@
 """The retired demo must never return a plausible partial financial result."""
 import asyncio
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from tests.api_client import FixtureASGITransport as ASGITransport
 from apps.reference_api.main import create_app
 from security_master_schema.demo_data import DEMO_IDS
 

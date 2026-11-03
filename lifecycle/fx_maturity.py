@@ -1,6 +1,6 @@
 """Rate-based FX exposure closure; never creates payment or cash holdings."""
 from decimal import Decimal, localcontext
-from valuation.economics import finite_decimal
+from security_master_schema.evidence import finite_decimal
 
 
 def validated_override(value):

@@ -32,13 +32,14 @@ it('explains restricted evidence and hides review and financial controls',async(
 it('renders position-owned results and original execution links without fake trade owners',async()=>{
  const real=(await vi.importActual<typeof import('react')>('react')).useState;
  const detail={attempt:{status:'COMPLETED',correlation_id:'position-run'},events:[],batch:{batch_id:'batch',status:'STAGED',staged_by:'admin',reviews:[],
+  presentation:{references:{'listing-id':'Example equity · EXM'},currencies:{gbp:'GBP'},datasets:{},rules:{},users:{},context:{},totals:{interest:null,other:null},pendingAmendments:0},
   summary:{scope:'MARKET_ONLY',resultFormat:'POSITION_V2',marketPnl:'20',openingValue:'0',closingValue:'0',executionValue:'-20',reportingCurrencyId:'gbp',externalComparison:'NOT_COMPARED'},
   items:[{attribution_id:'attr',trade_id:null,position_key:'position-key',subject_id:'listing-id',version:1,market_pnl:'20',components:{PRICE:'20'},evidence:{},
    lineage:[{trade_id:'original-trade',event_id:'booked-event',role:'PERIOD_EXECUTION'}]}]}};
  vi.mocked(useState).mockImplementationOnce(real)
   .mockImplementationOnce(()=>[detail,()=>{}] as unknown as ReturnType<typeof useState>);
  const html=renderToStaticMarkup(<ValuationConsole canCalculate canReview actorId="admin"/>);
- expect(html).toContain('Position listing-id');expect(html).toContain('original-trade');
+ expect(html).toContain('Example equity · EXM');expect(html).toContain('original-trade');
  expect(html).toContain('/trades/original-trade');expect(html).not.toContain('Trade null');
 });
 

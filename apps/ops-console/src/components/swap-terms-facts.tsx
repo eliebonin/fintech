@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import type {components} from 'api-contracts';
-type Terms=components['schemas']['GenericSwapTerms-Input']|components['schemas']['GenericSwapTerms-Output'];
+import {RateSwapTermsFacts} from './rate-swap-terms-facts';
+type Terms=components['schemas']['GenericSwapTerms-Input']|components['schemas']['GenericSwapTerms-Output']|components['schemas']['RateSwapTerms-Input']|components['schemas']['RateSwapTerms-Output'];
 export function SwapTermsFacts({terms,labels={}}:{terms:Terms;labels?:Record<string,string>}) {
+  if('swapKind' in terms)return <RateSwapTermsFacts terms={terms} labels={labels}/>;
   const named=(id:string)=>labels[id]??id;
   const reference=(id:string,type:string)=><Link href={`/api/reference-nodes/search?${new URLSearchParams({q:id,node_type:type,reference_level:'ECONOMIC'})}`}>{named(id)}</Link>;
   return <section className="detail-card"><h2>Performance swap terms</h2><dl className="futures-facts">

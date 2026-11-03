@@ -3,12 +3,296 @@
 **Status:** Maintained scoped review  
 **Content type:** Reference  
 **Owner:** Product and engineering  
-**Last reviewed:** 2026-10-16 (frontend and scoped backend remediation; dated reviews retained)
+**Last reviewed:** 2026-11-03 (scoped interest-review delivery; prior reviews retained)
 
 Analyzed root: `C:/Users/forte/Elie/projects/python/fintech`. This is the implementation
 repository; `C:/Users/forte/Documents/ChatGPT/Tech V2` is a separate workspace.
 
+## Accrued-balance trade annotations — 3 November 2026
+
+[Trade-marker delivery](docs/delivery/balance-trade-markers-20261103.md) adds a
+read-only native-ledger service and scoped GET, independently consumed by the
+explorer. Both valuation-read and trade-read strategy scopes are required.
+Dates follow frozen recognition; cancellations/supersession and exact signed
+amounts reuse the balance ledger rules. Annotations are current known bookings
+at selected To date, not a frozen balance-build catalogue. No financial changes.
+
+## Accrued-balance exploration — 3 November 2026
+
+[Explorer delivery](docs/delivery/accrued-balance-explorer-20261103.md) restores
+read-only strategy/instrument/range exploration beside the Ops review workflow.
+It reuses complete-series reads, chart/table, exact values and current source
+checks; pagination affects the table only. Review validation is not a prerequisite.
+No migration, financial source change or valuation recalculation is introduced.
+
+## Two-stage daily interest review — 3 November 2026
+
+[Delivery and limits](docs/delivery/interest-daily-review-20261103.md) document the
+strategy/day daily → balance workflow, migration 109, append-only typed decisions,
+explicit acknowledged gaps, covered-day diagnostics, current-source gating and
+atomic application through native writers. Drafts do not alter financial sources;
+REVIEW permission does not require RUN. Coupon schedules notify, not confirm cash.
+The old three-tab main UI is superseded; exploration is deferred. Focused tests
+and read-only local browser checks do not constitute a whole-codebase audit.
+
+## Incomplete-price review — 31 October 2026
+
+[Delivery](docs/delivery/incomplete-price-review-20261031.md) separates partial
+calculation from publication: permissive missing-data rules retain unpriced
+investment/cash proof and calculated subtotals; required marks still gate
+publication. Immutable scoped mark requests require independent real operators,
+current quotation/rights and a new information-cutoff calculation. Migration 107
+adds request/decision evidence, without provider-observation or trade rewrites.
+Optional interest/cash snapshots retain their established nonblocking semantics.
+
+
+## Separately priced rate-exchange swaps — 30 October 2026
+
+[Delivery](docs/delivery/rate-exchange-swaps-20261030.md) adds native two-floating-leg
+terms, governed creation/approval, frozen booking and supplied-mark P&L. Domain
+models live in `security_master_schema.rate_swap_terms`; `trading.rate_swaps`
+owns reference checks and materialization below HTTP. Each priced component stays
+an independent instrument/trade/series. Existing performance-swap evidence remains
+unchanged; no generated cashflows, rate-curve pricer or rate-swap monetary measures
+are supplied. Guarded completion appends a sourced definition to an unconfigured
+private reference; it is not general amendment.
+
+The isolated checks passed 173 Python regressions, seven final integration checks
+(overlapping) and 90 frontend tests, plus type/OpenAPI checks. Live reconciliation
+posted the four pending FCPGF trades: all 383 source position entries and 1,002
+RESETs are now represented. Price/RESET fingerprints and unrelated trade counts
+are unchanged. Browser smoke checks covered creation and readable terms. Missing
+contractual details remain disclosed assumptions; no operating valuation was run
+or published. This is a scoped feature review, not a new whole-repository audit.
+
+## Database, audit and browser controls — 30 October 2026
+
+[Findings 3/4/6/8 delivery](docs/delivery/security-controls-20261030.md) separates
+runtime/maintenance credentials, enforces a non-owner API login and loopback
+PostgreSQL publishing, enables Gitleaks defaults, makes access-audit rows append-only,
+logs safe correlated denials and adds nonce CSP/HTTPS cookie safeguards. Local
+migration 105 and private configuration are active, with the existing volume and
+162 trades / 3 tenants preserved. Financial rules and user/group grants did not
+change. [Setup](docs/platform/security-controls.md). The follow-up below closes
+the missing-profile gap and adds admission; production authentication and external
+immutable log retention are not supplied by these controls.
+
+## Dataset governance and workload admission — 30 October 2026
+
+[Delivery](docs/delivery/dataset-rights-and-workload-20261030.md) makes every
+dataset profile/activity/purpose explicit, including invented seed origin.
+Migration 106 and the audited local seed backfill preserve seven existing real
+profiles and 32 grants; 12 datasets now have profiles. Normal demo loading uses
+the same exact-identity helper, not an arbitrary missing-profile exemption.
+Shared nonblocking admission defaults to two expensive operations globally and
+one per tenant; independent coordination pools protect the business pool. Safe
+busy replies preserve unchanged-key retry, and ordinary run/log reads remain
+available. Session locks survive commit without holding an idle transaction.
+Cancellation, cross-worker cleanup and original financial totals are tested.
+[Operational reference](docs/platform/dataset-rights-and-workload.md) distinguishes
+this local hardening from deferred durable queues, OS job budgets and capacity
+certification in [SEC-WORK-001](FIX.md#sec-work-001--deployment-workload-isolation-and-durable-processing).
+
+## Dependency security — 30 October 2026
+
+[Point-2 remediation](docs/delivery/dependency-security-20261030.md) updates the
+affected JavaScript/Python locks and adds complete PR/main/manual/weekly audits.
+[Maintenance instructions](docs/platform/dependency-security.md) preserve hashes,
+generated contracts and feature behaviour. Local audit evidence is dated; GitHub
+scheduling becomes active only after the workflow is pushed. Other security
+findings, financial logic, permissions and operating records are unchanged.
+
+## Local identity containment — 30 October 2026
+
+[Safeguard delivery](docs/delivery/local-identity-safeguard-20261030.md) removes
+header-only/demo-user authentication. Stored local sessions establish identity;
+guarded bootstrap uses a private configured operator capability. API startup
+requires explicit local/test/development mode and valid configuration. The BFF
+keeps tenant/user switching and optimised local builds, without legacy cookie
+identity. [Setup and limits](docs/platform/local-identity-safeguard.md).
+Production identity remains deferred and non-local startup blocked. This does
+not alter financial conventions, database schema or permissions.
+
+## Visual architecture inventory — 29 October 2026
+
+[Atlas](docs/architecture/atlas/README.md) and
+[exact register](docs/architecture/atlas/database-register.md) map schemas, source
+packages and representative business flows. Read-only live catalogue inspection
+at schema 104 found 204 tables, 611 foreign keys and 81 non-internal triggers.
+Full runtime metadata matches table sets, per-table column counts and FK pair
+multiplicities. The main model import alone has 202 tables; intake registers the
+remaining two separately. This is a metadata-discovery issue, not missing schema.
+
+The saved static source inventory is the pre-extraction baseline. The subsequent
+[phases 1–3 extraction](docs/delivery/api-service-extraction-20261029.md) removed
+its selected reverse API-helper imports and generic evidence dependencies on
+valuation. Current diagrams/owner notes distinguish that change from the unchanged
+historical counts. The inventory records import locations and distinguishes
+registration/deferred imports from runtime behaviour.
+The 190 API paths/211 operations and 53 UI pages/77 BFF handlers are structural
+counts. Strongly connected package-family groups do not prove import-time errors.
+This scoped structure review does not replace numerical/security/scale acceptance.
+The initial inventory changed no product source. Follow-ups extract services and
+correct the separately recorded swap currency-lock regression. Schema, permissions
+and operating financial data remain unchanged.
+
+## Shared services below the API — 29 October 2026
+
+Follow-up: [cash booking](docs/delivery/cash-booking-service-extraction-20261029.md)
+now has a `trading` owner. `booking_contracts` contains the original command models
+and minimal `BookingResult(trade_id)`, `booking` orchestrates current authority,
+replay and new executions, and `booking_store` retains SQL/fingerprints. Supporting
+modules own approved cash-reference checks, governed annotations/role selection,
+recognition and linked replacement helpers. API response projection and cancellation
+orchestration stay in the adapter; other product writers still await extraction.
+Compatibility model/helper imports are identical exports, not duplicate algorithms.
+
+HTTP booking and Excel/CSV confirmation call the same command. Each command keeps
+a local savepoint; the caller owns outer commit/audit. API projection is also in
+a savepoint so a missing/failed response read rolls back the successful inner
+command. The redundant route savepoint was removed, keeping two base savepoints
+on the HTTP path; existing per-reference savepoints are unchanged.
+File confirmation retains its batch/receipt/row-identity transaction and original
+template product scope. Native library calls retain BOOKED actor/economic evidence;
+they do not fabricate an HTTP request audit outside a caller audit context.
+
+The baseline also reproduced a generic-swap caller comparing a currency UUID with
+the lock helper's tuple result. The caller now unpacks that result; the actual
+currency-change refusal is retained and tested. A separate stale valuation
+retry-identity test remains documented in FIX.md; valuation behaviour is unchanged.
+
+`security_master_schema.evidence` now owns exact canonical payloads, evidence
+hashes and finite-Decimal validation; valuation retains identical public exports.
+Market-data, positions and lifecycle consumers use the lower owner. Accrual
+visibility and amendment/bond-redemption lock imports now use their existing
+shared owners directly. The catalogue's optimized subject/parent predicate is
+shared in `security_master_schema.market_data_visibility`; the API retains its
+original import alias and the other existing resolver predicate is unchanged.
+
+`market_data.pricing_policy_contracts` owns command aliases/validators and a
+business definition projection. `market_data.pricing_policies.create_policy`
+owns authority, retry identity, locks, reference validation, immutable version
+creation and activation, using a caller-owned Core Connection. Non-HTTP strategy
+commands now apply the same current STRATEGY_WRITE scope as HTTP before replay.
+The definition loader is an internal projection, not a permission-checking entry
+point. API wrappers own the unchanged response shape; the audited router and
+function-scoped transaction/audit dependency are retained. The Yahoo FX setup
+operator uses the shared command while keeping its existing owner/platform checks.
+
+Fixed pre-move evidence and command-schema vectors, unchanged OpenAPI, focused
+financial checks and disposable policy/audit regressions are recorded in the
+[delivery](docs/delivery/api-service-extraction-20261029.md). No operating migration,
+provider fetch, financial write or service restart was needed. Catalogue/options/
+preview adapters and much reference/booking orchestration still live in the API;
+metadata bootstrap and production authentication remain separate work. This is
+a scoped refactor review, not a fresh whole-repository audit.
+
+## Regulatory Reporting preparation — 29 October 2026
+
+[F53](docs/product/features/regulatory-reporting.md) is now PARTIAL. The dedicated
+package, `reg` schema/migration 104, audited routes and console implement assessed
+legal entities, scoped UTC execution preparation, separate reportability/readiness/
+hold states, retained human revisions, source revalidation and frozen preparation
+CSV/manifests. Current action/strategy/reference checks apply to reads, downloads
+and export retries. No operational report, entitlement or trade is seeded.
+Local module activation and focused verification are recorded in the
+[delivery](docs/delivery/regulatory-reporting-20261029.md). Full regulatory field/
+product applicability, accepted submission serialization, national-ID governance,
+transport/acknowledgements/corrections, other regimes and scale acceptance remain.
+This is a scoped implementation review, not regulatory compliance certification.
+
+## Valuation achieved versus intended — 27 October 2026
+
+29 October [review-signal and stock-display delivery](docs/delivery/valuation-review-signals-20261029.md)
+resolves the scoped cash-only partial/Attention routing gaps with a compact
+disclosure and row-note navigation. Reporting accrued stocks are projected from
+retained boundary FX, independently available per boundary; exact financial
+evidence is unchanged. No migration or new publication gate. Mixed-portfolio
+acceptance awaits user data; the verification/activation record is in the delivery.
+
+28 October [bond quotation follow-up](docs/delivery/bond-dirty-to-clean-20261028.md)
+adds typed immutable per-100 accrued components paired with exact DIRTY source
+observations. Daily P&L normalizes to CLEAN while independently supplied daily
+earnings and assessed accrued-stock FX remain separate. Ingestion correction
+identity, information cutoff, source rights and publication revalidation are
+retained. The inspector shows source and normalized numbers; full monetary-value
+previews retain DIRTY. No quoted-accrual generator or general bond-provider
+upload workflow is implied. This scoped code/test review supplements the dated
+broader review; see the delivery for migration 103 and verification status.
+
+28 October [linear futures follow-up](docs/delivery/linear-futures-extension-20261028.md)
+extends native booking and supplied-price daily variation to the already modelled
+crypto UNDERLYING_UNIT families, cash or physical settlement. Exact original
+conventions, monetary multiplier once, contract prices/currency, calendar and
+ordinary staging/review controls are retained. The editor and retained inspector
+show actual settlement/delivery facts. This scoped review traced booking,
+reconstruction, selection, calculation, UI and their focused tests; it is not a
+new whole-repository audit. No delivery/accounting engine, commodity/rate family
+model or crypto monetary-preview expansion is implied. Verification and activation
+are recorded in the delivery/ledger; known wider limits remain in [FIX.md](FIX.md).
+
+28 October additional follow-up: [quoted wrappers and spot crypto](docs/delivery/etp-spot-crypto-pnl-20261028.md)
+close the bookable-versus-valuatable gaps for non-ETF ETPs and DIGITAL_ASSET.
+Shared cash classification preserves concrete types, generic ETP terms and
+original quantity evidence; historical unit labels net consistently. Spot prices
+retain listing, quote-currency FX and explicit continuous-day calendar semantics.
+No new migration, automatic source rights or lifecycle engine is introduced.
+
+28 October follow-up: [directly held note P&L](docs/delivery/structured-note-pnl-20261028.md)
+adds frozen unit/nominal whole-note price/FX economics, matching CLEAN/DIRTY/NONE
+quotes, optional assessed CLEAN interest/stocks and explicit note coupon flows.
+It reuses staging/publication and original evidence. Lifecycle, payoff models,
+generated detached note receivables and note monetary-measure support remain
+separate. Migration 102 is a bounded retained-stock guard extension; the delivery
+records actual verification/activation. The dated 27 October review is unchanged.
+
+Subsequent [futures delivery](docs/delivery/futures-daily-pnl-20261027.md) extends
+the reviewed state with daily price variation for existing bookable cash-settled
+index contracts. Batch reconciliation adds explicit futures variation; gross
+notional is excluded from asset values. No migration, operating financial rewrite
+or expanded physical/crypto booking is implied. The dated state review below
+remains evidence of the preceding snapshot.
+
+The [state review](docs/delivery/quality-reviews/2026-10-27-valuation-state-review.md)
+traces supported position reconstruction, price/FX and economic components,
+source selection, staging/publication, frontend review and schema through migration
+101. It confirms a governed economic-P&L alpha rather than full fund NAV. Fresh
+verification: 73 offline tests plus read-only warning/completeness probes; existing
+database/browser evidence is identified separately. No operating database was
+read or changed by this review, and no financial run was executed or published.
+
+Remaining findings include bounded non-ledger reassessment (FIX-VAL-002),
+independent numerical/scale acceptance (FIX-VAL-003)
+and the separately recorded intermittent maturity-rebooking issue (FIX-VAL-004).
+FIX-VAL-005/006 were resolved within the bounded 29 October review/display scope;
+missing frozen FX still means unavailable reporting stock, not an inferred rate.
+The latter was statically retraced, not freshly reproduced. See [FIX.md](FIX.md).
+
 ## Backend remediation — current October 16 follow-up
+
+31 October accrued-stock maintenance supersedes implicit bond reconstruction:
+[current workflow](docs/architecture/market-data-and-valuation/accrued-balance-fx.md)
+uses migration 108's supplied balances and explicit history builds. Valuation
+reads verified exact-date history; per-attempt balances remain output evidence.
+`/valuation/interest` exposes daily sources, stock revisions and update history.
+Optional gaps do not become zero or independently block publication. See
+[delivery and limits](docs/delivery/maintained-accrued-balances-20261031.md).
+
+27 October accrued-stock follow-up: [current rules](docs/architecture/market-data-and-valuation/accrued-balance-fx.md)
+trace `valuation/accrued_balance*`, migration 101, daily-input/receipt source
+revalidation and the report inspector. Exact per-attempt balances are derived
+evidence; they are not automatically reused as source inputs. Missing optional
+stock/FX gives partial coverage, not zero. Existing strict daily-interest opt-in,
+independent review, licensing and immutable publication remain. This scoped
+review does not claim full accounting or an exhaustive audit.
+
+27 October scoped extension: [full bond schedules](docs/architecture/trading-and-operations/bond-cashflow-schedules.md)
+evolve the retained coupon schema into typed coupon/principal rows. Current
+tables are `secm.bond_cashflow_schedule` and `secm.bond_cashflow`; coupon-payment
+history remains separate and unchanged. Migration 100 preserves original IDs and
+hashes. Scope covers contracts/service/API, lifecycle editor/table and focused
+tests, not a fresh whole-repository audit or accrued-balance reconstruction.
+See [delivery/verification](docs/delivery/bond-cashflow-schedule-20261027.md).
 
 [Delivery, tests, research and remaining boundaries](docs/delivery/quality-reviews/2026-10-16-backend-remediation.md)
 supersede the original defects described in the dated audit below. New structured
