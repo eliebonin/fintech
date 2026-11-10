@@ -64,14 +64,20 @@ def deny_dataset_display(c,r):
     assignment=c.execute(select(m.dataset_licence_assignment.c.dataset_licence_assignment_id,
         m.data_licence.c.licensee_organisation_id).join(m.data_licence).where(
         m.dataset_licence_assignment.c.dataset_id==ids['dataset'])).mappings().first()
-    c.execute(m.dataset_access_profile.insert().values(dataset_id=ids['dataset'],
-        licensee_organisation_id=assignment['licensee_organisation_id'],permitted_tenant_id=r.tenant_id,
-        usage_scope='PERSONAL',provider_enabled=True,activation_reference='Synthetic calculation only',status='ACTIVE'))
-    c.execute(m.dataset_right_requirement.insert().values(dataset_id=ids['dataset'],activity='NON_DISPLAY',
-        requirement_code='MEASURES_CALCULATION',dataset_licence_assignment_id=assignment['dataset_licence_assignment_id']))
-    c.execute(m.licence_activity_grant.insert().values(dataset_licence_assignment_id=assignment['dataset_licence_assignment_id'],
-        activity='NON_DISPLAY',usage_scope='PERSONAL',evidence_basis='PERSONAL_DECLARATION',
-        evidence_reference='Synthetic calculation only',valid_from=r.closing_cutoff.date(),status='ACTIVE'))
+    # Native product fixtures may already have a fully licensed SYNTHETIC
+    # profile. Preserve its calculation scope and required layers; add an
+    # unresolved display prerequisite so denial is explicit in either setup.
+    if not c.scalar(select(m.dataset_access_profile.c.dataset_id).where(m.dataset_access_profile.c.dataset_id==ids['dataset'])):
+        c.execute(m.dataset_access_profile.insert().values(dataset_id=ids['dataset'],
+            licensee_organisation_id=assignment['licensee_organisation_id'],permitted_tenant_id=r.tenant_id,
+            usage_scope='PERSONAL',provider_enabled=True,activation_reference='Synthetic calculation only',status='ACTIVE'))
+        c.execute(m.dataset_right_requirement.insert().values(dataset_id=ids['dataset'],activity='NON_DISPLAY',
+            requirement_code='MEASURES_CALCULATION',dataset_licence_assignment_id=assignment['dataset_licence_assignment_id']))
+        c.execute(m.licence_activity_grant.insert().values(dataset_licence_assignment_id=assignment['dataset_licence_assignment_id'],
+            activity='NON_DISPLAY',usage_scope='PERSONAL',evidence_basis='PERSONAL_DECLARATION',
+            evidence_reference='Synthetic calculation only',valid_from=r.closing_cutoff.date(),status='ACTIVE'))
+    c.execute(m.dataset_right_requirement.insert().values(dataset_id=ids['dataset'],activity='DISPLAY',
+        requirement_code='MEASURES_DISPLAY_REVIEW_REQUIRED',dataset_licence_assignment_id=None))
 
 
 def test_current_display_denial_is_not_downgraded_to_missing_price(valued):

@@ -17,7 +17,7 @@ remain distinct. No interest generator or public upload workflow is added.
 
 28 October: [Linear crypto futures](../../delivery/linear-futures-extension-20261028.md)
 reuse exact-contract daily variation for cash and physical settlement. Actual
-delivery, margin accounting and crypto monetary-measure previews stay separate.
+delivery and margin accounting stay separate. [3 November monetary previews](../../delivery/expanded-position-measures-20261103.md) separately add current linear crypto notionals/exposure.
 
 28 October: [Quoted wrappers and spot crypto](../../delivery/etp-spot-crypto-pnl-20261028.md)
 use native security/token prices with frozen factors and trade-quote FX. Crypto

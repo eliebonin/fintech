@@ -33,11 +33,11 @@ def book_cash_trade(connection: Connection, tenant_id: UUID, actor_id: UUID,
             return BookingResult(existing)
 
         validate_execution_date(request.trade_datetime)
+        strategy_id=lock_booking_strategy(connection,tenant_id,request.strategy_id)
         prepare_correction(connection,tenant_id,request,'CASH',actor=actor_id)
         listing_row=load_cash_booking_listing(connection,tenant_id,request.listing_id,
             request.trade_datetime.astimezone(timezone.utc).date())
-        strategy_id=lock_booking_strategy(connection,tenant_id,request.strategy_id)
-        annotation_values=validate_trade_annotations(connection,tenant_id,request)
+        annotation_values=validate_trade_annotations(connection,tenant_id,request,actor_id=actor_id)
         trade_id=booking_store.insert_cash_execution(connection,tenant_id,actor_id,request,
             listing_row,strategy_id,annotation_values,fingerprint,idempotency_key)
         record_booking_replay(connection,tenant_id,endpoint,idempotency_key,fingerprint,trade_id)

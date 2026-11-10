@@ -65,10 +65,15 @@ def required_action(path,method):
         if path=='/v1/strategies/access-options': return 'STRATEGY_CREATE'
         return 'STRATEGY_READ' if read else ('STRATEGY_CREATE' if path=='/v1/strategies' else 'STRATEGY_WRITE')
     if resource=='trades':
+        if read and path=='/v1/trades/booking-context':return 'TRADE_WRITE'
         if read:return 'TRADE_READ'
         return 'TRADE_CORRECT' if path.endswith(('/cancel-booking','/fx-delivery')) else 'TRADE_WRITE'
-    if resource=='trade-configuration': return 'TRADE_CONFIGURE'
+    if resource=='trade-profiles':
+        if read and path=='/v1/trade-profiles/creation-default':return 'STRATEGY_CREATE'
+        return 'STRATEGY_READ' if read and path.startswith('/v1/trade-profiles/strategies/') else 'TRADE_CONFIGURE'
+    if resource in {'trade-configuration','tenant-reference'}: return 'TRADE_CONFIGURE'
     if resource=='lifecycle':
+        if path.startswith('/v1/lifecycle/assistance'):return 'LIFECYCLE_READ' if read else 'LIFECYCLE_CONFIGURE'
         if read or path.endswith('/preview'): return 'LIFECYCLE_READ'
         if path.startswith('/v1/lifecycle/coupons/'):
             return {'/v1/lifecycle/coupons/schedules':'REFERENCE_APPROVE',
@@ -79,10 +84,11 @@ def required_action(path,method):
             return {'/v1/lifecycle/fx-forward/policy':'LIFECYCLE_CONFIGURE',
                 '/v1/lifecycle/fx-forward/closures/prepare':'LIFECYCLE_PREPARE',
                 '/v1/lifecycle/fx-forward/closures/book':'LIFECYCLE_BOOK',
+                '/v1/lifecycle/fx-forward/closures/confirm':'LIFECYCLE_BOOK',
                 '/v1/lifecycle/fx-forward/closures/approve':'LIFECYCLE_APPROVE',
                 '/v1/lifecycle/fx-forward/closures/cancel':'TRADE_CORRECT'}.get(path)
         return {'/v1/lifecycle/policy':'LIFECYCLE_CONFIGURE','/v1/lifecycle/bond-redemptions/prepare':'LIFECYCLE_PREPARE',
-            '/v1/lifecycle/bond-redemptions/book':'LIFECYCLE_BOOK','/v1/lifecycle/bond-redemptions/approve':'LIFECYCLE_APPROVE',
+            '/v1/lifecycle/bond-redemptions/book':'LIFECYCLE_BOOK','/v1/lifecycle/bond-redemptions/confirm':'LIFECYCLE_BOOK','/v1/lifecycle/bond-redemptions/approve':'LIFECYCLE_APPROVE',
             '/v1/lifecycle/bond-redemptions/cancel':'TRADE_CORRECT'}.get(path)
     if resource=='valuation':
         if path=='/v1/valuation/cash-balance-preview':return 'VALUATION_READ'
@@ -96,6 +102,7 @@ def required_action(path,method):
     if resource=='market-data' or resource=='market-data-resolution-snapshots':
         if '/calendars' in path:return 'CALENDAR_READ' if read else 'CALENDAR_MANAGE'
         return 'MARKET_DATA_READ' if read or path.endswith(('/resolution-preview','/policy-compatibility')) else 'MARKET_DATA_MANAGE'
+    if path=='/v1/equity-creation-options':return 'REFERENCE_PROPOSE' if read else None
     if resource in GLOBAL_CATALOGUES:return 'CATALOGUE_READ'
     if resource in {'instruments','reference-nodes','work-queue'} or resource.endswith('-proposals'):
         if read:return 'REFERENCE_READ'
@@ -126,6 +133,8 @@ def _authorize_request(request,body,engine_factory,environment,settings):
                 '/v1/tenant-workspace', '/v1/tenant-workspace/effective-access'}
             if not membership_read:
                 action=required_action(path,request.method)
+                if path=='/v1/tenant-reference/options' and request.method=='GET':
+                    action={'booking':'TRADE_WRITE','lifecycle':'LIFECYCLE_READ'}.get(request.query_params.get('consumer'),'TRADE_CONFIGURE')
                 if path=='/v1/strategies' and request.method=='GET' and request.query_params.get('forAction') in {
                     'STRATEGY_READ','TRADE_READ','TRADE_WRITE','VALUATION_READ','VALUATION_RUN'}:
                     action=request.query_params['forAction']

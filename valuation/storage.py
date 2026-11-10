@@ -237,7 +237,7 @@ def stage(c, attempt_id, actor, calculation, *, mode='AUTHORITATIVE'):
         marketPnl=stored_totals['market'],openingValue=calculation.period.opening_value,closingValue=calculation.period.closing_value,
         grossPnl=stored_totals['gross'],netPnl=stored_totals['net'],marketRoundingAdjustment=market_rounding,
         executionValue=calculation.period.execution_value,reportingCurrencyId=request.reporting_currency_id,
-        request=asdict(request),ledgerSource=calculation.evidence.get('ledgerSource'),limitations=calculation.evidence['limitations'],
+        request=asdict(request),ledgerSource=calculation.evidence.get('ledgerSource'),sourceDependencies=calculation.evidence.get('sourceDependencies'),limitations=calculation.evidence['limitations'],
         blockingValidation=['REQUIRED_PRICE_INPUTS_MISSING'] if calculation.evidence.get('requiredInputsComplete') is False else [],inputHash=calculation.input_hash,
         inputCoverage=calculation.evidence.get('inputCoverage'),requiredInputsComplete=calculation.evidence.get('requiredInputsComplete',True),
         markOverrideInputs=list({proof['requestId']:proof for s in calculation.evidence.get('selections',[])

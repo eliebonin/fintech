@@ -6,10 +6,17 @@ from decimal import Decimal
 from uuid import UUID,uuid4
 from sqlalchemy import select,func,or_
 from security_master_schema import models as m
+from .entitlements import lifecycle_lock
+from .assistance import current_assistance_proof,require_assistance
 from security_master_schema.lifecycle_authority import require_lifecycle_operation
 from positions.contracts import ProjectionRequest
 from positions.repository import iter_ledger_facts
 from positions.reconstruction import reconstruct
+from positions.allocations import reconstruct_allocations
+from trading.allocation_policy import load_allocation_policy
+from trading.annotations import lock_trade_catalogue
+from trading.annotation_snapshots import load_trade_annotations
+from .allocations import (prepare_annotations,require_annotations,persist_annotations,atomic_post,source_annotations_hash,lifecycle_profile_values)
 from security_master_schema.evidence import canonical_payload,evidence_hash
 from .bond_redemption import closing_movements
 
@@ -24,11 +31,15 @@ def policy(c,tenant,strategy):
 
 
 def lock(c,tenant,strategy):
+    lifecycle_lock(c,tenant)
+    lock_trade_catalogue(c,tenant)
     if c.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.tenant_id==tenant,m.strategy.c.strategy_id==strategy,
         m.strategy.c.status=='ACTIVE').with_for_update()) is None: raise LookupError('Active strategy unavailable')
 
 
 def configure(c,tenant,actor,operator,strategy,mode,revision,reason):
+    lifecycle_lock(c,tenant)
+    if mode=='DIRECT':current_assistance_proof(c,tenant,strategy,'BOND_MATURITY','DIRECT',mode=mode)
     require_lifecycle_operation(c,tenant,actor,strategy,'CONFIGURE',mode,real_operator=operator);lock(c,tenant,strategy)
     if policy(c,tenant,strategy)['revision']!=revision: raise RedemptionConflict('Processing policy changed; reload')
     c.execute(m.bond_redemption_policy.insert().values(tenant_id=tenant,strategy_id=strategy,revision=revision+1,
@@ -36,7 +47,9 @@ def configure(c,tenant,actor,operator,strategy,mode,revision,reason):
     return policy(c,tenant,strategy)
 
 
-def candidate(c,tenant,strategy,instrument):
+def candidate(c,tenant,strategy,instrument,*,annotation_inputs=None):
+    assistance_proof=current_assistance_proof(c,tenant,strategy,'BOND_MATURITY')
+    lock_trade_catalogue(c,tenant)
     now=datetime.now(timezone.utc)
     terms=c.execute(select(m.bond_terms).where(m.bond_terms.c.instrument_node_id==instrument,m.bond_terms.c.is_current,
         m.bond_terms.c.effective_from<=now.date())).mappings().one_or_none()
@@ -50,7 +63,10 @@ def candidate(c,tenant,strategy,instrument):
     subjects=[instrument,*c.scalars(select(m.listing.c.listing_node_id).where(m.listing.c.instrument_node_id==instrument))]
     cutoff=min(datetime.combine(day,time.max,timezone.utc),now)
     request=ProjectionRequest(tenant,strategy,cutoff,now)
-    facts=tuple(iter_ledger_facts(c,request,subject_ids=subjects));projection=reconstruct(facts,request)
+    facts=tuple(iter_ledger_facts(c,request,subject_ids=subjects))
+    allocation_policy=load_allocation_policy(c,tenant,strategy)
+    annotations=load_trade_annotations(c,tenant,[f.trade_id for f in facts],allocation_policy)
+    projection=reconstruct_allocations(facts,request,allocation_policy,annotations)
     buckets=[b for b in projection.buckets if b.closing_quantity]
     if not buckets: raise RedemptionConflict('No remaining bond exposure to redeem')
     price=terms['redemption_amount_per_par'];movements=closing_movements(buckets,price)
@@ -61,16 +77,21 @@ def candidate(c,tenant,strategy,instrument):
             frozen=bookings[trade].product_evidence or {}
             if frozen.get('maturityDate')!=day.isoformat(): raise ValueError('Frozen booked maturity differs from current sourced maturity')
     mode=policy(c,tenant,strategy)
+    entries=[dict(item,subjectId=b.key.subject_id,tradeIds=b.trade_ids,allocation=list(b.key.allocation_signature)) for b,item in zip(buckets,movements)]
+    annotation_state=prepare_annotations(c,tenant,allocation_policy,entries,annotations,annotation_inputs)
     payload=canonical_payload(dict(strategyId=strategy,instrumentId=instrument,valueDate=day,termId=terms['bond_terms_id'],
         currencyId=terms['issue_currency_id'],price=price,mode=mode['mode'],policyRevision=mode['revision'],
-        movements=[dict(item,subjectId=b.key.subject_id,tradeIds=b.trade_ids) for b,item in zip(buckets,movements)],
-        ledgerEvents=[f.event_id for f in facts],scope='PRINCIPAL_ONLY',paymentRecognised=False))
+        movements=entries,**annotation_state,annotationSourcesHash=source_annotations_hash(annotations),
+        ledgerEvents=[f.event_id for f in facts],lifecycleAssistance=assistance_proof,scope='PRINCIPAL_ONLY',paymentRecognised=False))
     return payload,evidence_hash(payload),projection,cutoff
 
 
-def prepare(c,tenant,actor,operator,strategy,instrument,expected):
+def prepare(c,tenant,actor,operator,strategy,instrument,expected,*,annotation_inputs=None):
+    lifecycle_lock(c,tenant)
+    require_assistance(c,tenant,actor,strategy,'BOND_MATURITY','PREPARE')
     mode=policy(c,tenant,strategy)['mode'];require_lifecycle_operation(c,tenant,actor,strategy,'PREPARE',mode,real_operator=operator)
-    lock(c,tenant,strategy);data,fingerprint,_,_=candidate(c,tenant,strategy,instrument)
+    lock(c,tenant,strategy);data,fingerprint,_,_=candidate(c,tenant,strategy,instrument,annotation_inputs=annotation_inputs)
+    require_annotations(data)
     if fingerprint!=expected: raise RedemptionConflict('Closing inputs changed; refresh')
     existing=c.execute(select(m.bond_redemption_proposal.c.proposal_id).where(m.bond_redemption_proposal.c.tenant_id==tenant,
         m.bond_redemption_proposal.c.strategy_id==strategy,m.bond_redemption_proposal.c.instrument_id==instrument,
@@ -83,7 +104,9 @@ def prepare(c,tenant,actor,operator,strategy,instrument,expected):
     return dict(proposalId=str(identity),inputs=data,inputHash=fingerprint)
 
 
-def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=None):
+@atomic_post
+def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=None,annotation_inputs=None):
+    lifecycle_lock(c,tenant)
     from security_master_schema.booking_controls import booking_lock_key
     c.execute(select(func.pg_advisory_xact_lock(booking_lock_key(tenant,'bond-maturity',key))))
     # Match ordinary booking's instrument -> strategy lock order. Governance
@@ -96,15 +119,22 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
             m.bond_redemption_proposal.c.strategy_id==strategy,m.bond_redemption_proposal.c.proposal_id==proposal_id,
             m.bond_redemption_proposal.c.instrument_id==instrument)).mappings().one_or_none()
         if not prepared: raise LookupError('Prepared redemption unavailable')
-    proof=require_lifecycle_operation(c,tenant,actor,strategy,'APPROVE' if prepared else 'BOOK',mode,real_operator=operator,
+    proof=require_lifecycle_operation(c,tenant,actor,strategy,('APPROVE' if mode=='REVIEW' else 'CONFIRM') if prepared else 'BOOK',mode,real_operator=operator,
         prepared_by=prepared['prepared_by'] if prepared else None,prepared_operator=prepared['prepared_operator'] if prepared else None)
-    request_hash=evidence_hash(dict(strategyId=strategy,instrumentId=instrument,expected=expected,proposalId=proposal_id))
+    request_body=dict(strategyId=strategy,instrumentId=instrument,expected=expected,proposalId=proposal_id)
+    if annotation_inputs is not None:request_body['annotationInputs']=annotation_inputs
+    request_hash=evidence_hash(request_body)
     old=c.execute(select(m.bond_redemption_posting).where(m.bond_redemption_posting.c.tenant_id==tenant,
         m.bond_redemption_posting.c.request_key==key)).mappings().one_or_none()
     if old:
         if old['request_hash']!=request_hash: raise RedemptionConflict('Request key reused with different inputs')
         return canonical_payload(dict(old))
-    data,fingerprint,projection,cutoff=candidate(c,tenant,strategy,instrument)
+    require_assistance(c,tenant,actor,strategy,'BOND_MATURITY',('APPROVE' if mode=='REVIEW' else 'CONFIRM') if prepared else 'DIRECT')
+    if prepared:
+        if annotation_inputs is not None:raise ValueError('Approval uses retained annotation inputs; prepare again to change them')
+        annotation_inputs={item['movementKey']:item.get('properties',[]) for item in prepared['inputs'].get('movements',[]) if item.get('movementKey')}
+    data,fingerprint,projection,cutoff=candidate(c,tenant,strategy,instrument,annotation_inputs=annotation_inputs)
+    require_annotations(data)
     if fingerprint!=expected or (prepared and (prepared['input_hash']!=fingerprint or prepared['policy_revision']!=data['policyRevision'])):
         raise RedemptionConflict('Prepared inputs or processing policy changed; prepare again')
     # Financial quantities are reconstructed in this transaction, never supplied by browser.
@@ -116,22 +146,30 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
         snapshot=deepcopy(json.loads(original));details=dict(priceType='CLEAN',cleanAmount=move['cleanAmount'],dirtyAmount=move['cleanAmount'],
             accruedInterestAmount='0',settlementEvidence='Principal-only maturity; final interest separate; payment not asserted')
         snapshot['economics']['bondDetails']=details;snapshot['economics']['amount']=move['cleanAmount']
+        snapshot['economics']['amountKind']='CONSIDERATION'
+        snapshot['economics']['direction']='RECEIVE' if Decimal(move['quantity'])<0 else 'PAY'
         snapshot['valuationConventions']['cleanExecutionAmount']=move['cleanAmount']
         snapshot['valuationRecognition']=dict(date=data['valueDate'],timezone='UTC',basis='UTC_TRADE_DATE',reason=None)
-        snapshot['lifecycleRedemption']=dict(inputs=data,authority=proof,proposalId=str(proposal_id) if proposal_id else None,sourceTradeIds=move['tradeIds'])
+        snapshot['lifecycleRedemption']=dict(inputs=data,movementKey=move['movementKey'],authority=proof,proposalId=str(proposal_id) if proposal_id else None,sourceTradeIds=move['tradeIds'])
+        snapshot['lifecycleAllocation']=dict(movementKey=move['movementKey'],properties=move['properties'],policy=data['allocationPolicy'])
+        from trading.profiles.resolution import frozen_configuration
+        snapshot['tradeConfiguration']=frozen_configuration(move['profileConfiguration'])
         identity=uuid4();q=Decimal(move['quantity'])
         c.execute(m.trade.insert().values(trade_id=identity,strategy_id=strategy,trade_subject_reference_node_id=b.key.subject_id,
             reference_instrument_node_id=instrument,trade_type='MATURITY_REDEMPTION',quantity=q,quantity_unit='NOMINAL',
             execution_price=Decimal(move['price']),price_basis='PCT_OF_PAR',price_currency_id=b.key.currency_id,
             trade_datetime_utc=cutoff,valuation_effective_date=cutoff.date(),valuation_date_basis='UTC_TRADE_DATE',
             execution_channel='LIFECYCLE_OPS',lifecycle_status='BOOKED',booked_by_user_account_id=actor,created_by_user_account_id=actor,
-            comment='Contractual principal maturity redemption; not cash receipt'))
+            comment=move.get('standardInputs',{}).get('COMMENT') or 'Contractual principal maturity redemption; not cash receipt',**lifecycle_profile_values(move)))
+        if move.get('sourcePreservation'):snapshot['sourcePreservedAnnotations']=move['sourcePreservation']
         c.execute(m.trade_lifecycle_event.insert().values(trade_id=identity,sequence_no=1,event_type='BOOKED',event_datetime_utc=cutoff,
             event_payload=json.dumps(snapshot,sort_keys=True),payload_hash=evidence_hash(snapshot),recorded_by_user_account_id=actor,
-            source_system_id='BOND_MATURITY',source_event_id=key))
+            source_system_id='BOND_MATURITY',source_event_id=evidence_hash(dict(tenantId=tenant,requestKey=key,movementKey=move['movementKey']))))
+        persist_annotations(c,tenant,identity,move)
         trade_ids.append(str(identity))
     subjects=[b.key.subject_id for b in projection.buckets]
-    check=reconstruct(tuple(iter_ledger_facts(c,projection.request,subject_ids=subjects)),projection.request)
+    check_facts=tuple(iter_ledger_facts(c,projection.request,subject_ids=subjects))
+    check=reconstruct_allocations(check_facts,projection.request,load_allocation_policy(c,tenant,strategy),load_trade_annotations(c,tenant,[f.trade_id for f in check_facts],load_allocation_policy(c,tenant,strategy)))
     if any(b.closing_quantity for b in check.buckets): raise RedemptionConflict('Closing entry did not bring exposure to zero')
     row=c.execute(m.bond_redemption_posting.insert().values(tenant_id=tenant,strategy_id=strategy,proposal_id=proposal_id,
         request_key=key,request_hash=request_hash,evidence=data|dict(authority=proof,inputHash=fingerprint),trade_ids=trade_ids,
@@ -139,7 +177,9 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
     return canonical_payload(dict(row))
 
 
+@atomic_post
 def cancel(c,tenant,actor,operator,strategy,posting_id,reason,key):
+    lifecycle_lock(c,tenant)
     from security_master_schema.booking_controls import booking_lock_key
     c.execute(select(func.pg_advisory_xact_lock(booking_lock_key(tenant,'bond-maturity',key))))
     lock(c,tenant,strategy)

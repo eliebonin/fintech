@@ -42,16 +42,19 @@ def register_reassessment_routes(router,authorize,connection_dependency,engine_f
             change.c.economic_from<=b.c.value_date,change.c.revision>func.coalesce(b.c.summary['ledgerSource']['revision'].as_integer(),-1)))
         from valuation.cash_fx_health import cash_reassessment_predicate
         from valuation.accrued_balance_health import balance_reassessment_predicate
+        from valuation.source_dependencies import source_reassessment_predicate,metadata_query
         where=[b.c.tenant_id==context.tenant_id,b.c.status.in_(['STAGED','PUBLISHED']),
             request_strategy_predicate(c,context.tenant_id,'VALUATION_READ',b.c.strategy_id),
-            or_(b.c.summary['ledgerSource']['revision'].as_integer().is_(None),stale,cash_reassessment_predicate(b),balance_reassessment_predicate(b))]
+            or_(b.c.summary['ledgerSource']['revision'].as_integer().is_(None),stale,cash_reassessment_predicate(b),balance_reassessment_predicate(b),source_reassessment_predicate(b))]
         if strategy_id: where.append(b.c.strategy_id==strategy_id)
-        rows=c.execute(select(b,m.strategy.c.display_name.label('strategy_name'),m.strategy.c.strategy_code).join(
-            m.strategy,m.strategy.c.strategy_id==b.c.strategy_id).where(*where,m.strategy.c.tenant_id==context.tenant_id)
-            .order_by(b.c.value_date.desc(),b.c.batch_id.desc()).limit(limit).offset(offset)).mappings()
+        with metadata_query(c):
+            rows=c.execute(select(b,m.strategy.c.display_name.label('strategy_name'),m.strategy.c.strategy_code).join(
+                m.strategy,m.strategy.c.strategy_id==b.c.strategy_id).where(*where,m.strategy.c.tenant_id==context.tenant_id)
+                .order_by(b.c.value_date.desc(),b.c.batch_id.desc()).limit(limit).offset(offset)).mappings().all()
+            total=c.scalar(select(func.count()).select_from(b).where(*where))
         return dict(items=[dict(batchId=str(row['batch_id']),strategyId=str(row['strategy_id']),valueDate=row['value_date'].isoformat(),
             strategyLabel=f"{row['strategy_name']} · {row['strategy_code']}",publicationStatus=row['status'],sourceHealth=source_health(c,row)) for row in rows],
-            total=c.scalar(select(func.count()).select_from(b).where(*where)))
+            total=total)
 
     @router.post('/reassessments/recalculate',response_model=dict[str,object])
     def recalc(payload:RecalculateSelection,http_request:Request,key:str=Header(alias='Idempotency-Key',min_length=1,max_length=255),

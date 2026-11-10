@@ -1,12 +1,59 @@
 # Reviewed repository knowledge
 
+## Lifecycle worklist — 5 November 2026
+
+[Delivery and limits](docs/delivery/lifecycle-worklist-20261105.md) records a derived current bond-maturity worklist at `/lifecycle`, exact scoped ledger/annotation reads, full-population filters/counts and safe native context handoff. Discovery requires explicit selected assistance1+ and a positive current ceiling; no grants/defaults are invented. Retired held references stay visible as blocked; unknown positions do not become zero. Pending source reassessment reuses the native fingerprint. Native financial, review and payment boundaries remain unchanged. No migration or persisted notification queue is added.
+
+## Lifecycle assistance entitlements — 5 November 2026
+
+[Delivery and limits](docs/delivery/lifecycle-assistance-entitlements-20261105.md) records typed platform ceilings0–3, independent strategy/event selections, reviewed downgrade transitions and native bond/FX enforcement. Module access, scoped action authority and native review remain separate. No silent fallback, positive operating subscription or notification detector is introduced. Migration112 is locally applied; retained history/grants are verified separately from synthetic tests. The policy-copy cutover is not automatically applied. New preparations freeze current assistance proof; stale proposals need re-preparation, and paid downgrade alone does not erase authorised receipts/correction.
+
+## Tenant reference data and strategy trade profiles — 4 November 2026
+
+[Delivery, evidence and limits](docs/delivery/tenant-reference-data-trade-profiles-20261104.md). `tenant_reference` owns shared canonical/custom sources; `trading.profiles` owns immutable publication, scoped assignment and current consumer resolution. Five normalized relations separate profiles, versions, field rules, strategy pins and the tenant creation default. New strategies materialize the default; existing assignments never change merely because a new version is published. All native writers, imports, corrections and supported bond/FX maturity consume the same profile. Required/optional/not-used and lifecycle behavior belong to the profile, not the field library. Exact original inheritance is source-proved and database-checked; economic values and existing BOOKED bytes remain unchanged. No new product/valuation formulas, permissions or operating financial runs are part of this delivery. Migration 111 and the explicit local technical cutover are applied: three defaults/profiles, ten assignments; pre-migration financial and grant hashes match. API 8000 is restarted and frontend 3001 is running. Review scope is this feature and its affected contracts; remaining project findings below are not superseded.
+
+## Allocation-preserving maturity — 4 November 2026
+
+[Delivery and limits](docs/delivery/lifecycle-allocation-preservation-20261104.md):
+tenant-selected joint custom-field dimensions partition lifecycle quantities before
+economic netting. Bonds and deliverable FX forwards persist classified closing trades,
+exact movement evidence and governed fresh inputs. The ordinary economic position key
+and daily P&L formulas are unchanged. Migration 110 is applied and the local API restarted. Focused and synthetic browser
+acceptance, including four zeroed allocations, are recorded in the delivery note.
+
+## Expanded position measures — 3 November 2026
+
+[Current coverage and limits](docs/delivery/expanded-position-measures-20261103.md)
+keeps product reference sizes, market values and risk exposure distinct.
+`valuation.measure_contracts` reuses native immutable-booking validators with
+scoped, batched trade reads. `valuation.note_measure_balances` consumes exact-date
+assessed note bridges, matching nominal/currency and original source hash; it
+never reconstructs conditional note balances using bond coupon assumptions.
+The quantity reader recovers canonical OPTION type and percentage-note unit
+factors from retained bookings. No execution, stored result or historical
+financial evidence is rewritten. Existing derivative risk/clearing MTM and scale
+limitations remain; the preview does not certify a portfolio NAV.
+
 **Status:** Maintained scoped review  
 **Content type:** Reference  
 **Owner:** Product and engineering  
-**Last reviewed:** 2026-11-03 (scoped interest-review delivery; prior reviews retained)
+**Last reviewed:** 2026-11-05 (scoped lifecycle-entitlement delivery; prior reviews retained)
 
 Analyzed root: `C:/Users/forte/Elie/projects/python/fintech`. This is the implementation
 repository; `C:/Users/forte/Documents/ChatGPT/Tech V2` is a separate workspace.
+
+## Instrument consistency — 3 November 2026
+
+[Delivery](docs/delivery/instrument-consistency-20261103.md) records catalogue-backed
+equity creation, tenant/effective source-policy choices and native private-source
+revalidation. `valuation.source_dependencies` captures scoped market/policy/
+calendar/action fingerprints and shares the SQL predicate across detail/history,
+pre-pagination reassessment and publication. Published financial evidence remains
+frozen; old missing proof is UNKNOWN_LEGACY. Metadata query settings restore on
+success/failure. Bond CLEAN previews use current exact-date maintained stocks,
+with no implicit multi-listing allocation or daily-earnings substitution; DIRTY
+and explicit zero-coupon conventions remain. This is a bounded consistency fix,
+not new derivative MTM, a general amendment system or a full financial audit.
 
 ## Accrued-balance trade annotations — 3 November 2026
 

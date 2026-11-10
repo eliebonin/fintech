@@ -1,3 +1,4 @@
+vi.mock('@/features/trade-profiles/booking-context',()=>({useStrategyTradeContext:(context:unknown)=>({context,ready:true,error:'',loading:false,reload:()=>{}}),TradeProfileStatus:()=>null}));
 import {afterEach,expect,it,vi} from "vitest";
 const harness=vi.hoisted(()=>({slots:[] as any[],cursor:0,effects:[] as (()=>unknown)[],send:vi.fn(),push:vi.fn()}));
 vi.mock("react",async original=>{

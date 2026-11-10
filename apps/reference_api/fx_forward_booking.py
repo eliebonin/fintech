@@ -1,3 +1,4 @@
+from trading.profiles.validation import annotation_profile_values,annotation_event_proof
 """Instrument-backed FX booking and immutable historical economics."""
 from datetime import date, datetime, timezone
 from .resource_limits import governance_date
@@ -89,6 +90,7 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
         from .booking_controls import validate_execution_date
         execution_date = validate_execution_date(request.trade_datetime)
         from .trade_corrections import prepare_correction, complete_correction
+        strategy = lock_booking_strategy(connection,tenant_id,request.strategy_id)
         prepare_correction(connection, tenant_id, request, 'FX_FORWARD', actor=actor_id)
         terms = load_fx_forward_booking_terms(connection, tenant_id, request.instrument_id, for_update=True, as_of=execution_date)
         if fx_forward_terms_fingerprint(terms) != request.expected_terms_fingerprint:
@@ -100,14 +102,12 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
         effective = connection.execute(select(m.instrument.c.effective_from, m.instrument.c.effective_to).where(m.instrument.c.instrument_node_id == terms.instrument_id)).one()
         if (effective.effective_from and execution.date() < effective.effective_from) or (effective.effective_to and execution.date() > effective.effective_to):
             raise FxForwardBookingError("fx_forward.inactive_contract", "tradeDatetime", "Execution is outside the instrument's effective dates.")
-        strategy = lock_booking_strategy(connection, tenant_id, request.strategy_id)
-        values = validate_trade_annotations(connection, tenant_id, request)
+        values = validate_trade_annotations(connection, tenant_id, request,actor_id=actor_id,native_required={"COUNTERPARTY"})
         trade_id = uuid4()
         connection.execute(m.trade.insert().values(trade_id=trade_id, trade_subject_reference_node_id=terms.instrument_id, reference_instrument_node_id=terms.instrument_id,
             strategy_id=strategy, trade_type="INVESTMENT", trade_purpose=request.trade_purpose, execution_price=terms.agreed_rate, price_basis="RATE", price_currency_id=terms.quote_currency_id,
-            quantity=obligations.signed_base_quantity, quantity_unit="CURRENCY_AMOUNT", trade_datetime_utc=execution, settlement_date=obligations.settlement_date, **trade_values(request),
+            quantity=obligations.signed_base_quantity, quantity_unit="CURRENCY_AMOUNT", trade_datetime_utc=execution, settlement_date=obligations.settlement_date, **trade_values(request),**annotation_profile_values(values),
             booked_by_user_account_id=actor_id, execution_channel="MANUAL_UI", lifecycle_status="BOOKED", created_by_user_account_id=actor_id, trader_person_id=request.trader_person_id, comment=request.comment))
-        persist_trade_annotations(connection, tenant_id, trade_id, request, values)
         economics = FxForwardTradeEconomicsView(baseCurrency=terms.base_currency, quoteCurrency=terms.quote_currency, quoteConvention=terms.quote_convention, agreedRate=decimal_text(terms.agreed_rate), settlementDate=str(obligations.settlement_date),
             receiveCurrency=obligations.receive_currency, receiveAmount=decimal_text(obligations.receive_amount), payCurrency=obligations.pay_currency, payAmount=decimal_text(obligations.pay_amount), termsFingerprint=request.expected_terms_fingerprint)
         snapshot = dict(schemaVersion=1, kind="FX_FORWARD_BOOKING", baseCurrencyId=str(terms.base_currency_id), quoteCurrencyId=str(terms.quote_currency_id), economics=economics.model_dump(by_alias=True)) | frozen_recognition(request)
@@ -116,7 +116,8 @@ def book_fx_forward_trade(connection: Connection, tenant_id: UUID, actor_id: UUI
         snapshot['valuationConventions']=dict(instrumentDefinitionId=str(definition),instrumentId=str(terms.instrument_id),
             baseCurrencyId=str(terms.base_currency_id),priceCurrencyId=str(terms.quote_currency_id),quoteConvention=terms.quote_convention,
             agreedRate=decimal_text(terms.agreed_rate),maturityDate=str(terms.maturity_date),settlementType=terms.settlement_type,unitMultiplier='1',quoteFactor='1')
-        connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=execution, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(snapshot, sort_keys=True), recorded_by_user_account_id=actor_id))
+        connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=execution, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(snapshot | annotation_event_proof(values), sort_keys=True), recorded_by_user_account_id=actor_id))
+        persist_trade_annotations(connection, tenant_id, trade_id, request, values)
         record_booking_replay(connection, tenant_id, ENDPOINT, idempotency_key, fingerprint, trade_id)
         complete_correction(connection, tenant_id, actor_id, request, trade_id)
         return get_booked_trade_detail(connection, tenant_id, trade_id, current_api_version(), request_id)

@@ -120,6 +120,8 @@ def create_strategy(connection: Connection, tenant_id: UUID, actor_id: UUID, req
     strategy_id = uuid4()
     connection.execute(insert(m.strategy).values(strategy_id=strategy_id, tenant_id=tenant_id, strategy_code=request.strategy_code.strip().upper(), display_name=request.display_name.strip(), strategy_type=request.strategy_type, operating_model_label=request.operating_model_label, base_currency_id=currency_id, status="ACTIVE", created_by_user_account_id=actor_id))
     initialize_strategy_access(connection,tenant_id,actor_id,strategy_id,request.initial_access_group_ids)
+    from trading.profiles.migration import initialize_strategy_profile
+    initialize_strategy_profile(connection,tenant_id,actor_id,strategy_id)
     return StrategyView(strategyId=strategy_id, tenantId=tenant_id, strategyCode=request.strategy_code.strip().upper(), displayName=request.display_name.strip(), strategyType=request.strategy_type, baseCurrencyCode=currency_code, status="ACTIVE")
 
 
@@ -1456,6 +1458,7 @@ def _equity_policy(connection: Connection, tenant_id: UUID, request: EquityPropo
         select(m.integration_source_system.c.integration_source_system_id)
         .where(m.integration_source_system.c.integration_source_system_id == request.source_system_id)
         .where(m.integration_source_system.c.status == "ACTIVE")
+        .where(or_(m.integration_source_system.c.tenant_id.is_(None),m.integration_source_system.c.tenant_id==tenant_id))
     ).scalar_one_or_none()
     if source is None:
         raise RepositoryNotFound("Source system does not exist or is not active")

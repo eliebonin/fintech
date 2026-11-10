@@ -5,12 +5,15 @@ import pytest
 
 
 @pytest.mark.parametrize('path',[
+    'tenant_reference/catalogues.py','tenant_reference/sources.py',
     'positions/fx_forward.py',
     'positions/structured_note.py','security_master_schema/structured_note_valuation.py',
     'security_master_schema/cash_products.py',
     'security_master_schema/future_economics.py','security_master_schema/future_valuation.py','positions/future.py',
     'valuation/structured_note_inputs.py','valuation/structured_note_interest.py',
-    'valuation/measure_inputs.py',
+    'valuation/measure_inputs.py','valuation/measure_contracts.py','valuation/note_measure_balances.py',
+    'valuation/source_dependencies.py','valuation/bond_measure_balances.py',
+    'security_master_schema/creation_options.py',
     'market_data/bond_quotes.py','market_data/bond_quote_store.py',
     'valuation/bond_prices.py','valuation/bond_quote_review.py',
     'valuation/review_coverage.py','valuation/accrued_balance_presentation.py',
@@ -33,6 +36,7 @@ def test_shared_financial_services_do_not_import_api_contracts_or_services(path)
 
 
 @pytest.mark.parametrize('path', [
+    'tenant_reference/catalogues.py','tenant_reference/sources.py',
     'positions/fx_forward.py','positions/repository.py',
     'market_data/bond_quote_store.py','market_data/price_basis_store.py',
     'market_data/storage.py','market_data/providers/yahoo/raw_prices.py',

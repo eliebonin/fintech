@@ -60,6 +60,9 @@ def source_health_statuses(c, headers):
         if state!='CURRENT':statuses[identity]=state
     from .mark_health import mark_health_statuses
     statuses.update(mark_health_statuses(c,headers))
+    from .source_dependencies import dependency_health
+    for identity,health in dependency_health(c,headers).items():
+        if health['status']=='REASSESSMENT_REQUIRED' or statuses[identity]=='CURRENT':statuses[identity]=health['status']
     return statuses
 
 
@@ -77,7 +80,10 @@ def source_health(c, header):
     accrued_state=balance_health_statuses(c,[header]).get(header['batch_id'],'CURRENT')
     from .mark_health import mark_health_statuses
     mark_state=mark_health_statuses(c,[header]).get(header['batch_id'],'CURRENT')
-    return {'status':'REASSESSMENT_REQUIRED' if changes or 'REASSESSMENT_REQUIRED' in (cash_state,accrued_state,mark_state) else 'UNKNOWN_LEGACY' if accrued_state=='UNKNOWN_LEGACY' else cash_state,
+    from .source_dependencies import dependency_health
+    dependency=dependency_health(c,[header])[header['batch_id']]
+    return {'status':'REASSESSMENT_REQUIRED' if changes or 'REASSESSMENT_REQUIRED' in (cash_state,accrued_state,mark_state,dependency['status']) else 'UNKNOWN_LEGACY' if 'UNKNOWN_LEGACY' in (accrued_state,dependency['status']) else cash_state,
+        'sourceChangeKinds':dependency['kinds'],
         'marksChanged':mark_state=='REASSESSMENT_REQUIRED',
         'accruedBalanceChanged':accrued_state=='REASSESSMENT_REQUIRED',
         'cashChanged':cash_state=='REASSESSMENT_REQUIRED',
@@ -94,4 +100,7 @@ def batch_source_health(c, tenant_id, batch_id):
 
 def assert_batch_ledger_current(c, tenant_id, batch_id):
     if batch_source_health(c,tenant_id,batch_id)['status']!='CURRENT':
-        raise ValueError('Ledger/cash inputs changed or lack revision proof; recalculate before publication')
+        raise ValueError('Valuation inputs changed or lack source proof; recalculate before publication')
+    from .source_dependencies import assert_current_source_rights
+    row=c.execute(select(t.batch).where(t.batch.c.tenant_id==tenant_id,t.batch.c.batch_id==batch_id)).mappings().one()
+    assert_current_source_rights(c,tenant_id,row)

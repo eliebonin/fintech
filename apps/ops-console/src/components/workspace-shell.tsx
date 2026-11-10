@@ -20,6 +20,7 @@ function NavigationHint() {
 
 function Sidebar({ activeSection, moduleCodes, tenantName, membershipRole, permissionCodes, onNavigate }: { activeSection: WorkspaceSection; moduleCodes?: string[]; tenantName?: string; membershipRole?: string; permissionCodes?:string[]; onNavigate?: () => void }) {
   const enabledItems = moduleCodes ? WORKSPACE_NAV_ITEMS.filter((item) => {
+    if(item.key==='lifecycle')return moduleCodes.includes('TRADING')&&Boolean(permissionCodes?.includes('LIFECYCLE_READ'));
     if(item.key==='regulatory-reporting')return moduleCodes.includes('REGULATORY_REPORTING')&&Boolean(permissionCodes?.includes('REPORTING_READ'));
     if (item.key === "strategies") return moduleCodes.includes("TRADING") || moduleCodes.includes("FUND_MANAGEMENT");
     if (item.key === "book-trade") return canBookTrades({membershipRole:membershipRole??'',moduleCodes,permissionCodes});

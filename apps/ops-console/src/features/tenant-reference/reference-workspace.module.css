@@ -1,0 +1,13 @@
+.toolbar { display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:20px 0; }
+.toolbar label { flex:1;max-width:480px; }
+:global(.configuration-page) .panel { background:white;border:1px solid #dbe3ef;border-radius:10px;padding:22px;margin:20px 0;min-width:0; }
+.form { display:grid;gap:18px;max-width:760px; }
+:global(.configuration-page) .form fieldset { display:grid;gap:18px;border:0;padding:0;margin:0;min-width:0; }
+.heading { display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap; }
+.table { max-width:100%;overflow-x:auto; }
+:global(.configuration-page) .table table { min-width:650px; }
+:global(.configuration-page) .table th[scope='row'] { max-width:380px;overflow-wrap:anywhere; }
+.link { color:#1d4ed8;text-decoration:underline;text-underline-offset:3px; }
+.state { padding:16px;border:1px solid #dbe3ef;border-radius:8px;background:#f7f9fc; }
+:global(.configuration-page) .notice { padding:14px 18px;background:#edf9f1;color:#146c43;border:1px solid #a7d8bb;border-radius:8px; }
+@media(max-width:700px){:global(.configuration-page) .panel{padding:16px}.toolbar label{max-width:none}}

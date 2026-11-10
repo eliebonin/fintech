@@ -1,3 +1,4 @@
+from trading.profiles.validation import annotation_profile_values,annotation_event_proof
 """Authoritative listing-backed option booking, not position maintenance."""
 from datetime import date,datetime,timezone
 from .resource_limits import governance_date
@@ -140,6 +141,7 @@ def book(connection,tenant_id,actor,request,key,request_id):
         from .booking_controls import validate_execution_date
         execution_date=validate_execution_date(request.trade_datetime)
         from .trade_corrections import prepare_correction,complete_correction
+        strategy=lock_booking_strategy(connection,tenant_id,request.strategy_id)
         prepare_correction(connection,tenant_id,request,'OPTION',actor=actor)
         row,terms=load(connection,tenant_id,request.listing_id,True,as_of=execution_date)
         if not terms.booking_eligible: raise OptionBookingError('option.ineligible_listing','listingId',terms.ineligibility_message)
@@ -148,12 +150,10 @@ def book(connection,tenant_id,actor,request,key,request_id):
         validate_option_execution(execution,row.last_trading_at_utc,request.position_effect)
         if execution.date()<row.effective_from or execution.date()<row.listing_from: raise OptionBookingError('option.execution_before_effective','tradeDatetime','Execution is before the approved effective date.')
         if request.settlement_date<execution.date(): raise OptionBookingError('option.invalid_settlement_date','settlementDate','Premium settlement cannot precede execution.')
-        lock_booking_strategy(connection, tenant_id, request.strategy_id)
-        annotations=validate_trade_annotations(connection,tenant_id,request)
+        annotations=validate_trade_annotations(connection,tenant_id,request,actor_id=actor)
         gross=gross_option_premium(request.quantity,request.execution_price,row.premium_multiplier,row.quote_factor)
         trade_id=uuid4()
-        connection.execute(m.trade.insert().values(trade_id=trade_id,trade_subject_reference_node_id=request.listing_id,reference_instrument_node_id=row.instrument_node_id,strategy_id=request.strategy_id,trade_type='INVESTMENT',position_effect=request.position_effect,execution_price=request.execution_price,price_basis='OPTION_PREMIUM',price_currency_id=row.premium_currency_id,quantity=request.quantity if request.side=='BUY' else -request.quantity,quantity_unit='CONTRACTS',trade_datetime_utc=execution,settlement_date=request.settlement_date,execution_venue_id=row.market_venue_id,booked_by_user_account_id=actor,created_by_user_account_id=actor,execution_channel='MANUAL_UI',lifecycle_status='BOOKED',trade_purpose=request.trade_purpose,market_activity=request.market_activity,trader_person_id=request.trader_person_id,comment=request.comment,**trade_values(request)))
-        persist_trade_annotations(connection,tenant_id,trade_id,request,annotations)
+        connection.execute(m.trade.insert().values(trade_id=trade_id,trade_subject_reference_node_id=request.listing_id,reference_instrument_node_id=row.instrument_node_id,strategy_id=request.strategy_id,trade_type='INVESTMENT',position_effect=request.position_effect,execution_price=request.execution_price,price_basis='OPTION_PREMIUM',price_currency_id=row.premium_currency_id,quantity=request.quantity if request.side=='BUY' else -request.quantity,quantity_unit='CONTRACTS',trade_datetime_utc=execution,settlement_date=request.settlement_date,execution_venue_id=row.market_venue_id,booked_by_user_account_id=actor,created_by_user_account_id=actor,execution_channel='MANUAL_UI',lifecycle_status='BOOKED',trade_purpose=request.trade_purpose,market_activity=request.market_activity,trader_person_id=request.trader_person_id,comment=request.comment,**trade_values(request),**annotation_profile_values(annotations)))
         economics=OptionTradeEconomicsView(terms=terms,grossPremium=decimal_text(gross),premiumDirection='PAY' if request.side=='BUY' else 'RECEIVE')
         payload={'schemaVersion':1,'kind':'OPTION_BOOKING','positionEffect':request.position_effect,'economics':economics.model_dump(mode='json',by_alias=True)} | frozen_recognition(request)
         from security_master_schema.option_valuation import frozen_option_conventions
@@ -163,7 +163,8 @@ def book(connection,tenant_id,actor,request,key,request_id):
             execution_venue_id=row.market_venue_id,position_effect=request.position_effect),payload,dict(
                 instrumentDefinitionId=str(row.instrument_definition_version_id),listingDefinitionId=str(row.listing_definition_version_id),
                 optionTermsId=str(row.option_terms_id),marketVenueId=str(row.market_venue_id)),row.premium_currency)
-        connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id,sequence_no=1,event_type='BOOKED',event_datetime_utc=execution,source_event_id=key,payload_hash=fingerprint,event_payload=json.dumps(payload,sort_keys=True),recorded_by_user_account_id=actor))
+        connection.execute(m.trade_lifecycle_event.insert().values(trade_id=trade_id,sequence_no=1,event_type='BOOKED',event_datetime_utc=execution,source_event_id=key,payload_hash=fingerprint,event_payload=json.dumps(payload | annotation_event_proof(annotations),sort_keys=True),recorded_by_user_account_id=actor))
+        persist_trade_annotations(connection,tenant_id,trade_id,request,annotations)
         record_booking_replay(connection,tenant_id,ENDPOINT,key,fingerprint,trade_id)
         complete_correction(connection,tenant_id,actor,request,trade_id)
         return get_booked_trade_detail(connection,tenant_id,trade_id,current_api_version(),request_id)

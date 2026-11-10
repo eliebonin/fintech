@@ -127,4 +127,4 @@ def test_forward_maturity_and_original_booking_share_the_same_quantity_identity(
 
 def test_product_and_option_frozen_unit_conventions_are_not_discarded():
     assert holding_conventions({'kind':'PRODUCT_BOOKING','economics':{'terms':{'convention':{'kind':'FUTURE','monetaryMultiplier':'50','quoteFactor':'1'}}}},'CONTRACTS')==('FUTURE',D('50'),D('1'))
-    assert holding_conventions({'kind':'OPTION_BOOKING','economics':{'terms':{'premiumMultiplier':'100','quoteFactor':'1'}}},'CONTRACTS')==('OPTION_BOOKING',D('100'),D('1'))
+    assert holding_conventions({'kind':'OPTION_BOOKING','economics':{'terms':{'premiumMultiplier':'100','quoteFactor':'1'}}},'CONTRACTS')==('OPTION',D('100'),D('1'))

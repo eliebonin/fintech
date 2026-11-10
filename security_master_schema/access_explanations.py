@@ -12,6 +12,7 @@ from .access_management import membership_row
 from .tenant_workspace import resolve_tenant_workspace, require_tenant_action
 
 MODULE_DELIVERY = {
+    'LIFECYCLE_MANAGEMENT': ('PARTIAL','Tiered bond/FX assistance controls and bond-maturity worklist; other event discovery is planned. Trading actions, strategy scope and review rules remain separate.'),
     'REGULATORY_REPORTING': ('BOUNDED_ALPHA', 'UK transaction preparation/review and frozen preparation exports; no regulatory submission acceptance.'),
     'SECURITY_MASTER': ('BOUNDED_ALPHA', 'Governed instruments, listings and proposal workflow.'),
     'MARKET_DATA': ('BOUNDED_ALPHA', 'Governed EoD acquisition, policies and evidence; not a live terminal.'),
@@ -83,9 +84,9 @@ def effective_access_view(c, tenant, actor, user=None):
                          .order_by(m.platform_module.c.sort_order)).mappings():
         code = row['module_code']
         delivery, note = MODULE_DELIVERY.get(code, ('UNASSESSED', 'Delivery has not been assessed.'))
-        module_actions = [action for action in actions if code in action['moduleCodes']]
+        module_actions = [action for action in actions if code in action['moduleCodes'] or code=='LIFECYCLE_MANAGEMENT' and action['code'].startswith('LIFECYCLE_')]
         modules.append(dict(code=code, name=row['display_name'], enabled=code in workspace.tenant_module_codes,
-            accessible=any(action['allowed'] for action in module_actions), deliveryStatus=delivery,
+            accessible=code in workspace.tenant_module_codes and any(action['allowed'] for action in module_actions), deliveryStatus=delivery,
             deliveryNote=note, actions=module_actions))
     return dict(tenantId=str(tenant), userId=str(user), name=account['display_name'] or str(user),
         role=member['membership_role'], accountStatus=account['status'], membershipStatus=member['status'],

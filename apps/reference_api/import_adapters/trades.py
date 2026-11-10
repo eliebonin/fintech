@@ -21,7 +21,7 @@ def column(key,label,required=False,choices=None,description=''):
 def descriptor(c,tenant,actor,strategy):
     authorize_booking(c,tenant,actor,strategy_id=strategy)
     lock_booking_strategy(c,tenant,strategy)
-    context=get_trade_booking_context(c,tenant,actor)
+    context=get_trade_booking_context(c,tenant,actor,strategy)
     currencies=list(c.scalars(select(m.currency.c.currency_code).where(m.currency.c.status=='ACTIVE').order_by(m.currency.c.currency_code)))
     cols=[column('sourceTradeId','Source trade ID',True,description='Permanent unique ID within this strategy and source namespace.'),
           column('listingId','Listing UUID',True,description='Copy the exact listing UUID from the catalogue. No ticker guessing.'),
@@ -55,7 +55,14 @@ def descriptor(c,tenant,actor,strategy):
         elif prop['valueType']=='BOOLEAN':choices=['TRUE','FALSE']
         cols.append(column('property:'+str(prop['definitionId']),prop['label'],prop['required'],choices,
             f"{prop['valueType']} · {prop.get('description') or prop['code']}"))
+    profile=context['tradeProfile']
+    standards={f['standardFieldKey']:f for f in profile['fields'] if f['standardFieldKey']}
+    standard_columns={'counterpartyOrganisationId':'COUNTERPARTY','executingBrokerOrganisationId':'EXECUTING_BROKER','traderPersonId':'TRADER','comment':'COMMENT'}
+    cols=[col for col in cols if col['key'] not in standard_columns or standards.get(standard_columns[col['key']],{}).get('requirement','NOT_USED')!='NOT_USED']
+    for col in cols:
+        if col['key'] in standard_columns:col['required']=standards[standard_columns[col['key']]]['requirement']=='REQUIRED'
     return dict(tenantId=str(tenant),strategyId=str(strategy),columns=cols,
+        profileVersionId=str(profile['profileVersionId']),profileAssignmentRevision=profile['assignmentRevision'],configurationHash=profile['configurationHash'],
         tenantLabel=c.scalar(select(m.tenant.c.display_name).where(m.tenant.c.tenant_id==tenant)),
         strategyLabel=c.scalar(select(m.strategy.c.display_name).where(m.strategy.c.strategy_id==strategy)))
 
@@ -112,7 +119,9 @@ def prepare(c,tenant,actor,strategy,values,*,validate=True):
     if values.get('tradeCurrency') and values['tradeCurrency']!=listing['currency_code']:
         raise ValueError('tradeCurrency: must match the approved listing currency '+listing['currency_code'])
     lock_booking_strategy(c,tenant,strategy)
-    annotations=validate_trade_annotations(c,tenant,request)
-    return request,dict(listingId=str(request.listing_id),instrumentId=str(listing['instrument_node_id']),
+    annotations=validate_trade_annotations(c,tenant,request,actor_id=actor)
+    from trading.profiles.resolution import frozen_configuration
+    request=request.model_copy(update={'profile_assignment_revision':annotations.configuration['assignmentRevision']})
+    return request,dict(tradeConfiguration=frozen_configuration(annotations.configuration),listingId=str(request.listing_id),instrumentId=str(listing['instrument_node_id']),
         currency=listing['currency_code'],instrumentType=kind,bookingSnapshot=listing['booking_snapshot'],
         annotations=[{k:str(v) if isinstance(v,UUID) else v for k,v in a.items()} for a in annotations])

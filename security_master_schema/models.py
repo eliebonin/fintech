@@ -3062,3 +3062,20 @@ _register_coupon_tables(metadata)
 
 from regulatory_reporting.tables import register as _register_reporting_tables
 _register_reporting_tables(metadata)
+
+from .allocation_tables import register as _register_allocation_tables
+lifecycle_allocation_policy=_register_allocation_tables(metadata)
+
+from .trade_profile_tables import register as _register_trade_profiles
+trade_profile,trade_profile_version,trade_profile_field_rule,strategy_trade_profile_assignment,tenant_trade_profile_default=_register_trade_profiles(metadata)
+trade.append_column(Column('trade_profile_version_id',UUID_V7,nullable=True,comment='Exact profile version validated for this new booking; null retains pre-profile evidence.'))
+trade.append_column(Column('trade_profile_assignment_revision',Integer,nullable=True,comment='Strategy assignment revision validated with the immutable booking.'))
+trade.append_constraint(ForeignKeyConstraint(['strategy_id','trade_profile_assignment_revision','trade_profile_version_id'],['ten.strategy_trade_profile_assignment.strategy_id','ten.strategy_trade_profile_assignment.revision','ten.strategy_trade_profile_assignment.profile_version_id'],name='fk_trade_profile_assignment_proof'))
+trade.append_constraint(CheckConstraint('(trade_profile_version_id IS NULL) = (trade_profile_assignment_revision IS NULL)',name='ck_trade_profile_proof_pair'))
+
+# Derived by insert guards; never an operator permission or session bypass.
+for _annotation_table in (trade_property_value,trade_property_reference):
+    _annotation_table.append_column(Column('source_inherited',Boolean,nullable=False,server_default=text('false'),comment='Database-derived inherited-source marker; requires completed correction/lifecycle proof at commit.'))
+
+from .lifecycle_entitlement_tables import register as _register_lifecycle_entitlements
+tenant_lifecycle_subscription,strategy_lifecycle_assistance=_register_lifecycle_entitlements(metadata)

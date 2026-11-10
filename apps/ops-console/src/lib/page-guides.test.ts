@@ -10,6 +10,7 @@ it.each([
  ['/instruments/parent/booking-conventions','Booking conventions and schedules'],
  ['/reference-data/review/proposal','Reference review and operations'],['/instruments/crypto/review/proposal','Reference review and operations'],
  ['/market-data/policies/?view=preview','Pricing policies'],['/market-data/resolution-snapshots/snapshot','Market-data coverage and evidence'],
+ ['/tenant-profile/reference-data/catalogues/catalogue','Maintain tenant reference data'],
  ['/valuation/cash-balances','Cash balances'],['/tenant-profile/access','Users, groups and strategy access'],
  ['/valuation/interest/explorer?strategyId=example','Explore accrued balances'],
 ])('selects the specific guide rather than a generic detail: %s',(path,title)=>{

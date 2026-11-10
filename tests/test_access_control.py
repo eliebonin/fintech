@@ -47,3 +47,11 @@ def test_unknown_action_denied_even_for_admin():
     workspace = tw.TenantWorkspaceView(uuid4(), 'TEST', 'Test tenant', 'TENANT_ADMIN', frozenset({'TRADING'}), None)
     with pytest.raises(tw.TenantActionForbidden):
         tw.require_tenant_action(workspace, 'PLATFORM_ADMIN')
+
+
+def test_lifecycle_module_presentation_never_replaces_trading_authority():
+    from security_master_schema.access_control import effective_permissions,effective_modules
+    module='LIFECYCLE_MANAGEMENT'
+    assert not effective_permissions(role='MEMBER',tenant_modules={module},grants={'LIFECYCLE_BOOK'})
+    permissions=effective_permissions(role='MEMBER',tenant_modules={module,'TRADING'},grants={'LIFECYCLE_READ'})
+    assert module in effective_modules({module,'TRADING'},permissions)

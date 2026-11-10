@@ -5,8 +5,8 @@ import { bffErrorResponse } from "@/lib/bff-error";
 export const dynamic = "force-dynamic";
 const uuid = "[0-9a-fA-F-]{36}";
 function allowedConfigurationPath(path:string,method:string) {
-  const reads=[/^properties$/, /^catalogues$/,new RegExp(`^catalogues/${uuid}$`),new RegExp(`^catalogues/${uuid}/records$`),/^selections\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/,/^candidates\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/,/^audit$/];
-  const writes=[/^properties$/,new RegExp(`^properties/${uuid}/(retire|replace)$`),/^catalogues$/,new RegExp(`^catalogues/${uuid}/(publish|retire|records)$`),new RegExp(`^catalogues/${uuid}/records/${uuid}/(correct|retire)$`),/^selections\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/];
+  const reads=[/^lifecycle-allocations$/,/^properties$/, /^catalogues$/,new RegExp(`^catalogues/${uuid}$`),new RegExp(`^catalogues/${uuid}/records$`),/^selections\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/,/^candidates\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/,/^audit$/];
+  const writes=[/^lifecycle-allocations$/,/^properties$/,new RegExp(`^properties/${uuid}/(retire|replace)$`),/^catalogues$/,new RegExp(`^catalogues/${uuid}/(publish|retire|records)$`),new RegExp(`^catalogues/${uuid}/records/${uuid}/(correct|retire)$`),/^selections\/(COUNTERPARTY|EXECUTING_BROKER|TRADER)$/];
   const organisationReads=[/^organisations$/, /^organisations\/candidates$/,new RegExp(`^organisations/${uuid}$`)];
   const organisationWrites=[new RegExp(`^organisations/${uuid}$`),/^organisation-roles\/(COUNTERPARTY|EXECUTING_BROKER)$/];
   return [...(method==="GET"?reads:writes),...(method==="GET"?organisationReads:organisationWrites)].some(pattern=>pattern.test(path));

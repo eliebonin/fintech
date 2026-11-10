@@ -12,3 +12,9 @@ async function handle(request:NextRequest,context:Context) {
 }
 export const GET=handle;
 export const PUT=handle;
+
+export async function POST(request:NextRequest,context:Context){
+ const parts=(await context.params).path;
+ if(!/^tenants\/[0-9a-fA-F-]{36}\/lifecycle-subscription\/preview$/.test(parts.join('/')))return NextResponse.json({error:{message:'Unknown platform preview.'}},{status:404});
+ return handle(request,context);
+}

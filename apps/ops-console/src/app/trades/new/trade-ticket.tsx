@@ -1,4 +1,5 @@
 "use client";
+import {ProfileCommentField} from './profile-comment-field';
 import {browserFetch as fetch} from '@/lib/browser-fetch';
 import {instrumentDisplayHref,type InstrumentDisplays} from '@/lib/instrument-display';
 
@@ -11,6 +12,7 @@ import { createIdempotencyKey, searchCashBookingListingsFromBff, getCashBookingL
 import type { TradeBookingContext } from "@/lib/browser-api-client";
 import { BffApiError } from "@/lib/api-errors";
 import { BookingSearchResults } from './booking-search-results';
+import {useStrategyTradeContext,TradeProfileStatus} from '@/features/trade-profiles/booking-context';
 import { PartyFields } from "./party-fields";
 import { PropertyFields } from "./property-fields";
 import { BookingReview } from "./booking-review";
@@ -30,6 +32,7 @@ export type TicketListing = {
 export type TicketStrategy = { strategyId: string; strategyCode: string; displayName: string; status: string };
 
 export type TicketDraft = {
+  profileAssignmentRevision?: number;
   valuationEffectiveDate?: string;
   valuationOverrideReason?: string;
   strategyId: string;
@@ -105,7 +108,7 @@ export function buildTicketPayload(listing: TicketListing, draft: TicketDraft): 
   };
 }
 
-export function TradeTicket({ listing: initialListing, strategies, correction, context = {tenantId:"",bookedByUserAccountId:"",properties:[],tags:[]} }: { listing?: TicketListing; strategies: TicketStrategy[]; context?:TradeBookingContext; correction?:BookingCorrection }) {
+export function TradeTicket({ listing: initialListing, strategies, correction, context:initialContext = {tenantId:"",bookedByUserAccountId:"",properties:[],tags:[]} }: { listing?: TicketListing; strategies: TicketStrategy[]; context?:TradeBookingContext; correction?:BookingCorrection }) {
   const router = useRouter();
   const retryKey = useRef(createIdempotencyKey());
   const [listing, setListing] = useState<TicketListing | undefined>(initialListing);
@@ -114,6 +117,7 @@ export function TradeTicket({ listing: initialListing, strategies, correction, c
   const [listingResults, setListingResults] = useState<CashBookingListingView[]>([]);
   const [searching, setSearching] = useState(false);
   const [draft, setDraft] = useState<EnrichedTicketDraft>(() => ({...createTicketDraft(),tradePurpose:"INVESTMENT",properties:{},tagIds:[],externalReferences:[]}));
+  const profileState=useStrategyTradeContext(initialContext,draft.strategyId,correction?.tradeId),context=profileState.context;
   // Event handlers can run before React renders the last edit. Merge into the
   // latest draft, not the render closure, so unrelated values cannot be lost.
   const latestDraft=useRef(draft);
@@ -204,6 +208,7 @@ export function TradeTicket({ listing: initialListing, strategies, correction, c
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!listing) return;
+    if(!profileState.ready){setError('Load the strategy trade configuration before reviewing.');return;}
     const validation = validateEnrichedTicketDraft(draft,context);
     setFieldErrors(validation);setError("");
     if(validation.length){setErrorFocusRequest(current=>current+1);return;}
@@ -213,7 +218,7 @@ export function TradeTicket({ listing: initialListing, strategies, correction, c
   async function confirmBooking() {
     if(!listing||inFlight.current||blocked)return;
     inFlight.current=true;
-    if(!submitted.current)submitted.current=freezeBookingSubmission(withBookingCorrection(buildEnrichedTicketPayload(listing,draft,context),correction),retryKey.current,context.tenantId);
+    if(!submitted.current)submitted.current=freezeBookingSubmission(withBookingCorrection(buildEnrichedTicketPayload(listing,{...draft,profileAssignmentRevision:context.tradeProfile?.assignmentRevision},context),correction),retryKey.current,context.tenantId);
     setSaving(true); setError("");
     try {
       const result = await submitBookedTradeFromBff(submitted.current.payload,submitted.current.key,fetch,submitted.current.expectedTenantId);
@@ -260,10 +265,10 @@ export function TradeTicket({ listing: initialListing, strategies, correction, c
       <label>Trade time (ISO 8601, offset required)<input aria-label="Trade time" id="tradeDatetime" aria-invalid={fieldErrors.some(issue=>issue.field==="tradeDatetime")} aria-describedby="tradeDatetime-error" value={draft.tradeDatetime} onChange={(event) => update("tradeDatetime", event.target.value)} required /><small id="tradeDatetime-error">{fieldErrors.find(issue=>issue.field==="tradeDatetime")?.message}</small></label>
       <label>Settlement date<input aria-label="Settlement date" type="date" id="settlementDate" aria-invalid={fieldErrors.some(issue=>issue.field==="settlementDate")} aria-describedby="settlement-default-hint settlementDate-error" value={draft.settlementDate} onChange={(event) => update("settlementDate", event.target.value)} required /><small id="settlement-default-hint">Defaults to T+2 weekdays (Mon–Fri). Holidays are not applied; review and adjust as needed.</small><small id="settlementDate-error">{fieldErrors.find(issue=>issue.field==="settlementDate")?.message}</small></label>
       <p className="muted">Gross consideration: {grossConsideration(draft.quantity,draft.executionPrice)} {listing.tradingCurrency??""}</p></fieldset>
-      <PartyFields tenantId={context.tenantId} draft={draft} actor={context.bookedByUserAccountId} errors={fieldErrors} onChange={patch}/>
+      <TradeProfileStatus state={profileState}/><PartyFields profile={context.tradeProfile} tenantId={context.tenantId} draft={draft} actor={context.bookedByUserAccountId} errors={fieldErrors} onChange={patch}/>
       <fieldset className="ticket-section"><legend>Trade classification</legend><p>Trade type: INVESTMENT</p><label>Purpose<select id="tradePurpose" value={draft.tradePurpose} onChange={e=>patch({tradePurpose:e.target.value as EnrichedTicketDraft["tradePurpose"]})}>{["INVESTMENT","REBALANCING","HEDGING","OTHER"].map(v=><option key={v}>{v}</option>)}</select></label><label>Market activity (optional)<select id="marketActivity" value={draft.marketActivity??""} onChange={e=>patch({marketActivity:(e.target.value||undefined) as EnrichedTicketDraft["marketActivity"]})}><option value="">Not specified</option><option>PRIMARY</option><option>SECONDARY</option></select></label></fieldset>
       <PropertyFields context={context} draft={draft} errors={fieldErrors} onChange={patch}/>
-      <fieldset className="ticket-section"><legend>References and notes</legend>{draft.externalReferences.map((reference,index)=><div key={index} className="ticket-reference"><label>Reference type<select value={reference.referenceType} onChange={e=>patch({externalReferences:draft.externalReferences.map((r,i)=>i===index?{...r,referenceType:e.target.value as typeof r.referenceType}:r)})}><option>SOURCE_TRADE_ID</option><option>CLIENT_REFERENCE</option><option>BROKER_REFERENCE</option></select></label><label>Reference value<input id={`reference-${index}`} maxLength={500} value={reference.referenceValue} onChange={e=>patch({externalReferences:draft.externalReferences.map((r,i)=>i===index?{...r,referenceValue:e.target.value}:r)})}/></label><label>Source namespace (optional)<input maxLength={100} value={reference.sourceSystemId??""} onChange={e=>patch({externalReferences:draft.externalReferences.map((r,i)=>i===index?{...r,sourceSystemId:e.target.value}:r)})}/></label><button type="button" onClick={()=>patch({externalReferences:draft.externalReferences.filter((_,i)=>i!==index)})}>Remove reference</button></div>)}<button type="button" disabled={draft.externalReferences.length>=20} onClick={()=>patch({externalReferences:[...draft.externalReferences,{referenceType:"SOURCE_TRADE_ID",referenceValue:""}]})}>Add reference</button><label>Comment (optional unless purpose is OTHER)<textarea id="comment" aria-label="Comment" maxLength={10000} value={draft.comment??""} onChange={e=>patch({comment:e.target.value})}/></label></fieldset>
+      <fieldset className="ticket-section"><legend>References and notes</legend>{draft.externalReferences.map((reference,index)=><div key={index} className="ticket-reference"><label>Reference type<select value={reference.referenceType} onChange={e=>patch({externalReferences:draft.externalReferences.map((r,i)=>i===index?{...r,referenceType:e.target.value as typeof r.referenceType}:r)})}><option>SOURCE_TRADE_ID</option><option>CLIENT_REFERENCE</option><option>BROKER_REFERENCE</option></select></label><label>Reference value<input id={`reference-${index}`} maxLength={500} value={reference.referenceValue} onChange={e=>patch({externalReferences:draft.externalReferences.map((r,i)=>i===index?{...r,referenceValue:e.target.value}:r)})}/></label><label>Source namespace (optional)<input maxLength={100} value={reference.sourceSystemId??""} onChange={e=>patch({externalReferences:draft.externalReferences.map((r,i)=>i===index?{...r,sourceSystemId:e.target.value}:r)})}/></label><button type="button" onClick={()=>patch({externalReferences:draft.externalReferences.filter((_,i)=>i!==index)})}>Remove reference</button></div>)}<button type="button" disabled={draft.externalReferences.length>=20} onClick={()=>patch({externalReferences:[...draft.externalReferences,{referenceType:"SOURCE_TRADE_ID",referenceValue:""}]})}>Add reference</button><ProfileCommentField context={context} comment={draft.comment} purpose={draft.tradePurpose} errors={fieldErrors} onChange={value=>patch({comment:value})}/></fieldset>
       <div className="ticket-actions"><button type="submit" disabled={!listing.isTradable || listing.status !== "ACTIVE" || strategies.length === 0}>Review booking</button><button type="button" onClick={()=>{setListing(undefined);invalidateSearch();setTotal(0);}}>Change listing</button><button type="button" onClick={cancel}>Cancel</button></div>
     </form>
   </main>;

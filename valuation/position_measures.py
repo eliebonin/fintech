@@ -85,3 +85,13 @@ def linear_future(contracts,price,monetary_multiplier,quote_factor,*,allow_negat
     # No cleared settlement boundary / outstanding variation-margin evidence.
     # Neither the full notional nor an assumed zero is a contract market value.
     return dict(referenceNotional=amount,economicExposure=amount,marketValue=None)
+
+
+def vanilla_option(contracts,premium,multiplier,quote_factor,strike,deliverable_units):
+    """Premium value and labelled strike notional; never infer delta exposure."""
+    finite_decimal(contracts,'contracts')
+    if contracts!=contracts.to_integral_value():raise ValueError('Whole canonical option contracts required')
+    finite_decimal(strike,'strike',positive=True)
+    finite_decimal(deliverable_units,'deliverable units',positive=True)
+    market=cash_security(contracts,premium,multiplier,quote_factor)['marketValue']
+    return dict(referenceNotional=scaled(contracts,strike,deliverable_units),economicExposure=None,marketValue=market)

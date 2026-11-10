@@ -10,16 +10,20 @@ async function forward(request:NextRequest,context:Context,method:'GET'|'POST'){
  const couponPath=path.startsWith('coupons/')?path.slice('coupons/'.length):null;
  const couponAllowed=couponPath!==null&&(method==='GET'?['options','schedule','payments','history'].includes(couponPath):['schedules','payments','payments/correct','payments/reverse'].includes(couponPath));
  const fxAllowed=fxPath!==null&&(method==='GET'?['options','closures','closures/postings'].includes(fxPath):
-  ['policy','closures/preview','closures/prepare','closures/book','closures/approve','closures/cancel'].includes(fxPath));
- const allowed=couponAllowed||fxAllowed||(method==='GET'?['options','bond-redemptions','bond-redemptions/postings'].includes(path):
-  ['policy','bond-redemptions/preview','bond-redemptions/prepare','bond-redemptions/book','bond-redemptions/approve','bond-redemptions/cancel'].includes(path));
+  ['policy','closures/preview','closures/prepare','closures/book','closures/confirm','closures/approve','closures/cancel'].includes(fxPath));
+ const assistanceAllowed=method==='GET'?['assistance','assistance/options'].includes(path):['assistance','assistance/transitions/preview','assistance/transitions/apply'].includes(path);
+ const worklistAllowed=method==='GET'&&['worklist','worklist/options'].includes(path);
+ const allowed=worklistAllowed||assistanceAllowed||couponAllowed||fxAllowed||(method==='GET'?['options','annotation-options','bond-redemptions','bond-redemptions/postings'].includes(path):
+  ['policy','bond-redemptions/preview','bond-redemptions/prepare','bond-redemptions/book','bond-redemptions/confirm','bond-redemptions/approve','bond-redemptions/cancel'].includes(path));
  if(!allowed)return NextResponse.json({error:{message:'Lifecycle route not found.'}},{status:404});
  try{
-  const context=await getActiveTenantContext();const headers=new Headers({'X-Tenant-Id':context.tenantId,'X-User-Account-Id':context.userAccountId,'Content-Type':'application/json'});
-  const key=request.headers.get('Idempotency-Key');if(method==='POST'&&(couponAllowed||['bond-redemptions/book','bond-redemptions/approve','bond-redemptions/cancel'].includes(path)||['closures/book','closures/approve','closures/cancel'].includes(fxPath??''))){
+  const context=await getActiveTenantContext();
+  if((assistanceAllowed||worklistAllowed)&&request.headers.get('X-Expected-Tenant-Id')!==context.tenantId)return NextResponse.json({error:{message:'Tenant context changed. Reload lifecycle settings.'}},{status:409});
+  const headers=new Headers({'X-Tenant-Id':context.tenantId,'X-User-Account-Id':context.userAccountId,'Content-Type':'application/json'});
+  const key=request.headers.get('Idempotency-Key');if(method==='POST'&&(couponAllowed||['bond-redemptions/book','bond-redemptions/confirm','bond-redemptions/approve','bond-redemptions/cancel'].includes(path)||['closures/book','closures/confirm','closures/approve','closures/cancel'].includes(fxPath??''))){
    if(!key?.trim()||key.length>255)return NextResponse.json({error:{message:'A stable booking request key is required.'}},{status:400});headers.set('Idempotency-Key',key);
   }
-  const query=new URLSearchParams();if(method==='GET')for(const name of ['strategyId','limit','offset','instrumentId','scheduleId','paymentId','fromDate','toDate']){const value=request.nextUrl.searchParams.get(name);if(value!==null)query.set(name,value);}
+  const query=new URLSearchParams();if(method==='GET')for(const name of ['strategyId','limit','offset','instrumentId','scheduleId','paymentId','fromDate','toDate','catalogueId','q','eventType','attention','status','includeEarlierOverdue']){const value=request.nextUrl.searchParams.get(name);if(value!==null)query.set(name,value);}
   const response=await referenceFetch()(`${process.env.REFERENCE_API_URL??'http://localhost:8000'}/v1/lifecycle/${path}${query.size?'?'+query:''}`,{method,headers,cache:'no-store',...(method==='POST'?{body:JSON.stringify(await request.json())}:{})});
   return NextResponse.json(await response.json(),{status:response.status});
  }catch(error){return bffErrorResponse(error,'Lifecycle service unavailable. Retry an unchanged booking with the same request key.',request);}

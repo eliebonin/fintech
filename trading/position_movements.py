@@ -41,7 +41,7 @@ def book_fund_unit_movement(c,tenant,actor,request:FundUnitMovementRequest,key):
         listing=load_cash_booking_listing(c,tenant,request.listing_id,request.trade_datetime.astimezone(timezone.utc).date())
         if listing['booking_snapshot']['productBasis']!='FUND':raise ValueError('Fund unit movements require an approved fund share-class listing')
         strategy=lock_booking_strategy(c,tenant,request.strategy_id)
-        annotations=validate_trade_annotations(c,tenant,request)
+        annotations=validate_trade_annotations(c,tenant,request,actor_id=actor)
         signed=request.quantity if request.side=='BUY' else request.quantity.copy_negate()
         proof=dict(schemaVersion=1,kind=request.movement_kind,signedQuantity=format(signed,'f'),reason=request.movement_reason.strip(),
             recognitionBasis='POLICY_DAY_END',incomeRecognition='UNASSESSED' if request.movement_kind=='REINVESTMENT' else 'NOT_APPLICABLE')

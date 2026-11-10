@@ -1,5 +1,24 @@
 # Valuation and P&L — capability records
 
+3 November [expanded position measures](../../delivery/expanded-position-measures-20261103.md)
+adds venue-specific spot crypto values, linear cash/physical crypto-futures
+notional/exposure, listed-option strike notional and premium value, fully funded
+note references/market values, and whole-mark performance/rate-swap values.
+All amounts retain native and separately governed strategy currencies. Unmodelled
+option/note/rate-risk exposure remains unavailable by explicit user decision.
+CLEAN notes use their existing assessed exact-date closing bridge and matching
+nominal, not the bond coupon-history reconstruction. Futures/forward contract
+MTM, weights, lifecycle automation and a payoff/Greek model remain deferred.
+Earlier dated exclusions on these implemented measure paths are superseded.
+
+3 November [consistency delivery](../../delivery/instrument-consistency-20261103.md):
+equity creation uses an explicit issuer search and effective tenant-visible
+source/policy choices. New valuations retain market/policy/calendar/action source
+fingerprints for pre-pagination reassessment and stale-publication guards.
+CLEAN bond monetary previews consume current maintained closing stocks; DIRTY
+precedence and explicit missing/zero semantics remain. Earlier dated limitations
+on those specific paths are superseded; other product/workflow limits remain.
+
 3 November F38/F39 follow-up: [trade markers](../../delivery/balance-trade-markers-20261103.md)
 explain the balance history with an independent default-on Buy/Sell strip and
 exact per-trade details. The marker date follows balance recognition; execution
@@ -98,7 +117,7 @@ inputs are revalidated before publication; broader source fanout is separate.
 extend supplied-contract price variation to approved UNDERLYING_UNIT CASH/PHYSICAL
 bookings. Actual contract basis, multiplier/divisor and quote-currency FX are
 retained; source/calendar/authority and ordinary review apply. Delivery,
-assignment, margin and crypto monetary-measure previews stay separate.
+assignment and margin remain separate; crypto monetary notional/exposure is now covered by the 3 November extension above.
 
 28 October [non-ETF wrappers and spot crypto](../../delivery/etp-spot-crypto-pnl-20261028.md)
 extend supplied-price P&L with actual ETC/ETN/ETV/ETI/vehicle/certificate types and
@@ -112,7 +131,7 @@ use the common security price/FX/execution bridge with frozen nominal/units,
 denomination and quote divisor once. Supplied whole-note RAW marks explicitly
 match CLEAN/DIRTY/NONE execution conventions. Zero marks and valid ordinary
 closures are supported; underlying leverage is not reapplied. Payoff models,
-automatic lifecycle/redemption and note monetary previews remain deferred.
+automatic lifecycle/redemption remain deferred; supplied-mark note monetary previews are now covered by the 3 November extension above.
 
 27 October [futures daily P&L](../../delivery/futures-daily-pnl-20261027.md) adds
 the existing cash-settled index slice: opening/closing and execution price

@@ -48,9 +48,14 @@ def main():
         # A fresh migrated database is not an operating fixture. Seed synthetic
         # state before collection so HTTP tests do not depend on another test
         # module running its loader first.
-        from security_master_schema.demo_data import load_demo_data
+        from security_master_schema.demo_data import load_demo_data,DEMO_IDS
         fixture_engine = test_engine(isolated)
         load_demo_data(fixture_engine)
+        # Fresh fixtures explicitly materialize the same profile foundation as
+        # local cutover. This is setup, never a resolver/runtime fallback.
+        from trading.profiles.migration import backfill_profiles
+        with fixture_engine.begin() as seed_connection:
+            backfill_profiles(seed_connection,DEMO_IDS['demo_user_account'])
         import pytest
         return pytest.main(sys.argv[1:] or ["-q"])
     finally:

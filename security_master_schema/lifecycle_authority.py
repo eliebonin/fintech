@@ -13,10 +13,11 @@ MODES=frozenset({'DIRECT','REVIEW','MANUAL'})
 def required_permissions(operation,mode):
     if mode not in MODES: raise ValueError('Unsupported lifecycle processing mode')
     permissions={'READ':('LIFECYCLE_READ',),'PREPARE':('LIFECYCLE_PREPARE',),
-        'BOOK':('LIFECYCLE_BOOK','TRADE_WRITE'),'APPROVE':('LIFECYCLE_APPROVE','TRADE_WRITE'),
+        'BOOK':('LIFECYCLE_BOOK','TRADE_WRITE'),'CONFIRM':('LIFECYCLE_BOOK','TRADE_WRITE'),'APPROVE':('LIFECYCLE_APPROVE','TRADE_WRITE'),
         'CONFIGURE':('LIFECYCLE_CONFIGURE',),'CORRECT':('TRADE_CORRECT',)}
     if operation not in permissions: raise ValueError('Unknown lifecycle operation')
     if operation=='BOOK' and mode=='REVIEW': raise ValueError('Review-required entries cannot use direct booking')
+    if operation=='CONFIRM' and mode=='REVIEW':raise ValueError('Review-required entries need independent approval')
     if operation=='APPROVE' and mode!='REVIEW': raise ValueError('Approval applies only to review-required entries')
     return permissions[operation]
 

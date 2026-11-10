@@ -35,7 +35,8 @@ def render_template(descriptor):
         [], ['Column','Label','Required','Description'],
     ]:guide.append(row)
     trades=book.create_sheet('Trades');refs=book.create_sheet('Reference lists');meta=book.create_sheet('Template')
-    for key in ('tenantId','strategyId'):meta.append([key,str(descriptor[key])])
+    for key in ('tenantId','strategyId','profileVersionId','profileAssignmentRevision','configurationHash'):
+        if key in descriptor:meta.append([key,str(descriptor[key])])
     meta.append(['schemaVersion','cash-trades-v1'])
     meta.append(['generatedAt',datetime.now(timezone.utc).isoformat()])
     columns=descriptor['columns']
@@ -89,6 +90,9 @@ def _workbook_rows(data,descriptor):
             meta=dict(book['Template'].iter_rows(values_only=True))
             if any(str(meta.get(k))!=str(descriptor[k]) for k in ('tenantId','strategyId')) or meta.get('schemaVersion')!='cash-trades-v1':
                 raise ImportFormatError('Template context differs from this tenant or strategy.')
+            for key in ('profileVersionId','profileAssignmentRevision','configurationHash'):
+                if key in descriptor and str(meta.get(key))!=str(descriptor[key]):
+                    raise ImportFormatError('The strategy trade profile changed. Download a new template and review the fields.')
             sheet=book['Trades'];sheet.reset_dimensions();raw=[]
             for n,row in enumerate(sheet.iter_rows(),1):
                 if n>MAX_ROWS+2:raise ImportFormatError('Use at most 500 trade rows.')

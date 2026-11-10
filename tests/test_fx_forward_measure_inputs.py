@@ -68,6 +68,8 @@ def test_contractual_legs_use_agreed_not_current_rate_and_separate_fund_fx(value
     assert exposure['status']=='MULTI_CURRENCY' and exposure['localAmount'] is None
     assert [(x['role'],x['localAmount'],x['currency']) for x in exposure['legs']]==[('BASE',base,'GBP'),('QUOTE',quote,'USD')]
     assert exposure['legs'][0]['strategyAmount']==base
+    assert measures['referenceNotional']['currency']==exposure['legs'][0]['currency']
+    assert measures['referenceNotional']['strategyAmount']==exposure['legs'][0]['strategyAmount']
     # 1 / 1.12 rounded HALF_EVEN to 12dp = 0.892857142857.
     assert D(exposure['legs'][1]['strategyAmount'])==D('-982142.8571427')*(1 if side=='BUY' else -1)
     assert measures['marketValue']['localAmount'] is None

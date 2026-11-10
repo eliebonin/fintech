@@ -35,7 +35,13 @@ def authorize_booking(connection: Connection, tenant_id: UUID, actor_id: UUID, *
         require_strategy_action(connection,tenant_id,actor_id,action,strategy_id)
 
 
+def lock_trade_configuration(connection,tenant_id):
+    key=int.from_bytes(sha256(f'trade-catalogue:{tenant_id}'.encode()).digest()[:8],'big',signed=True)
+    connection.execute(select(func.pg_advisory_xact_lock(key)))
+
+
 def lock_booking_strategy(connection: Connection, tenant_id: UUID, strategy_id: UUID) -> UUID:
+    lock_trade_configuration(connection,tenant_id)
     strategy = connection.scalar(select(m.strategy.c.strategy_id).where(
         m.strategy.c.strategy_id == strategy_id, m.strategy.c.tenant_id == tenant_id,
         m.strategy.c.status == 'ACTIVE').with_for_update())

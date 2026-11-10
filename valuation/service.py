@@ -439,6 +439,8 @@ def calculate_position(c, request: ValuationRequest) -> Calculation:
         splitAdjustments=[asdict(a) for a in projection.split_adjustments],
         economicInputs=[item for line in period.lines for item in line.economic_evidence]))
     evidence['ledgerSource']=ledger_source
+    from .source_dependencies import capture_sources
+    evidence['sourceDependencies']=capture_sources(c,request,investment_projection,selected_evidence)
     return Calculation(request,period,tuple(snapshot_ids),evidence,evidence_hash(evidence),
         projection=projection,method=POSITION_METHOD,scope=scope,cash=cash,accrued_balance=accrued_balance,receivables=receivables)
 

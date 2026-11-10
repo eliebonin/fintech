@@ -1,3 +1,11 @@
+import {LifecycleWorklist} from '../src/features/lifecycle-worklist/worklist-console';
+import {BondRedemptionConsole} from '../src/components/bond-redemption-console';
+import {PlatformLifecycleSubscription} from '../src/features/lifecycle-assistance/platform-subscription';
+import {StrategyLifecycleAssistance} from '../src/features/lifecycle-assistance/strategy-assistance';
+import {LifecycleDowngradeWorkspace} from '../src/features/lifecycle-assistance/downgrade-workspace';
+import {TradeTicket} from '../src/app/trades/new/trade-ticket';
+import {FxForwardTicket} from '../src/app/trades/new/fx-forward-ticket';
+import {StrategyTradeProfile} from '../src/features/trade-profiles/strategy-trade-profile';
 // Test-only entry. No production route, database, credentials or live provider.
 import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -17,7 +25,11 @@ import type {Batch} from '../src/features/valuation/types';
 import {ValuationConsole} from '../src/components/valuation-console';
 import {PagedValuationChoice} from '../src/features/valuation/paged-choice';
 import {OrganisationConsole} from '../src/features/organisations/organisation-console';
+import {ReferenceWorkspace} from '../src/features/tenant-reference/reference-workspace';
+import {ReferenceCatalogue} from '../src/features/tenant-reference/reference-catalogue';
+import {TradeConfigurationConsole} from '../src/app/tenant-profile/trade-configuration/trade-configuration-console';
 import '../src/app/globals.css';
+import '../src/app/access-administration.css';
 import '../src/app/native-workspace.css';
 import '../src/app/valuation-workspace.css';
 import '../src/app/tenant-profile/organisations/organisations.css';
@@ -44,9 +56,22 @@ function FutureConfiguration(){const [props,setProps]=useState<React.ComponentPr
 Object.entries(workspaceCssVariables).forEach(([name,value])=>document.documentElement.style.setProperty(name,String(value)));
 function render(content:React.ReactNode){const helpPath=mode==='policy'?'/market-data/policies':mode==='structured'?'/instruments/autocalls/new':null;createRoot(document.getElementById('root')!).render(<ThemeProvider theme={workspaceTheme}><CssBaseline/>{helpPath?<PageHelp pathname={helpPath}/>:null}{content}</ThemeProvider>);}
 const batch:Batch={batch_id:'synthetic-batch',status:'STAGED',staged_by:'maker',reviews:[],summary:{scope:'MARKET_ONLY',resultFormat:'POSITION_V2',marketPnl:'1',openingValue:'1',closingValue:'2',executionValue:'0',reportingCurrencyId:'gbp',externalComparison:'NOT_COMPARED',limitations:[]},items:Array.from({length:new URLSearchParams(location.search).get('many')==='true'?127:20},(_,i)=>({attribution_id:String(i),trade_id:null,position_key:String(i),subject_id:`00000000-0000-7000-8000-${String(i+1).padStart(12,'0')}`,version:1,market_pnl:'1',components:{PRICE:'1'},evidence:{}}))};
+const ticketStrategy={strategyId:'00000000-0000-7000-8000-000000000555',strategyCode:'TEST',displayName:'Synthetic fund',status:'ACTIVE'};
+const ticketContext={tenantId:'synthetic-tenant',bookedByUserAccountId:'synthetic-actor',properties:[],tags:[]};
+if(mode==='reference-data')render(<ReferenceWorkspace tenantId="synthetic-tenant"/>);else
+if(mode==='reference-catalogue')render(<ReferenceCatalogue tenantId="synthetic-tenant" catalogueId="00000000-0000-7000-8000-000000000777"/>);else
+if(mode==='profile-cash-ticket')render(<TradeTicket listing={{referenceNodeId:'00000000-0000-7000-8000-000000000556',canonicalName:'Synthetic equity',marketVenueMic:'XLON',venueName:'London',tradingSymbol:'TEST',tradingCurrency:'GBP',status:'ACTIVE',isTradable:true}} strategies={[ticketStrategy]} context={ticketContext}/>);else
+if(mode==='profile-forward-ticket')render(<FxForwardTicket initialInstrument={{instrumentId:'00000000-0000-7000-8000-000000000557',name:'Synthetic EUR/USD forward',baseCurrency:'EUR',quoteCurrency:'USD',quoteConvention:'USD_PER_EUR',agreedRate:'1.1',settlementDate:'2026-12-15',maturityDate:'2026-12-15',settlementType:'DELIVERABLE',termsFingerprint:'a'.repeat(64),bookingEligible:true}} strategies={[ticketStrategy]} context={ticketContext}/>);else
+if(mode==='strategy-profile')render(<main className="mvp-page configuration-page"><StrategyTradeProfile tenantId="synthetic-tenant" strategyId="00000000-0000-7000-8000-000000000555"/></main>);else
+if(mode==='trade-configuration')render(<TradeConfigurationConsole tenantId="synthetic-tenant" view={new URLSearchParams(location.search).get('view')??'profiles'}/>);else
 if(mode==='structured')render(<AutocallForm/>);else
 if(mode==='reporting')render(<main className="mvp-page reg-page"><PageHelp pathname="/regulatory-reporting"/><h1>Transaction reporting</h1><ReportingWorkspace permissions={new URLSearchParams(location.search).get('reader')==='true'?['REPORTING_READ']:['REPORTING_READ','REPORTING_CONFIGURE','REPORTING_PREPARE','REPORTING_REVIEW','REPORTING_EXPORT']}/></main>);else
 if(mode==='future-convention')render(<FutureConfiguration/>);else
+if(mode==='lifecycle-worklist')render(<main className="mvp-page"><PageHelp pathname="/lifecycle" embedded/><LifecycleWorklist tenantId="synthetic-tenant" initial={{fromDate:'2026-10-01',toDate:'2026-12-01'}}/></main>);else
+if(mode==='lifecycle-context')render(<main className="mvp-page"><BondRedemptionConsole actorId="operator" tenantId="synthetic-tenant" initialStrategyId="00000000-0000-7000-8000-000000000555" initialInstrumentId="00000000-0000-7000-8000-000000000556"/></main>);else
+if(mode==='lifecycle-subscription')render(<main className="mvp-page access-admin-page"><PlatformLifecycleSubscription tenantId="synthetic-tenant"/></main>);else
+if(mode==='lifecycle-strategy')render(<StrategyLifecycleAssistance tenantId="synthetic-tenant" strategyId="00000000-0000-7000-8000-000000000555"/>);else
+if(mode==='lifecycle-downgrade')render(<LifecycleDowngradeWorkspace tenantId="synthetic-tenant"/>);else
 if(mode==='styles')render(<StyleWorkspace/>);else
 if(mode==='tenant-access')render(<TenantAccessConsole/>);else
 if(mode==='policy')render(<main className="mvp-page"><PricingPolicyConsole options={{canManage:new URLSearchParams(location.search).get('reader')!=='true',cuts:[{id:'cut',label:'EoD'}],venues:[],instrumentTypes:[],calendars:[],strategies:[],datasets:[]}} initialPolicies={[{valuationPolicyId:'saved-policy',policyCode:'SAVED',displayName:'Saved version'}]}/></main>);else

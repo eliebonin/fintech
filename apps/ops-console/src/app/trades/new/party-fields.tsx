@@ -1,26 +1,26 @@
-"use client";
-import {browserFetch as fetch} from '@/lib/browser-fetch';
-import { useRef, useState } from "react";
-import { listOrganisationsFromBff, searchTradeTradersFromBff } from "@/lib/browser-api-client";
-import type { EnrichedTicketDraft, TicketError } from "./ticket-model";
-import { configurationRequest } from "@/lib/trade-configuration-client";
+'use client';
+import type {TradeBookingContext} from '@/lib/browser-api-client';
+import {referenceRequest,type Page} from '@/features/tenant-reference/client';
+import type {ProfileContext} from '@/features/trade-profiles/client';
+import type {EnrichedTicketDraft,TicketError} from './ticket-model';
 import {ValuationRecognitionFields} from './valuation-recognition-fields';
-type Option = {id:string;name:string};
-type PartyDraft=Pick<EnrichedTicketDraft,"counterpartyOrganisationId"|"counterpartyName"|"executingBrokerOrganisationId"|"executingBrokerName"|"traderPersonId"|"traderName"|"tradeDatetime"|"valuationEffectiveDate"|"valuationOverrideReason">;
-function PartySearch({label,selected,onSelect,people=false,field,fieldError,tenantId,required=false}:{label:string;selected?:string;onSelect:(id:string,name:string)=>void;people?:boolean;field:string;fieldError?:string;tenantId?:string;required?:boolean}) {
-  const [query,setQuery]=useState(""); const [options,setOptions]=useState<Option[]>([]);
-  const [loading,setLoading]=useState(false); const [error,setError]=useState(""); const sequence=useRef(0);
-  async function search() {
-    const serial=++sequence.current;setLoading(true);setError("");
-    try {
-      const role=people?"TRADER":field==="counterpartyOrganisationId"?"COUNTERPARTY":"EXECUTING_BROKER";
-      const found:Option[] = tenantId ? (await configurationRequest<{id:string;label:string}[]>(tenantId,`candidates/${role}?q=${encodeURIComponent(query.trim())}`)).map(r=>({id:r.id,name:r.label})) : people ? (await searchTradeTradersFromBff(query.trim())).data.map(p=>({id:p.personId,name:p.displayName})) : (await listOrganisationsFromBff(fetch,query.trim())).data.map(o=>({id:o.organisationId,name:o.displayName}));
-      if(serial===sequence.current)setOptions(found);
-    }catch(caught){if(serial===sequence.current)setError(caught instanceof Error?caught.message:"Search failed.");}
-    finally{if(serial===sequence.current)setLoading(false);}
-  }
-  return <div className="ticket-party"><label>{label} ({required?"required":"optional"})<input id={field} aria-invalid={!!fieldError} aria-describedby={`${field}-error`} aria-label={`Search ${label.toLowerCase()}`} value={query} maxLength={250} onChange={e=>{sequence.current++;setQuery(e.target.value);setOptions([]);setLoading(false);}} placeholder={people?"Find a tenant member":"Find a shared organisation"} /></label><button type="button" onClick={search} disabled={loading}>{loading?"Searching…":`Search ${label.toLowerCase()}`}</button>{selected?<p>{selected} <button type="button" onClick={()=>onSelect("","")}>Clear {label.toLowerCase()}</button></p>:<p className="muted">Not specified</p>}<small id={`${field}-error`}>{fieldError}</small><ul className="ticket-options">{options.map(o=><li key={o.id}><button type="button" onClick={()=>{onSelect(o.id,o.name);setOptions([]);setQuery("");}}>{o.name}</button></li>)}</ul>{error?<p role="alert">{error}</p>:null}<span role="status" className="muted">{!loading&&options.length?`${options.length} matching results`:""}</span></div>;
-}
-export function PartyFields({draft,actor,onChange,errors=[],tenantId,counterpartyRequired=false}:{draft:PartyDraft;actor:string;tenantId?:string;counterpartyRequired?:boolean;errors?:TicketError[];onChange:(patch:Partial<PartyDraft>)=>void}) {
-  return <><ValuationRecognitionFields draft={draft} onChange={onChange}/><fieldset className="ticket-section"><legend>Parties and responsibility</legend><p className="muted">Tenant eligibility is applied where a curated list has been published. This is not credit approval. Traders must also remain active tenant members.</p><div className="ticket-grid"><PartySearch tenantId={tenantId} field="counterpartyOrganisationId" required={counterpartyRequired} fieldError={errors.find(issue=>issue.field==="counterpartyOrganisationId")?.message} label="Counterparty" selected={draft.counterpartyName} onSelect={(id,name)=>onChange({counterpartyOrganisationId:id,counterpartyName:name})}/><PartySearch tenantId={tenantId} field="executingBrokerOrganisationId" fieldError={errors.find(issue=>issue.field==="executingBrokerOrganisationId")?.message} label="Executing broker" selected={draft.executingBrokerName} onSelect={(id,name)=>onChange({executingBrokerOrganisationId:id,executingBrokerName:name})}/><PartySearch tenantId={tenantId} field="traderPersonId" fieldError={errors.find(issue=>issue.field==="traderPersonId")?.message} label="Trader" people selected={draft.traderName} onSelect={(id,name)=>onChange({traderPersonId:id,traderName:name})}/></div><p className="muted">Booked by: {actor || "Authenticated account"} (assigned by the server)</p></fieldset></>;
+import {GovernedSelector} from './governed-selector';
+type PartyDraft=Pick<EnrichedTicketDraft,'counterpartyOrganisationId'|'counterpartyName'|'executingBrokerOrganisationId'|'executingBrokerName'|'traderPersonId'|'traderName'|'tradeDatetime'|'valuationEffectiveDate'|'valuationOverrideReason'>;
+const fields=[
+ {key:'COUNTERPARTY',attribute:'counterpartyOrganisationId',name:'counterpartyName',label:'Counterparty'},
+ {key:'EXECUTING_BROKER',attribute:'executingBrokerOrganisationId',name:'executingBrokerName',label:'Executing broker'},
+ {key:'TRADER',attribute:'traderPersonId',name:'traderName',label:'Trader'},
+] as const;
+export function PartyFields({draft,actor,onChange,errors=[],tenantId,profile,counterpartyRequired=false}:{draft:PartyDraft;actor:string;tenantId?:string;profile?:TradeBookingContext['tradeProfile'];counterpartyRequired?:boolean;errors?:TicketError[];onChange:(patch:Partial<PartyDraft>)=>void}){
+ return <><ValuationRecognitionFields draft={draft} onChange={onChange}/><fieldset className="ticket-section"><legend>Parties and responsibility</legend><p className="muted">Choose from your tenant's eligible organisations and active traders. This selection is not credit approval.</p><div className="ticket-grid">{fields.map(field=>{
+  const rule=(profile as ProfileContext|null)?.fields.find(r=>r.standardFieldKey===field.key);
+  const native=field.key==='COUNTERPARTY'&&counterpartyRequired;
+  if(!native&&(!rule||rule.requirement==='NOT_USED'))return draft[field.attribute]?<div className="ticket-party" key={field.key}><strong>{field.label}</strong><p>{draft[field.name]||'Retained draft selection'}</p><p className="muted">This profile does not use this field. Only an unchanged original value can be kept on a linked correction.</p><button type="button" onClick={()=>onChange({[field.attribute]:'',[field.name]:''})}>Clear {field.label.toLowerCase()}</button></div>:null;
+  const required=native||rule?.requirement==='REQUIRED';
+  return <GovernedSelector key={field.key} tenantId={tenantId??''} catalogueId="" id={field.attribute} label={field.label} value={draft[field.attribute]??''} displayValue={draft[field.name]} required={required} description="Select an eligible entry. The server rechecks it at booking." validationError={errors.find(issue=>issue.field===field.attribute)?.message} onSelect={(id,name)=>onChange({[field.attribute]:id,[field.name]:name})} loadOptions={async(query,offset)=>{
+   if(!tenantId||!profile)throw new Error('Select a strategy and load its trade configuration first.');
+   const page=await referenceRequest<Page<{id:string;label:string}>>(tenantId,`options?sourceKey=standard:${field.key}&consumer=booking&strategyId=${profile.strategyId}&q=${encodeURIComponent(query)}&offset=${offset}&limit=26`);
+   return page.items.map(r=>({recordVersionId:r.id,recordId:r.id,code:'',label:r.label,description:null,versionNo:1,status:'ACTIVE' as const}));
+  }}/>;
+ })}</div><p className="muted">Booked by: {actor||'Authenticated account'} (assigned by the server)</p></fieldset></>;
 }

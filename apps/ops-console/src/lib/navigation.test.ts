@@ -46,3 +46,9 @@ describe("workspace navigation", () => {
     expect(WORKSPACE_NAV_ITEMS.find((item) => item.key === "pnl")?.count).toBeUndefined();
   });
 });
+
+it('exposes a general lifecycle destination independently of the existing trade workflow',()=>{
+ expect(WORKSPACE_NAV_ITEMS.find(item=>item.href==='/lifecycle')?.label).toBe('Lifecycle');
+ expect(getActiveWorkspaceSection('/lifecycle')).toBe('lifecycle');
+ expect(getActiveWorkspaceSection('/trades/lifecycle')).toBe('trades');
+});

@@ -65,3 +65,15 @@ def test_first_concurrent_requests_create_one_owned_coordination_pool(monkeypatc
         for future in futures:future.result(timeout=3)
     controller.close()
     assert len(created)==1 and created[0].disposed
+
+
+def test_allocation_policy_reconciliation_uses_admission_without_blocking_current_settings():
+    from apps.reference_api.workload_admission import workload_kind
+    assert workload_kind('POST','/v1/trade-configuration/lifecycle-allocations')=='configuration'
+    assert workload_kind('GET','/v1/trade-configuration/lifecycle-allocations') is None
+
+
+def test_lifecycle_worklist_has_admission_without_limiting_option_reads():
+    from apps.reference_api.workload_admission import workload_kind
+    assert workload_kind('GET','/v1/lifecycle/worklist')=='lifecycle'
+    assert workload_kind('GET','/v1/lifecycle/worklist/options') is None

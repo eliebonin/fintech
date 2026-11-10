@@ -13,3 +13,12 @@ export function formatMeasureDisplay(amount:string):string {
  const whole=formatTradeExactDecimal(String(rounded/hundred));
  return `${negative&&rounded!==zero?'-':''}${whole}.${String(rounded%hundred).padStart(2,'0')}`;
 }
+
+
+/** Distinguish a contract reference from a modelled risk sensitivity. */
+export function measureBasisLabel(basis?:string):string|undefined {
+ const labels:Record<string,string>={STRIKE_NOTIONAL:'Strike notional',CONTRACTUAL_FACE:'Contractual face',
+  FUNDED_MARKET_VALUE_PROXY:'Funded-value reference',OPTION_PREMIUM_VALUE:'Premium value',
+  FUNDED_NOTE_VALUE:'Whole-note value',CONTRACTUAL_REFERENCE:'Contractual reference',WHOLE_SWAP_VALUE:'Whole-swap value'};
+ return basis?labels[basis]:undefined;
+}

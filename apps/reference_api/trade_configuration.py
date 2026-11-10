@@ -5,8 +5,7 @@ from sqlalchemy import select, update, func
 from .trade_properties import assert_trade_configurator, lock_trade_catalogue, provision_trade_catalogue
 from security_master_schema import models as m
 
-class ConfigurationConflict(ValueError):
-    pass
+from tenant_reference.errors import ConfigurationConflict
 
 def property_view(row):
     return dict(definitionId=row["definition_id"],code=row["code"],label=row["label"],description=row["description"],valueType=row["value_type"],catalogueId=row["catalogue_id"],required=row["required"],choices=row["choices"],versionNo=row["version_no"],status=row["status"],createdByUserAccountId=row["created_by_user_account_id"],createdAtUtc=row["created_at_utc"],retiredByUserAccountId=row["retired_by_user_account_id"],retiredAtUtc=row["retired_at_utc"])
@@ -38,33 +37,38 @@ def _matches(row,values):
 def create_property(connection,tenant_id,actor_id,values):
     assert_trade_configurator(connection,tenant_id,actor_id)
     lock_trade_catalogue(connection,tenant_id)
+    change_reason=values.get('reason','Published an immutable field definition.')
     values=_normalise(values)
     table=m.trade_property_definition
     current=connection.execute(select(table).where(table.c.tenant_id==tenant_id,table.c.code==values["code"],table.c.status=="ACTIVE")).mappings().first()
     if current:
         if _matches(current,values): return property_view(current)
         raise ConfigurationConflict("An active field already uses this code. Replace its definition instead.")
+    family=connection.execute(select(table).where(table.c.tenant_id==tenant_id,table.c.code==values['code'])).mappings().all()
+    if any(row['value_type']!=values['valueType'] or row['catalogue_id']!=values['catalogueId'] for row in family):
+        raise ValueError('A field family retains its type and source. Create a new field code for a different meaning or catalogue.')
     version=(connection.scalar(select(func.max(table.c.version_no)).where(table.c.tenant_id==tenant_id,table.c.code==values["code"])) or 0)+1
     provision_trade_catalogue(connection,tenant_id,actor_id,[{**values,"versionNo":version}],[])
     row=connection.execute(select(table).where(table.c.tenant_id==tenant_id,table.c.code==values["code"],table.c.version_no==version)).mappings().one()
     from .governed_trade_configuration import audit
-    audit(connection,tenant_id,actor_id,"FIELD_PUBLISHED",row["definition_id"],"Published a new immutable trade field definition.",{"code":values["code"],"version":version})
+    audit(connection,tenant_id,actor_id,"FIELD_PUBLISHED",row["definition_id"],change_reason,{"code":values["code"],"version":version})
     return property_view(row)
 
-def retire_property(connection,tenant_id,actor_id,definition_id):
+def retire_property(connection,tenant_id,actor_id,definition_id,reason=None):
     assert_trade_configurator(connection,tenant_id,actor_id)
     lock_trade_catalogue(connection,tenant_id)
     row=_find(connection,tenant_id,definition_id)
     if row["status"]=="ACTIVE":
         connection.execute(update(m.trade_property_definition).where(m.trade_property_definition.c.definition_id==definition_id).values(status="RETIRED",retired_by_user_account_id=actor_id,retired_at_utc=datetime.now(timezone.utc)))
         from .governed_trade_configuration import audit
-        audit(connection,tenant_id,actor_id,"FIELD_RETIRED",definition_id,"Retired field for future bookings; historical values retained.")
+        audit(connection,tenant_id,actor_id,"FIELD_RETIRED",definition_id,reason or "Retired field for future bookings; historical values retained.")
     return property_view(_find(connection,tenant_id,definition_id))
 
 def replace_property(connection,tenant_id,actor_id,definition_id,values):
     assert_trade_configurator(connection,tenant_id,actor_id)
     lock_trade_catalogue(connection,tenant_id)
     old=_find(connection,tenant_id,definition_id)
+    change_reason=values.get('reason','Published an immutable field definition.')
     values=_normalise(values)
     if values["code"]!=old["code"]: raise ValueError("A replacement must retain the field code.")
     if old["status"]=="RETIRED":
@@ -74,5 +78,5 @@ def replace_property(connection,tenant_id,actor_id,definition_id,values):
         raise ConfigurationConflict("This field has changed. Reload before replacing it.")
     # Roll back retirement as well as creation if any new definition is invalid.
     with connection.begin_nested():
-        retire_property(connection,tenant_id,actor_id,definition_id)
-        return create_property(connection,tenant_id,actor_id,{**values,"acknowledgeRequiredImpact":values["required"]})
+        retire_property(connection,tenant_id,actor_id,definition_id,change_reason)
+        return create_property(connection,tenant_id,actor_id,{**values,"reason":change_reason,"acknowledgeRequiredImpact":values["required"]})

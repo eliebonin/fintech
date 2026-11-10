@@ -40,7 +40,7 @@ def test_create_replay_and_audited_retirement(connection):
 def test_replace_preserves_old_meaning_and_replays(connection):
     tenant,actor=DEMO_IDS["tenant"],DEMO_IDS["demo_user_account"]
     first=create_property(connection,tenant,actor,values())
-    payload=dict(code=first["code"],label="New label",valueType="BOOLEAN",required=False,choices=[],description=None)
+    payload=dict(code=first["code"],label="New label",valueType="TEXT",required=False,choices=[],description=None)
     replacement=replace_property(connection,tenant,actor,first["definitionId"],payload)
     assert replacement["versionNo"]==2
     assert replacement["definitionId"]!=first["definitionId"]

@@ -5,6 +5,8 @@ import {displayAmount,displayTime} from './presentation';
 import type {SourceHealth,Choice} from './types';
 import {TechnicalReference} from './technical-reference';
 
+const sourceLabels:Record<string,string>={MARKET_DATA:'Market prices or FX',POLICY:'Pricing policy or provider priority',CALENDAR:'Calendar or valuation-day assignment',CORPORATE_ACTION:'Corporate actions or replay decisions'};
+
 type Target={batchId:string;strategyId:string;strategyLabel?:string;valueDate:string;publicationStatus:string;sourceHealth:SourceHealth};
 type Outcome={baseBatchId:string;status:string;currency?:string;attemptId?:string|null;reason?:string;comparison?:{old:{netPnl?:string;marketPnl?:string};new:{netPnl?:string;marketPnl?:string}}};
 /** Source health is operational metadata; never replace published figures locally. */
@@ -20,6 +22,7 @@ export function ReassessmentPanel({batch,canCalculate,onOpen,strategies=[]}:{bat
  return <section className="pnl-surface" aria-label="Valuation reassessment">
   <h3>{batch?health?.status==='UNKNOWN_LEGACY'?'Legacy source proof unavailable':'Reassessment required':'Affected valuations'}</h3>
   <p>Recorded financial results are unchanged. Recalculation creates a new staged candidate; review and publication remain separate. A warning does not by itself establish a financial error.</p>
+  {health?.sourceChangeKinds?.length?<p>Changed sources: {health.sourceChangeKinds.map(kind=>(sourceLabels[kind]??kind)).join(' · ')}. Review the inputs before preparing a replacement.</p>:null}
   {health?.cashChanged?<p>Cash snapshots or uploaded coverage changed after this run. Review the cash input register and prepare a new staged calculation.</p>:null}
   {batch?<ul>{health?.changes.map((change,index)=><li key={index}>{change.reason} · <a href={`/trades/${encodeURIComponent(change.tradeId)}`}>Open affected trade</a> · effective from {change.economicFrom} · recorded {displayTime(change.recordedAt)}<TechnicalReference id={change.tradeId} label="Trade ID"/></li>)}</ul>:<>
    <button type="button" disabled={busy||Boolean(pending)} onClick={()=>load()}>Find affected valuations</button>

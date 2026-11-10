@@ -26,13 +26,13 @@ def add_bond(c,r,trade,maturity='2030-01-01',*,coupon_type=None,convention_coupo
     conventions=dict(instrumentDefinitionId=str(definition),instrumentId=str(ids['bond_instrument_node']),priceCurrencyId=str(ids['gbp_currency']),
         unitMultiplier='1',quoteFactor='100',productBasis='BOND',cleanExecutionAmount='98500',maturityDate=maturity)
     details=dict(priceType='DIRTY',cleanAmount='98500',dirtyAmount='99750',accruedInterestAmount='1250',settlementEvidence='SYNTHETIC')
-    terms=dict(kind='BOND')
+    terms=dict(kind='BOND',instrumentId=str(ids['bond_instrument_node']),name='Synthetic bond listing',executionRoute='LISTED',listingId=str(listing),maturityDate=maturity)
     if coupon_type is not None:terms['couponType']=coupon_type
     if convention_coupon_type is not None:conventions['couponType']=convention_coupon_type
     if coupon_type=='ZERO':
         conventions['cleanExecutionAmount']='99750'
         details.update(cleanAmount='99750',accruedInterestAmount='0')
-    snapshot=dict(schemaVersion=1,kind='PRODUCT_BOOKING',economics=dict(terms=terms,bondDetails=details),valuationConventions=conventions)
+    snapshot=dict(schemaVersion=1,kind='PRODUCT_BOOKING',economics=dict(terms=terms,bondDetails=details,amount=details['dirtyAmount'],amountKind='CONSIDERATION',direction='PAY'),valuationConventions=conventions)
     c.execute(m.trade_lifecycle_event.insert().values(trade_id=identity,sequence_no=1,event_type='BOOKED',event_datetime_utc=original['trade_datetime_utc'],
         recorded_by_user_account_id=ids['demo_user_account'],event_payload=json.dumps(snapshot)))
     series=uuid4();source=dict(c.execute(select(m.market_data_series).where(m.market_data_series.c.market_data_series_id==ids['market_data_series'])).mappings().one())

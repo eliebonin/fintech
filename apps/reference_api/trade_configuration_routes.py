@@ -88,6 +88,7 @@ class EventsResponse(BaseModel):
 Role = Literal["COUNTERPARTY","EXECUTING_BROKER","TRADER"]
 
 class PropertyCreate(BaseModel):
+    reason:str=Field(default="Published an immutable field definition.",min_length=1,max_length=2000)
     code:str=Field(min_length=1,max_length=100)
     label:str=Field(min_length=1,max_length=250)
     description:str|None=Field(default=None,max_length=2000)
@@ -126,6 +127,18 @@ class PropertiesResponse(BaseModel):
 class PropertyResponse(BaseModel):
     data:PropertyView
 
+class AllocationRuleInput(BaseModel):
+    definitionId:UUID
+    behavior:Literal['ALLOCATION','INHERIT','INPUT']
+    model_config=ConfigDict(extra='forbid')
+
+class AllocationPolicyChange(BaseModel):
+    fields:list[AllocationRuleInput]=Field(max_length=1000)
+    expectedRevision:int=Field(ge=0,strict=True)
+    reason:str=Field(min_length=1,max_length=2000)
+    confirmImpact:Literal[True]
+    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
+
 def configuration_router(connection_dependency):
     router=APIRouter(prefix="/v1/trade-configuration",tags=["Trade configuration"])
     from .organisation_routes import organisation_router
@@ -138,6 +151,16 @@ def configuration_router(connection_dependency):
         except LookupError as error: raise ApiProblem(404,"configuration.not_found","Not found",str(error)) from error
         except ConfigurationConflict as error: raise ApiProblem(409,"configuration.conflict","Configuration conflict",str(error)) from error
         except ValueError as error: raise ApiProblem(422,"request.validation_failed","Invalid field definition",str(error)) from error
+
+    @router.get('/lifecycle-allocations',response_model=dict[str,object])
+    def allocation_policy(context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency,scope='function')):
+        from trading.allocation_policy import policy_view
+        return {'data':execute(connection,context,policy_view)}
+
+    @router.post('/lifecycle-allocations',response_model=dict[str,object])
+    def save_allocation_policy(payload:AllocationPolicyChange,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency,scope='function')):
+        from trading.allocation_policy import configure_policy
+        return {'data':execute(connection,context,configure_policy,[r.model_dump(mode='json') for r in payload.fields],payload.expectedRevision,payload.reason)}
 
     @router.get("/properties",response_model=PropertiesResponse)
     def get_properties(limit:int=Query(default=1000,ge=1,le=1000),offset:int=Query(default=0,ge=0,le=10000),context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
@@ -152,8 +175,8 @@ def configuration_router(connection_dependency):
         return {"data":execute(connection,context,create_property,request.model_dump(by_alias=True))}
 
     @router.post("/properties/{definition_id}/retire",response_model=PropertyResponse)
-    def retire(definition_id:UUID,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
-        return {"data":execute(connection,context,retire_property,definition_id)}
+    def retire(definition_id:UUID,request:Reason|None=None,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):
+        return {"data":execute(connection,context,retire_property,definition_id,request.reason if request else None)}
 
     @router.post("/properties/{definition_id}/replace",response_model=PropertyResponse,status_code=201)
     def replace(definition_id:UUID,request:PropertyCreate,context:TenantContext=Depends(get_tenant_context),connection=Depends(connection_dependency, scope='function')):

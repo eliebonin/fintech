@@ -18,6 +18,46 @@ is not a runtime call graph or a guarantee of production feature completion.
 
 ## Module boundaries and invariants
 
+- `lifecycle.worklist` is a read model: scope candidates before positions/counts,
+  retain nonzero allocations at net0, expose unknown evidence and never post on
+  discovery/navigation. Full pending-source checks reuse the native candidate
+  fingerprint. Stable event keys are not persisted task or financial authority.
+  Only bond maturity discovery is delivered; use existing commands for effects.
+  See [worklist boundary](docs/delivery/lifecycle-worklist-20261105.md).
+
+- `lifecycle.entitlements` owns the platform subscription ceiling; `lifecycle.assistance`
+  owns scoped strategy/event choices; `assistance_transitions` owns reviewed tenant
+  downgrade preparation. Purchase grants no actions or independent-review bypass.
+  Preserve selected values above a reduced ceiling as blocked, never silently clamp.
+  Acquire the tenant lifecycle shared/exclusive transaction lock before native locks.
+  Tier2 non-REVIEW confirmation needs a retained proposal; no-proposal DIRECT needs
+  selected3 and ceiling3. Bond-maturity discovery is separate; other detectors/billing remain deferred. See
+  [delivery](docs/delivery/lifecycle-assistance-entitlements-20261105.md).
+
+- Lifecycle maturity must preserve tenant-selected joint allocation dimensions before
+  economic netting. `positions.allocations` reuses ledger recognition/cancellation;
+  `trading.allocation_policy` and immutable annotation sources own classification
+  rules. Preserve nonzero opposing allocations even when the instrument total is zero.
+  Generated entries require governed annotations, exact movement identity, source-bound
+  fingerprints and atomic all-entry posting/cancellation. No guessed FIFO, historical
+  relabelling or payment creation. See [delivery](docs/delivery/lifecycle-allocation-preservation-20261104.md).
+
+- Product monetary previews validate original bookings below HTTP. Option strike
+  notional is not premium value or delta exposure; note face/funded value is not
+  payoff look-through. CLEAN notes require their assessed closing bridge with
+  original hash and matching nominal/currency; do not send them through bond
+  coupon reconstruction. Missing risk inputs never erase an independently
+  supported reference or market value. Whole-swap marks already embed funding,
+  orientation and leverage. See [coverage](docs/delivery/expanded-position-measures-20261103.md).
+
+- `valuation.source_dependencies` owns frozen non-ledger source scopes and the
+  shared detail/history/worklist/publication comparison. Price windows follow
+  requested/used marks, not merely economic dates; policy/calendar versions stay
+  pinned. Preserve explicit nested batch correlation and SQL filtering before
+  pagination. Source changes never rewrite published financial amounts. Bond
+  monetary previews use exact-date current maintained stocks, preserve DIRTY
+  precedence and never allocate an instrument stock across listings implicitly.
+
 - Daily interest Ops review uses immutable daily/balance receipts. Review drafts
   must not change financial inputs. Balance review requires a current validated
   daily receipt; whole-population writes require scoped VALUATION_REVIEW, not RUN.
@@ -108,6 +148,8 @@ is not a runtime call graph or a guarantee of production feature completion.
   independent real operators, current source rights and a new calculation;
   never insert them as provider observations. Optional interest/cash snapshots
   retain their separate nonblocking semantics. See [delivery](docs/delivery/incomplete-price-review-20261031.md).
+
+- `tenant_reference` owns shared source discovery/curation; `trading.profiles` owns immutable profile rules, strategy assignments and their impact checks. All booking/import/correction/lifecycle consumers resolve one pinned strategy version. Publishing must never upgrade assignments or the creation default. Do not restore global-required or missing-assignment fallbacks. Preserve config-before-strategy/source lock order, exact source inheritance proof and native required economics. Source usage and assignment counts apply strategy scope before pagination. See [profile delivery](docs/delivery/tenant-reference-data-trade-profiles-20261104.md).
 
 ## Verification and operational safety
 

@@ -85,6 +85,7 @@ def test_published_result_retains_financial_values_after_correction(valued):
     from valuation.ledger_impacts import batch_source_health
     c,r,trade=valued
     batch=staged(c,r)
+    assert batch_source_health(c,r.tenant_id,batch)['status']=='CURRENT', str(batch_source_health(c,r.tenant_id,batch).get('sourceChangeKinds'))
     storage.publish(c,r.tenant_id,batch,ids['platform_admin_user_account'],'Independent synthetic review')
     before=storage.batch_view(c,r.tenant_id,batch)
     original=c.execute(select(m.trade).where(m.trade.c.trade_id==trade)).mappings().one()

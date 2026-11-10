@@ -9,6 +9,8 @@ Start with the [feature register](../../product/feature-register.md) for desired
 
 ## Collection (newest filename first, not priority order)
 
+- [Tenant reference data and strategy trade profiles — 4 November](../../superpowers/plans/2026-11-04-tenant-reference-data-trade-profiles.md) (proposed; no implementation or migration yet)
+
 - [Tenant import workflows — shared foundation and per-dataset implementation tasks](../../superpowers/plans/2026-10-17-tenant-import-workflows.md) (proposed; implementation not started)
 - [Tenant data imports — proposed dataset scope and phased roadmap](../../superpowers/plans/2026-10-17-tenant-data-imports.md) (planning only; not an executable/approved implementation plan)
 

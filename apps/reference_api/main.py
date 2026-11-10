@@ -66,6 +66,7 @@ from .contracts import (
 )
 from .structured_product_contracts import AutocallDraftRequest, StructuredProductDraftError
 from .db import get_engine
+from tenant_reference.errors import ConfigurationConflict
 from .trade_properties import get_trade_booking_context, list_trade_traders, TradeFieldError
 from .contracts import TradeBookingContextResponse, TradeTraderResponse
 from .problem_details import ValidationIssue
@@ -177,6 +178,10 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
 
     from .trade_configuration_routes import configuration_router
     app.include_router(configuration_router(connection_dependency))
+    from .tenant_reference_routes import tenant_reference_router
+    app.include_router(tenant_reference_router(connection_dependency))
+    from .trade_profile_routes import profile_router
+    app.include_router(profile_router(connection_dependency))
     from .fx_forward_booking import fx_forward_booking_router
     app.include_router(fx_forward_booking_router(connection_dependency, _assert_tenant_membership))
     from .option_booking import option_router
@@ -193,6 +198,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     app.include_router(valuation_policy_router(connection_dependency, _assert_tenant_membership))
     from .market_data_source_routes import market_data_source_router
     app.include_router(market_data_source_router(connection_dependency, _assert_tenant_membership))
+    from .reference_creation_routes import reference_creation_router
+    app.include_router(reference_creation_router(connection_dependency))
     from .valuation_routes import valuation_router
     from .resource_limits import configure_transaction_budget
     app.include_router(valuation_router(connection_dependency, _assert_tenant_membership, lambda: engine or get_engine(resolved_settings),
@@ -206,6 +213,10 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
     app.include_router(interest_review_router(connection_dependency, _assert_tenant_membership))
     from .cash_snapshot_routes import cash_snapshot_router
     app.include_router(cash_snapshot_router(connection_dependency, _assert_tenant_membership))
+    from .lifecycle_worklist_routes import lifecycle_worklist_router
+    app.include_router(lifecycle_worklist_router(connection_dependency))
+    from .lifecycle_assistance_routes import lifecycle_assistance_router
+    app.include_router(lifecycle_assistance_router(connection_dependency))
     from .bond_redemption_routes import bond_redemption_router
     app.include_router(bond_redemption_router(connection_dependency,_assert_tenant_membership))
     from .coupon_routes import coupon_router
@@ -1138,10 +1149,10 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         return list_index_families(connection, context.tenant_id, resolved_settings.api_version, _correlation_id(x_correlation_id))
 
     @app.get("/v1/trades/booking-context", response_model=TradeBookingContextResponse)
-    def trade_booking_context(context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
+    def trade_booking_context(strategyId: UUID | None = None, corrects:UUID|None=None, context: TenantContext = Depends(get_tenant_context), connection=Depends(connection_dependency, scope='function')):
         actor_id = _assert_tenant_membership(connection, context)
         try:
-            data = get_trade_booking_context(connection, context.tenant_id, actor_id)
+            data = get_trade_booking_context(connection, context.tenant_id, actor_id, strategyId,corrects)
         except TenantActionForbidden as exc:
             raise HTTPException(status_code=403, detail="Trade booking is not permitted") from exc
         return {"data": data, "meta": {"tenantContext":str(context.tenant_id), "source":"live-reference-api", "apiVersion":resolved_settings.api_version, "correlationId":current_request_id()}}
@@ -1176,6 +1187,8 @@ def create_app(*, settings: Settings | None = None, engine: Engine | None = None
         except TradeFieldError as exc:
             code=getattr(exc,'code','request.validation_failed')
             raise ApiProblem(409 if code=='trade.correction_conflict' else 422, code, "Request validation failed", str(exc), errors=[ValidationIssue(location=["body", exc.field], message=str(exc), kind="value_error")]) from exc
+        except ConfigurationConflict as exc:
+            raise ApiProblem(409,'configuration.changed','Configuration review required',str(exc)) from exc
         except (InvalidCatalogueValue, ValueError) as exc:
             raise ApiProblem(status.HTTP_422_UNPROCESSABLE_ENTITY, "request.validation_failed", "Request validation failed", "One or more request fields are invalid.") from exc
         response.headers["Location"] = f"/v1/trades/{result.data.trade.trade_id}"

@@ -1,9 +1,9 @@
 /** Built-in trade fields, independent of tenant-defined property catalogues. */
-export type RecognitionDraft={tradeDatetime:string;valuationEffectiveDate?:string;valuationOverrideReason?:string};
+export type RecognitionDraft={tradeDatetime:string;profileAssignmentRevision?:number;valuationEffectiveDate?:string;valuationOverrideReason?:string};
 function utcDate(value:string){const parsed=new Date(value);return Number.isNaN(parsed.getTime())?'':parsed.toISOString().slice(0,10);}
 export function recognitionDate(draft:RecognitionDraft){return draft.valuationEffectiveDate||utcDate(draft.tradeDatetime);}
 export function recognitionPayload(draft:RecognitionDraft){
- return {...(draft.valuationEffectiveDate?{valuationEffectiveDate:draft.valuationEffectiveDate}:{}),
+ return {...(draft.profileAssignmentRevision?{profileAssignmentRevision:draft.profileAssignmentRevision}:{}),...(draft.valuationEffectiveDate?{valuationEffectiveDate:draft.valuationEffectiveDate}:{}),
   ...(draft.valuationOverrideReason?.trim()?{valuationOverrideReason:draft.valuationOverrideReason.trim()}: {})};
 }
 export function recognitionErrors(draft:RecognitionDraft):{field:string;message:string}[]{

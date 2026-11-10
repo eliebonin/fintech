@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {accessLabel,type Registry,type RegistryTenant} from '@/lib/access-administration';
 import {useAccessData} from './access-loader';
 import {PageHelp} from './page-help';
+import {PlatformLifecycleSubscription} from '@/features/lifecycle-assistance/platform-subscription';
 
 export function PlatformTenants({initial}:{initial?:Registry}) {
  const {data,error,busy,stale,reload,command}=useAccessData<Registry>('/api/platform/tenants',initial);
@@ -25,9 +26,9 @@ export function PlatformTenants({initial}:{initial?:Registry}) {
     {['ACTIVE','SUSPENDED'].includes(tenant.status)?<button className="access-secondary" disabled={busy||!!editor||tenant.profileVersion===undefined} onClick={()=>setEditor({tenant,mode:'status'})}>{tenant.status==='ACTIVE'?'Suspend tenant':'Reactivate tenant'}</button>:null}</div>
    {tenant.profileVersion===undefined?<p className="access-hint">Tenant editing requires the updated API and schema.</p>:null}
    {editor?.tenant.tenantId===tenant.tenantId?<TenantProfileEditor key={editor.tenant.tenantId+editor.mode} tenant={editor.tenant} mode={editor.mode} busy={busy} cancel={()=>setEditor(undefined)} save={body=>save(editor.tenant,body)}/>:null}
-   <fieldset disabled={busy||!!editor||tenant.status!=='ACTIVE'}><legend>Module subscriptions</legend>{data.modules.map(module=><label key={module.code} className="access-check"><input type="checkbox" checked={tenant.moduleCodes.includes(module.code)} onChange={async e=>{setNotice('');if(await command(`/api/platform/tenants/${tenant.tenantId}/modules/${module.code}`,{enabled:e.target.checked},'PUT'))setNotice('Module subscription updated.');}}/>{module.name}</label>)}</fieldset>
+   <fieldset disabled={busy||!!editor||tenant.status!=='ACTIVE'}><legend>Module subscriptions</legend>{data.modules.filter(module=>module.code!=='LIFECYCLE_MANAGEMENT').map(module=><label key={module.code} className="access-check"><input type="checkbox" checked={tenant.moduleCodes.includes(module.code)} onChange={async e=>{setNotice('');if(await command(`/api/platform/tenants/${tenant.tenantId}/modules/${module.code}`,{enabled:e.target.checked},'PUT'))setNotice('Module subscription updated.');}}/>{module.name}</label>)}</fieldset>
    {tenant.status!=='ACTIVE'?<p className="access-hint">Subscriptions are retained but tenant access is blocked. Reactivate the tenant before changing modules.</p>:null}
-   <details><summary>Active memberships</summary><ul>{tenant.users.map(user=><li key={user.userId}>{user.name} · {accessLabel(user.role)}</li>)}</ul></details>
+   <PlatformLifecycleSubscription tenantId={tenant.tenantId} active={tenant.status==='ACTIVE'}/><details><summary>Active memberships</summary><ul>{tenant.users.map(user=><li key={user.userId}>{user.name} · {accessLabel(user.role)}</li>)}</ul></details>
   </article>)}</section>
   <p className="access-hint">Module access is separate from provider-data licensing. Tenant groups cannot grant a disabled module.</p>
  </main>;

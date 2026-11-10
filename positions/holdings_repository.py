@@ -33,6 +33,9 @@ def holding_conventions(payload,unit):
         factor=frozen.get('quoteFactor',terms.get('quoteFactor',convention.get('quoteFactor',1)))
         product=payload.get('productBasis') or convention.get('kind') or terms.get('kind') or payload.get('kind') or 'BOOKED_UNITS'
         if payload.get('kind') in {'FX_FORWARD_BOOKING','FX_FORWARD_MATURITY'}:product='FX_FORWARD'
+        if payload.get('kind')=='OPTION_BOOKING':product='OPTION'
+        if product=='STRUCTURED_PRODUCT' and unit=='UNITS' and convention.get('priceBasis')=='PCT_OF_PAR' and convention.get('denomination') is not None:
+            multiplier=frozen.get('unitMultiplier',convention['denomination'])
         return product,Decimal(str(multiplier)),Decimal(str(factor))
     except (InvalidOperation,TypeError,ValueError,AttributeError):
         raise PositionError('Frozen holdings unit conventions are invalid') from None

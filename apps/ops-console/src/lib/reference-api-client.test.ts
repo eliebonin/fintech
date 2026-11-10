@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { listDayCountConventions, listDayCountConventionsFromBff, searchReferenceInstruments, searchReferenceNodes, submitBondProposal, submitCryptoAssetProposal } from "./reference-api-client";
+import { getEquityCreationOptions, listDayCountConventions, listDayCountConventionsFromBff, searchReferenceInstruments, searchReferenceNodes, submitBondProposal, submitCryptoAssetProposal } from "./reference-api-client";
 
 describe("reference API client", () => {
   it("builds a tenant-scoped search request and preserves the view contract", async () => {
@@ -227,4 +227,17 @@ describe("reference API client", () => {
     expect(result.data.status).toBe("APPROVED");
   });
 
+});
+
+it('exports the creation catalogue client and sends the verified context and effective date',async()=>{
+  const stub=vi.fn(async()=>new Response(JSON.stringify({data:[]}),{status:200}));
+  vi.stubGlobal('fetch',stub);vi.stubEnv('REFERENCE_API_URL','http://creation-api.test');
+  try {
+    expect(typeof getEquityCreationOptions).toBe('function');
+    expect(await getEquityCreationOptions({tenantId:'tenant',userAccountId:'actor',source:'local-session'},'2026-11-03')).toEqual({data:[]});
+    const [url,init]=stub.mock.calls[0] as unknown as [URL,RequestInit];
+    expect(String(url)).toBe('http://creation-api.test/v1/equity-creation-options?effectiveDate=2026-11-03');
+    expect(new Headers(init.headers).get('X-Tenant-Id')).toBe('tenant');
+    expect(new Headers(init.headers).get('X-User-Account-Id')).toBe('actor');
+  } finally {vi.unstubAllGlobals();vi.unstubAllEnvs();}
 });

@@ -1,3 +1,4 @@
+from tenant_reference.errors import ConfigurationConflict
 """Audited, strategy-scoped NEW trade import commands and private receipts."""
 import csv
 from io import StringIO
@@ -41,6 +42,7 @@ def import_router(connection_dependency,membership):
             raise ApiProblem(403,'import.forbidden','Import access denied','Current strategy and trade permissions are required.') from exc
         except RepositoryNotFound as exc:raise ApiProblem(404,'import.not_found','Import unavailable','Import or reference not found in the current scope.') from exc
         except service.ImportConflict as exc:raise ApiProblem(409,'import.conflict','Import needs review',str(exc)) from exc
+        except ConfigurationConflict as exc:raise ApiProblem(409,'configuration.changed','Configuration review required',str(exc)) from exc
         except ValueError as exc:raise ApiProblem(422,'import.invalid','Invalid import',str(exc)) from exc
 
     @router.get('/options',response_model=dict[str,object])

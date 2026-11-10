@@ -1,3 +1,4 @@
+vi.mock('@/features/trade-profiles/booking-context',()=>({useStrategyTradeContext:(context:unknown)=>({context,ready:true,error:'',loading:false,reload:()=>{}}),TradeProfileStatus:()=>null}));
 import { afterEach,expect,it,vi } from 'vitest';
 const harness=vi.hoisted(()=>({slots:[] as any[],cursor:0,effects:[] as (()=>unknown)[],send:vi.fn(),push:vi.fn()}));
 vi.mock('react',async original=>{const actual=await original<typeof import('react')>();return {...actual,useState:(initial:any)=>{const i=harness.cursor++;if(!(i in harness.slots))harness.slots[i]=typeof initial==='function'?initial():initial;return [harness.slots[i],(value:any)=>{harness.slots[i]=typeof value==='function'?value(harness.slots[i]):value;}];},useRef:(initial:any)=>{const i=harness.cursor++;if(!(i in harness.slots))harness.slots[i]={current:initial};return harness.slots[i];},useEffect:(effect:()=>unknown)=>harness.effects.push(effect)};});

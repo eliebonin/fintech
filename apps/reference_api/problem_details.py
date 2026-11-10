@@ -126,6 +126,11 @@ def configure_problem_details(app: FastAPI) -> None:
         )
         return response
 
+    from tenant_reference.errors import ConfigurationConflict
+    @app.exception_handler(ConfigurationConflict)
+    async def configuration_changed(request:Request,exc:ConfigurationConflict)->JSONResponse:
+        return _problem_response(request,status_code=409,code='configuration.changed',title='Configuration review required',detail=str(exc))
+
     @app.exception_handler(ApiProblem)
     async def api_problem_handler(request: Request, exc: ApiProblem) -> JSONResponse:
         return _problem_response(

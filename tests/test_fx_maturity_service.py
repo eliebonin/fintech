@@ -8,7 +8,7 @@ from security_master_schema import models as m,access_management as am
 from security_master_schema.demo_data import DEMO_IDS as ids
 
 
-def setup(c,r,side='BUY'):
+def setup(c,r,side='BUY',*,assistance=True):
     from apps.reference_api.fx_forward_booking import load_fx_forward_booking_terms,book_fx_forward_trade
     from security_master_schema.fx_forward_booking import fx_forward_terms_fingerprint
     from apps.reference_api.contracts import FxForwardBookingRequest
@@ -39,6 +39,9 @@ def setup(c,r,side='BUY'):
     stamp=datetime.combine(day,time(16),timezone.utc)
     c.execute(m.market_data_observation.insert().values(**(source|dict(market_data_observation_id=uuid4(),market_data_series_id=series,market_date=day,value=D('1.12'),
         market_data_vintage_id=None,received_at_utc=stamp,observed_at_utc=stamp,source_published_at_utc=stamp,source_observation_key='FXMAT_'+uuid4().hex))))
+    if assistance:
+        from tests.lifecycle_assistance_fixtures import enable
+        enable(c,r.tenant_id,r.strategy_id,'FX_FORWARD_MATURITY')
     return instrument,group,r.cut_id,series
 
 
@@ -103,7 +106,8 @@ def test_prefilled_rate_override_retains_suggestion_and_manual_source(valued):
     override=dict(rate='1.125',sourceReference='Counterparty confirmation ABC',reason='Confirmed contractual closing rate')
     data,fingerprint,_,_=svc.candidate(c,r.tenant_id,r.strategy_id,instrument,rate_override=override)
     assert data['price']=='1.125' and data['suggestedPrice']=='1.12'
-    result=svc.post(c,r.tenant_id,ids['demo_user_account'],ids['demo_user_account'],r.strategy_id,instrument,fingerprint,str(uuid4()),rate_override=override)
+    prepared=svc.prepare(c,r.tenant_id,ids['demo_user_account'],ids['demo_user_account'],r.strategy_id,instrument,fingerprint,rate_override=override)
+    result=svc.post(c,r.tenant_id,ids['demo_user_account'],ids['demo_user_account'],r.strategy_id,instrument,fingerprint,str(uuid4()),proposal_id=prepared['proposalId'])
     assert result['evidence']['rateOverride']==override
     row=c.execute(select(m.trade).where(m.trade.c.trade_id==UUID(result['trade_ids'][0]))).mappings().one()
     assert row['execution_price']==D('1.125') and row['settlement_date'] is None

@@ -16,7 +16,7 @@ CASH_BOOKING_ENDPOINT = "/v1/trades"
 def booking_fingerprint(payload: TradeBookingRequest, connection: Connection, tenant_id: UUID) -> str:
     data = payload.model_dump(mode="json", by_alias=True)
     # Omitted additive fields must not invalidate already-recorded retry keys.
-    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence', 'correction', 'valuationEffectiveDate', 'valuationOverrideReason'):
+    for field in ('priceType', 'accruedInterestAmount', 'settlementEvidence', 'correction', 'valuationEffectiveDate', 'valuationOverrideReason','profileAssignmentRevision'):
         if data.get(field) is None: data.pop(field, None)
     # Immutable definitions remain available after retirement, so replay can
     # canonicalise values without reapplying today's booking eligibility.
@@ -77,6 +77,7 @@ def persist_trade_annotations(connection, tenant_id, trade_id, request, annotati
 
 def insert_cash_execution(connection, tenant_id, actor_id, request, listing_row, strategy_id, annotation_values, fingerprint, idempotency_key,*,quantity_movement=None):
     """Persist the original execution, annotation rows and immutable BOOKED event."""
+    from .profiles.validation import annotation_profile_values,annotation_event_proof
     trade_id = uuid4()
     signed_quantity = request.quantity if request.side == "BUY" else request.quantity.copy_negate()
     trade_datetime_utc = request.trade_datetime.astimezone(timezone.utc)
@@ -97,6 +98,7 @@ def insert_cash_execution(connection, tenant_id, actor_id, request, listing_row,
             quantity_unit=listing_row['booking_snapshot']['quantityUnit'],
             trade_datetime_utc=trade_datetime_utc,
             **trade_values(request),
+            **annotation_profile_values(annotation_values),
             settlement_date=request.settlement_date,
             booked_by_user_account_id=actor_id,
             execution_channel="MANUAL_UI",
@@ -106,10 +108,10 @@ def insert_cash_execution(connection, tenant_id, actor_id, request, listing_row,
             comment=request.comment,
         )
     )
-    persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values)
-    snapshot=listing_row['booking_snapshot'] | frozen_recognition(request)
+    snapshot=listing_row['booking_snapshot'] | frozen_recognition(request) | annotation_event_proof(annotation_values)
     if quantity_movement:snapshot['quantityMovement']=quantity_movement
     connection.execute(insert(m.trade_lifecycle_event).values(trade_id=trade_id, sequence_no=1, event_type="BOOKED", event_datetime_utc=trade_datetime_utc, source_event_id=idempotency_key, payload_hash=fingerprint, event_payload=json.dumps(snapshot, sort_keys=True), recorded_by_user_account_id=actor_id))
+    persist_trade_annotations(connection, tenant_id, trade_id, request, annotation_values)
     return trade_id
 
 

@@ -36,7 +36,14 @@ def test_missing_price_or_fx_does_not_become_zero_or_trade_price(valued):
     assert row['measures']['marketValue']['status']=='LOCAL_ONLY'
     assert row['measures']['marketValue']['reasonCode']=='FX_UNAVAILABLE'
     assert row['measures']['marketValue']['strategyAmount'] is None
-    c.execute(m.market_data_observation.delete().where(m.market_data_observation.c.market_date==r.closing_cutoff.date()))
+    # Historical snapshots from other accepted tests may still reference the
+    # shared observations. Point this fixture at an empty eligible series instead
+    # of deleting retained evidence belonging to other synthetic strategies.
+    from uuid import uuid4
+    source=dict(c.execute(select(m.market_data_series).where(m.market_data_series.c.market_data_series_id==ids['market_data_series'])).mappings().one())
+    empty=uuid4()
+    c.execute(m.market_data_series.insert().values(**(source|dict(market_data_series_id=empty,source_system_id='SYNTHETIC_EMPTY_'+empty.hex))))
+    c.execute(m.valuation_policy_rule.update().where(m.valuation_policy_rule.c.valuation_policy_rule_id==ids['valuation_policy_rule']).values(market_data_series_id=empty))
     row=preview(c,r)['items'][0]
     assert row['measures']['marketValue']['localAmount'] is None
     assert row['measures']['marketValue']['status']=='UNAVAILABLE'
@@ -68,6 +75,13 @@ def test_bond_clean_plus_assessed_balance_and_dirty_preference(valued):
         valueDate=r.closing_cutoff.date(),inputType='DAILY_INTEREST',currencyId=ids['gbp_currency'],reportingCurrencyId=ids['gbp_currency'],
         dailyEarned=D('10'),eligibleNominal=D('100000'),sourceReference='SYNTHETIC assessed balance',eligibilityConvention='OPS_ASSESSED_NOMINAL',
         inputs=inputs,amounts=accrual_amounts(inputs),fxEvidence=[]),str(uuid4()))
+    # A rich daily input is a source, not a maintained closing-stock publication.
+    row=next(x for x in preview(c,r)['items'] if x['instrumentType']=='BOND')
+    assert row['measures']['marketValue']['localAmount'] is None
+    from valuation.balance_history import refresh_history
+    from valuation.balance_history_contracts import BalanceHistoryRefresh
+    refresh_history(c,r.tenant_id,ids['demo_user_account'],BalanceHistoryRefresh(strategyId=r.strategy_id,
+        fromDate=r.closing_cutoff.date(),toDate=r.closing_cutoff.date()),uuid4().hex)
     row=next(x for x in preview(c,r)['items'] if x['instrumentType']=='BOND')
     assert row['measures']['marketValue']['localAmount']=='102200'
     assert row['evidence']['route']=='CLEAN_PLUS_ACCRUED_BALANCE'
@@ -108,7 +122,7 @@ def test_unit_index_swap_preview_uses_underlying_for_exposure_and_signed_swap_ma
     assert booked.data.trade.quantity_unit=='UNITS'
     source=dict(c.execute(select(m.market_data_series).where(m.market_data_series.c.market_data_series_id==ids['market_data_series'])).mappings().one())
     rule=dict(c.execute(select(m.valuation_policy_rule).where(m.valuation_policy_rule.c.valuation_policy_rule_id==ids['valuation_policy_rule'])).mappings().one())
-    observation=dict(c.execute(select(m.market_data_observation).where(m.market_data_observation.c.market_data_series_id==ids['market_data_series'],m.market_data_observation.c.market_date==r.closing_cutoff.date())).mappings().one())
+    observation=dict(c.execute(select(m.market_data_observation).where(m.market_data_observation.c.market_data_series_id==ids['market_data_series'],m.market_data_observation.c.market_date==r.closing_cutoff.date()).order_by(m.market_data_observation.c.market_data_observation_id.desc()).limit(1)).mappings().one())
     from datetime import time
     cut=uuid4()
     c.execute(m.valuation_cut.insert().values(valuation_cut_id=cut,cut_code='MEASURE_'+cut.hex,display_name='Synthetic 16 UTC mark',

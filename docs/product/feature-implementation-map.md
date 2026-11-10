@@ -1,5 +1,37 @@
 # Feature implementation and test map
 
+5 November F24/F51: [worklist delivery](../delivery/lifecycle-worklist-20261105.md), [domain read model](../../lifecycle/worklist.py), [scoped repository](../../lifecycle/worklist_repository.py), [GET adapter](../../apps/reference_api/lifecycle_worklist_routes.py), [UI](../../apps/ops-console/src/features/lifecycle-worklist/), [DB regression](../../tests/test_lifecycle_worklist.py), [scoped API regression](../../tests/test_lifecycle_worklist_api.py) and [browser/filter/handoff checks](../../apps/ops-console/browser-tests/lifecycle-worklist.spec.ts). [Search and workspace UI follow-up](../delivery/lifecycle-booking-ui-20261105.md) covers server-side instrument filtering, responsive booking cards and refreshed mode/action decisions. Only bond maturity detection is delivered; native posting authority is unchanged.
+
+5 November F51: [delivered scope and evidence](../delivery/lifecycle-assistance-entitlements-20261105.md), [typed schema](../../security_master_schema/lifecycle_entitlement_tables.py), [commercial ceiling](../../lifecycle/entitlements.py), [scoped decisions](../../lifecycle/assistance.py), [reviewed transitions](../../lifecycle/assistance_transitions.py), [HTTP adapter](../../apps/reference_api/lifecycle_assistance_routes.py), [UI controls](../../apps/ops-console/src/features/lifecycle-assistance/), [native enforcement tests](../../tests/test_lifecycle_subscription_enforcement.py), [scope/API tests](../../tests/test_lifecycle_assistance_api.py), [commit-race test](../../tests/test_lifecycle_subscription_races.py) and [browser acceptance](../../apps/ops-console/browser-tests/lifecycle-assistance.spec.ts). General notifications and billing are not delivered.
+
+4 November F20/F24/F51: implemented [tenant reference data and strategy trade profiles](../delivery/tenant-reference-data-trade-profiles-20261104.md). Shared tenant sources and field meanings are separate from immutable profile rules and explicit strategy assignments. All supported booking/import/correction and bond/FX maturity consumers resolve the pinned profile; publication does not adopt a version. See delivery for verification, cutover and remaining limits.
+
+3 November F37 [expanded measure delivery](../delivery/expanded-position-measures-20261103.md):
+[original booking validation](../../valuation/measure_contracts.py),
+[exact formulas](../../valuation/position_measures.py),
+[governed selection/conversion](../../valuation/measure_inputs.py),
+[assessed note-stock adapter](../../valuation/note_measure_balances.py),
+[holdings unit recovery](../../positions/holdings_repository.py),
+[report](../../apps/ops-console/src/components/position-measures-report.tsx),
+[inspection](../../apps/ops-console/src/components/strategy-measure-details.tsx),
+[native product regressions](../../tests/test_expanded_measure_inputs.py) and
+[source-proof unit checks](../../tests/test_note_measure_balances.py).
+Unmodelled risk exposure stays explicit; this adds no measure publication or NAV weights.
+
+3 November: [Instrument consistency cleanup](../delivery/instrument-consistency-20261103.md)
+removes seed-specific equity creation choices, adds scoped non-ledger source
+reassessment and aligns CLEAN bond monetary previews with maintained accrued
+stocks. Existing product support/status boundaries remain; source changes create
+review work, not rewritten published numbers.
+
+Current seams: [creation catalogue](../../security_master_schema/creation_options.py),
+[authorized HTTP adapter](../../apps/reference_api/reference_creation_routes.py),
+[creation tests](../../tests/test_reference_creation_options.py),
+[source dependency tracker](../../valuation/source_dependencies.py),
+[source-change regressions](../../tests/test_valuation_source_dependencies.py),
+[maintained bond-stock adapter](../../valuation/bond_measure_balances.py) and
+[bond measure regressions](../../tests/test_bond_measure_balances.py).
+
 3 November F38/F39 trade annotations:
 [ledger service](../../valuation/balance_trade_events.py),
 [HTTP adapter](../../apps/reference_api/balance_history_routes.py),
@@ -169,7 +201,7 @@ is design evidence, not proof of regulatory acceptance.
 [native booking](../../tests/test_linear_futures_api.py),
 [governed financial integration](../../tests/test_linear_futures_pnl_integration.py),
 [browser editor/inspection](../../apps/ops-console/browser-tests/linear-futures.spec.ts).
-No delivery/accounting engine or crypto monetary-preview expansion is implied.
+No delivery/accounting engine is implied. Crypto monetary-preview coverage is separately implemented in the 3 November measure extension above.
 
 28 October F12/F36–F39 [ETP/spot-crypto P&L](../delivery/etp-spot-crypto-pnl-20261028.md):
 [shared classification](../../security_master_schema/cash_products.py),
@@ -180,7 +212,7 @@ No delivery/accounting engine or crypto monetary-preview expansion is implied.
 [native financial/review tests](../../tests/test_cash_product_pnl_integration.py)
 and [browser inspection](../../apps/ops-console/browser-tests/cash-product-pnl.spec.ts).
 These reuse security price/FX economics; no underlying payoff or token lifecycle
-model, automatic provider rights or crypto monetary-preview extension is implied.
+model or automatic provider rights is implied. Crypto monetary previews are separately implemented in the 3 November extension above.
 
 28 October F15/F37/F38/F39 [supplied whole-note P&L](../delivery/structured-note-pnl-20261028.md):
 [quotation/frozen evidence](../../security_master_schema/structured_note_valuation.py),
@@ -662,3 +694,17 @@ The [result workspace](../../apps/ops-console/src/features/valuation/result-work
 also offers 25/50/100/All position pagination after full-result filtering; its
 component/browser regressions cover default size, boundaries, filters, retained
 inspection and bounded fallback name lookups.
+
+
+## F20/F24/F51 allocation-preserving maturity follow-up — 4 November 2026
+
+[Delivery](../delivery/lifecycle-allocation-preservation-20261104.md) links the actual
+scope and final activation evidence. [Policy](../../trading/allocation_policy.py),
+[batched annotations](../../trading/annotation_snapshots.py), [projection](../../positions/allocations.py)
+and [lifecycle validation](../../lifecycle/allocations.py) serve the existing bond/FX
+writers. [Policy UI](../../apps/ops-console/src/components/lifecycle-allocation-policy.tsx)
+and [entry fields](../../apps/ops-console/src/components/lifecycle-allocation-fields.tsx)
+are integrated with trade configuration and maturity preview. Regression evidence:
+[projection](../../tests/test_lifecycle_allocations.py), [store](../../tests/test_lifecycle_allocation_store.py),
+[HTTP](../../tests/test_lifecycle_allocation_api.py), [contracts](../../tests/test_lifecycle_allocation_contracts.py).
+This does not enable other product lifecycle handlers, accounting, or a notification dashboard.

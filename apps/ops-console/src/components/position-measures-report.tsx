@@ -6,8 +6,9 @@ import {formatTradeExactDecimal} from '@/lib/trades';
 import {MeasureDetails} from './strategy-measure-details';
 import {MeasureRowDisclosure} from './measure-row-disclosure';
 import {MeasureCurrencyDisplay,MeasureAmount} from './measure-currency-display';
+import {measureBasisLabel} from '@/lib/measure-display';
 
-export type ScalarMeasure={localAmount:string|null;currency:string|null;strategyAmount:string|null;strategyCurrency:string|null;status:string;reasonCode?:string};
+export type ScalarMeasure={localAmount:string|null;currency:string|null;strategyAmount:string|null;strategyCurrency:string|null;status:string;reasonCode?:string;basis?:string};
 export type MonetaryMeasure=ScalarMeasure&{representation?:'CONTRACTUAL_CURRENCY_LEGS';legs?:Array<ScalarMeasure&{role:'BASE'|'QUOTE'}>};
 export type MeasureRow={subjectId?:string;positionId:string;instrumentId:string;name:string;instrumentType?:string;instrumentTypeLabel?:string;quantity:string;quantityUnit:string;
  contractDate?:string|null;contractDateLabel?:string|null;attentionMessage?:string|null;measures:Record<string,MonetaryMeasure>;
@@ -54,8 +55,8 @@ export function StrategyMeasures({strategyId,query,policies,data,error,canCalcul
     {groups.map((group,index)=><tbody key={`${group.label}-${index}`}><tr className="strategy-position-group"><th scope="rowgroup" colSpan={7}>{group.label}</th></tr>{group.rows.map(row=>{const status=rowStatus(row);return <MeasureRowDisclosure key={row.positionId} name={row.name} details={<MeasureDetails row={row} strategyId={strategyId} query={query} informationCutoff={data.informationCutoff}/> }>
      <th scope="row" className="measure-instrument"><InstrumentLabel display={data.instrumentDisplays?.[row.subjectId??row.instrumentId]} fallbackName={data.instrumentDisplays===undefined?row.name:undefined} href={instrumentDisplayHref(data.instrumentDisplays?.[row.subjectId??row.instrumentId],row.subjectId??row.instrumentId,row.instrumentId)}/>{row.contractDate?<small>{row.contractDateLabel??'Maturity'} · {row.contractDate}</small>:null}{row.attentionMessage?<small className="measure-warning">{row.attentionMessage}</small>:null}</th>
      <td className="numeric">{formatTradeExactDecimal(row.quantity)}<small className="strategy-position-unit">{row.quantityUnit}</small></td>
-     {['referenceNotional','economicExposure','marketValue'].map(name=><td key={name} className="numeric"><MeasureAmount measure={row.measures[name]}/></td>)}
-     <td><span className={`measure-status measure-status-${status.tone}`}>{status.label}</span>{Object.entries(row.evidence.issues??{}).filter(([key])=>key!=='dirtyPrice'||row.measures.marketValue.status==='UNAVAILABLE').map(([key,value])=><small key={key} className="measure-row-note">{value}</small>)}</td>
+     {['referenceNotional','economicExposure','marketValue'].map(name=><td key={name} className="numeric"><MeasureAmount measure={row.measures[name]}/>{measureBasisLabel(row.measures[name].basis)?<small className="strategy-position-unit">{measureBasisLabel(row.measures[name].basis)}</small>:null}</td>)}
+     <td><span className={`measure-status measure-status-${status.tone}`}>{status.label}</span>{Object.entries(row.evidence.issues??{}).filter(([key])=>(!['dirtyPrice','noteDirtyPrice'].includes(key)||row.measures.marketValue.status==='UNAVAILABLE')&&row.measures[key]?.reasonCode!=='NOT_SUPPORTED_YET').map(([key,value])=><small key={key} className="measure-row-note">{value}</small>)}</td>
     </MeasureRowDisclosure>;})}</tbody>)}
    </table></div>
    {!data.items.length?<p className="strategy-empty">{data.total?'No positions on this page. Return to the previous page.':'No open positions or retained exceptions on this date.'}</p>:null}

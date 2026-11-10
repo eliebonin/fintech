@@ -1,0 +1,44 @@
+/* Keep this full editor separate from compact table evidence disclosures. */
+:global(.configuration-page) .panel {
+  color: #243955;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 24px;
+  min-width: 0;
+}
+.panel > summary { font-size: 15px; }
+.summaryHint { margin-left: 12px; font-size: 13px; font-weight: 400; color: #52627a; }
+.content { display: grid; gap: 20px; padding-top: 20px; }
+:global(.configuration-page) .panel p { max-width: none; margin: 0; }
+:global(.configuration-page) .panel form { max-width: none; min-width: 0; }
+:global(.configuration-page) .controls { display: grid; gap: 20px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.guide { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin: 0; padding: 16px; border-radius: 8px; background: #f0f5fd; }
+.guide dt { font-weight: 600; margin-bottom: 4px; }
+.guide dd { margin: 0; color: #52627a; }
+.toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.toolbar > label { flex: 1 1 240px; max-width: 420px; }
+.revision { color: #52627a; font-size: 13px; }
+.revision small { display: block; margin-top: 4px; }
+.tableWrap { min-width: 0; }
+:global(.configuration-page) .panel .table { table-layout: fixed; min-width: 0; width: 100%; }
+:global(.configuration-page) .table th:first-child { width: 45%; }
+:global(.configuration-page) .table :is(th,td) { min-width: 0; vertical-align: middle; overflow-wrap: anywhere; }
+:global(.configuration-page) .table th[scope="row"] { font-size: 14px; }
+.table th small { display: block; margin-top: 4px; font-size: 12px; color: #52627a; font-weight: 400; }
+:global(.configuration-page) .panel :is(input,select,textarea) { box-sizing: border-box; }
+:global(.configuration-page) .table select { min-width: 0; font-size: 14px; }
+.auditHelp { color: #52627a; margin-top: -14px; }
+.audit { display: grid; gap: 20px; border-top: 1px solid #dbe3ef; padding-top: 20px; }
+:global(.configuration-page) .audit > label { max-width: 760px; }
+:global(.configuration-page) .acknowledgement { align-items: flex-start; line-height: 1.5; }
+.acknowledgement input { margin: 2px 0 0; }
+@media (max-width: 700px) {
+  .summaryHint { display: block; margin: 6px 0 0 16px; }
+  .guide { grid-template-columns: 1fr; }
+  .toolbar > label { max-width: none; }
+  .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .table tbody,.table tr { display: block; }
+  :global(.configuration-page) .table th:first-child { width: auto; }
+  :global(.configuration-page) .table th[scope="row"],:global(.configuration-page) .table td { display: block; padding: 12px 0; border: 0; }
+  :global(.configuration-page) .table td { padding-top: 0; border-bottom: 1px solid #dbe3ef; }
+}

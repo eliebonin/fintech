@@ -1,5 +1,16 @@
 # Delivery records
 
+4 November: [Allocation-preserving maturity bookings](lifecycle-allocation-preservation-20261104.md)
+— shared tenant field policy, classified bond/FX closures, exact movement proof and
+Ops input validation. Migration 110 applied; focused and synthetic browser acceptance
+passed, with remaining boundaries recorded in that note.
+
+- [Expanded product position measures — 3 November](expanded-position-measures-20261103.md): spot/linear crypto, option premium and strike reference, funded notes and whole-swap values; unmodelled risk exposure remains unavailable.
+
+3 November: [Instrument consistency](instrument-consistency-20261103.md) — governed
+creation choices, scoped non-ledger valuation reassessment and maintained-stock
+bond monetary previews, preserving frozen financial evidence and current rights.
+
 3 November: [Trade markers on accrued-balance history](balance-trade-markers-20261103.md)
 — date-aligned Buy/Sell groups, exact details and individual trade links behind
 current strategy valuation/trade-read scope. Read-only, independently loaded;

@@ -1,5 +1,13 @@
 # Instrument management — capability records
 
+3 November [consistency delivery](../../delivery/instrument-consistency-20261103.md):
+equity creation uses an explicit issuer search and effective tenant-visible
+source/policy choices. New valuations retain market/policy/calendar/action source
+fingerprints for pre-pagination reassessment and stale-publication guards.
+CLEAN bond monetary previews consume current maintained closing stocks; DIRTY
+precedence and explicit missing/zero semantics remain. Earlier dated limitations
+on those specific paths are superseded; other product/workflow limits remain.
+
 26 October F07: [shared display policy](../../architecture/security-master/instrument-display.md)
 adds readable names, recognised identifiers and listing context to catalogue and
 main downstream read/selection views. Current labels remain outside financial

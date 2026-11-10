@@ -15,3 +15,8 @@ it('distinguishes unknown legacy source proof from a confirmed financial error',
  const html=renderToStaticMarkup(<ReassessmentPanel batch={{batch_id:'mock',sourceHealth:{status:'UNKNOWN_LEGACY',changes:[]}}} canCalculate onOpen={()=>{}}/>);
  expect(html).toContain('Legacy source proof unavailable');expect(html).toContain('does not by itself establish a financial error');
 });
+
+it('explains non-ledger source changes with business labels',()=>{
+ const html=renderToStaticMarkup(<ReassessmentPanel batch={{batch_id:'mock',sourceHealth:{status:'REASSESSMENT_REQUIRED',changes:[],sourceChangeKinds:['MARKET_DATA','POLICY','CALENDAR','CORPORATE_ACTION']}}} canCalculate onOpen={()=>{}}/>);
+ expect(html).toContain('Market prices or FX');expect(html).toContain('Pricing policy');expect(html).toContain('Calendar');expect(html).toContain('Corporate actions');
+});

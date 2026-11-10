@@ -55,8 +55,9 @@ def normalize_booking(c,row,snapshot,event,*,currency_cache=None):
         if row['quantity']<0:currencies=currencies[::-1]
         if (e['receiveCurrency'],e['payCurrency'])!=currencies:raise PositionError('Frozen forward delivery currency mismatch')
     else:
-        maturity=snapshot['inputs'];move=maturity['movements'][0]
-        if (event['payload_hash']!=evidence_hash(snapshot) or row['trade_type']!='MATURITY_CLOSE'
+        from security_master_schema.maturity_evidence import closing_movement
+        maturity=snapshot['inputs'];move=closing_movement(maturity,snapshot.get('movementKey'))
+        if (event['payload_hash']!=evidence_hash(snapshot) or row['trade_type']!='MATURITY_CLOSE' or move['subjectId']!=str(row['trade_subject_reference_node_id'])
             or maturity['instrumentId']!=str(parent) or maturity['strategyId']!=str(row['strategy_id'])
             or maturity['valueDate']!=row['trade_datetime_utc'].date().isoformat() or maturity['valueDate']!=conventions['maturityDate']
             or Decimal(move['quantity'])!=row['quantity'] or Decimal(maturity['price'])!=row['execution_price']

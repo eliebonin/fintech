@@ -17,7 +17,7 @@ export const INSTRUMENT_CREATE_GROUPS: InstrumentCreateGroup[] = [
     options: [
       { label: "Equity", description: "Shares and other equity securities.", href: "/instruments/new" },
       { label: "Option", description: "Listed fixed-strike vanilla options with explicit premium conventions.", href: "/instruments/options/new" },
-      { label: "Future", description: "An exact cash-settled index expiry with sourced contract conventions.", href: "/instruments/futures/new" },
+      { label: "Future", description: "A dated linear index or crypto contract with explicit expiry, delivery and multiplier conventions.", href: "/instruments/futures/new" },
       { label: "Structured product", description: "Structured-security definitions for listed or OTC execution; booking conventions follow approval.", href: "/instruments/autocalls/new" },
       { label: "Bond", description: "Fixed-income and debt securities.", href: "/instruments/bonds/new" },
       { label: "Fund", description: "Funds and share classes.", href: "/instruments/funds/new" },

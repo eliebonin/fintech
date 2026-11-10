@@ -47,6 +47,7 @@ class BookingCorrectionRequest(CancelBookingRequest):
 
 class ValuationRecognitionFields(BaseModel):
     """Platform-wide optional booking fields; never curated tenant properties."""
+    profile_assignment_revision: int | None = Field(default=None,alias='profileAssignmentRevision',ge=1,strict=True)
     valuation_effective_date: date | None = Field(default=None, alias='valuationEffectiveDate')
     valuation_override_reason: str | None = Field(default=None, alias='valuationOverrideReason', max_length=1000)
 

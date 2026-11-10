@@ -93,3 +93,15 @@ it('keeps scan amounts compact and exact amounts in an accessible full-width ins
  expect(html).toMatch(/<button[^>]*aria-expanded="false"[^>]*aria-controls=/);
  expect(html).toMatch(/<tr[^>]*hidden=""[^>]*><td colSpan="7"/);
 });
+
+
+it('labels option strike notional and makes premium factors available for inspection',()=>{
+ const data=reportFixture();const original=data.items[0];
+ data.items=[{...original,name:'Synthetic option',instrumentType:'OPTION',quantity:'20',quantityUnit:'CONTRACTS',
+  measures:{...original.measures,referenceNotional:{...original.measures.referenceNotional,basis:'STRIKE_NOTIONAL'},
+   economicExposure:{...original.measures.economicExposure,localAmount:null,strategyAmount:null,status:'UNAVAILABLE',reasonCode:'NOT_SUPPORTED_YET'}},
+  evidence:{route:'OPTION_PREMIUM_VALUE',selections:{optionContract:{strike:'5800',strikeCurrency:'USD',deliverableUnits:'100',premiumMultiplier:'100',quoteFactor:'1',expiryDate:'2026-12-18',optionType:'PUT'}}}}];
+ const html=renderToStaticMarkup(<StrategyMeasures strategyId="s" query={new URLSearchParams('asOf=2026-10-14&policyId=p')} policies={[]} data={data}/>);
+ expect(html).toContain('Strike notional');expect(html).toContain('Contract deliverable units');
+ expect(html).toContain('Premium multiplier');expect(html).toContain('delta exposure');
+});

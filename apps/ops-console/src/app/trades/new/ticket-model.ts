@@ -23,6 +23,7 @@ export {freezeBookingSubmission} from '@/lib/booking-submission';
 
 export function bookingFailureMode(error:unknown):"RETRY_REQUIRED"|"BLOCKED"|"EDITING" {
   if(!(error instanceof BffApiError)||error.status>=500||error.status===408||error.status===429)return "RETRY_REQUIRED";
+  if(error.status===409&&["configuration.changed","profile.changed"].includes(error.code??""))return "EDITING";
   return error.status===409?"BLOCKED":"EDITING";
 }
 
@@ -36,9 +37,15 @@ export function validateEnrichedTicketDraft(draft:EnrichedTicketDraft, context:T
   return [...errors,...validateTradeAnnotations(draft,context)];
 }
 
-export function validateTradeAnnotations(draft:Pick<EnrichedTicketDraft,"tradePurpose"|"comment"|"properties"|"externalReferences">&Partial<RecognitionDraft>, context:TradeBookingContext):TicketError[] {
+export function validateTradeAnnotations(draft:Pick<EnrichedTicketDraft,"tradePurpose"|"comment"|"properties"|"externalReferences">&Partial<EnrichedTicketDraft>, context:TradeBookingContext):TicketError[] {
   const errors:TicketError[]=draft.tradeDatetime?recognitionErrors(draft as RecognitionDraft):[];
   if (draft.tradePurpose==="OTHER" && !draft.comment?.trim()) errors.push({field:"comment",message:"Explain the OTHER purpose in the comment."});
+  const standards={COUNTERPARTY:'counterpartyOrganisationId',EXECUTING_BROKER:'executingBrokerOrganisationId',TRADER:'traderPersonId',COMMENT:'comment'} as const;
+  for(const field of context.tradeProfile?.fields??[]){
+    if(!field.standardFieldKey||field.requirement!=='REQUIRED')continue;
+    const key=standards[field.standardFieldKey],value=draft[key];
+    if(!value||!String(value).trim())errors.push({field:key,message:`${field.label} is required by this strategy’s trade profile.`});
+  }
   for (const definition of context.properties) {
     const value = draft.properties[definition.definitionId];
     const empty = value===undefined || (typeof value === "string" && !value.trim());

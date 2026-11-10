@@ -9,7 +9,7 @@ import type {TenantContext} from '@/lib/tenant-types';
 export type Strategy = { strategyId: string; strategyCode: string; displayName: string; strategyType: string; baseCurrencyCode?: string | null; status: string };
 const strategyTypes = ["AMC_MANDATE", "FUND", "MANAGED_ACCOUNT", "PROP_SLEEVE", "MODEL_PORTFOLIO", "OTHER"];
 
-export function StrategyConsole({ initialStrategies, canWrite,accessGroups=[],createOnly=false,writeContext }: { initialStrategies: Strategy[]; canWrite: boolean;createOnly?:boolean;writeContext?:Pick<TenantContext,'tenantId'|'userAccountId'>;accessGroups?:Array<{groupId:string;name:string;scopeMode:string}> }) {
+export function StrategyConsole({ initialStrategies, canWrite,accessGroups=[],createOnly=false,writeContext,defaultTradeProfile }: { initialStrategies: Strategy[]; canWrite: boolean;createOnly?:boolean;writeContext?:Pick<TenantContext,'tenantId'|'userAccountId'>;defaultTradeProfile?:{profileVersionId:string|null;label:string|null;versionNo:number|null};accessGroups?:Array<{groupId:string;name:string;scopeMode:string}> }) {
   const [strategies, setStrategies] = useState(initialStrategies);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -46,7 +46,8 @@ export function StrategyConsole({ initialStrategies, canWrite,accessGroups=[],cr
         {accessGroups.filter(group=>group.scopeMode==='SELECTED').map(group=><label className="access-check" key={group.groupId}><input type="checkbox" name="initialAccessGroupIds" value={group.groupId}/>{group.name}</label>)}
         {!accessGroups.some(group=>group.scopeMode==='SELECTED')?<p>No additional selected-scope groups available.</p>:null}
       </fieldset>
-      <button type="submit" disabled={saving||blocked||!writeContext}>{saving?'Creating…':'Create strategy'}</button>{error?<p className="strategy-error" role="alert">{error}</p>:null}
+      <div className="strategy-card"><h2>Trade configuration</h2>{defaultTradeProfile?.profileVersionId?<p>Current default: <strong>{defaultTradeProfile.label} · v{defaultTradeProfile.versionNo}</strong>.</p>:defaultTradeProfile?<p role="alert">No tenant default is configured. Ask a trade configurator to publish and select one before creating a strategy.</p>:null}<p>The current tenant default is pinned at creation. Review the actual assigned version in the strategy overview before booking; changing it requires trade-configuration permission and write access to that strategy.</p></div>
+      <button type="submit" disabled={saving||blocked||!writeContext||!!defaultTradeProfile&&!defaultTradeProfile.profileVersionId}>{saving?'Creating…':'Create strategy'}</button>{error?<p className="strategy-error" role="alert">{error}</p>:null}
       {blocked?<p>This attempt was blocked. Check the strategy register for any earlier uncertain attempt. <a href="/strategies/new">Reload creation page for the selected context</a>. Copy any details you want to keep before reloading.</p>:null}
     </form>:<div className="error-panel">Create-strategy permission is required. Editing or archiving existing strategies is a separate permission.</div>}
   </main>;

@@ -49,5 +49,8 @@ def effective_permissions(*, role, tenant_modules, grants):
 
 
 def effective_modules(tenant_modules, permissions):
+    # Presentation only: lifecycle operations still require TRADING above plus
+    # their separate runtime subscription/selected-tier checks.
     return frozenset(module for module in tenant_modules
-                     if any(module in ACTION_MODULES.get(action, ()) for action in permissions))
+                     if any(module in ACTION_MODULES.get(action, ()) for action in permissions)
+                     or module=='LIFECYCLE_MANAGEMENT' and any(action.startswith('LIFECYCLE_') for action in permissions))

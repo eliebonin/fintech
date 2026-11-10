@@ -20,11 +20,15 @@ _ID=r'[^/]+'
 
 
 def workload_kind(method,path):
+    if method in {'POST','PUT'} and ('/lifecycle-subscription' in path or path.startswith('/v1/lifecycle/assistance')):return 'configuration'
     if method=='POST':
+        if path.startswith('/v1/trade-profiles'):return 'configuration'
+        if path=='/v1/trade-configuration/lifecycle-allocations':return 'configuration'
         if path in {'/v1/valuation/attempts','/v1/valuation/reassessments/recalculate','/v1/valuation/balance-history-refresh','/v1/valuation/interest-review'}:return 'valuation'
         if path in {'/v1/regulatory-reporting/prepare','/v1/regulatory-reporting/exports'}:return 'regulatory'
         if path=='/v1/trades/imports' or re.fullmatch(rf'/v1/trades/imports/{_ID}/(?:validate|confirm)',path):return 'trade_import'
     if method=='GET':
+        if path=='/v1/lifecycle/worklist':return 'lifecycle'
         if path in {'/v1/valuation/interest-review','/v1/valuation/balance-trades'}:return 'valuation'
         if re.fullmatch(rf'/v1/strategies/{_ID}/measures',path):return 'measures'
         if path=='/v1/regulatory-reporting/export-preview' or re.fullmatch(rf'/v1/regulatory-reporting/exports/{_ID}',path):return 'regulatory'

@@ -23,6 +23,8 @@ def cancel_booking(connection, tenant, actor, trade_id, request, key, request_id
             result=get_booked_trade_detail(connection,tenant,replay,current_api_version(),request_id)
             if result is None: raise RepositoryNotFound('Booked trade does not exist')
             return result
+        from security_master_schema.booking_controls import lock_trade_configuration
+        lock_trade_configuration(connection,tenant)
         original=_original(connection,tenant,trade_id)
         events,_=_chain(connection,original,request.expected_sequence_no,allow_legacy_cancel=True)
         payload=dict(schemaVersion=1,kind='BOOKING_CORRECTION',action='CANCEL_BOOKING',reason=request.reason,originalTradeId=str(trade_id))

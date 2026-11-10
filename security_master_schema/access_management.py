@@ -70,6 +70,13 @@ def lock_tenant(c, tenant):
 
 
 def set_module(c, tenant, actor, module_code, enabled):
+    require_platform(c,actor)
+    if module_code=='LIFECYCLE_MANAGEMENT':
+        raise ValueError('Use the reviewed lifecycle subscription tier command.')
+    return _set_module(c,tenant,actor,module_code,enabled)
+
+
+def _set_module(c, tenant, actor, module_code, enabled):
     """Serialize toggles; same-day changes retain before/after in immutable audit.
 
     The existing entitlement schema has one version per business date. Repeated

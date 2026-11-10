@@ -21,9 +21,15 @@ export async function StrategyPageContent({createOnly=false}:{createOnly?:boolea
   if (!response.ok && !(response.status===403 && workspace.permissionCodes?.includes('STRATEGY_CREATE'))) throw new WorkspaceApiError(response.status);
   const payload = response.ok?await response.json() as { data: Strategy[] }:{data:[]};
   const canWrite = workspace.permissionCodes?.includes("STRATEGY_CREATE") ?? false;
+  let defaultTradeProfile:{profileVersionId:string|null;label:string|null;versionNo:number|null}|undefined;
   let accessGroups:Array<{groupId:string;name:string;scopeMode:string}>=[];
-  if(canWrite&&createOnly){const options=await apiRead(new URL('/v1/strategies/access-options',process.env.REFERENCE_API_URL??'http://localhost:8000'),{headers:{'X-Tenant-Id':context.tenantId,'X-User-Account-Id':context.userAccountId},cache:'no-store'});if(!options.ok)throw new WorkspaceApiError(options.status);accessGroups=(await options.json()).groups;}
-  return <WorkspaceShell sourceLabel={response.ok ? "LIVE API" : "ACCESS RESTRICTED"} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><StrategyConsole initialStrategies={payload.data} canWrite={canWrite} accessGroups={accessGroups} createOnly={createOnly} writeContext={{tenantId:context.tenantId,userAccountId:context.userAccountId}} /></WorkspaceShell>;
+  if(canWrite&&createOnly){
+    const headers={'X-Tenant-Id':context.tenantId,'X-User-Account-Id':context.userAccountId};
+    const [options,defaults]=await Promise.all(['/v1/strategies/access-options','/v1/trade-profiles/creation-default'].map(path=>apiRead(new URL(path,process.env.REFERENCE_API_URL??'http://localhost:8000'),{headers,cache:'no-store'})));
+    if(!options.ok)throw new WorkspaceApiError(options.status);if(!defaults.ok)throw new WorkspaceApiError(defaults.status);
+    accessGroups=(await options.json()).groups;defaultTradeProfile=await defaults.json();
+  }
+  return <WorkspaceShell sourceLabel={response.ok ? "LIVE API" : "ACCESS RESTRICTED"} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId} tenantName={workspace.tenantName} membershipRole={workspace.membershipRole}><StrategyConsole initialStrategies={payload.data} canWrite={canWrite} accessGroups={accessGroups} createOnly={createOnly} defaultTradeProfile={defaultTradeProfile} writeContext={{tenantId:context.tenantId,userAccountId:context.userAccountId}} /></WorkspaceShell>;
   } catch (error) {
     return <WorkspaceShell sourceLabel="API UNAVAILABLE" tenantName={workspace.tenantName} membershipRole={workspace.membershipRole} moduleCodes={workspace.moduleCodes} permissionCodes={workspace.permissionCodes} userName={workspace.userName} actorId={workspace.actorId}><WorkspaceUnavailable resource="Strategies" forbidden={error instanceof WorkspaceApiError && [401,403].includes(error.status)} /></WorkspaceShell>;
   }

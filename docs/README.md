@@ -16,6 +16,12 @@ This is the maintained entry point for the project. Historical material is prese
 
 No “implemented” label implies commercial data rights, universal instrument support, complete fund NAV, latest browser acceptance or production readiness.
 
+5 November: [Lifecycle worklist](delivery/lifecycle-worklist-20261105.md) adds current bond-maturity discovery, scoped event filtering and native processing handoff under the configured assistance tiers.
+
+5 November: [Lifecycle assistance entitlements](delivery/lifecycle-assistance-entitlements-20261105.md) adds platform ceilings, strategy/event settings and reviewed downgrades for the existing bond/FX workflows; bond discovery follows in the linked worklist delivery.
+
+4 November: [Tenant reference data and strategy trade profiles](delivery/tenant-reference-data-trade-profiles-20261104.md) separates shared source maintenance, immutable field meaning and explicit strategy configuration.
+
 ## Reading paths
 
 1. **Understand the platform** — [system overview](architecture/system-overview.md), [security master](architecture/security-master/README.md), [market data and valuation](architecture/market-data-and-valuation/README.md), and [tenancy](architecture/tenancy-and-entitlements/README.md).

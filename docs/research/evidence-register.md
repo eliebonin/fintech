@@ -1,5 +1,7 @@
 # Evidence register
 
+4 November 2026 tenant reference data/profiles: [design and source applications](../superpowers/specs/2026-11-04-tenant-reference-data-trade-profiles.md#research-basis-and-application) records Atlassian field-scheme separation, WAI tabs/combobox semantics, GOV.UK scanning/review/error patterns and PostgreSQL 18 ownership constraints. Proposed UI/schema only; no implemented profile/assignment capability is claimed.
+
 31 October missing-mark review: [guidance and application](../delivery/incomplete-price-review-20261031.md#guidance-and-design)
 links FCA/ESMA valuation guidance and WAI/GOV.UK form/review patterns. Governed
 partial Ops reports are not official NAVs; independent marked inputs require a

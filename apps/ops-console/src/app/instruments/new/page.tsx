@@ -4,6 +4,7 @@ import {browserFetch as fetch} from '@/lib/browser-fetch';
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { validateEquityIdentity } from "./validation";
+import {equityCreationPayload,equityIssuerLabel,type EquityCreationOption} from "./equity-creation-model";
 import {
   Alert,
   Box,
@@ -20,13 +21,8 @@ import {
   Typography,
 } from "@mui/material";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import { createIdempotencyKey, flattenCurrencyGroups, listCurrenciesFromBff, submitEquityProposalFromBff } from "@/lib/browser-api-client";
-import type { CurrencyGroup } from "@/lib/browser-api-client";
-
-const IDS = {
-  sourceSystem: "00000000-0000-7000-8000-000000000021",
-  issuer: "00000000-0000-7000-8000-000000000004",
-};
+import { BffApiError, bffGet, listOrganisationsFromBff, createIdempotencyKey, flattenCurrencyGroups, listCurrenciesFromBff, submitEquityProposalFromBff } from "@/lib/browser-api-client";
+import type { CurrencyGroup, OrganisationOption } from "@/lib/browser-api-client";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -79,7 +75,7 @@ export default function NewEquityPage() {
   const [mode, setMode] = useState("MANUAL");
   const [name, setName] = useState("");
   const [internalCode, setInternalCode] = useState("");
-  const [issuer, setIssuer] = useState(IDS.issuer);
+  const [issuer, setIssuer] = useState("");
   const [baseCurrency, setBaseCurrency] = useState("");
   const [currencyGroups, setCurrencyGroups] = useState<CurrencyGroup[]>([]);
   const [includeCrypto, setIncludeCrypto] = useState(false);
@@ -91,7 +87,18 @@ export default function NewEquityPage() {
   const [cusip, setCusip] = useState("");
   const [sourceExternalId, setSourceExternalId] = useState("");
   const [sourcePayloadId, setSourcePayloadId] = useState("");
-  const sourceObjectType = "INSTRUMENT";
+  const [issuerQuery,setIssuerQuery]=useState("");
+  const [issuers,setIssuers]=useState<OrganisationOption[]>([]);
+  const [issuerError,setIssuerError]=useState("");
+  const [issuerRetry,setIssuerRetry]=useState(0);
+  const [issuerLoading,setIssuerLoading]=useState(false);
+  const [automationLoading,setAutomationLoading]=useState(false);
+  const [automationRetry,setAutomationRetry]=useState(0);
+  const [canPropose,setCanPropose]=useState(true);
+  const [automation,setAutomation]=useState<EquityCreationOption[]>([]);
+  const [automationChoice,setAutomationChoice]=useState("");
+  const [automationError,setAutomationError]=useState("");
+  const selectedAutomation=automation.find((_,i)=>String(i)===automationChoice);
   const [idempotencyKey, setIdempotencyKey] = useState("");
   const [confidence, setConfidence] = useState("0.99");
   const [message, setMessage] = useState<{ severity: "success" | "error" | "info"; text: string } | null>(null);
@@ -120,6 +127,25 @@ export default function NewEquityPage() {
     };
   }, [includeCrypto]);
 
+  useEffect(()=>{
+    let current=true;
+    const timer=setTimeout(()=>{setIssuerError("");setIssuerLoading(true);listOrganisationsFromBff(fetch,issuerQuery).then(r=>{
+      if(current)setIssuers(old=>[...r.data,...old.filter(o=>o.organisationId===issuer&&!r.data.some(n=>n.organisationId===issuer))]);
+    }).catch(()=>{if(current)setIssuerError("Organisation search unavailable. Retry the search or explicitly leave the issuer unresolved for review.");}).finally(()=>{if(current)setIssuerLoading(false);});},300);
+    return()=>{current=false;clearTimeout(timer);};
+  },[issuerQuery,issuer,issuerRetry]);
+  useEffect(()=>{
+    let current=true;setAutomation([]);setAutomationChoice("");setAutomationError("");setAutomationLoading(true);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom))bffGet<{data:EquityCreationOption[]}>(`/api/instruments/equity-creation-options?effectiveDate=${effectiveFrom}`).then(r=>{
+      if(current)setAutomation(r.data);
+    }).catch(error=>{if(current){
+      const denied=error instanceof BffApiError&&(error.status===401||error.status===403);
+      if(denied)setCanPropose(false);
+      setAutomationError(denied?"Select a user with instrument proposal permission in Security Master before creating instruments.":"Automation configuration could not be loaded. Manual review remains available.");
+    }}).finally(()=>{if(current)setAutomationLoading(false);});
+    return()=>{current=false;};
+  },[effectiveFrom,automationRetry]);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const validationErrors = validateEquityIdentity(name, internalCode);
@@ -130,32 +156,11 @@ export default function NewEquityPage() {
     }
     setSubmitting(true);
     setMessage(null);
-    const payload: Record<string, unknown> = {
-      canonicalName: name,
-      internalCode: internalCode || undefined,
-      issuerOrganisationId: issuer || undefined,
-      baseCurrencyId: baseCurrency,
-      effectiveFrom,
-      isin: isin || undefined,
-      figi: figi || undefined,
-      sedol: sedol || undefined,
-      cusip: cusip || undefined,
-      listings: [],
-      submissionMode: mode,
-    };
-    if (mode === "AUTOMATED") {
-      Object.assign(payload, {
-        sourceSystemId: IDS.sourceSystem,
-        sourceNamespace: "BANK_A_STATIC_PROD",
-        sourceExternalId,
-        sourcePayloadId: sourcePayloadId || undefined,
-        sourceObjectType,
-        automationPolicyCode: "BANK_A_EQUITY_CREATE",
-        idempotencyKey,
-        confidenceScore: confidence,
-      });
-    }
     try {
+      const payload=equityCreationPayload({canonicalName:name,internalCode:internalCode||undefined,
+        issuerOrganisationId:issuer||undefined,baseCurrencyId:baseCurrency,effectiveFrom,
+        isin:isin||undefined,figi:figi||undefined,sedol:sedol||undefined,cusip:cusip||undefined},mode,selectedAutomation,
+        {sourceExternalId,sourcePayloadId:sourcePayloadId||undefined,idempotencyKey,confidenceScore:confidence});
       const mutationKey = idempotencyKey || createIdempotencyKey();
       if (!idempotencyKey) setIdempotencyKey(mutationKey);
       const response = await submitEquityProposalFromBff(payload, mutationKey);
@@ -225,10 +230,12 @@ export default function NewEquityPage() {
                     fullWidth
                     helperText="Optional platform-owned code. Keep it short and stable; venue tickers belong in the listing section."
                   />
+                  <TextField label="Search issuer organisations" value={issuerQuery} onChange={e=>setIssuerQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")e.preventDefault();}} slotProps={{htmlInput:{maxLength:200}}} helperText={issuerError||(issuerLoading?"Loading organisations…":"Search by legal or display name. Choose the issuer explicitly; no organisation is assumed.")} error={!!issuerError}/>
+                  {issuerError?<Button type="button" onClick={()=>setIssuerRetry(n=>n+1)}>Retry organisation search</Button>:null}
                   <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                     <TextField select label="Issuer organisation" value={issuer} onChange={(event) => setIssuer(event.target.value)} fullWidth slotProps={nativeSelect} helperText="Select the legal organisation that issued the security—not its parent group, exchange, or data provider. Search existing records first. If there is no confident match, leave this blank and submit for review; one issuer record can be reused for many instruments.">
                       <option value="">Issuer not yet resolved — review required</option>
-                      <option value={IDS.issuer}>HSBC Demo plc · issuer organisation</option>
+                      {issuers.map(o=><option key={o.organisationId} value={o.organisationId}>{equityIssuerLabel(o)}</option>)}
                     </TextField>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <TextField select label="Base / denomination currency" value={baseCurrency} onChange={(event) => setBaseCurrency(event.target.value)} required fullWidth disabled={currencyState !== "ready"} slotProps={nativeSelect} helperText={currencyState === "loading" ? "Loading active currencies…" : currencyState === "error" ? "Currency catalogue unavailable; leave blank and enrich before approval." : "Currency used to express the instrument’s economic denomination. Example: USD."}>
@@ -256,7 +263,7 @@ export default function NewEquityPage() {
                   </Stack>
                   <Stack spacing={2}>
                     <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                      <TextField label="ISIN" value={isin} onChange={(event) => setIsin(event.target.value)} required fullWidth helperText="12-character ISO 6166 identifier for this security. Example: GB00B03MLX29." />
+                      <TextField label="ISIN" value={isin} onChange={(event) => setIsin(event.target.value)} fullWidth helperText="12-character ISO 6166 identifier for this security. Example: GB00B03MLX29." />
                       <TextField label="Global / share-class FIGI" value={figi} onChange={(event) => setFigi(event.target.value)} fullWidth helperText="FIGI for the security or share class. A venue-level FIGI belongs with the listing." />
                     </Stack>
                     <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
@@ -274,33 +281,34 @@ export default function NewEquityPage() {
             <SectionIntro eyebrow="3 · APPROVAL ROUTE" title="How should this proposal enter the workflow?" description="Both routes create an auditable proposal. Neither route allows the browser to write an approved instrument directly." />
             <TextField select label="Submission path" value={mode} onChange={(event) => setMode(event.target.value)} slotProps={nativeSelect} helperText={mode === "AUTOMATED" ? "The source policy checks identifiers, issuer, listing, confidence, and duplicate conflicts. Passing every rule may auto-approve; any uncertainty sends the proposal to manual review." : "Manual is the default. The proposal is stored as PENDING, and an authorised operator must approve it before canonical rows are created."}>
               <option value="MANUAL">Manual operations review (default)</option>
-              <option value="AUTOMATED">Automated source — policy evaluated</option>
+              <option value="AUTOMATED" disabled={!automation.length}>Automated source — policy evaluated</option>
             </TextField>
 
+            {automationError?<Alert severity="warning">{automationError} <Button type="button" onClick={()=>setAutomationRetry(n=>n+1)}>Retry configuration</Button></Alert>:automationLoading?<Typography variant="body2" color="text.secondary">Loading configured automation sources…</Typography>:!automation.length?<Typography variant="body2" color="text.secondary">No configured instrument automation source is available for this date. Use manual review; listing-only namespaces belong to listing creation.</Typography>:null}
             {mode === "AUTOMATED" ? <Paper variant="outlined" sx={{ p: 2, bgcolor: "#f8fbff" }}>
               <Stack spacing={2}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Source and idempotency facts</Typography>
                 <Typography variant="body2" color="text.secondary">These fields explain who supplied the record and let a retry return the same proposal instead of creating a duplicate.</Typography>
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                  <TextField label="Source system" value="Bank A static data production" disabled fullWidth helperText="Configured source system: BANK_A_STATIC_PROD." />
-                  <TextField label="Source namespace" value="BANK_A_STATIC_PROD" disabled fullWidth helperText="Namespace in which the external code is meaningful." />
+                  <TextField select label="Automation source and policy" value={automationChoice} onChange={e=>setAutomationChoice(e.target.value)} required fullWidth slotProps={nativeSelect} helperText="Only active, date-valid shared or tenant-owned instrument configurations are offered."><option value="">Choose a configured source…</option>{automation.map((o,i)=><option key={`${o.sourceSystemId}:${o.policyCode}:${o.sourceNamespace}`} value={String(i)}>{o.sourceName} · {o.policyName} · v{o.policyVersion} · {o.sourceNamespace}</option>)}</TextField>
+                  <TextField label="Source namespace" value={selectedAutomation?.sourceNamespace??""} disabled fullWidth helperText="Namespace in which the external code is meaningful." />
                   <TextField label="Source object type" value="INSTRUMENT" disabled fullWidth helperText="This screen creates an economic instrument. Venue-specific mappings belong to the separate listing workflow." />
                 </Stack>
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                  <TextField label="Source external ID" value={sourceExternalId} onChange={(event) => setSourceExternalId(event.target.value)} required placeholder="Example: BANK-ACME-XLON" fullWidth helperText="The bank/provider code to map to the new internal UUID." />
+                  <TextField label="Source external ID" value={sourceExternalId} onChange={(event) => setSourceExternalId(event.target.value)} required placeholder="Provider instrument identifier" fullWidth helperText="The bank/provider code to map to the new internal UUID." />
                   <TextField label="Source payload ID" value={sourcePayloadId} onChange={(event) => setSourcePayloadId(event.target.value)} fullWidth helperText="Optional UUID of the retained inbound payload/message." />
                 </Stack>
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                  <TextField label="Automation policy" value="BANK_A_EQUITY_CREATE" disabled fullWidth helperText="Policy requires ISIN + FIGI, an issuer, and confidence ≥ 0.95. Venue listings are proposed separately." />
+                  <TextField label="Automation policy" value={selectedAutomation?`${selectedAutomation.policyName} · v${selectedAutomation.policyVersion}`:""} disabled fullWidth helperText="The server revalidates this configured policy when the proposal is submitted." />
                   <TextField label="Confidence score" value={confidence} onChange={(event) => setConfidence(event.target.value)} type="number" required slotProps={{ htmlInput: { min: 0, max: 1, step: 0.01 } }} fullWidth helperText="Normalized source confidence from 0 to 1. Example: 0.99." />
-                  <TextField label="Idempotency key" value={idempotencyKey} onChange={(event) => setIdempotencyKey(event.target.value)} required placeholder="Example: bank-a-file-2026-09-02-row-17" fullWidth helperText="Stable source event key. Retrying the same key returns the original proposal." />
+                  <TextField label="Idempotency key" value={idempotencyKey} onChange={(event) => setIdempotencyKey(event.target.value)} required placeholder="Stable source event identifier" fullWidth helperText="Stable source event key. Retrying the same key returns the original proposal." />
                 </Stack>
               </Stack>
             </Paper> : <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fffdf8" }}><Typography variant="subtitle2" sx={{ fontWeight: 800 }}>What happens next?</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.45 }}>The system stores your submitted facts as a pending proposal. Operations can inspect the identifiers, source evidence, and duplicate checks before approving or rejecting it. Until approval, there is no tradable instrument or listing in the canonical master.</Typography></Paper>}
 
             <Stack direction="row" spacing={1.5} sx={{ justifyContent: "space-between", alignItems: "center" }}>
               <Button component={Link} href="/" variant="text">Cancel</Button>
-              <Button type="submit" variant="contained" disabled={submitting}>{submitting ? "Submitting…" : mode === "MANUAL" ? "Submit instrument for review" : "Evaluate source proposal"}</Button>
+              <Button type="submit" variant="contained" disabled={!canPropose||submitting||currencyState!=="ready"||(mode==="AUTOMATED"&&!selectedAutomation)}>{submitting ? "Submitting…" : mode === "MANUAL" ? "Submit instrument for review" : "Evaluate source proposal"}</Button>
             </Stack>
           </Stack>
         </Card>

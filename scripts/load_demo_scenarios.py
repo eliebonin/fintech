@@ -22,5 +22,12 @@ alembic_config = Config(str(project_root / "alembic.ini"))
 alembic_config.set_main_option("script_location", str(project_root / "alembic"))
 alembic_config.set_main_option("sqlalchemy.url", database_url)
 command.upgrade(alembic_config, "head")
-load_demo_data(create_engine(database_url))
+engine=create_engine(database_url)
+load_demo_data(engine)
+from security_master_schema.demo_data import DEMO_IDS
+from trading.profiles.migration import backfill_profiles
+with engine.begin() as connection:
+    for tenant in (DEMO_IDS['tenant'],DEMO_IDS['second_tenant']):
+        backfill_profiles(connection,DEMO_IDS['demo_user_account'],tenant)
+engine.dispose()
 print("Synthetic HSBC XLON mapping, EOD market-data, and Soft-NAV scenario loaded.")

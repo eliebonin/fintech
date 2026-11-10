@@ -67,13 +67,13 @@ describe("listing-first trade ticket", () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it("shows parties, classifications and typed properties before booking", () => {
+  it("waits for strategy selection before exposing governed parties and custom fields", () => {
     const context = {tenantId:"tenant",bookedByUserAccountId:"actor",properties:[{definitionId:"flag",code:"FLAG",label:"Client instructed",valueType:"BOOLEAN" as const,required:false,choices:[],description:null}],tags:[{tagId:"tag",code:"CORE",label:"Core"}]};
     const html = renderToStaticMarkup(<TradeTicket listing={listing} strategies={[]} context={context} />);
-    expect(html).toContain("Counterparty");
-    expect(html).toContain("Executing broker");
-    expect(html).toContain("Trader");
-    expect(html).toContain("Client instructed");
+    expect(html).toContain("Select a strategy to load its standard and custom fields.");
+    expect(html).not.toContain("Executing broker");
+    expect(html).not.toContain("Client instructed");
+    expect(html).toContain("No custom trade properties selected for this strategy.");
     expect(html).toContain("Review booking");
   });
 

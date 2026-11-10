@@ -1,12 +1,36 @@
 # Reviewed findings
 
+## LIFECYCLE-TIER-001 — Commercial access and assistance selection were conflated
+
+**Resolved for bounded bond/FX maturity · Confirmed (reproduced and regression-tested) · 5 November 2026.** New subscription/selection services and native consumer guards deny Tier2 no-proposal posting and above-ceiling assisted use. Reviewed tenant transitions never silently change commercial authority, review controls or financial history. [Delivery/evidence](docs/delivery/lifecycle-assistance-entitlements-20261105.md) records schema112, scoped APIs/UI, actual downgrade locking and receipt/correction rules. General notification discovery, billing and other lifecycle handlers remain planned scope, not claims of this fix.
+
+## BROWSER-LEGACY-001 — Retired allocation editor browser cases
+
+**Resolved · Confirmed (reproduced and browser-regression-tested) · 5 November 2026.** The two cases in `apps/ops-console/browser-tests/lifecycle-allocation-layout.spec.ts` originally timed out while looking for the retired global allocation editor and save endpoint. They now use the current versioned profile workflow and its HTTP contract. Coverage preserves long-label/control readability at 1280px and 390px, keyboard focus return, required publication reason, explicit review, correctly versioned lifecycle-rule payload, read-only published rules and an unchanged tenant default. No product code, old editor or global authority was restored. The repaired cases pass individually and run with the current lifecycle/profile/ticket browser journeys; exact final results are retained in the lifecycle delivery ledger.
+
+## PROFILE-001 — Tenant-global metadata rules prevented strategy-specific configuration
+
+**Resolved · Confirmed (reproduced and regression-tested) · 4 November 2026.**
+The former shared annotation validator and tenant-wide lifecycle policy could not express differing requirements for funds, AMCs and sleeves. [Profile delivery](docs/delivery/tenant-reference-data-trade-profiles-20261104.md) replaces effective rule authority with explicit strategy pins and updates every supported consumer. Focused tests cover stale imports, correction provenance, atomic batch adoption, source retirement and booking/adoption races; eight browser tests and the full frontend suite pass. Existing source identities, economic evidence and permission grants are retained. Profile-specific value subsets and saved drafts remain deliberate scope limits; this does not resolve unrelated open audit findings below.
+
+## LIFECYCLE-ALLOC-001 — Aggregate maturity entries lose tenant classifications
+
+**Resolved for bond/deliverable FX maturity; locally activated · 4 November 2026.**
+Bond/FX maturity previously netted source allocations and omitted new trade annotation
+rows. Multi-entry bond events also reused a globally unique source-event identifier.
+[The delivery](docs/delivery/lifecycle-allocation-preservation-20261104.md) records the
+allocation view, typed field validation, atomic posting and per-movement identity fixes.
+Focused DB tests reproduce classification loss, required-field omission, and second-entry
+failure; whole-event rollback, opposing allocations and cancellation are now covered.
+Historical mismatches and retired-source remediation remain explicit limitations.
+
 ## Rate-exchange follow-up scope — 30 October 2026
 
 The [rate-exchange delivery](docs/delivery/rate-exchange-swaps-20261030.md) closes
 the four source posting exceptions with native, separately priced contracts.
 Its inferred scheduling/principal conventions and the existing bond-income versus
 total-return distinction are disclosed limitations, not confirmed legal terms.
-Generated flows, rate-swap monetary measures and full-portfolio financial
+Generated flows, rate-risk sensitivities and full-portfolio financial
 acceptance remain outside this change; [F18](docs/product/features/product-booking.md#f18-generic-swaps)
 tracks that remaining scope. Focused regressions and live posting checks do not
 supersede the other open findings below.
@@ -538,6 +562,56 @@ Cash extraction does not modify that implementation or this test.
 - **Boundary:** This fixes the Measures preview, not all generic quantity-only
   position consumers. Historical mixed agreements still require explicit remediation.
 
+## MEASURES-006 — Resolved — Frozen option type and unit-note denomination recovery
+
+**Evidence:** Confirmed by failing native preview tests, 3 November 2026.
+
+- **Source:** `positions.holdings_repository.holding_conventions`, consumed by
+  strategy positions and `valuation.measure_inputs`.
+- **Trigger/impact:** An option BOOKED payload without flat product metadata was
+  classified as OPTION_BOOKING; a percentage-quoted note booked in units could
+  retain multiplier 1 instead of its saved denomination. These blocked accurate
+  measure support and could split equivalent holdings into wrong convention keys.
+- **Resolution:** Recover canonical OPTION and the saved percentage-note unit
+  denomination. Retain explicit frozen factors; native measure validation rejects
+  conflicting proof rather than substituting current reference terms. Stored
+  trades and published calculations are untouched.
+- **Regressions:** [native product measures](tests/test_expanded_measure_inputs.py),
+  [quantity conventions](tests/test_strategy_holdings.py) and
+  [delivery/remaining risk boundaries](docs/delivery/expanded-position-measures-20261103.md).
+
+## MEASURES-007 — Resolved — Permitted missing marks crashed the measure page
+
+**Evidence:** Confirmed by live HTTP failure and isolated red/green tests, 3 November 2026.
+
+- **Source:** `valuation.measure_inputs.mark`, native `price_inputs.MissingPriceInput`.
+- **Trigger/impact:** A WARN/MANUAL_OVERRIDE policy with an absent eligible mark
+  raised the P&L population-gap exception outside the preview's ValueError handler,
+  producing HTTP 500 instead of an unavailable measure or compatible dirty/clean
+  fallback. Known reference amounts and other rows were hidden by the page error.
+- **Resolution:** Handle only this known missing-price exception at mark selection.
+  Preserve per-measure unavailability, original policy/override selection and
+  current DISPLAY denial. Do not invent a price or change P&L publication rules.
+- **Regression:** `test_policy_permitted_missing_mark_is_an_unavailable_measure_not_a_page_failure`
+  in [expanded product checks](tests/test_expanded_measure_inputs.py); 46 focused
+  price/permission checks and successful live report reload recorded in the
+  [delivery](docs/delivery/expanded-position-measures-20261103.md).
+
+## MEASURES-008 — Resolved — Forward reference kept the booked currency
+
+**Evidence:** Introduced and caught during priority-6 implementation; live read and existing contractual-leg regression reproduced it, 3 November 2026.
+
+- **Source:** `valuation.measure_inputs.preview_measures`, FX_FORWARD branch.
+- **Trigger/impact:** Separating option strike currency added an independent
+  reference currency; the forward branch changed its native base currency but
+  did not update that reference field. Reference amount display/conversion could
+  therefore disagree with the already correct contractual base leg.
+- **Resolution:** Bind forward reference currency to the actual contract base.
+  Stored trades, frozen results and daily P&L were untouched.
+- **Regression:** [existing native forward checks](tests/test_fx_forward_measure_inputs.py)
+  now explicitly compare reference/base-leg currency and strategy conversion;
+  42 forward/product checks passed and the corrected live EUR/GBP row was inspected.
+
 ## MEASURES-005 — P2 — Slow monetary input resolution and full-history scaling risk
 
 **Current status — 2026-10-16:** Partially addressed: matching-series constraints fix the measured broad observation scan; rights/history/roster reads, catalogue projections, holdings definitions and complete forward proofs are batched. Read-only operating probes measured identical candidate rows (~899 ms → ~6 ms) and an eleven-position scoped monetary read phase of ~0.53 s. Full-history/checkpoint, explorer-history, complete access-matrix and concurrent-load scaling remain open; existing per-user/per-batch authority checks are deliberately retained. See [query-efficiency evidence and limits](docs/delivery/quality-reviews/2026-10-16-query-efficiency.md). The original finding below describes the pre-fix trigger.
@@ -747,7 +821,20 @@ Original finding below is retained as dated evidence.
   late/partial coupon and negative stock; exact reporting amounts and currency
   labels survive amendments/successors without recomputing published evidence.
 
-## FIX-VAL-002 — P2 — Non-ledger source impact fan-out remains incomplete
+## FIX-VAL-002 — Scoped source reassessment delivered
+
+**Current status — 3 November 2026:** [Consistency delivery](docs/delivery/instrument-consistency-20261103.md)
+adds scoped market observations/vintages/corrections, chosen policy/rules/cuts/
+priorities, calendar/assignment/venue and visible quantity-action/review-chain
+fingerprints. Detail, history, SQL-filtered worklist and publication use the same
+source comparison. Frozen published amounts stay unchanged. Requested price
+windows preserve lagged NAV semantics; unrelated dates, unentitled observations
+and independent new policy versions do not automatically replace the frozen
+choice. Older batches need fresh calculation to acquire this dependency proof.
+General reference amendments, distribution entitlement and representative
+large-history capacity remain outside this resolution. The original dated
+finding below is preserved as the pre-fix evidence, not current behavior.
+
 
 **Evidence status:** Confirmed (static scope limitation, 2026-10-14).
 

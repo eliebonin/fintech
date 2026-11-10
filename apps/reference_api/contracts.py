@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any, Literal, Annotated
 from uuid import UUID
 
+from trading.profiles.contracts import ConfigurationView
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
 from .swap_creation_contracts import GenericSwapTerms,SwapTerms
 from .instrument_display_contracts import InstrumentDisplayView
@@ -467,6 +468,7 @@ class TradeResponse(BaseModel):
 
 
 class TradePropertyDefinitionView(BaseModel):
+    inherited_only:bool|None=Field(default=None,alias="inheritedOnly")
     definition_id: UUID = Field(alias="definitionId")
     code: str
     label: str
@@ -494,6 +496,7 @@ class TradeBookingContextView(BaseModel):
     properties: list[TradePropertyDefinitionView]
     tags: list[TradeTagView]
     model_config = ConfigDict(populate_by_name=True)
+    tradeProfile: ConfigurationView | None = None
 
 class TradeBookingContextResponse(BaseModel):
     data: TradeBookingContextView

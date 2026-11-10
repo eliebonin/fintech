@@ -318,8 +318,8 @@ export function getFxDelivery(id:string,options:EquityProposalOptions) {
   return listReferenceCatalogue<components['schemas']['DeliveryResponse']>(`/v1/trades/${encodeURIComponent(id)}/fx-delivery`,options);
 }
 
-export function getTradeBookingContext(options: EquityProposalOptions): Promise<components["schemas"]["TradeBookingContextResponse"]> {
-  return listReferenceCatalogue("/v1/trades/booking-context", options);
+export function getTradeBookingContext(options: EquityProposalOptions, strategyId?:string,corrects?:string): Promise<components["schemas"]["TradeBookingContextResponse"]> {
+  return listReferenceCatalogue(`/v1/trades/booking-context${strategyId?`?strategyId=${encodeURIComponent(strategyId)}${corrects?`&corrects=${encodeURIComponent(corrects)}`:""}`:""}`, options);
 }
 
 export function searchCashBookingListings(options:EquityProposalOptions,params:URLSearchParams) {
@@ -893,3 +893,11 @@ export function listIndexFamilies(options: EquityProposalOptions): Promise<Index
 
 // Compatibility exports: browser catalogue behavior lives in one adapter.
 export {listDayCountConventionsFromBff,listCurrenciesFromBff,listReturnProfilesFromBff,listIndexKindsFromBff,listOrganisationsFromBff,listIndexFamiliesFromBff} from './browser-api-client';
+
+/** Tenant identity is supplied by the verified BFF context, never the query. */
+export async function getEquityCreationOptions(context:TenantContext,day:string){
+  const response=await referenceFetch(fetch)(new URL(`/v1/equity-creation-options?effectiveDate=${encodeURIComponent(day)}`,process.env.REFERENCE_API_URL??'http://localhost:8000'),{
+    method:'GET',cache:'no-store',headers:{Accept:'application/json','X-Tenant-Id':context.tenantId,'X-User-Account-Id':context.userAccountId}});
+  if(!response.ok)throw new ReferenceApiError(response.status,'Creation choices could not be loaded.');
+  return await response.json() as components['schemas']['EquityCreationOptionsResponse'];
+}

@@ -43,6 +43,8 @@ def field(connection,identifier):
     return create_property(connection,TENANT,ACTOR,dict(code="TEST_"+uuid4().hex,label="Rationale",description="Why this trade was executed",valueType="REFERENCE",catalogueId=identifier))
 
 def book(connection,definition,record,key=None):
+    from tests.profile_fixtures import registry_profile
+    registry_profile(connection,TENANT,ACTOR,DEMO_IDS['strategy'])
     request=TradeBookingRequest(listingId=DEMO_IDS["hsbc_xlon_listing_node"],strategyId=DEMO_IDS["strategy"],side="BUY",quantity="1",executionPrice="12.5",tradeDatetime="2026-10-01T10:00:00Z",settlementDate="2026-10-05",properties=[dict(definitionId=definition,value=str(record))])
     return book_listed_cash_trade(connection,TENANT,ACTOR,request,key or str(uuid4()),"governed-test")
 

@@ -9,7 +9,7 @@ from security_master_schema import models as m,access_management as am
 from security_master_schema.demo_data import DEMO_IDS as ids
 
 
-def setup(c,r,trade):
+def setup(c,r,trade,*,assistance=True):
     maturity=r.closing_cutoff.date()
     booked=add_bond(c,r,trade,maturity.isoformat())
     listing=c.scalar(select(m.trade.c.trade_subject_reference_node_id).where(m.trade.c.trade_id==booked))
@@ -18,6 +18,9 @@ def setup(c,r,trade):
     group=am.save_group(c,r.tenant_id,ids['demo_user_account'],code='REDEEM_'+uuid4().hex,name='Synthetic redemption Ops',actions=actions,scope_mode='SELECTED',strategy_ids=[r.strategy_id])
     # Existing user groups preserved; this grant exists only in rollback fixture.
     c.execute(m.access_group_member.insert().values(tenant_id=r.tenant_id,group_id=group,user_account_id=ids['demo_user_account']))
+    if assistance:
+        from tests.lifecycle_assistance_fixtures import enable
+        enable(c,r.tenant_id,r.strategy_id,'BOND_MATURITY')
     return listing,booked,group
 
 

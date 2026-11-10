@@ -55,8 +55,9 @@ def iter_ledger_facts(connection, request, *, subject_ids=None):
                         if not redemption or e['payload_hash']!=evidence_hash(snapshot):
                             raise PositionError('Missing or inconsistent frozen maturity redemption evidence')
                         inputs=redemption['inputs'];proof=redemption['authority']
-                        move=next((item for item in inputs['movements'] if UUID(item['subjectId'])==row['trade_subject_reference_node_id']),None)
-                        if (move is None or Decimal(move['quantity'])!=row['quantity'] or Decimal(move['price'])!=row['execution_price']
+                        from security_master_schema.maturity_evidence import closing_movement
+                        move=closing_movement(inputs,redemption.get('movementKey'))
+                        if (move is None or UUID(move['subjectId'])!=row['trade_subject_reference_node_id'] or Decimal(move['quantity'])!=row['quantity'] or Decimal(move['price'])!=row['execution_price']
                             or UUID(inputs['instrumentId'])!=row['reference_instrument_node_id'] or UUID(inputs['strategyId'])!=request.strategy_id
                             or inputs['valueDate']!=row['trade_datetime_utc'].date().isoformat() or inputs['scope']!='PRINCIPAL_ONLY'
                             or inputs['paymentRecognised'] is not False or UUID(proof['actorId'])!=e['recorded_by_user_account_id']):

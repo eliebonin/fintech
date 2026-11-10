@@ -66,6 +66,8 @@ def valued():
                 cut_id=ids['valuation_cut'],reporting_currency_id=ids['gbp_currency'],
                 opening_cutoff=datetime(2026,9,29,22,tzinfo=timezone.utc),closing_cutoff=datetime(2026,10,1,22,tzinfo=timezone.utc),
                 information_cutoff=datetime.now(timezone.utc)+timedelta(minutes=1))
+            from trading.profiles.migration import initialize_strategy_profile
+            initialize_strategy_profile(c,ids['tenant'],ids['demo_user_account'],strategy)
             yield c,request,booked
         finally:
             if tx.is_active: tx.rollback()

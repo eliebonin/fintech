@@ -18,7 +18,7 @@ No licensing, product, calendar or price-unit guard is waived.
 Separate from the P&L bridge below: [position monetary measures](../../delivery/position-monetary-measures-20261015.md)
 provide an on-demand, non-published stock preview. Equity/ETF/fund measures are
 equal by project convention; full bond value prefers dirty then clean plus an
-assessed accrued stock; bounded native index swaps distinguish reference notional,
+exact-date current maintained accrued stock; bounded native index swaps distinguish reference notional,
 underlying exposure and whole-swap MTM. This does not expand derivative P&L support
 or make the preview a staged NAV, weight, regulatory-risk result or official value.
 
@@ -169,3 +169,34 @@ a full security disposal. Automatic entitlement, interest generation, payment-to
 and stock/cash reconciliation remain separate work.
 
 Independent provider/custodian reconciliation, representative scale tests, queued calculations, broader non-ledger source-impact assessment, intraday movement-based cash P&L/full NAV, broader corporate actions, discounted forward MTM and unsupported-product pricing remain separate work. Bounded cash-snapshot source-change detection is implemented; it is not a universal source-impact engine. This matrix documents/test-pins the supported engine; it does not eliminate those boundaries.
+
+
+## Current source consistency — 3 November 2026
+
+[Dependency and stock consistency](../../delivery/instrument-consistency-20261103.md)
+retains scoped source fingerprints in new calculations. Price-date windows respect
+NAV lag/freshness; policy versions and calendar publications stay pinned until
+explicitly reassigned. Changed inputs require review and a staged successor,
+without changing published amounts. A source-population change is not itself
+proof of a financial error. The same predicate drives detail/history/worklist
+selection before pagination. Existing required-mark versus optional-interest
+publication rules remain unchanged.
+
+Bond monetary previews read maintained closing stocks, not direct daily-payload
+balances. Missing/stale/ambiguous allocation stays unavailable; DIRTY takes
+precedence. Frozen zero-coupon terms and explicitly assessed zero remain distinct
+from an unknown stock. No preview reconstruction or automatic stock allocation
+between listings is performed.
+
+
+## Product monetary preview — 3 November extension
+
+This read-only projection is separate from daily P&L staging/publication.
+[Measure definitions, source evidence and limits](../../delivery/expanded-position-measures-20261103.md)
+cover spot crypto, dated linear crypto futures, listed vanilla options, funded
+notes and whole-mark swaps. Option contractual strike notional is shown in strike
+currency, while premium value uses premium currency and its own reporting FX.
+Unmodelled delta/look-through/rate-risk exposure remains unavailable. Note DIRTY
+marks contain accrual; CLEAN marks require an assessed note closing-stock bridge.
+That bridge is not reconstructed by the bond history engine. Futures current
+notional never becomes a cleared MTM or an assumed zero.

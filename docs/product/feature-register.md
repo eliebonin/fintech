@@ -1,5 +1,22 @@
 # Desired features and implementation register
 
+5 November F24/F51: [Lifecycle worklist](../delivery/lifecycle-worklist-20261105.md) adds the menu-accessible bond-maturity detector, scoped chronological and instrument-name/identifier filters/counts,25/50/100 pagination, event inspection and context-preserving handoff to native processing. [Booking UI follow-up](../delivery/lifecycle-booking-ui-20261105.md) separates closing inputs, processing controls and history. It creates no financial effect. FX/other discovery, retained task acknowledgement and billing remain deferred.
+
+5 November F51: implemented [lifecycle subscription ceilings, strategy/event selections and reviewed downgrades](../delivery/lifecycle-assistance-entitlements-20261105.md). Tiers0–3 are server-enforced in bounded bond/FX maturity; native review, user permissions and strategy scope remain independent. General notification discovery and billing remain deferred.
+
+4 November F20/F24/F51: implemented [tenant reference data and strategy trade profiles](../delivery/tenant-reference-data-trade-profiles-20261104.md). Shared tenant sources and field meanings are separate from immutable profile rules and explicit strategy assignments. All supported booking/import/correction and bond/FX maturity consumers resolve the pinned profile; publication does not adopt a version. See delivery for verification, cutover and remaining limits.
+
+4 November F20/F24/F51: [Allocation-preserving maturity](../delivery/lifecycle-allocation-preservation-20261104.md)
+adds joint custom-field classification, validated fresh inputs and atomic classified
+bond/FX closures. Capability statuses remain unchanged; general lifecycle notifications,
+other product handlers and historical reconciliation remain separate.
+
+3 November: [Instrument consistency cleanup](../delivery/instrument-consistency-20261103.md)
+removes seed-specific equity creation choices, adds scoped non-ledger source
+reassessment and aligns CLEAN bond monetary previews with maintained accrued
+stocks. Existing product support/status boundaries remain; source changes create
+review work, not rewritten published numbers.
+
 3 November F38/F39: [balance-history trade markers](../delivery/balance-trade-markers-20261103.md)
 add a default-on date-aligned Buy/Sell strip, same-day groups, exact booked
 accrual/nominal details and trade links. Both valuation-read and trade-read scope
@@ -65,7 +82,7 @@ F32/F39 ALPHA and F37 PARTIAL remain; this is not an official complete NAV.
 support governed creation, booking, frozen evidence and separately staged supplied
 marks. All four pending FCPGF source executions are posted; independent bank series
 and RESET records are preserved. No generated funding/principal flows, general
-term amendment or rate-swap monetary measures; F18 ALPHA and F37 PARTIAL remain.
+term amendment. [3 November](../delivery/expanded-position-measures-20261103.md) adds rate-swap reference/whole-mark values; rate-risk sensitivities remain unavailable. F18 ALPHA and F37 PARTIAL remain.
 
 30 October F27/F48: [explicit profiles and shared expensive-work admission](../delivery/dataset-rights-and-workload-20261030.md)
 close the missing-profile bypass and add safe backpressure without financial
@@ -112,7 +129,7 @@ checks. No automatic accrued generator or broader bond subtype is implied.
 28 October F16/F37/F39: [Linear crypto futures](../delivery/linear-futures-extension-20261028.md)
 extend native booking and daily variation to approved asset-unit CASH/PHYSICAL
 contracts. Frozen economics and ordinary governed publication remain. Delivery,
-margin accounting and crypto monetary-measure previews remain separate.
+margin accounting remains separate; current crypto monetary notional/exposure is covered by the 3 November measure extension.
 
 28 October F12/F36–F39: [non-ETF ETP then spot-crypto P&L](../delivery/etp-spot-crypto-pnl-20261028.md)
 preserves wrapper types, frozen factors and listing identity, normalizes historical
@@ -263,12 +280,12 @@ These are capability states, not permission states. A module can be enabled even
 | ID | Desired feature / detailed Markdown record | Status | Main remaining boundary |
 | --- | --- | --- | --- |
 | F19 | [Dedicated enriched booking and readiness](features/trade-operations.md#f19-booking-console-and-readiness) | ALPHA | Advisory readiness; writer remains authoritative. |
-| F20 | [Tenant-governed properties and catalogues](features/trade-operations.md#f20-governed-trade-properties) | ALPHA | Flexible field schema, with a 1,000-active-definition quota per tenant; immutable meanings and manual curation. |
+| F20 | [Tenant-governed properties and catalogues](features/trade-operations.md#f20-governed-trade-properties) | ALPHA | Shared sources, immutable field meanings and strategy-pinned profiles; 1,000 active definitions per tenant, manual curation and explicit adoption. |
 | F21 | [Trade history and frozen detail](features/trade-operations.md#f21-history-and-detail) | ALPHA | Not a complete settlement/accounting or export workspace. |
 | F22 | [Cancel/replace erroneous bookings](features/trade-operations.md#f22-record-corrections) | ALPHA | Record correction is not a market unwind; P&L replay is bounded. |
 | F23 | [Historical booking and valuation recognition date](features/trade-operations.md#f23-historical-and-recognition-dates) | ALPHA | Explicit date override; information cutoff still matters. |
 | F24 | [Contractual delivery, expiry, reset and redemption](features/trade-operations.md#f24-contractual-lifecycle) | PARTIAL | Plain-bond redemption and deliverable FX maturity closure feed bounded P&L; cash/delivery separate, notifications deferred. |
-| F51 | [Tenant lifecycle handling modes](features/trade-operations.md#f51-tenant-lifecycle-handling-modes) | ALPHA | Separate bond/FX retained modes and prepare/approve/book/cancel workspace; explicit scoped grants, no unattended booking or notification dashboard. |
+| F51 | [Tenant lifecycle handling modes](features/trade-operations.md#f51-tenant-lifecycle-handling-modes) | ALPHA | Typed0–3 subscription ceiling, scoped strategy/event choice, reviewed downgrades and bond/FX prepare/confirm/approve/book/cancel; Bond maturity worklist delivered; FX/other discovery and billing deferred. |
 
 ## Market data
 
@@ -301,7 +318,7 @@ No new supported dataset family is implied.
 | ID | Desired feature / detailed Markdown record | Status | Main remaining boundary |
 | --- | --- | --- | --- |
 | F36 | [Relevant positions from immutable trade history](features/valuation-and-pnl.md#f36-position-reconstruction) | ALPHA | No total 1,000-trade cap; reviewed basic share-ratio replay. Complex entitlements/transformations and historical scaling remain bounded. |
-| F37 | [Market P&L and position monetary measures](features/valuation-and-pnl.md#f37-economic-valuation) | PARTIAL | [Whole-swap marks](../delivery/swap-supplied-mark-pnl-20261023.md) and [listed-option premiums](../delivery/option-premium-pnl-20261023.md) use frozen factors once; [linear index/crypto futures P&L](../delivery/linear-futures-extension-20261028.md) uses daily price variation and closing FX with cash/physical crypto terms; [fully funded note P&L](../delivery/structured-note-pnl-20261028.md) uses supplied whole-note marks and optional assessed CLEAN interest/stocks. [Non-ETF ETPs and spot digital assets](../delivery/etp-spot-crypto-pnl-20261028.md) now use type-preserving cash economics, quote-currency FX and explicit crypto-day calendars. Position values & exposure reports native/fund amounts, forward legs and linear index-futures exposure, not forward/futures MTM or option monetary measures. Exact inspection retained. No weights, measure publication, modelled resets, automatic option expiry or generic derivative pricer. |
+| F37 | [Market P&L and position monetary measures](features/valuation-and-pnl.md#f37-economic-valuation) | PARTIAL | [Whole-swap marks](../delivery/swap-supplied-mark-pnl-20261023.md) and [listed-option premiums](../delivery/option-premium-pnl-20261023.md) use frozen factors once; [linear index/crypto futures P&L](../delivery/linear-futures-extension-20261028.md) uses daily price variation and closing FX with cash/physical crypto terms; [fully funded note P&L](../delivery/structured-note-pnl-20261028.md) uses supplied whole-note marks and optional assessed CLEAN interest/stocks. [Non-ETF ETPs and spot digital assets](../delivery/etp-spot-crypto-pnl-20261028.md) now use type-preserving cash economics, quote-currency FX and explicit crypto-day calendars. [Expanded position measures](../delivery/expanded-position-measures-20261103.md) report native/fund values for spot crypto, linear index/crypto futures, option strike notional/premium values, funded notes and whole-mark performance/rate swaps. Unmodelled option/note/rate exposure and forward/futures clearing MTM remain unavailable. Exact inspection retained. No weights, measure publication, modelled resets, automatic option expiry or generic derivative pricer. |
 | F38 | [Daily bond/note accrual and economic income/cost flows](features/valuation-and-pnl.md#f38-accruals-and-economic-flows) | PARTIAL | Assessed daily inputs, independent bond-stock revisions and explicit maintained-history updates at `/valuation/interest`; source-verified balance FX, coupon receipts and income stay separate. CLEAN-note adapters remain; DIRTY notes do not add embedded interest twice. Optional gaps remain nonblocking. No accrual model, scheduler, bulk stock upload or detached note receivables. |
 | F39 | [Stage → amendment → governed publication](features/valuation-and-pnl.md#f39-review-and-publication) | ALPHA | [Four report views](../delivery/valuation-report-tabs-20261026.md), business labels, instrument-type column/full-result filter, exact source coverage, 25/50/100/All position pagination, closable inspector/full-width table, separate typed cash lines and contextual publication confirmation. Shared totals/blockers and governed publication stay visible; URL navigation and drafts retained. Relevant source changes block stale publication. Independent/default-off scoped self-publication unchanged. No completeness assurance, full NAV or broad independent financial sign-off. |
 | F40 | [Full strategy/fund NAV and cash balance valuation](features/valuation-and-pnl.md#f40-full-nav-and-cash-balances) | PARTIAL | Dated balance register/translated preview plus [standard daily cash FX P&L](../delivery/cash-fx-pnl-20261025.md) staged/published per account/currency. No exclusion switch; actual valuation-window gaps are visible/non-blocking, never zero. Old/disappeared scopes do not create continuing upload warnings. Supplied nonzero foreign cash requires eligible FX; relevant source changes still block stale publication. No intraday movement P&L, full cash-stock publication or fund NAV. |

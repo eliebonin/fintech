@@ -67,23 +67,44 @@ def list_trade_traders(connection, tenant_id, query="", limit=100, curated=True)
     if curated: statement = restrict_selection(connection, tenant_id, "TRADER", statement, person.c.person_id)
     return [{"personId": row.person_id, "displayName": row.display_name} for row in connection.execute(statement.order_by(person.c.display_name, person.c.person_id).limit(limit))]
 
-def get_trade_booking_context(connection, tenant_id, actor_id):
+def get_trade_booking_context(connection, tenant_id, actor_id, strategy_id=None,correction_trade_id=None):
     assert_trade_writer(connection, tenant_id, actor_id)
-    definitions = connection.execute(select(m.trade_property_definition).where(m.trade_property_definition.c.tenant_id == tenant_id, m.trade_property_definition.c.status == "ACTIVE", m.trade_property_definition.c.value_type != "CHOICE").order_by(m.trade_property_definition.c.sort_order, m.trade_property_definition.c.code)).mappings().all()
-    tags = connection.execute(select(m.trade_tag).where(m.trade_tag.c.tenant_id == tenant_id, m.trade_tag.c.status == "ACTIVE").order_by(m.trade_tag.c.label)).mappings().all()
-    return dict(tenantId=tenant_id, bookedByUserAccountId=actor_id, properties=[dict(definitionId=r.definition_id, code=r.code, label=r.label, valueType=r.value_type, required=r.required, choices=r.choices, description=r.description, catalogueId=r.catalogue_id) for r in definitions], tags=[dict(tagId=r.tag_id, code=r.code, label=r.label) for r in tags])
+    context=None;definitions=[];required={}
+    if strategy_id is not None:
+        from trading.profiles.resolution import resolve_trade_configuration
+        context=resolve_trade_configuration(connection,tenant_id,strategy_id,actor_id,'TRADE_WRITE')
+        selected=[f for f in context['fields'] if f['definitionId'] is not None and f['requirement']!='NOT_USED']
+        required={f['definitionId']:f['requirement']=='REQUIRED' for f in selected}
+        definitions=connection.execute(select(m.trade_property_definition).where(m.trade_property_definition.c.tenant_id==tenant_id,m.trade_property_definition.c.definition_id.in_(required)).order_by(m.trade_property_definition.c.sort_order,m.trade_property_definition.c.code)).mappings().all()
+    inherited=set()
+    if correction_trade_id is not None:
+        if strategy_id is None:raise ValueError('A correction context requires its original strategy.')
+        from trading.profiles.inheritance import correction_sources
+        source,_=correction_sources(connection,tenant_id,actor_id,strategy_id,correction_trade_id)
+        inherited=set(source)-set(required)
+        if inherited:definitions+=connection.execute(select(m.trade_property_definition).where(m.trade_property_definition.c.tenant_id==tenant_id,m.trade_property_definition.c.definition_id.in_(inherited)).order_by(m.trade_property_definition.c.code)).mappings().all()
+    tags=connection.execute(select(m.trade_tag).where(m.trade_tag.c.tenant_id==tenant_id,m.trade_tag.c.status=='ACTIVE').order_by(m.trade_tag.c.label)).mappings().all()
+    return dict(tenantId=tenant_id,bookedByUserAccountId=actor_id,
+        properties=[dict(definitionId=r.definition_id,code=r.code,label=r.label,valueType=r.value_type,required=required.get(r.definition_id,False),inheritedOnly=r.definition_id in inherited,choices=r.choices,description=r.description,catalogueId=r.catalogue_id) for r in definitions],
+        tags=[dict(tagId=r.tag_id,code=r.code,label=r.label) for r in tags],tradeProfile=context)
 
 
 def read_trade_annotations(connection, tenant_id, trade_id):
     from .contracts import TradePropertyValueView, TradeTagView
+    version_id=connection.scalar(select(m.trade.c.trade_profile_version_id).join(m.strategy,m.strategy.c.strategy_id==m.trade.c.strategy_id).where(m.strategy.c.tenant_id==tenant_id,m.trade.c.trade_id==trade_id))
+    requirements={}
+    if version_id is not None:
+        rules=m.trade_profile_field_rule
+        requirements={(r['property_code'],r['property_version']):r['requirement']=='REQUIRED' for r in connection.execute(select(rules).where(rules.c.tenant_id==tenant_id,rules.c.profile_version_id==version_id,rules.c.property_code.is_not(None))).mappings()}
+    def was_required(row):return requirements.get((row.code,row.version_no),False) if version_id is not None else row.required
     definition, value = m.trade_property_definition, m.trade_property_value
     rows = connection.execute(select(definition, value.c.value).select_from(value.join(definition, value.c.definition_id == definition.c.definition_id)).where(value.c.trade_id == trade_id, value.c.tenant_id == tenant_id, definition.c.tenant_id == tenant_id).order_by(definition.c.sort_order, definition.c.code)).mappings().all()
-    properties = [TradePropertyValueView(definitionId=r.definition_id, code=r.code, label=r.label, valueType=r.value_type, required=r.required, choices=r.choices, description=r.description, value=r.value) for r in rows]
+    properties = [TradePropertyValueView(definitionId=r.definition_id, code=r.code, label=r.label, valueType=r.value_type, required=was_required(r), choices=r.choices, description=r.description, value=r.value) for r in rows]
     reference, record = m.trade_property_reference, m.reference_catalogue_record
     rows = connection.execute(select(definition, record.c.record_version_id, record.c.label.label("record_label"), record.c.code.label("record_code"), record.c.version_no.label("record_version"))
         .select_from(reference.join(definition, reference.c.definition_id == definition.c.definition_id).join(record, reference.c.record_version_id == record.c.record_version_id))
         .where(reference.c.tenant_id == tenant_id, reference.c.trade_id == trade_id, definition.c.tenant_id == tenant_id)).mappings()
-    properties.extend(TradePropertyValueView(definitionId=r.definition_id, code=r.code, label=r.label, valueType=r.value_type, required=r.required, choices=r.choices, description=r.description,
+    properties.extend(TradePropertyValueView(definitionId=r.definition_id, code=r.code, label=r.label, valueType=r.value_type, required=was_required(r), choices=r.choices, description=r.description,
         catalogueId=r.catalogue_id, value=str(r.record_version_id), displayValue=f"{r.record_code} — {r.record_label}", recordVersion=r.record_version) for r in rows)
     tag, assignment = m.trade_tag, m.trade_tag_assignment
     rows = connection.execute(select(tag).join(assignment, tag.c.tag_id == assignment.c.tag_id).where(assignment.c.trade_id == trade_id, assignment.c.tenant_id == tenant_id, tag.c.tenant_id == tenant_id).order_by(tag.c.label)).mappings().all()
