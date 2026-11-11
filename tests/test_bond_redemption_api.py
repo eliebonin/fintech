@@ -25,6 +25,8 @@ def test_prepare_and_book_routes_require_their_own_action(client):
     data=dict(strategyId=str(ids['uk_fund_strategy']),instrumentId=str(ids['bond_instrument_node']),expectedFingerprint='a'*64)
     assert client.post('/v1/lifecycle/bond-redemptions/prepare',headers=h,json=data).status_code==403
     data['strategyId']=str(ids['strategy'])
-    # Future maturity must not generate a proposal or fabricated closing price.
+    # A scoped action alone cannot bypass the unconfigured assistance tier.
+    # Native future-maturity rejection is exercised with enabled service fixtures.
     result=client.post('/v1/lifecycle/bond-redemptions/prepare',headers=h,json=data)
-    assert result.status_code==422,result.text
+    assert result.status_code==403,result.text
+    assert 'selected Tier2 or higher' in result.json()['detail']

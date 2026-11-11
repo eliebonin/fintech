@@ -67,7 +67,8 @@ if(mode==='trade-configuration')render(<TradeConfigurationConsole tenantId="synt
 if(mode==='structured')render(<AutocallForm/>);else
 if(mode==='reporting')render(<main className="mvp-page reg-page"><PageHelp pathname="/regulatory-reporting"/><h1>Transaction reporting</h1><ReportingWorkspace permissions={new URLSearchParams(location.search).get('reader')==='true'?['REPORTING_READ']:['REPORTING_READ','REPORTING_CONFIGURE','REPORTING_PREPARE','REPORTING_REVIEW','REPORTING_EXPORT']}/></main>);else
 if(mode==='future-convention')render(<FutureConfiguration/>);else
-if(mode==='lifecycle-worklist')render(<main className="mvp-page"><PageHelp pathname="/lifecycle" embedded/><LifecycleWorklist tenantId="synthetic-tenant" initial={{fromDate:'2026-10-01',toDate:'2026-12-01'}}/></main>);else
+if(mode==='lifecycle-worklist-strict')render(<React.StrictMode><main className="mvp-page"><LifecycleWorklist tenantId="synthetic-tenant" actorId="operator" initial={{fromDate:'2026-10-01',toDate:'2026-12-01'}}/></main></React.StrictMode>);else
+if(mode==='lifecycle-worklist')render(<main className="mvp-page"><PageHelp pathname="/lifecycle" embedded/><LifecycleWorklist tenantId="synthetic-tenant" actorId="operator" initial={{fromDate:'2026-10-01',toDate:'2026-12-01'}}/></main>);else
 if(mode==='lifecycle-context')render(<main className="mvp-page"><BondRedemptionConsole actorId="operator" tenantId="synthetic-tenant" initialStrategyId="00000000-0000-7000-8000-000000000555" initialInstrumentId="00000000-0000-7000-8000-000000000556"/></main>);else
 if(mode==='lifecycle-subscription')render(<main className="mvp-page access-admin-page"><PlatformLifecycleSubscription tenantId="synthetic-tenant"/></main>);else
 if(mode==='lifecycle-strategy')render(<StrategyLifecycleAssistance tenantId="synthetic-tenant" strategyId="00000000-0000-7000-8000-000000000555"/>);else

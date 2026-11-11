@@ -1,5 +1,9 @@
 # Reviewed findings
 
+## LIFECYCLE-CLOCK-001 — Current closure checks could miss database-recorded facts
+
+**Resolved · Confirmed (reproduced and regression-tested) · 11 November 2026.** A live drawer booking safely rolled back when Python lagged PostgreSQL and the zero-exposure check omitted its own closing entry. `lifecycle.recording_clock` now supplies current database knowledge for bond/FX candidates and worklist reads; closure checks refresh that knowledge after posting while retaining the economic cutoff. [Regression](tests/test_lifecycle_recording_clock.py) covers both products with a five-second application-clock lag, zero exposure and same-key replay. Final real isolated browser acceptance completed direct and independently approved bond closures. No historical timestamps, price/authority guards or operating records were weakened or rewritten; [delivery limits](docs/delivery/lifecycle-action-panel-20261110.md) remain explicit.
+
 ## LIFECYCLE-TIER-001 — Commercial access and assistance selection were conflated
 
 **Resolved for bounded bond/FX maturity · Confirmed (reproduced and regression-tested) · 5 November 2026.** New subscription/selection services and native consumer guards deny Tier2 no-proposal posting and above-ceiling assisted use. Reviewed tenant transitions never silently change commercial authority, review controls or financial history. [Delivery/evidence](docs/delivery/lifecycle-assistance-entitlements-20261105.md) records schema112, scoped APIs/UI, actual downgrade locking and receipt/correction rules. General notification discovery, billing and other lifecycle handlers remain planned scope, not claims of this fix.

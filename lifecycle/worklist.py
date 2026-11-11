@@ -1,5 +1,6 @@
 """Current lifecycle worklist: read model only; native commands own every effect."""
 from collections import defaultdict
+from .recording_clock import recording_now
 from datetime import datetime,time,timezone
 from decimal import Decimal,localcontext
 from uuid import UUID
@@ -53,7 +54,7 @@ def list_worklist(c,tenant,actor,query,*,now=None):
     query=WorklistQuery.model_validate(query)
     require_tenant_action(resolve_tenant_workspace(c,tenant,actor,governance_date()),'LIFECYCLE_READ')
     if query.strategyId:require_strategy_action(c,tenant,actor,'LIFECYCLE_READ',query.strategyId)
-    now=now or datetime.now(timezone.utc)
+    now=now or recording_now(c)
     if now.tzinfo is None or now.utcoffset().total_seconds()!=0:raise ValueError('Worklist evaluation must use UTC.')
     lifecycle_lock(c,tenant)
     subscription=lifecycle_subscription_view(c,tenant)

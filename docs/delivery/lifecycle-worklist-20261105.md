@@ -11,7 +11,7 @@ Choose all authorised strategies or one strategy, From/To dates, relevance (acti
 
 The server computes scoped counts across the complete selected population, then pages 25/50/100 rows. Draft filters do not relabel a previous result. Rows show readable strategy/instrument identifiers, exact local quantities, separate-entry counts, status and assistance. UUIDs are restricted to context links/technical details. Zero net with opposing nonzero allocations remains visible; missing evidence says Not assessed, never0.
 
-Inspect event opens a closable panel with remaining net/gross quantities, maturity, selected tier/ceiling, review requirement and reasons. Closing it restores focus and the table width. Its contextual link preselects the strategy/instrument in the existing maturity workspace. Navigation does **not** prepare or book. Ops still loads authoritative closing inputs, then prepares, independently approves, confirms or uses the existing one-click action according to current controls. There is no second posting endpoint or alternate pricing/quantity authority.
+`Review closing entry` now opens the [contextual closing-entry drawer](lifecycle-action-panel-20261110.md) for assisted events; notification-only rows use `Inspect event`. Remaining quantities, maturity, selected tier/ceiling, review reasons and native actions stay in the selected context. Closing restores focus and scroll; the full workspace remains a secondary link. Opening/navigation does **not** prepare or book. Ops explicitly loads authoritative inputs, then prepares, independently approves, confirms or uses the existing one-click action according to current controls. There is no second posting endpoint or alternate pricing/quantity authority.
 
 ## What is discovered
 
@@ -68,3 +68,5 @@ Checked 5 November 2026: [W3C WAI tables](https://www.w3.org/WAI/tutorials/table
 The contextual workflow link is a full-width primary action directly below the event status, before the supporting details. It retains its event-specific label and strategy/instrument destination, with hover and keyboard-focus states. Helper text explains that opening the workspace does not book a trade; all native authority and review controls still apply.
 
 Instrument-name/identifier search and the redesigned native booking workspace are documented in [the UI follow-up](lifecycle-booking-ui-20261105.md). Search filters the scoped server population before counts and pagination.
+
+11 November: the [closing-entry drawer](lifecycle-action-panel-20261110.md) replaces mandatory navigation for routine bond actions. Discovery remains read-only; explicit user actions invoke the existing native commands.

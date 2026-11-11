@@ -164,12 +164,15 @@ def bond_redemption_router(connection_dependency,membership,*,service_module=Non
             payload.expectedFingerprint,key,proposal_id=payload.proposalId,**override_args(payload)))
 
     @router.get(collection,response_model=dict[str,object])
-    def proposals(http_request:Request,strategyId:UUID,limit:int=Query(25,ge=1,le=100),offset:int=Query(0,ge=0,le=10000),
+    def proposals(http_request:Request,strategyId:UUID,instrumentId:UUID|None=None,limit:int=Query(25,ge=1,le=100),offset:int=Query(0,ge=0,le=10000),
         context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         def read(actor,operator):
             require_strategy_action(c,context.tenant_id,actor,'LIFECYCLE_READ',strategyId)
             if fx:require_strategy_action(c,context.tenant_id,actor,'MARKET_DATA_READ',strategyId)
             p=proposal_table;where=(p.c.tenant_id==context.tenant_id)&(p.c.strategy_id==strategyId)
+            if instrumentId is not None:
+                from lifecycle.history import instrument_history_clause
+                where=where&instrument_history_clause(p,context.tenant_id,strategyId,instrumentId,proposals=True)
             rows=[dict(r) for r in c.execute(select(p).where(where).order_by(p.c.recorded_at.desc(),p.c.proposal_id).limit(limit).offset(offset)).mappings()]
             current=service.policy(c,context.tenant_id,strategyId)
             from lifecycle.entitlements import lifecycle_subscription_view
@@ -190,12 +193,15 @@ def bond_redemption_router(connection_dependency,membership,*,service_module=Non
         return call(c,context,http_request,read)
 
     @router.get(collection+'/postings',response_model=dict[str,object])
-    def postings(http_request:Request,strategyId:UUID,limit:int=Query(25,ge=1,le=100),offset:int=Query(0,ge=0,le=10000),
+    def postings(http_request:Request,strategyId:UUID,instrumentId:UUID|None=None,limit:int=Query(25,ge=1,le=100),offset:int=Query(0,ge=0,le=10000),
         context:TenantContext=Depends(get_tenant_context),c=Depends(connection_dependency,scope='function')):
         def read(actor,operator):
             require_strategy_action(c,context.tenant_id,actor,'LIFECYCLE_READ',strategyId)
             if fx:require_strategy_action(c,context.tenant_id,actor,'MARKET_DATA_READ',strategyId)
             p=posting_table;where=(p.c.tenant_id==context.tenant_id)&(p.c.strategy_id==strategyId)
+            if instrumentId is not None:
+                from lifecycle.history import instrument_history_clause
+                where=where&instrument_history_clause(p,context.tenant_id,strategyId,instrumentId)
             rows=[dict(r) for r in c.execute(select(p).where(where).order_by(p.c.recorded_at.desc(),p.c.posting_id).limit(limit).offset(offset)).mappings()]
             for row in rows:
                 row['tradeStates']={str(r.trade_id):r.lifecycle_status for r in c.execute(select(m.trade.c.trade_id,m.trade.c.lifecycle_status).where(m.trade.c.trade_id.in_([UUID(i) for i in row['trade_ids']]))) }

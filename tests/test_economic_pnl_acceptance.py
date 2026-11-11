@@ -14,6 +14,8 @@ from valuation import storage
 
 
 def add_bond(c,r,trade,maturity='2030-01-01',*,coupon_type=None,convention_coupon_type=None):
+    # Synthetic historical evidence uses its known execution timestamp rather
+    # than depending on sub-second agreement between Docker and Python clocks.
     original=dict(c.execute(select(m.trade).where(m.trade.c.trade_id==trade)).mappings().one())
     listing=uuid4();node=dict(c.execute(select(m.financial_reference_node).where(m.financial_reference_node.c.reference_node_id==ids['hsbc_xlon_listing_node'])).mappings().one())
     c.execute(m.financial_reference_node.insert().values(**(node|dict(reference_node_id=listing,canonical_name='Synthetic bond listing',internal_code='BOND_'+listing.hex))))
@@ -22,7 +24,7 @@ def add_bond(c,r,trade,maturity='2030-01-01',*,coupon_type=None,convention_coupo
     definition=c.scalar(select(m.instrument_definition_version.c.instrument_definition_version_id).where(m.instrument_definition_version.c.instrument_node_id==ids['bond_instrument_node'],m.instrument_definition_version.c.is_current))
     identity=uuid4()
     c.execute(m.trade.insert().values(**(original|dict(trade_id=identity,trade_subject_reference_node_id=listing,reference_instrument_node_id=ids['bond_instrument_node'],
-        quantity=D('100000'),quantity_unit='NOMINAL',execution_price=D('99.75'),price_basis='PCT_OF_PAR'))))
+        quantity=D('100000'),quantity_unit='NOMINAL',execution_price=D('99.75'),price_basis='PCT_OF_PAR',created_at_utc=original['trade_datetime_utc']))))
     conventions=dict(instrumentDefinitionId=str(definition),instrumentId=str(ids['bond_instrument_node']),priceCurrencyId=str(ids['gbp_currency']),
         unitMultiplier='1',quoteFactor='100',productBasis='BOND',cleanExecutionAmount='98500',maturityDate=maturity)
     details=dict(priceType='DIRTY',cleanAmount='98500',dirtyAmount='99750',accruedInterestAmount='1250',settlementEvidence='SYNTHETIC')
@@ -34,7 +36,7 @@ def add_bond(c,r,trade,maturity='2030-01-01',*,coupon_type=None,convention_coupo
         details.update(cleanAmount='99750',accruedInterestAmount='0')
     snapshot=dict(schemaVersion=1,kind='PRODUCT_BOOKING',economics=dict(terms=terms,bondDetails=details,amount=details['dirtyAmount'],amountKind='CONSIDERATION',direction='PAY'),valuationConventions=conventions)
     c.execute(m.trade_lifecycle_event.insert().values(trade_id=identity,sequence_no=1,event_type='BOOKED',event_datetime_utc=original['trade_datetime_utc'],
-        recorded_by_user_account_id=ids['demo_user_account'],event_payload=json.dumps(snapshot)))
+        recorded_by_user_account_id=ids['demo_user_account'],recorded_at_utc=original['trade_datetime_utc'],event_payload=json.dumps(snapshot)))
     series=uuid4();source=dict(c.execute(select(m.market_data_series).where(m.market_data_series.c.market_data_series_id==ids['market_data_series'])).mappings().one())
     c.execute(m.market_data_series.insert().values(**(source|dict(market_data_series_id=series,reference_node_id=listing))))
     c.execute(m.market_data_series_dimension.insert().values(market_data_series_id=series,dimension_code='BOND_PRICE_TYPE',dimension_value='CLEAN'))

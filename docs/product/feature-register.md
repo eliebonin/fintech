@@ -357,3 +357,5 @@ These are discussed or documented product directions, **not new scope commitment
 ## Review and evidence boundary
 
 See the [documentation reconciliation report](../delivery/quality-reviews/2026-10-12-documentation-reconciliation.md) for inspected scope, discovered drift, research and verification. No application tests, database writes, deployment, commit or GitHub push are implied by a documentation update. Prior merge verification is retained in the [merge record](../delivery/tenant-access-administration-progress.md#completed-remediation-verification); it was partitioned diagnostics plus successful focused fixes, not one clean full-suite rerun.
+
+11 November: [Lifecycle closing-entry drawer](../delivery/lifecycle-action-panel-20261110.md) embeds the existing governed maturity workflow in the worklist, preserving filters and guarded financial retries; full-workspace access remains available. Direct and independently approved booking passed real isolated BFF/API/PostgreSQL acceptance; current ledger checks use database recording time. Operating activation remains separate (local port54329 is blocked).

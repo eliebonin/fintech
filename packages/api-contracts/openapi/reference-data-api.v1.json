@@ -30163,6 +30163,23 @@
           },
           {
             "in": "query",
+            "name": "instrumentId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrumentid"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -30987,6 +31004,23 @@
               "format": "uuid",
               "title": "Strategyid",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrumentId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrumentid"
             }
           },
           {
@@ -33013,6 +33047,23 @@
           },
           {
             "in": "query",
+            "name": "instrumentId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrumentid"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -33837,6 +33888,23 @@
               "format": "uuid",
               "title": "Strategyid",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrumentId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrumentid"
             }
           },
           {

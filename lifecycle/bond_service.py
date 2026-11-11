@@ -1,6 +1,8 @@
 """Plain bond maturity: sourced principal, immutable proposals, real closing trades."""
 import json
 from copy import deepcopy
+from dataclasses import replace
+from .recording_clock import recording_now
 from datetime import datetime,time,timezone
 from decimal import Decimal
 from uuid import UUID,uuid4
@@ -50,7 +52,7 @@ def configure(c,tenant,actor,operator,strategy,mode,revision,reason):
 def candidate(c,tenant,strategy,instrument,*,annotation_inputs=None):
     assistance_proof=current_assistance_proof(c,tenant,strategy,'BOND_MATURITY')
     lock_trade_catalogue(c,tenant)
-    now=datetime.now(timezone.utc)
+    now=recording_now(c)
     terms=c.execute(select(m.bond_terms).where(m.bond_terms.c.instrument_node_id==instrument,m.bond_terms.c.is_current,
         m.bond_terms.c.effective_from<=now.date())).mappings().one_or_none()
     dates=c.execute(select(m.instrument_dates).where(m.instrument_dates.c.instrument_node_id==instrument)).mappings().one_or_none()
@@ -168,8 +170,11 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
         persist_annotations(c,tenant,identity,move)
         trade_ids.append(str(identity))
     subjects=[b.key.subject_id for b in projection.buckets]
-    check_facts=tuple(iter_ledger_facts(c,projection.request,subject_ids=subjects))
-    check=reconstruct_allocations(check_facts,projection.request,load_allocation_policy(c,tenant,strategy),load_trade_annotations(c,tenant,[f.trade_id for f in check_facts],load_allocation_policy(c,tenant,strategy)))
+    # The source preview is frozen before posting. Verify the newly recorded
+    # closing entries at fresh database knowledge, retaining the economic cutoff.
+    check_request=replace(projection.request,information_cutoff=recording_now(c))
+    check_facts=tuple(iter_ledger_facts(c,check_request,subject_ids=subjects))
+    check=reconstruct_allocations(check_facts,check_request,load_allocation_policy(c,tenant,strategy),load_trade_annotations(c,tenant,[f.trade_id for f in check_facts],load_allocation_policy(c,tenant,strategy)))
     if any(b.closing_quantity for b in check.buckets): raise RedemptionConflict('Closing entry did not bring exposure to zero')
     row=c.execute(m.bond_redemption_posting.insert().values(tenant_id=tenant,strategy_id=strategy,proposal_id=proposal_id,
         request_key=key,request_hash=request_hash,evidence=data|dict(authority=proof,inputHash=fingerprint),trade_ids=trade_ids,

@@ -8,22 +8,25 @@ test('worklist applies server filters, paginates full counts and preserves conte
  await page.route('**/api/lifecycle/**',route=>{
   const request=route.request(),url=new URL(request.url());
   if(request.method()!=='GET'){writes.push(request.url());return route.fulfill({status:400,json:{detail:'Read-only journey'}});}
-  if(url.pathname.endsWith('/options'))return route.fulfill({json:{items:[{strategyId:strategy,label:'GBP Income'}],total:1,offset:0,limit:25}});
+  if(url.pathname.endsWith('/worklist/options'))return route.fulfill({json:{items:[{strategyId:strategy,label:'GBP Income'}],total:1,offset:0,limit:25}});
+  if(url.pathname.endsWith('/options'))return route.fulfill({json:{strategies:[{id:strategy,label:'GBP Income'}],instruments:[{id:instrument,label:'Treasury Gilt'}],policy:{mode:'DIRECT',revision:1},permissions:{LIFECYCLE_READ:true},assistance:{selectedTier:3,maximumTier:3,processingMode:'DIRECT',operations:{PREVIEW:{allowed:true,reasons:[]}}}}});
+  if(!url.pathname.includes('/worklist'))return route.fulfill({json:{items:[],total:0}});
   reads.push(url);const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??25);const matches=url.searchParams.get('q')?rows.filter(row=>row.instrumentName.includes(url.searchParams.get('q')!)):rows;
   return route.fulfill({json:{items:matches.slice(offset,offset+limit),total:matches.length,offset,limit,evaluatedAt:'2026-11-05T10:00:00Z',fromDate:url.searchParams.get('fromDate'),toDate:url.searchParams.get('toDate'),statusCounts:{BLOCKED:1,OVERDUE:30},subscription,discoveryEventTypes:['BOND_MATURITY'],instrumentDisplays:{},unavailableReason:null}});
  });
  await page.goto('/?mode=lifecycle-worklist');
  await expect(page.getByRole('table',{name:'Lifecycle events · 31 matching'})).toBeVisible();
  await expect(page.getByRole('row')).toHaveCount(26);
- await expect(page.getByRole('complementary',{name:'Event inspection'})).toHaveCount(0);
+ await expect(page.getByRole('dialog',{name:'Review closing entry',exact:true})).toHaveCount(0);
  await expect(page.getByRole('region',{name:'Lifecycle event report'}).getByText('Not assessed',{exact:true})).toBeVisible();
- await page.getByRole('button',{name:'Inspect Treasury Gilt 01 for GBP Income',exact:true}).click();
- const panel=page.getByRole('complementary',{name:'Event inspection'});
- await expect(panel.getByRole('heading',{name:'Event inspection',exact:true})).toBeFocused();
+ await page.getByRole('button',{name:'Review closing entry for Treasury Gilt 01 in GBP Income',exact:true}).click();
+ const panel=page.getByRole('dialog',{name:'Review closing entry',exact:true});
+ await expect(panel.getByRole('heading',{name:'Review closing entry',exact:true})).toBeFocused();
+ await panel.getByText('Event context and evidence',{exact:true}).click();
  await expect(panel).toContainText('original evidence is missing');
- await expect(panel.getByRole('link',{name:'Open one-click workflow'})).toHaveAttribute('href',`/trades/lifecycle?strategyId=${strategy}&instrumentId=${instrument}`);
- await page.getByRole('button',{name:'Close event inspection'}).click();
- await expect(page.getByRole('button',{name:'Inspect Treasury Gilt 01 for GBP Income',exact:true})).toBeFocused();
+ await expect(panel.getByRole('link',{name:'Open full workspace'})).toHaveAttribute('href',`/trades/lifecycle?strategyId=${strategy}&instrumentId=${instrument}`);
+ await page.getByRole('button',{name:'Close closing entry'}).click();
+ await expect(page.getByRole('button',{name:'Review closing entry for Treasury Gilt 01 in GBP Income',exact:true})).toBeFocused();
  await page.getByRole('combobox',{name:'Strategy',exact:true}).selectOption(strategy);
  await page.getByRole('combobox',{name:'Event relevance',exact:true}).selectOption('ACTIONABLE');
  await page.getByLabel('From date',{exact:true}).fill('2026-11-01');

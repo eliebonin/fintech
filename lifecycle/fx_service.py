@@ -1,5 +1,6 @@
 """Deliverable forward maturity closure, distinct from currency delivery and MTM."""
 import json
+from .recording_clock import recording_now
 from datetime import datetime,time,timezone
 from decimal import Decimal,localcontext
 from uuid import UUID,uuid4
@@ -112,7 +113,7 @@ def candidate(c,tenant,strategy,instrument,*,rate_override=None,annotation_input
     assistance_proof=current_assistance_proof(c,tenant,strategy,'FX_FORWARD_MATURITY')
     override=validated_override(rate_override)
     lock_trade_catalogue(c,tenant)
-    now=datetime.now(timezone.utc)
+    now=recording_now(c)
     day=c.scalar(select(m.instrument_dates.c.maturity_date).where(m.instrument_dates.c.instrument_node_id==instrument))
     if not day or day>now.date():raise ValueError('Forward maturity is not due yet')
     terms=load_fx_forward_booking_terms(c,tenant,instrument,as_of=day)
@@ -223,7 +224,7 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
             event_payload=json.dumps(canonical_payload(snapshot),sort_keys=True),payload_hash=evidence_hash(snapshot),recorded_by_user_account_id=actor,
             source_system_id='FX_MATURITY',source_event_id=evidence_hash(dict(tenantId=tenant,requestKey=key,movementKey=move['movementKey']))))
         persist_annotations(c,tenant,identity,move);trade_ids.append(str(identity))
-    _,_,_,remaining=_exposure(c,tenant,strategy,instrument,terms,cutoff,datetime.now(timezone.utc),with_rows=True)
+    _,_,_,remaining=_exposure(c,tenant,strategy,instrument,terms,cutoff,recording_now(c),with_rows=True)
     if _allocation_groups(remaining,load_allocation_policy(c,tenant,strategy),load_trade_annotations(c,tenant,list(remaining),load_allocation_policy(c,tenant,strategy))):
         raise RedemptionConflict('Closing entries did not bring every allocation to zero')
     row=c.execute(t.insert().values(tenant_id=tenant,strategy_id=strategy,proposal_id=proposal_id,request_key=key,request_hash=fingerprint,

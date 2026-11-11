@@ -708,3 +708,5 @@ are integrated with trade configuration and maturity preview. Regression evidenc
 [projection](../../tests/test_lifecycle_allocations.py), [store](../../tests/test_lifecycle_allocation_store.py),
 [HTTP](../../tests/test_lifecycle_allocation_api.py), [contracts](../../tests/test_lifecycle_allocation_contracts.py).
 This does not enable other product lifecycle handlers, accounting, or a notification dashboard.
+
+11 November: [Lifecycle closing-entry drawer](../delivery/lifecycle-action-panel-20261110.md) embeds the existing governed maturity workflow in the worklist, preserving filters and guarded financial retries; full-workspace access remains available. Direct and independently approved booking passed real isolated BFF/API/PostgreSQL acceptance; current ledger checks use database recording time. Operating activation remains separate (local port54329 is blocked).

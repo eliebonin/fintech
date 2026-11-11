@@ -16516,6 +16516,7 @@ export interface operations {
         parameters: {
             query: {
                 strategyId: string;
+                instrumentId?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -17030,6 +17031,7 @@ export interface operations {
         parameters: {
             query: {
                 strategyId: string;
+                instrumentId?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -18259,6 +18261,7 @@ export interface operations {
         parameters: {
             query: {
                 strategyId: string;
+                instrumentId?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -18773,6 +18776,7 @@ export interface operations {
         parameters: {
             query: {
                 strategyId: string;
+                instrumentId?: string | null;
                 limit?: number;
                 offset?: number;
             };

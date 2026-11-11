@@ -125,3 +125,5 @@ remediation remain disclosed in the delivery note. F20/F51 remain ALPHA; F24 rem
 ### Lifecycle search and booking presentation — 5 November 2026
 
 The [UI follow-up](../../delivery/lifecycle-booking-ui-20261105.md) adds instrument name/identifier search across the scoped worklist before counts/page selection. The existing maturity workspace presents context, controls, sourced inputs, approval and audit history in separate cards, retaining native posting authority and allocation validation. Processing-mode changes reload current assistance decisions; no booking occurs on navigation.
+
+11 November: [Lifecycle closing-entry drawer](../../delivery/lifecycle-action-panel-20261110.md) embeds the existing governed maturity workflow in the worklist, preserving filters and guarded financial retries; full-workspace access remains available. Direct and independently approved booking passed real isolated BFF/API/PostgreSQL acceptance; current ledger checks use database recording time. Operating activation remains separate (local port54329 is blocked).

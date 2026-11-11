@@ -1,5 +1,9 @@
 # Reviewed repository knowledge
 
+## Lifecycle closing-entry drawer — 11 November 2026
+
+[Delivery and verification](docs/delivery/lifecycle-action-panel-20261110.md) records embedded native review/booking at `/lifecycle`, guarded drafts/retries, instrument-scoped history before pagination and retained worklist context. Real isolated BFF/API/PostgreSQL acceptance completed direct and independently approved closures without cash effects. Current bond/FX knowledge and immediate closure checks use the database recording clock; explicit economic/historical cutoffs remain unchanged. No migration or operating financial changes were made. The normal local database port54329 remains blocked; this is isolated acceptance, not operating FCPGF activation.
+
 ## Lifecycle worklist — 5 November 2026
 
 [Delivery and limits](docs/delivery/lifecycle-worklist-20261105.md) records a derived current bond-maturity worklist at `/lifecycle`, exact scoped ledger/annotation reads, full-population filters/counts and safe native context handoff. Discovery requires explicit selected assistance1+ and a positive current ceiling; no grants/defaults are invented. Retired held references stay visible as blocked; unknown positions do not become zero. Pending source reassessment reuses the native fingerprint. Native financial, review and payment boundaries remain unchanged. No migration or persisted notification queue is added.
@@ -37,7 +41,7 @@ limitations remain; the preview does not certify a portfolio NAV.
 **Status:** Maintained scoped review  
 **Content type:** Reference  
 **Owner:** Product and engineering  
-**Last reviewed:** 2026-11-05 (scoped lifecycle-entitlement delivery; prior reviews retained)
+**Last reviewed:** 2026-11-11 (scoped lifecycle-panel delivery; prior reviews retained)
 
 Analyzed root: `C:/Users/forte/Elie/projects/python/fintech`. This is the implementation
 repository; `C:/Users/forte/Documents/ChatGPT/Tech V2` is a separate workspace.

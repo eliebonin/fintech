@@ -23,6 +23,9 @@ is not a runtime call graph or a guarantee of production feature completion.
   discovery/navigation. Full pending-source checks reuse the native candidate
   fingerprint. Stable event keys are not persisted task or financial authority.
   Only bond maturity discovery is delivered; use existing commands for effects.
+  Current ledger knowledge uses `lifecycle.recording_clock.recording_now`, including
+  fresh post-write closure checks; preserve explicit economic/historical cutoffs.
+  The worklist drawer reuses native commands and must retain uncertain-request identity.
   See [worklist boundary](docs/delivery/lifecycle-worklist-20261105.md).
 
 - `lifecycle.entitlements` owns the platform subscription ceiling; `lifecycle.assistance`
