@@ -25,8 +25,8 @@ def main():
     args = parser.parse_args()
     settings = Settings.from_environment()
     url = make_url(settings.database_url)
-    if settings.environment != 'local' or url.host not in {'localhost','127.0.0.1'} or url.port != 54329 or url.database != local_workspace_database():
-        parser.error('This operator seed is restricted to local platform_secm on port 54329.')
+    if settings.environment != 'local' or url.host not in {'localhost','127.0.0.1'} or url.port != 15432 or url.database != local_workspace_database():
+        parser.error('This operator seed is restricted to local platform_secm on port 15432.')
     if args.export and args.apply:
         parser.error('Export is read-only; inspect its evidence before a separate --apply.')
     if args.export:

@@ -60,7 +60,7 @@ def prepare():
     import pandas_market_calendars as calendars
     settings=IngestorSettings.from_environment()
     engine=create_engine(settings.database_url)
-    if settings.environment not in ('local','test') or engine.url.database!=local_workspace_database() or engine.url.port!=54329:
+    if settings.environment not in ('local','test') or engine.url.database!=local_workspace_database() or engine.url.port!=15432:
         raise ValueError('Only the named local personal database is permitted')
     context=api('trades/booking-context')['data']
     calendar=calendars.get_calendar('XPAR')

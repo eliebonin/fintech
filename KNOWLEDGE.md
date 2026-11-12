@@ -1,8 +1,44 @@
 # Reviewed repository knowledge
 
+## Lifecycle date proximity — 11 November 2026
+
+[Delivery and calendar limitations](docs/delivery/lifecycle-business-day-colours-20261111.md). `lifecycle.date_timing_store` bulk-loads visible existing calendars for paginated rows; `date_timing` computes labelled business-day bands independently of workflow status. Coupon calendar/unique visible venue/strategy settlement assignment take precedence; a genuinely unconfigured source yields an explicit weekday estimate, while configured-but-unusable evidence stays neutral. No event date, count, financial authority or cash/booking effect is changed. The earlier55-query option profile predates this additional display projection.
+
+## Other lifecycle source batches — 11 November 2026
+
+[Delivery and measured boundaries](docs/delivery/lifecycle-reader-batching-20261111.md). Historical option/future/note normalizers use lazy per-ledger-page identity candidates; original BOOKED matchers remain authoritative. FX discovery batches exact tenant-owned strategy/instrument pairs, trade/event rows and annotations, retaining the native exposure evaluator and full pending-candidate revalidation. Annotation subsets are indexed by trade and validated per root. No discovery batch enters financial commands. FCPGF FX reads155→49queries; synthetic futures101→53 and options135→55 with complete result/proof equality. Bonds/coupons were already batched. No migration or operating configuration change.
+
+The later option trace separates counts from latency: 55 total worklist queries include only one date fetch and 20 calls from four repeated permission-context resolutions. A five-read resolution measured 6.620 ms median on existing local tenant data; three redundant resolutions account for about 20 ms. Context/evidence reuse remains **pending**, recorded in [FIX.md](FIX.md#lifecycle-read-redundancy-003--fixed-option-worklist-overhead-remains-after-batching), and is not a demonstrated seconds-long bottleneck. The [current delivery checkpoint](docs/delivery/lifecycle-reader-batching-20261111.md#current-checkpoint) also records the separate Instrument/Event table columns and their UI verification.
+
+## Structured-worklist batch reads — 11 November 2026
+
+[Current delivery](docs/delivery/structured-lifecycle-batch-reads-20261111.md). `security_master_schema.instrument_terms_batch.TermsScheduleBatch` owns request/tenant/connection/transaction-bound,500-ID-chunked graph/table reads. `instrument_terms_schedule` uses one SQL-free renderer for single and bulk source projections. Worklist schedule states and visible identifier search are batched too. No process/global cache or per-root SQL fallback exists. Current FCPGF measurement is89 queries/1.310-second median with all270 events and87 full sources/proofs matching the frozen reader. The former scalar-cache class was removed; its dated mitigation remains historical evidence. Existing30-second full-worklist BFF headroom and separate small-read/write budgets remain. Graph depth/cycle and per-strategy ledger reconstruction limits are unchanged.
+
+## Structured schedule awareness — 11 November 2026
+
+[Delivery and limits](docs/delivery/structured-informational-notifications-20261111.md). `lifecycle.worklist_structured` discovers current source-linked coupon/autocall observations, final valuation and maturity for direct notes and structured performance references of held swaps. Independent `STRUCTURED_OBSERVATION`0/1 is notification scope only. All rows stay informational: upcoming, scheduled today, date passed/outcome not assessed, or source unavailable. Conditions/thresholds remain as stored; no fixing, payment or financial booking is calculated. `security_master_schema.instrument_terms_schedule` owns the unchanged shared source projection below HTTP; API imports and schema remain compatible. Migration115 extends the existing retained CHECK only.
+
+## Option lifecycle awareness — 11 November 2026
+
+[Delivery and limits](docs/delivery/option-lifecycle-notifications-20261111.md). `lifecycle.worklist_options` owns read-only product source/position inspection; `worklist_holdings` shares candidate predicates/deadline states with futures. Explicit `OPTION_EXPIRY` selections support0/1 only. Current contract changes are compared with original BOOKED facts; missing evidence remains unknown. Invisible underlying IDs/names are withheld. No exercise, assignment, financial closure, cash or delivery effect is inferred. Migration114 extends the retained event constraint without defaults/grants. Structured information-only schedules are delivered separately; outcome processing remains deferred.
+
+## Futures lifecycle awareness — 11 November 2026
+
+[Delivery and limits](docs/delivery/future-lifecycle-notifications-20261111.md). Independent retained `FUTURE_EXPIRY` choice supports manual0/notifications1 only. `lifecycle.worklist_futures` reuses immutable ledger/allocation reconstruction and approved date sources; canonical listings, shorts and opposing allocations are retained correctly. GET inspection is not a financial handler. No date or missing evidence creates a closing trade, cash or delivery. First-notice/broker deadlines remain explicitly unmodelled. Migration113 changes the assistance constraint without granting or backfilling settings.
+
+**Latest documentation reconciliation:** 11 November 2026, scoped to lifecycle worklist orchestration, coupon source inspection, HTTP/UI boundaries and the current capability register. Corrected stale bond-only/FX-deferred summaries against the delivered code and retained verification records; this is not a fresh whole-repository audit. Futures lifecycle milestone discovery is now implemented as a notifications-only extension; see the delivery below for verification and first-notice limits.
+
+## Coupon notifications and inspection — 11 November 2026
+
+[Delivery and boundaries](docs/delivery/coupon-notifications-20261111.md) adds sourced coupon notices and a lazy read-only drawer to Lifecycle. Existing bond notification visibility governs discovery; coupon inspection has no financial controls at any tier. Explicit schedule dates and latest confirmation revisions are separate from settled entitlement, cash representation and income. No migration, operating settings/grants or financial writes are introduced.
+
+## Mixed bond/FX maturity worklist — 11 November 2026
+
+[Delivery and limits](docs/delivery/fx-maturity-worklist-20261111.md) extends the scoped Lifecycle dashboard and shared native drawer to deliverable FX forwards. All/Bond/FX filters precede combined counts/page selection; native term/ledger/allocation and proposal source checks remain authoritative. Standard and custom prepared inputs are replayed together. Exposure closure creates no cash movement. No migration or operating financial/configuration writes; other lifecycle event types remain separate.
+
 ## Lifecycle closing-entry drawer — 11 November 2026
 
-[Delivery and verification](docs/delivery/lifecycle-action-panel-20261110.md) records embedded native review/booking at `/lifecycle`, guarded drafts/retries, instrument-scoped history before pagination and retained worklist context. Real isolated BFF/API/PostgreSQL acceptance completed direct and independently approved closures without cash effects. Current bond/FX knowledge and immediate closure checks use the database recording clock; explicit economic/historical cutoffs remain unchanged. No migration or operating financial changes were made. The normal local database port54329 remains blocked; this is isolated acceptance, not operating FCPGF activation.
+[Delivery and verification](docs/delivery/lifecycle-action-panel-20261110.md) records embedded native review/booking at `/lifecycle`, guarded drafts/retries, instrument-scoped history before pagination and retained worklist context. Real isolated BFF/API/PostgreSQL acceptance completed direct and independently approved closures without cash effects. Current bond/FX knowledge and immediate closure checks use the database recording clock; explicit economic/historical cutoffs remain unchanged. No migration or operating financial changes were made. The normal app was subsequently [recovered on PostgreSQL port15432](docs/delivery/local-postgres-port-recovery-20261111.md) with its existing data; panel financial acceptance remains isolated rather than an operating FCPGF booking.
 
 ## Lifecycle worklist — 5 November 2026
 

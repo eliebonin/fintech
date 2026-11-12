@@ -28,9 +28,12 @@ def main():
     if not raw:raise RuntimeError('Explicit TEST_DATABASE_ADMIN_URL is required')
     url=make_url(raw)
     if url.host not in {'127.0.0.1','localhost','::1'}:raise ValueError('Acceptance requires a local test database')
+    product=os.environ.get('LIFECYCLE_E2E_PRODUCT','bond')
+    if product not in {'bond','fx-forward','bond-coupon'}:raise ValueError('Supported acceptance products: bond, fx-forward, bond-coupon')
+    fx=product=='fx-forward';coupon=product=='bond-coupon'
     api_port=int(os.environ.get('LIFECYCLE_E2E_API_PORT','8011'));ui_port=int(os.environ.get('LIFECYCLE_E2E_UI_PORT','3011'))
     name='platform_isolated_tests_browser_'+uuid4().hex;role='panel_e2e_'+uuid4().hex[:16]
-    evidence=ROOT/'.superpowers/sdd/2026-11-11-lifecycle-panel';evidence.mkdir(parents=True,exist_ok=True)
+    evidence=ROOT/('.superpowers/sdd/2026-11-11-coupon-notifications/live' if coupon else '.superpowers/sdd/2026-11-11-fx-maturity-worklist/live' if fx else '.superpowers/sdd/2026-11-11-lifecycle-panel');evidence.mkdir(parents=True,exist_ok=True)
     admin=create_engine(url.set(database='postgres'),isolation_level='AUTOCOMMIT',hide_parameters=True)
     processes=[];logs=[];engine=None;created=False;role_created=False
     try:
@@ -45,25 +48,39 @@ def main():
         from trading.profiles.migration import backfill_profiles
         from tests.test_valuation_service import valued
         from tests.test_bond_redemption_service import setup as setup_bond
-        from lifecycle import bond_service
+        from lifecycle import bond_service,fx_service
+        from tests.test_fx_maturity_service import setup as setup_forward
         from scripts.local_database_config import private_write
         engine=get_engine();load_demo_data(engine)
         with engine.begin() as c:backfill_profiles(c,ids['demo_user_account'])
-        strategies={};groups=[]
+        strategies={};groups=[];coupon_schedule=None
+        instrument=ids['fx_forward_instrument_node'] if fx else ids['bond_instrument_node']
+        instrument_name='SYNTHETIC Maturity Acceptance Forward' if fx else 'SYNTHETIC Maturity Acceptance Bond'
         for mode in ['DIRECT','REVIEW']:
             fixture=valued.__wrapped__();c,r,trade=next(fixture)
             try:
-                _,_,group=setup_bond(c,r,trade);groups.append(group)
+                if fx:
+                    _,group,cut,_=setup_forward(c,r)
+                    fx_service.configure(c,r.tenant_id,ids['demo_user_account'],ids['platform_admin_user_account'],r.strategy_id,mode,0,'Owned browser acceptance',r.policy_id,cut)
+                else:_,_,group=setup_bond(c,r,trade)
+                groups.append(group)
+                if coupon:
+                    from lifecycle import coupon_service
+                    from lifecycle.coupon_contracts import ScheduleCreate,PaymentCreate
+                    from tests.test_bond_coupons import schedule_data
+                    if coupon_schedule is None:coupon_schedule=coupon_service.save_schedule(c,r.tenant_id,ids['demo_user_account'],ScheduleCreate.model_validate(schedule_data()),str(uuid4()))
+                    if mode=='REVIEW':coupon_service.record_payment(c,r.tenant_id,ids['demo_user_account'],PaymentCreate(strategyId=r.strategy_id,periodId=coupon_schedule['cashflows'][0]['cashflow_id'],paymentDate='2026-10-01',amount='1000',currencyId=ids['gbp_currency'],sourceReference='Synthetic receipt only',note='Cash representation not assessed',confirmPayment=True),str(uuid4()))
                 c.execute(m.strategy.update().where(m.strategy.c.strategy_id==r.strategy_id).values(display_name='SYNTHETIC Lifecycle '+mode))
-                if mode=='DIRECT':bond_service.configure(c,r.tenant_id,ids['demo_user_account'],ids['platform_admin_user_account'],r.strategy_id,'DIRECT',0,'Owned browser acceptance')
+                if mode=='DIRECT' and not fx:bond_service.configure(c,r.tenant_id,ids['demo_user_account'],ids['platform_admin_user_account'],r.strategy_id,'DIRECT',0,'Owned browser acceptance')
                 strategies[mode]=str(r.strategy_id)
                 # The reusable fixture adds a synthetic valuation rule at90.
                 # Give the first committed fixture its own slot before reusing it.
                 if mode=='DIRECT':c.execute(m.valuation_policy_rule.update().where(m.valuation_policy_rule.c.valuation_policy_id==r.policy_id,m.valuation_policy_rule.c.rule_sequence==90).values(rule_sequence=91))
+                if mode=='DIRECT' and fx:c.execute(m.valuation_policy_rule.update().where(m.valuation_policy_rule.c.valuation_policy_id==r.policy_id,m.valuation_policy_rule.c.rule_sequence==99).values(rule_sequence=98))
                 c.commit()
             finally:fixture.close()
         with engine.begin() as c:
-            c.execute(m.financial_reference_node.update().where(m.financial_reference_node.c.reference_node_id==ids['bond_instrument_node']).values(canonical_name='SYNTHETIC Maturity Acceptance Bond'))
+            c.execute(m.financial_reference_node.update().where(m.financial_reference_node.c.reference_node_id==instrument).values(canonical_name=instrument_name))
             reviewer=am.add_user(c,ids['tenant'],ids['demo_user_account'],name='SYNTHETIC Independent Reviewer')
             am.set_user_groups(c,ids['tenant'],ids['demo_user_account'],reviewer,groups)
             operator=am.add_user(c,ids['tenant'],ids['demo_user_account'],name='SYNTHETIC Independent Operator')
@@ -73,6 +90,10 @@ def main():
             baseline=c.scalar(select(func.count()).select_from(m.trade))
             cash_tables=[t for t in m.metadata.tables.values() if 'cash_balance' in t.name]
             cash_before={t.fullname:c.scalar(select(func.count()).select_from(t)) for t in cash_tables}
+            from lifecycle import coupon_tables as coupon_tables
+            from valuation import tables as valuation_tables
+            unchanged_tables=[coupon_tables.schedule,coupon_tables.cashflow,coupon_tables.payment,valuation_tables.accrual_input]
+            financial_before={t.fullname:c.scalar(select(func.count()).select_from(t)) for t in unchanged_tables}
             password=secrets.token_urlsafe(48)
             verifier=c.connection.driver_connection.pgconn.encrypt_password(password.encode(),role.encode(),b'scram-sha-256').decode()
             c.exec_driver_sql(f"CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '{verifier}'")
@@ -81,7 +102,7 @@ def main():
         runtime=create_engine(runtime_url,hide_parameters=True)
         with runtime.connect() as c:assert_runtime_role(c)
         runtime.dispose()
-        state=dict(strategies=strategies,tenant=str(ids['tenant']),instrument=str(ids['bond_instrument_node']),makerToken=maker_token,reviewerToken=reviewer_token,baseURL=f'http://127.0.0.1:{ui_port}',evidence=str(evidence))
+        state=dict(product=product,strategies=strategies,tenant=str(ids['tenant']),instrument=str(instrument),makerToken=maker_token,reviewerToken=reviewer_token,baseURL=f'http://127.0.0.1:{ui_port}',evidence=str(evidence))
         state_path=evidence/'state.json';private_write(state_path,json.dumps(state))
         env={**os.environ,'DATABASE_URL':runtime_url.render_as_string(hide_password=False),'REFERENCE_API_URL':f'http://127.0.0.1:{api_port}','NEXT_DIST_DIR':'.next-lifecycle-panel-live','LIFECYCLE_E2E_STATE_FILE':str(state_path),'LIFECYCLE_E2E_BASE_URL':state['baseURL']}
         for label,args,cwd in [('api',[sys.executable,'-m','uvicorn','apps.reference_api.main:app','--host','127.0.0.1','--port',str(api_port)],ROOT),('frontend',[shutil.which('node'),str(ROOT/'apps/ops-console/node_modules/next/dist/bin/next'),'dev','--hostname','127.0.0.1','--port',str(ui_port)],ROOT/'apps/ops-console')]:
@@ -93,18 +114,25 @@ def main():
         if result.returncode:return result.returncode
         with engine.connect() as c:
             targets=[UUID(value) for value in strategies.values()]
-            rows=c.execute(select(m.bond_redemption_posting).where(m.bond_redemption_posting.c.strategy_id.in_(targets))).mappings().all()
-            assert len(rows)==2
-            assert c.scalar(select(func.count()).select_from(m.trade))==baseline+2
-            for row in rows:
-                trade=c.execute(select(m.trade).where(m.trade.c.trade_id==UUID(row['trade_ids'][0]))).mappings().one()
-                assert trade['trade_type']=='MATURITY_REDEMPTION' and trade['quantity']==-100000 and trade['execution_price']==100
-            review=next(row for row in rows if str(row['strategy_id'])==strategies['REVIEW'])
-            assert review['actor_id']==reviewer and review['real_operator_id']==operator
-            assert review['evidence']['authority']['operation']=='APPROVE'
+            postings=m.fx_maturity_posting if fx else m.bond_redemption_posting
+            if coupon:
+                assert c.scalar(select(func.count()).select_from(m.trade))==baseline
+                for t in unchanged_tables:assert c.scalar(select(func.count()).select_from(t))==financial_before[t.fullname]
+                assert not c.execute(select(postings.c.posting_id).where(postings.c.strategy_id.in_(targets))).first()
+            else:
+                rows=c.execute(select(postings).where(postings.c.strategy_id.in_(targets))).mappings().all()
+                assert len(rows)==2
+                assert c.scalar(select(func.count()).select_from(m.trade))==baseline+2
+                for row in rows:
+                    trade=c.execute(select(m.trade).where(m.trade.c.trade_id==UUID(row['trade_ids'][0]))).mappings().one()
+                    assert trade['trade_type']==('MATURITY_CLOSE' if fx else 'MATURITY_REDEMPTION') and trade['quantity']==(-1000000 if fx else -100000) and trade['execution_price']==(__import__('decimal').Decimal('1.12') if fx else 100)
+                review=next(row for row in rows if str(row['strategy_id'])==strategies['REVIEW'])
+                assert review['actor_id']==reviewer and review['real_operator_id']==operator
+                assert review['evidence']['authority']['operation']=='APPROVE'
+                if fx:assert c.scalar(select(m.trade.c.comment).where(m.trade.c.trade_id==UUID(review['trade_ids'][0])))=='Synthetic Ops maturity note'
             for t in cash_tables:assert c.scalar(select(func.count()).select_from(t))==cash_before[t.fullname]
-        (evidence/'result.json').write_text(json.dumps(dict(status='PASSED',newClosingTrades=2,independentApproval=True,cashSnapshotsUnchanged=True)),encoding='utf-8')
-        print('PASS: two sourced maturity closures; independent user/operator approval; cash snapshots unchanged',flush=True)
+        (evidence/'result.json').write_text(json.dumps(dict(status='PASSED',newClosingTrades=0 if coupon else 2,independentApproval=not coupon,readOnlyCoupon=coupon,cashSnapshotsUnchanged=True)),encoding='utf-8')
+        print('PASS: coupon inspection made no financial or source changes' if coupon else f'PASS: two sourced {product} maturity closures; independent user/operator approval; cash snapshots unchanged',flush=True)
         return 0
     finally:
         for process in reversed(processes):

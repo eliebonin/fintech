@@ -76,4 +76,8 @@ def test_allocation_policy_reconciliation_uses_admission_without_blocking_curren
 def test_lifecycle_worklist_has_admission_without_limiting_option_reads():
     from apps.reference_api.workload_admission import workload_kind
     assert workload_kind('GET','/v1/lifecycle/worklist')=='lifecycle'
+    assert workload_kind('GET','/v1/lifecycle/worklist/coupon')=='lifecycle'
+    assert workload_kind('GET','/v1/lifecycle/worklist/future')=='lifecycle'
+    assert workload_kind('GET','/v1/lifecycle/worklist/option')=='lifecycle'
+    assert workload_kind('GET','/v1/lifecycle/worklist/structured')=='lifecycle'
     assert workload_kind('GET','/v1/lifecycle/worklist/options') is None

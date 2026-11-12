@@ -20,3 +20,12 @@ def test_migrations_cannot_accidentally_select_the_test_administration_database(
     monkeypatch.setenv('TEST_DATABASE_ADMIN_URL','postgresql+psycopg://test@localhost/postgres')
     assert migration_url(tmp_path).endswith('/app')
     assert migration_url(tmp_path,test_admin=True).endswith('/postgres')
+
+
+def test_preparation_uses_unreserved_loopback_port_without_changing_existing_identity(tmp_path):
+    from sqlalchemy.engine import make_url
+    private_settings({'POSTGRES_USER':'existing_owner','POSTGRES_DB':'existing_db','POSTGRES_VOLUME_NAME':'existing_volume'},tmp_path/'.env')
+    prepare(tmp_path)
+    url=make_url(dotenv_values(tmp_path/'.env.migrations')['MIGRATION_DATABASE_URL'])
+    assert (url.host,url.port,url.database,url.username)==('127.0.0.1',15432,'existing_db','existing_owner')
+    assert dotenv_values(tmp_path/'.env')['POSTGRES_VOLUME_NAME']=='existing_volume'

@@ -107,7 +107,7 @@ def test_cli_refuses_non_operating_local_database_before_connecting(database, en
     from pathlib import Path
     import subprocess
     import sys
-    environment = dict(os.environ, DATABASE_URL=f'postgresql+psycopg://unused:unused@localhost:54329/{database}', APP_ENV=environment_name)
+    environment = dict(os.environ, DATABASE_URL=f'postgresql+psycopg://unused:unused@localhost:15432/{database}', APP_ENV=environment_name)
     result = subprocess.run([sys.executable, 'scripts/seed_index_universe.py', '--apply'],
         cwd=Path(__file__).resolve().parents[1], env=environment, capture_output=True, text=True)
     assert result.returncode == 2

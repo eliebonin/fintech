@@ -182,7 +182,7 @@ def main():
     from sqlalchemy import create_engine
     from apps.reference_api.config import Settings
     settings=Settings.from_environment();engine=create_engine(settings.database_url)
-    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=54329 or engine.url.database!=local_workspace_database():
+    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=15432 or engine.url.database!=local_workspace_database():
         raise ValueError('Only the named local app database is permitted')
     try:
         with engine.connect() as c:

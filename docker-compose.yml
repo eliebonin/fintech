@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-platform}
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
     ports:
-      - "127.0.0.1:54329:5432"
+      - "127.0.0.1:15432:5432"
     secrets:
       - postgres_admin_password
     volumes:

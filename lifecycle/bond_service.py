@@ -18,7 +18,7 @@ from positions.allocations import reconstruct_allocations
 from trading.allocation_policy import load_allocation_policy
 from trading.annotations import lock_trade_catalogue
 from trading.annotation_snapshots import load_trade_annotations
-from .allocations import (prepare_annotations,require_annotations,persist_annotations,atomic_post,source_annotations_hash,lifecycle_profile_values)
+from .allocations import (prepare_annotations,require_annotations,persist_annotations,atomic_post,source_annotations_hash,lifecycle_profile_values,retained_annotation_inputs)
 from security_master_schema.evidence import canonical_payload,evidence_hash
 from .bond_redemption import closing_movements
 
@@ -134,7 +134,7 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
     require_assistance(c,tenant,actor,strategy,'BOND_MATURITY',('APPROVE' if mode=='REVIEW' else 'CONFIRM') if prepared else 'DIRECT')
     if prepared:
         if annotation_inputs is not None:raise ValueError('Approval uses retained annotation inputs; prepare again to change them')
-        annotation_inputs={item['movementKey']:item.get('properties',[]) for item in prepared['inputs'].get('movements',[]) if item.get('movementKey')}
+        annotation_inputs=retained_annotation_inputs(prepared['inputs'])
     data,fingerprint,projection,cutoff=candidate(c,tenant,strategy,instrument,annotation_inputs=annotation_inputs)
     require_annotations(data)
     if fingerprint!=expected or (prepared and (prepared['input_hash']!=fingerprint or prepared['policy_revision']!=data['policyRevision'])):

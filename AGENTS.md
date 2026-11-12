@@ -18,11 +18,33 @@ is not a runtime call graph or a guarantee of production feature completion.
 
 ## Module boundaries and invariants
 
+- Performance evidence must distinguish SQL count, measured database/driver time, complete service time and HTTP/BFF time. State the dataset, warm-up and measurement boundary; lower query count alone does not establish a latency bottleneck. Keep proposed permission-context reuse distinct from implemented authority checks.
+
+- Lifecycle discovery source batches are request/tenant/connection/transaction scoped. Historical identity batching must retain original BOOKED uniqueness/fingerprint/date/currency/venue checks and cancelled-snapshot handling. FX batches must use exact strategy/instrument pairs, native exposure validation, root-isolated annotation checks and full pending-preparation revalidation. No discovery batch or global cache replaces financial command authority. See [reader optimisation](docs/delivery/lifecycle-reader-batching-20261111.md).
+
+- Lifecycle date proximity is display-only, added after pagination. Preserve the distinction between configured holiday calendars, explicit weekday estimates and unknown source coverage. Never roll contractual dates, infer payment/approval or change financial eligibility from a colour. Calendar reads remain scoped and batched; relative dates use report recording time rather than browser time.
+
 - `lifecycle.worklist` is a read model: scope candidates before positions/counts,
   retain nonzero allocations at net0, expose unknown evidence and never post on
   discovery/navigation. Full pending-source checks reuse the native candidate
   fingerprint. Stable event keys are not persisted task or financial authority.
-  Only bond maturity discovery is delivered; use existing commands for effects.
+  Bond/FX maturity and sourced coupon notices are delivered; use native commands for effects.
+  Coupon inspection is read-only at every tier and currently shares bond notification visibility.
+  Futures/option deadlines use independent `FUTURE_EXPIRY`/`OPTION_EXPIRY` manual0/notification1 selections; never route
+  those events to native financial commands. Keep last-trading instants distinct from expiry,
+  settlement and delivery dates; first-notice/broker deadlines and AM/PM option fixing remain unmodelled.
+  `STRUCTURED_OBSERVATION` is independent0/1 and always INFORMATION. Use current-linked
+  schedules and source-defined thresholds; never infer barrier outcomes, coupon entitlement
+  or financial actions. Distinguish held swaps/quantities from observed structured references.
+  Historical windows use current approved source knowledge, not a reconstructed past source state.
+  Structured contractual sources use the scoped `TermsScheduleBatch` graph/table reader;
+  keep per-root rendering SQL-free. Batch schedule/identifier reads and merge chunks in
+  source order. Never introduce a global visibility cache, skip full-history counts, or
+  bypass per-root private-reference, depth/cycle and evidence checks. Query-budget tests
+  must use many distinct contracts, not only many strategies sharing one contract.
+  Option expiry does not prove exercise, assignment or lapse. Withhold inaccessible underlying
+  names/IDs; compare current sources against original BOOKED facts without rewriting them.
+  Review due is not unpaid; never infer cash representation, entitlement or income from a notice.
   Current ledger knowledge uses `lifecycle.recording_clock.recording_now`, including
   fresh post-write closure checks; preserve explicit economic/historical cutoffs.
   The worklist drawer reuses native commands and must retain uncertain-request identity.
@@ -33,8 +55,9 @@ is not a runtime call graph or a guarantee of production feature completion.
   downgrade preparation. Purchase grants no actions or independent-review bypass.
   Preserve selected values above a reduced ceiling as blocked, never silently clamp.
   Acquire the tenant lifecycle shared/exclusive transaction lock before native locks.
+  Prepared custom and standard inputs must both survive native revalidation; never drop standard fields when rebuilding an immutable preparation.
   Tier2 non-REVIEW confirmation needs a retained proposal; no-proposal DIRECT needs
-  selected3 and ceiling3. Bond-maturity discovery is separate; other detectors/billing remain deferred. See
+  selected3 and ceiling3. Maturity discovery remains read-only; other detectors/billing remain deferred. See
   [delivery](docs/delivery/lifecycle-assistance-entitlements-20261105.md).
 
 - Lifecycle maturity must preserve tenant-selected joint allocation dimensions before

@@ -25,6 +25,8 @@ def iter_ledger_facts(connection, request, *, subject_ids=None):
         if after is not None: query=query.where(m.trade.c.trade_id>after)
         rows=connection.execute(query.order_by(m.trade.c.trade_id).limit(CHUNK_SIZE)).mappings().all()
         if not rows: return
+        from .identity_sources import HistoricalIdentitySources
+        identity_sources=HistoricalIdentitySources(connection,request,rows)
         identities=[row['trade_id'] for row in rows]
         chains={identity:[] for identity in identities}; snapshots={}; definitions=set(); parents=set()
         for e in connection.execute(select(m.trade_lifecycle_event).where(
@@ -67,16 +69,16 @@ def iter_ledger_facts(connection, request, *, subject_ids=None):
                         snapshot=normalize_booking(connection,row,snapshot,e,currency_cache=currency_cache)
                     elif snapshot['kind']=='OPTION_BOOKING':
                         from .option import normalize_booking
-                        snapshot=normalize_booking(connection,row,snapshot,e)
+                        snapshot=normalize_booking(connection,row,snapshot,e,sources=identity_sources)
                     elif snapshot['kind']=='PRODUCT_BOOKING':
                         kind=snapshot['economics']['terms']['kind']
                         if kind in ('FUTURE','STRUCTURED_PRODUCT'):
                             if kind=='FUTURE':
                                 from .future import normalize_booking
-                                snapshot=normalize_booking(connection,row,snapshot,identity_cache=future_identity_cache)
+                                snapshot=normalize_booking(connection,row,snapshot,identity_cache=future_identity_cache,sources=identity_sources)
                             else:
                                 from .structured_note import normalize_booking
-                                snapshot=normalize_booking(connection,row,snapshot,identity_cache=note_identity_cache)
+                                snapshot=normalize_booking(connection,row,snapshot,identity_cache=note_identity_cache,sources=identity_sources)
                             definition=UUID(snapshot['instrumentDefinitionId']);parent=UUID(snapshot['instrumentId'])
                             snapshots[e['trade_id']]=(snapshot,definition,parent)
                             definitions.add(definition);parents.add(parent)

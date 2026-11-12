@@ -3,10 +3,11 @@ from typing import Literal
 from uuid import UUID
 from pydantic import BaseModel,ConfigDict,Field,model_validator
 
-EVENT_TYPES=('BOND_MATURITY','FX_FORWARD_MATURITY')
+EVENT_TYPES=('BOND_MATURITY','FX_FORWARD_MATURITY','FUTURE_EXPIRY','OPTION_EXPIRY','STRUCTURED_OBSERVATION')
+EVENT_MAXIMUM={'FUTURE_EXPIRY':1,'OPTION_EXPIRY':1,'STRUCTURED_OBSERVATION':1}
 TIERS={0:'Fully manual',1:'Notifications',2:'Assisted preparation',3:'One-click booking'}
 MODULE='LIFECYCLE_MANAGEMENT'
-EventType=Literal['BOND_MATURITY','FX_FORWARD_MATURITY']
+EventType=Literal['BOND_MATURITY','FX_FORWARD_MATURITY','FUTURE_EXPIRY','OPTION_EXPIRY','STRUCTURED_OBSERVATION']
 
 class Command(BaseModel):
     model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)

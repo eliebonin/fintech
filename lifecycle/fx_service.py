@@ -22,7 +22,7 @@ from trading.annotations import lock_trade_catalogue
 from trading.annotation_snapshots import load_trade_annotations
 from positions.allocations import allocation_signature
 from security_master_schema.maturity_evidence import closing_movement
-from .allocations import prepare_annotations,require_annotations,persist_annotations,atomic_post,source_annotations_hash,lifecycle_profile_values
+from .allocations import prepare_annotations,require_annotations,persist_annotations,atomic_post,source_annotations_hash,lifecycle_profile_values,retained_annotation_inputs
 
 tables=(m.fx_maturity_policy,m.fx_maturity_proposal,m.fx_maturity_posting)
 product_code='FX_FORWARD'
@@ -49,18 +49,21 @@ def configure(c,tenant,actor,operator,strategy,mode,revision,reason,pricing_poli
     return policy(c,tenant,strategy)
 
 
-def _exposure(c,tenant,strategy,instrument,terms,cutoff,now,*,with_rows=False):
+def _exposure(c,tenant,strategy,instrument,terms,cutoff,now,*,with_rows=False,read_sources=None):
     """Bounded canonical-contract ledger, without enabling general FX valuation."""
     from security_master_schema.tenancy import assert_tenant_owns_strategy
-    assert_tenant_owns_strategy(c,tenant,strategy)
+    if read_sources is None:assert_tenant_owns_strategy(c,tenant,strategy)
+    else:read_sources.require_scope(c,tenant,strategy,instrument,cutoff,now)
     fingerprint=fx_forward_terms_fingerprint(terms);amount=Decimal(0);sources=[];events=[];amounts={}
-    rows=c.execute(select(m.trade).where(m.trade.c.strategy_id==strategy,m.trade.c.trade_subject_reference_node_id==instrument,
-        m.trade.c.trade_datetime_utc<=cutoff,m.trade.c.created_at_utc<=now).order_by(m.trade.c.trade_id)).mappings().all()
-    chains={r['trade_id']:[] for r in rows};identities=list(chains)
-    for start in range(0,len(identities),500):
-        for e in c.execute(select(m.trade_lifecycle_event).where(m.trade_lifecycle_event.c.trade_id.in_(identities[start:start+500]),
-                m.trade_lifecycle_event.c.recorded_at_utc<=now).order_by(m.trade_lifecycle_event.c.sequence_no)).mappings():
-            chains[e['trade_id']].append(e)
+    if read_sources is None:
+        rows=c.execute(select(m.trade).where(m.trade.c.strategy_id==strategy,m.trade.c.trade_subject_reference_node_id==instrument,
+            m.trade.c.trade_datetime_utc<=cutoff,m.trade.c.created_at_utc<=now).order_by(m.trade.c.trade_id)).mappings().all()
+        chains={r['trade_id']:[] for r in rows};identities=list(chains)
+        for start in range(0,len(identities),500):
+            for e in c.execute(select(m.trade_lifecycle_event).where(m.trade_lifecycle_event.c.trade_id.in_(identities[start:start+500]),
+                    m.trade_lifecycle_event.c.recorded_at_utc<=now).order_by(m.trade_lifecycle_event.c.sequence_no)).mappings():
+                chains[e['trade_id']].append(e)
+    else:rows,chains=read_sources.read(c,tenant,strategy,instrument,cutoff,now)
     for row in rows:
         chain=chains[row['trade_id']]
         if not chain or chain[0]['event_type']!='BOOKED':raise ValueError('Missing original forward booking evidence')
@@ -203,7 +206,7 @@ def post(c,tenant,actor,operator,strategy,instrument,expected,key,*,proposal_id=
     require_assistance(c,tenant,actor,strategy,'FX_FORWARD_MATURITY',('APPROVE' if mode=='REVIEW' else 'CONFIRM') if prepared else 'DIRECT')
     if prepared:
         if annotation_inputs is not None:raise ValueError('Approval uses retained annotation inputs; prepare again to change them')
-        annotation_inputs={item['movementKey']:item.get('properties',[]) for item in prepared['inputs'].get('movements',[]) if item.get('movementKey')}
+        annotation_inputs=retained_annotation_inputs(prepared['inputs'])
     data,actual,terms,cutoff=candidate(c,tenant,strategy,instrument,rate_override=override,annotation_inputs=annotation_inputs)
     require_annotations(data)
     if data['price'] is None:raise ValueError('Eligible maturity spot rate or sourced manual rate required')

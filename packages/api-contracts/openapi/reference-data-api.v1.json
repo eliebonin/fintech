@@ -968,7 +968,10 @@
           "eventType": {
             "enum": [
               "BOND_MATURITY",
-              "FX_FORWARD_MATURITY"
+              "FX_FORWARD_MATURITY",
+              "FUTURE_EXPIRY",
+              "OPTION_EXPIRY",
+              "STRUCTURED_OBSERVATION"
             ],
             "title": "Eventtype",
             "type": "string"
@@ -1153,7 +1156,10 @@
           "eventType": {
             "enum": [
               "BOND_MATURITY",
-              "FX_FORWARD_MATURITY"
+              "FX_FORWARD_MATURITY",
+              "FUTURE_EXPIRY",
+              "OPTION_EXPIRY",
+              "STRUCTURED_OBSERVATION"
             ],
             "title": "Eventtype",
             "type": "string"
@@ -4649,6 +4655,37 @@
         "title": "ContextSelect",
         "type": "object"
       },
+      "ContractMilestone": {
+        "properties": {
+          "atUtc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atutc"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "date"
+        ],
+        "title": "ContractMilestone",
+        "type": "object"
+      },
       "ContractualCalendarOption": {
         "properties": {
           "calendarId": {
@@ -4817,6 +4854,247 @@
           "convention"
         ],
         "title": "ConventionProposalRequest",
+        "type": "object"
+      },
+      "CouponConfirmation": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "currentSchedule": {
+            "title": "Currentschedule",
+            "type": "boolean"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "paymentDate": {
+            "format": "date",
+            "title": "Paymentdate",
+            "type": "string"
+          },
+          "paymentId": {
+            "format": "uuid",
+            "title": "Paymentid",
+            "type": "string"
+          },
+          "recordedAt": {
+            "format": "date-time",
+            "title": "Recordedat",
+            "type": "string"
+          },
+          "scheduleRevision": {
+            "title": "Schedulerevision",
+            "type": "integer"
+          },
+          "sourceReference": {
+            "title": "Sourcereference",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "CONFIRMED",
+              "REVERSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "paymentId",
+          "status",
+          "paymentDate",
+          "amount",
+          "currency",
+          "sourceReference",
+          "note",
+          "recordedAt",
+          "scheduleRevision",
+          "currentSchedule"
+        ],
+        "title": "CouponConfirmation",
+        "type": "object"
+      },
+      "CouponInspection": {
+        "properties": {
+          "accrualEnd": {
+            "format": "date",
+            "title": "Accrualend",
+            "type": "string"
+          },
+          "accrualStart": {
+            "format": "date",
+            "title": "Accrualstart",
+            "type": "string"
+          },
+          "amountFormula": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amountformula"
+          },
+          "amountPer100": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amountper100"
+          },
+          "cashflowKey": {
+            "title": "Cashflowkey",
+            "type": "string"
+          },
+          "confirmations": {
+            "items": {
+              "$ref": "#/components/schemas/CouponConfirmation"
+            },
+            "title": "Confirmations",
+            "type": "array"
+          },
+          "couponRate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Couponrate"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "eventKey": {
+            "title": "Eventkey",
+            "type": "string"
+          },
+          "exDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exdate"
+          },
+          "financialTreatment": {
+            "const": "NOT_ASSESSED",
+            "default": "NOT_ASSESSED",
+            "title": "Financialtreatment",
+            "type": "string"
+          },
+          "instrumentId": {
+            "format": "uuid",
+            "title": "Instrumentid",
+            "type": "string"
+          },
+          "paymentDate": {
+            "format": "date",
+            "title": "Paymentdate",
+            "type": "string"
+          },
+          "periodId": {
+            "format": "uuid",
+            "title": "Periodid",
+            "type": "string"
+          },
+          "positionAssessed": {
+            "title": "Positionassessed",
+            "type": "boolean"
+          },
+          "positionDate": {
+            "format": "date",
+            "title": "Positiondate",
+            "type": "string"
+          },
+          "quantities": {
+            "items": {
+              "$ref": "#/components/schemas/WorklistQuantity"
+            },
+            "title": "Quantities",
+            "type": "array"
+          },
+          "recordDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorddate"
+          },
+          "scheduleId": {
+            "format": "uuid",
+            "title": "Scheduleid",
+            "type": "string"
+          },
+          "scheduleRevision": {
+            "title": "Schedulerevision",
+            "type": "integer"
+          },
+          "sourceRecordedAt": {
+            "format": "date-time",
+            "title": "Sourcerecordedat",
+            "type": "string"
+          },
+          "sourceReference": {
+            "title": "Sourcereference",
+            "type": "string"
+          },
+          "strategyId": {
+            "format": "uuid",
+            "title": "Strategyid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventKey",
+          "strategyId",
+          "instrumentId",
+          "periodId",
+          "scheduleId",
+          "scheduleRevision",
+          "cashflowKey",
+          "paymentDate",
+          "accrualStart",
+          "accrualEnd",
+          "recordDate",
+          "exDate",
+          "currency",
+          "couponRate",
+          "amountPer100",
+          "amountFormula",
+          "sourceReference",
+          "sourceRecordedAt",
+          "positionDate",
+          "positionAssessed",
+          "quantities",
+          "confirmations"
+        ],
+        "title": "CouponInspection",
         "type": "object"
       },
       "CoveragePackageView": {
@@ -5307,6 +5585,80 @@
           "currencyKind"
         ],
         "title": "CurrencyView",
+        "type": "object"
+      },
+      "DateTiming": {
+        "properties": {
+          "basis": {
+            "enum": [
+              "CALENDAR",
+              "WEEKDAYS",
+              "UNKNOWN"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "businessDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Businessdays"
+          },
+          "calendarName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendarname"
+          },
+          "evaluatedOn": {
+            "format": "date",
+            "title": "Evaluatedon",
+            "type": "string"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "timezoneName": {
+            "title": "Timezonename",
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "TODAY",
+              "SOON",
+              "WEEK",
+              "LATER",
+              "OVERDUE",
+              "NEUTRAL"
+            ],
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tone",
+          "label",
+          "basis",
+          "timezoneName",
+          "evaluatedOn",
+          "explanation"
+        ],
+        "title": "DateTiming",
         "type": "object"
       },
       "DayCountConventionResponse": {
@@ -7565,6 +7917,206 @@
           "currency"
         ],
         "title": "FutureFamilyView",
+        "type": "object"
+      },
+      "FutureInspection": {
+        "properties": {
+          "contractMonth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contractmonth"
+          },
+          "conventionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conventionid"
+          },
+          "conventionVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conventionversion"
+          },
+          "evaluatedAt": {
+            "format": "date-time",
+            "title": "Evaluatedat",
+            "type": "string"
+          },
+          "eventKey": {
+            "title": "Eventkey",
+            "type": "string"
+          },
+          "familyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Familyname"
+          },
+          "financialTreatment": {
+            "const": "NOT_ASSESSED",
+            "default": "NOT_ASSESSED",
+            "title": "Financialtreatment",
+            "type": "string"
+          },
+          "firstNoticeDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firstnoticedate"
+          },
+          "instrumentId": {
+            "format": "uuid",
+            "title": "Instrumentid",
+            "type": "string"
+          },
+          "milestoneKind": {
+            "title": "Milestonekind",
+            "type": "string"
+          },
+          "milestones": {
+            "items": {
+              "$ref": "#/components/schemas/ContractMilestone"
+            },
+            "title": "Milestones",
+            "type": "array"
+          },
+          "monetaryMultiplier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monetarymultiplier"
+          },
+          "positionAssessed": {
+            "title": "Positionassessed",
+            "type": "boolean"
+          },
+          "quantities": {
+            "items": {
+              "$ref": "#/components/schemas/WorklistQuantity"
+            },
+            "title": "Quantities",
+            "type": "array"
+          },
+          "quantityUnit": {
+            "const": "CONTRACTS",
+            "default": "CONTRACTS",
+            "title": "Quantityunit",
+            "type": "string"
+          },
+          "quoteFactor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quotefactor"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "settlementMethod": {
+            "anyOf": [
+              {
+                "enum": [
+                  "CASH",
+                  "PHYSICAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlementmethod"
+          },
+          "sourceApprovedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceapprovedat"
+          },
+          "sourceFingerprint": {
+            "title": "Sourcefingerprint",
+            "type": "string"
+          },
+          "sourceReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcereference"
+          },
+          "strategyId": {
+            "format": "uuid",
+            "title": "Strategyid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventKey",
+          "strategyId",
+          "instrumentId",
+          "sourceFingerprint",
+          "evaluatedAt",
+          "milestoneKind",
+          "milestones",
+          "positionAssessed",
+          "quantities",
+          "reasons"
+        ],
+        "title": "FutureInspection",
         "type": "object"
       },
       "FutureProposalRequest": {
@@ -12881,6 +13433,251 @@
         "title": "OptionBookingRequest",
         "type": "object"
       },
+      "OptionInspection": {
+        "properties": {
+          "definitionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Definitionid"
+          },
+          "deliverableUnits": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverableunits"
+          },
+          "evaluatedAt": {
+            "format": "date-time",
+            "title": "Evaluatedat",
+            "type": "string"
+          },
+          "eventKey": {
+            "title": "Eventkey",
+            "type": "string"
+          },
+          "exerciseStyle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exercisestyle"
+          },
+          "financialTreatment": {
+            "const": "NOT_ASSESSED",
+            "default": "NOT_ASSESSED",
+            "title": "Financialtreatment",
+            "type": "string"
+          },
+          "instrumentId": {
+            "format": "uuid",
+            "title": "Instrumentid",
+            "type": "string"
+          },
+          "milestoneKind": {
+            "title": "Milestonekind",
+            "type": "string"
+          },
+          "milestones": {
+            "items": {
+              "$ref": "#/components/schemas/ContractMilestone"
+            },
+            "title": "Milestones",
+            "type": "array"
+          },
+          "optionTermsId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optiontermsid"
+          },
+          "optionType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optiontype"
+          },
+          "positionAssessed": {
+            "title": "Positionassessed",
+            "type": "boolean"
+          },
+          "premiumCurrency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Premiumcurrency"
+          },
+          "premiumMultiplier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Premiummultiplier"
+          },
+          "quantities": {
+            "items": {
+              "$ref": "#/components/schemas/WorklistQuantity"
+            },
+            "title": "Quantities",
+            "type": "array"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "settlementCurrency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlementcurrency"
+          },
+          "settlementMethod": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlementmethod"
+          },
+          "sourceApprovedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceapprovedat"
+          },
+          "sourceFingerprint": {
+            "title": "Sourcefingerprint",
+            "type": "string"
+          },
+          "strategyId": {
+            "format": "uuid",
+            "title": "Strategyid",
+            "type": "string"
+          },
+          "strike": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          },
+          "strikeCurrency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strikecurrency"
+          },
+          "termsVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termsversion"
+          },
+          "underlyingId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Underlyingid"
+          },
+          "underlyingName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Underlyingname"
+          }
+        },
+        "required": [
+          "eventKey",
+          "strategyId",
+          "instrumentId",
+          "sourceFingerprint",
+          "evaluatedAt",
+          "milestoneKind",
+          "milestones",
+          "positionAssessed",
+          "quantities",
+          "reasons"
+        ],
+        "title": "OptionInspection",
+        "type": "object"
+      },
       "OptionInstrumentTermsView": {
         "properties": {
           "deliverableUnits": {
@@ -18176,6 +18973,139 @@
         "title": "StrategyView",
         "type": "object"
       },
+      "StructuredBarrierView": {
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "comparison": {
+            "title": "Comparison",
+            "type": "string"
+          },
+          "lowerInclusive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lowerinclusive"
+          },
+          "lowerLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lowerlevel"
+          },
+          "measure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measure"
+          },
+          "underlyingName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Underlyingname"
+          },
+          "upperInclusive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upperinclusive"
+          },
+          "upperLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upperlevel"
+          }
+        },
+        "required": [
+          "comparison",
+          "basis"
+        ],
+        "title": "StructuredBarrierView",
+        "type": "object"
+      },
+      "StructuredConditionView": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "aggregation": {
+            "title": "Aggregation",
+            "type": "string"
+          },
+          "barriers": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredBarrierView"
+            },
+            "title": "Barriers",
+            "type": "array"
+          },
+          "combination": {
+            "title": "Combination",
+            "type": "string"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "sourceStatus": {
+            "title": "Sourcestatus",
+            "type": "string"
+          }
+        },
+        "required": [
+          "groupCode",
+          "combination",
+          "aggregation",
+          "scope",
+          "sourceStatus",
+          "barriers",
+          "actions"
+        ],
+        "title": "StructuredConditionView",
+        "type": "object"
+      },
       "StructuredConvention-Input": {
         "additionalProperties": false,
         "properties": {
@@ -18408,6 +19338,256 @@
           "otcAllowed"
         ],
         "title": "StructuredConvention",
+        "type": "object"
+      },
+      "StructuredInspection": {
+        "properties": {
+          "autocallEligibility": {
+            "default": "NOT_ASSESSED",
+            "enum": [
+              "ELIGIBLE_DATE",
+              "BEFORE_FIRST_DATE",
+              "NOT_ASSESSED",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Autocalleligibility",
+            "type": "string"
+          },
+          "conditionalPaymentDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditionalpaymentdate"
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredConditionView"
+            },
+            "title": "Conditions",
+            "type": "array"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "definitionVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Definitionversion"
+          },
+          "evaluatedAt": {
+            "format": "date-time",
+            "title": "Evaluatedat",
+            "type": "string"
+          },
+          "eventDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eventdate"
+          },
+          "eventKey": {
+            "title": "Eventkey",
+            "type": "string"
+          },
+          "firstAutocallDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firstautocalldate"
+          },
+          "instrumentId": {
+            "format": "uuid",
+            "title": "Instrumentid",
+            "type": "string"
+          },
+          "instrumentName": {
+            "title": "Instrumentname",
+            "type": "string"
+          },
+          "instrumentType": {
+            "enum": [
+              "STRUCTURED_PRODUCT",
+              "SWAP"
+            ],
+            "title": "Instrumenttype",
+            "type": "string"
+          },
+          "issuer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer"
+          },
+          "noticeKind": {
+            "title": "Noticekind",
+            "type": "string"
+          },
+          "observedInstrumentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observedinstrumentid"
+          },
+          "observedInstrumentName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observedinstrumentname"
+          },
+          "outcomeStatus": {
+            "const": "NOT_ASSESSED",
+            "default": "NOT_ASSESSED",
+            "title": "Outcomestatus",
+            "type": "string"
+          },
+          "positionAssessed": {
+            "title": "Positionassessed",
+            "type": "boolean"
+          },
+          "positionDate": {
+            "format": "date",
+            "title": "Positiondate",
+            "type": "string"
+          },
+          "quantities": {
+            "items": {
+              "$ref": "#/components/schemas/WorklistQuantity"
+            },
+            "title": "Quantities",
+            "type": "array"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          },
+          "scheduleEventId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduleeventid"
+          },
+          "sourceBasis": {
+            "const": "CURRENT_APPROVED_TERMS",
+            "default": "CURRENT_APPROVED_TERMS",
+            "title": "Sourcebasis",
+            "type": "string"
+          },
+          "sourceEventStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceeventstatus"
+          },
+          "sourceFingerprint": {
+            "title": "Sourcefingerprint",
+            "type": "string"
+          },
+          "strategyId": {
+            "format": "uuid",
+            "title": "Strategyid",
+            "type": "string"
+          },
+          "termsVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termsversion"
+          }
+        },
+        "required": [
+          "eventKey",
+          "strategyId",
+          "instrumentId",
+          "instrumentType",
+          "instrumentName",
+          "sourceFingerprint",
+          "evaluatedAt",
+          "noticeKind",
+          "positionDate",
+          "positionAssessed",
+          "quantities",
+          "conditions",
+          "reasons"
+        ],
+        "title": "StructuredInspection",
         "type": "object"
       },
       "StructuredProductProposalResponse": {
@@ -20996,7 +22176,10 @@
                 {
                   "enum": [
                     "BOND_MATURITY",
-                    "FX_FORWARD_MATURITY"
+                    "FX_FORWARD_MATURITY",
+                    "FUTURE_EXPIRY",
+                    "OPTION_EXPIRY",
+                    "STRUCTURED_OBSERVATION"
                   ],
                   "type": "string"
                 }
@@ -21035,7 +22218,10 @@
           "eventType": {
             "enum": [
               "BOND_MATURITY",
-              "FX_FORWARD_MATURITY"
+              "FX_FORWARD_MATURITY",
+              "FUTURE_EXPIRY",
+              "OPTION_EXPIRY",
+              "STRUCTURED_OBSERVATION"
             ],
             "title": "Eventtype",
             "type": "string"
@@ -21125,7 +22311,10 @@
                 {
                   "enum": [
                     "BOND_MATURITY",
-                    "FX_FORWARD_MATURITY"
+                    "FX_FORWARD_MATURITY",
+                    "FUTURE_EXPIRY",
+                    "OPTION_EXPIRY",
+                    "STRUCTURED_OBSERVATION"
                   ],
                   "type": "string"
                 }
@@ -21845,13 +23034,66 @@
             "title": "Attention",
             "type": "string"
           },
+          "couponPeriodId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Couponperiodid"
+          },
+          "dateTiming": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DateTiming"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "eventAtUtc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eventatutc"
+          },
+          "eventDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eventdate"
+          },
           "eventKey": {
             "title": "Eventkey",
             "type": "string"
           },
           "eventType": {
-            "const": "BOND_MATURITY",
             "default": "BOND_MATURITY",
+            "enum": [
+              "BOND_MATURITY",
+              "FX_FORWARD_MATURITY",
+              "BOND_COUPON",
+              "FUTURE_EXPIRY",
+              "OPTION_EXPIRY",
+              "STRUCTURED_OBSERVATION"
+            ],
             "title": "Eventtype",
             "type": "string"
           },
@@ -21876,8 +23118,15 @@
             "type": "string"
           },
           "instrumentType": {
-            "const": "BOND",
             "default": "BOND",
+            "enum": [
+              "BOND",
+              "FX_FORWARD",
+              "FUTURE",
+              "OPTION",
+              "STRUCTURED_PRODUCT",
+              "SWAP"
+            ],
             "title": "Instrumenttype",
             "type": "string"
           },
@@ -21897,9 +23146,32 @@
             "title": "Maximumtier",
             "type": "integer"
           },
+          "milestoneKind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Milestonekind"
+          },
           "positionAssessed": {
             "title": "Positionassessed",
             "type": "boolean"
+          },
+          "positionDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Positiondate"
           },
           "postingId": {
             "anyOf": [
@@ -21948,6 +23220,29 @@
             "title": "Reasons",
             "type": "array"
           },
+          "relatedInstrumentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relatedinstrumentid"
+          },
+          "relatedInstrumentName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relatedinstrumentname"
+          },
           "remainingEntries": {
             "anyOf": [
               {
@@ -21963,6 +23258,17 @@
             "title": "Selectedtier",
             "type": "integer"
           },
+          "sourceFingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcefingerprint"
+          },
           "status": {
             "enum": [
               "UPCOMING",
@@ -21971,7 +23277,12 @@
               "PREPARED",
               "BOOKED",
               "REASSESSMENT",
-              "BLOCKED"
+              "BLOCKED",
+              "REVIEW_DUE",
+              "CONFIRMATION_RECORDED",
+              "SCHEDULED_TODAY",
+              "DATE_PASSED",
+              "SOURCE_UNAVAILABLE"
             ],
             "title": "Status",
             "type": "string"
@@ -29269,7 +30580,10 @@
             "schema": {
               "enum": [
                 "BOND_MATURITY",
-                "FX_FORWARD_MATURITY"
+                "FX_FORWARD_MATURITY",
+                "FUTURE_EXPIRY",
+                "OPTION_EXPIRY",
+                "STRUCTURED_OBSERVATION"
               ],
               "title": "Eventtype",
               "type": "string"
@@ -35069,8 +36383,16 @@
             "name": "eventType",
             "required": false,
             "schema": {
-              "const": "BOND_MATURITY",
-              "default": "BOND_MATURITY",
+              "default": "ALL",
+              "enum": [
+                "ALL",
+                "BOND_MATURITY",
+                "FX_FORWARD_MATURITY",
+                "BOND_COUPON",
+                "FUTURE_EXPIRY",
+                "OPTION_EXPIRY",
+                "STRUCTURED_OBSERVATION"
+              ],
               "title": "Eventtype",
               "type": "string"
             }
@@ -35104,7 +36426,12 @@
                 "PREPARED",
                 "BOOKED",
                 "REASSESSMENT",
-                "BLOCKED"
+                "BLOCKED",
+                "REVIEW_DUE",
+                "CONFIRMATION_RECORDED",
+                "SCHEDULED_TODAY",
+                "DATE_PASSED",
+                "SOURCE_UNAVAILABLE"
               ],
               "title": "Status",
               "type": "string"
@@ -35322,6 +36649,620 @@
         ]
       }
     },
+    "/v1/lifecycle/worklist/coupon": {
+      "get": {
+        "operationId": "coupon_v1_lifecycle_worklist_coupon_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "strategyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Strategyid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "periodId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Periodid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponInspection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Coupon",
+        "tags": [
+          "Lifecycle worklist"
+        ]
+      }
+    },
+    "/v1/lifecycle/worklist/future": {
+      "get": {
+        "operationId": "future_v1_lifecycle_worklist_future_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "strategyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Strategyid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrumentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Instrumentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "milestoneKind",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "Milestonekind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FutureInspection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Future",
+        "tags": [
+          "Lifecycle worklist"
+        ]
+      }
+    },
+    "/v1/lifecycle/worklist/option": {
+      "get": {
+        "operationId": "option_v1_lifecycle_worklist_option_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "strategyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Strategyid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrumentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Instrumentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "milestoneKind",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "Milestonekind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptionInspection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Option",
+        "tags": [
+          "Lifecycle worklist"
+        ]
+      }
+    },
     "/v1/lifecycle/worklist/options": {
       "get": {
         "operationId": "options_v1_lifecycle_worklist_options_get",
@@ -35491,6 +37432,214 @@
           }
         },
         "summary": "Options",
+        "tags": [
+          "Lifecycle worklist"
+        ]
+      }
+    },
+    "/v1/lifecycle/worklist/structured": {
+      "get": {
+        "operationId": "structured_v1_lifecycle_worklist_structured_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "strategyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Strategyid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrumentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Instrumentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "eventKey",
+            "required": true,
+            "schema": {
+              "maxLength": 400,
+              "title": "Eventkey",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-account-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Account-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructuredInspection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Access denied"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Internal server error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before a manual unchanged retry.",
+                "schema": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Structured",
         "tags": [
           "Lifecycle worklist"
         ]

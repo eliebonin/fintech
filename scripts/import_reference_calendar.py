@@ -21,8 +21,8 @@ def main():
     from market_data.reference_calendar_import import build_reviewed_schedule,publish_reviewed_schedule,activate_calendar
     from security_master_schema import models as m
     settings=IngestorSettings.from_environment();url=make_url(settings.database_url)
-    if settings.environment!='local' or url.host not in ('localhost','127.0.0.1') or url.port!=54329 or url.database!=local_workspace_database():
-        parser.error('Operator command restricted to local platform_secm on port 54329')
+    if settings.environment!='local' or url.host not in ('localhost','127.0.0.1') or url.port!=15432 or url.database!=local_workspace_database():
+        parser.error('Operator command restricted to local platform_secm on port 15432')
     if args.registry:
         registry=json.loads(args.registry.read_text(encoding='utf-8'))
         reviews=registry['calendars']+registry.get('additionalVenues',[])

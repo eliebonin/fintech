@@ -263,7 +263,7 @@ def main():
     from apps.reference_api.config import Settings
     from security_master_schema.database_config import local_workspace_database
     settings=Settings.from_environment();engine=create_engine(settings.database_url,pool_pre_ping=True)
-    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=54329 or engine.url.database!=local_workspace_database():
+    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=15432 or engine.url.database!=local_workspace_database():
         raise PermissionError('Explicit local workspace database required')
     if args.phase=='datasets' and args.operator is None:raise ValueError('Explicit personal file operator required')
     try:

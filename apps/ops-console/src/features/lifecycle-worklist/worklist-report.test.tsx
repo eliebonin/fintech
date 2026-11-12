@@ -14,3 +14,12 @@ it('directs a disabled strategy to its own assistance settings without implying 
  const html=renderToStaticMarkup(<WorklistReport result={result} scopeLabel="GBP Income" settingsHref="/strategies/selected?view=overview" onInspect={()=>{}} onPage={()=>{}} onLimit={()=>{}}/>);
  expect(html).toContain('not enabled for this strategy');expect(html).toContain('href="/strategies/selected?view=overview"');expect(html).not.toContain('No events match');
 });
+
+
+it('renders business-day proximity separately from blocked workflow state and explains estimates',()=>{
+ const result={items:[{...event,dateTiming:{tone:'SOON',label:'In 2 business days',businessDays:2,basis:'CALENDAR',calendarName:'London settlement',timezoneName:'Europe/London',evaluatedOn:'2026-11-05',explanation:'London settlement calendar; holidays included.'}}],total:1,offset:0,limit:25,evaluatedAt:'2026-11-05T10:00:00Z',fromDate:'2026-11-01',toDate:'2026-11-30'} as any;
+ const render=()=>renderToStaticMarkup(<WorklistReport result={result} scopeLabel="GBP Income" onInspect={()=>{}} onPage={()=>{}} onLimit={()=>{}}/>);
+ const html=render();expect(html).toContain('In 2 business days');expect(html).toContain('Blocked · review needed');expect(html).toContain('London settlement calendar; holidays included.');expect(html).toContain('Timing guide');
+ result.items[0].dateTiming={...result.items[0].dateTiming,label:'Est. 2 weekdays',basis:'WEEKDAYS',calendarName:null,explanation:'Monday–Friday estimate; holidays not configured.'};
+ expect(render()).toContain('Est. 2 weekdays');expect(render()).toContain('holidays not configured');
+});

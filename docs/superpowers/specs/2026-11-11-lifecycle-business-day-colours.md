@@ -1,0 +1,9 @@
+# Lifecycle business-day date colours
+
+Approved: separate date proximity from workflow status. Today strong green; next1–2 business days pale green; next3–5 very pale green; later neutral; overdue actionable events amber. Visible labels accompany colour. Completed rows have no urgency highlight. Contract dates, status, counts, filtering, permissions and financial commands must not change.
+
+Source choice for display only: explicit coupon schedule calendar; otherwise a single unambiguous visible listing-venue calendar; otherwise an effective strategy SETTLEMENT assignment. Preserve missing/conflicting/inaccessible/invalid published calendar evidence as unknown. If no calendar is configured at any source, use a clearly marked Mon–Fri estimate (Est./weekdays), never pretend holidays were assessed. Do not derive contractual calendars from currencies or use an unrelated valuation calendar. Calendar local date defines today; unconfigured estimates use the response UTC recording date. An elapsed timed cutoff remains amber when actionable even on today's date.
+
+Calendar reads are bulk and tenant scoped, applied only after filtering/counts/pagination. Use existing sealed versions, sessions/holidays and tenant frozen day decisions; partial/unknown coverage stays neutral. No schema migration, grants, settings or operating financial changes. Count (today,eventDate], stop once6 open days establish the later band; cap distant source loading to40 calendar days and return neutral if six days cannot be established. Never roll the event date. Unknown dates/past informational events remain neutral.
+
+This is a small presentation/read-projection feature in the existing checkout. No isolated worktree, automatic commit, push or subagents: the running app uses this checkout and unrelated authorised work must remain intact.

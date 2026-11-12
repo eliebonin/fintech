@@ -4,7 +4,7 @@ from security_master_schema import models as m
 from security_master_schema.strategy_access import require_strategy_action,strategy_predicate
 from security_master_schema.booking_controls import lock_trade_configuration
 from security_master_schema.access_management import audit
-from .assistance_contracts import EVENT_TYPES,TIERS,AssistanceChange
+from .assistance_contracts import EVENT_TYPES,EVENT_MAXIMUM,TIERS,AssistanceChange
 from .entitlements import lifecycle_lock,lifecycle_subscription_view,current_selections,AssistanceConflict
 
 OPERATIONS={'PREVIEW':'LIFECYCLE_READ','PREPARE':'LIFECYCLE_PREPARE','CONFIRM':'LIFECYCLE_BOOK','APPROVE':'LIFECYCLE_APPROVE','DIRECT':'LIFECYCLE_BOOK'}
@@ -24,6 +24,7 @@ def assistance_decision(maximum,selected,operation,mode):
 
 def native_policy(c,tenant,strategy,event):
     if event not in EVENT_TYPES:raise ValueError('Unsupported lifecycle event.')
+    if event in EVENT_MAXIMUM:return dict(mode='MANUAL',revision=0)
     t=m.bond_redemption_policy if event=='BOND_MATURITY' else m.fx_maturity_policy
     row=c.execute(select(t).where(t.c.tenant_id==tenant,t.c.strategy_id==strategy).order_by(t.c.revision.desc()).limit(1)).mappings().first()
     return dict(row) if row else dict(mode='REVIEW',revision=0)
@@ -38,14 +39,15 @@ def selection(c,tenant,strategy,event):
 def _view(c,tenant,actor,strategy,event):
     subscription=lifecycle_subscription_view(c,tenant);row=selection(c,tenant,strategy,event);native=native_policy(c,tenant,strategy,event)
     tier=row['selected_tier'] if row else 0
+    supported=event not in EVENT_MAXIMUM
     try:require_strategy_action(c,tenant,actor,'LIFECYCLE_CONFIGURE',strategy)
     except PermissionError:configure=False
     else:configure=True
     return dict(tenantId=tenant,strategyId=strategy,eventType=event,maximumTier=subscription['maximumTier'],selectedTier=tier,
         subscriptionRevision=subscription['revision'],assistanceRevision=row['revision'] if row else 0,processingPolicyRevision=native['revision'],processingMode=native['mode'],
-        availableTiers=list(range(subscription['maximumTier']+1)),status='BLOCKED_BY_SUBSCRIPTION' if tier>subscription['maximumTier'] else 'AVAILABLE',canConfigure=configure,
-        handlerSupported=True,notificationDiscoveryAvailable=event=='BOND_MATURITY' and subscription['maximumTier']>=1,
-        operations={operation:assistance_decision(subscription['maximumTier'],tier,operation,native['mode']) for operation in OPERATIONS})
+        availableTiers=list(range(min(subscription['maximumTier'],EVENT_MAXIMUM.get(event,3))+1)),status='BLOCKED_BY_SUBSCRIPTION' if tier>subscription['maximumTier'] else 'AVAILABLE',canConfigure=configure,
+        handlerSupported=supported,notificationDiscoveryAvailable=event in EVENT_TYPES and subscription['maximumTier']>=1,
+        operations={operation:assistance_decision(subscription['maximumTier'],tier,operation,native['mode']) if supported else dict(allowed=False,reasons=['This event is notifications-only; financial lifecycle processing is not implemented.']) for operation in OPERATIONS})
 
 
 def assistance_view(c,tenant,actor,strategy,event):
@@ -81,6 +83,7 @@ def configure_assistance(c,tenant,actor,real_operator,request):
     if c.scalar(select(m.strategy.c.strategy_id).where(m.strategy.c.tenant_id==tenant,m.strategy.c.strategy_id==request.strategyId,m.strategy.c.status=='ACTIVE').with_for_update()) is None:raise LookupError('Active strategy unavailable.')
     current=_view(c,tenant,actor,request.strategyId,request.eventType)
     if current['subscriptionRevision']!=request.expectedSubscriptionRevision or current['assistanceRevision']!=request.expectedRevision:raise AssistanceConflict('Lifecycle configuration changed; reload and review again.')
+    if request.selectedTier>EVENT_MAXIMUM.get(request.eventType,3):raise ValueError('This event currently supports fully manual or notifications-only handling.')
     if request.selectedTier>current['maximumTier']:raise ValueError('Requested assistance exceeds the current subscription.')
     if current['assistanceRevision'] and current['selectedTier']==request.selectedTier:return current
     append_selection(c,tenant,actor,real_operator,request.strategyId,request.eventType,request.selectedTier,current['assistanceRevision'],request.reason)
@@ -99,6 +102,7 @@ def require_assistance(c,tenant,actor,strategy,event,operation):
 
 def current_assistance_proof(c,tenant,strategy,event,operation='PREVIEW',*,mode=None):
     """Commercial guard for trusted native reconstruction; callers own actor checks."""
+    if event in EVENT_MAXIMUM:raise PermissionError('This lifecycle event is notifications-only.')
     lifecycle_lock(c,tenant)
     subscription=lifecycle_subscription_view(c,tenant);choice=selection(c,tenant,strategy,event);policy=native_policy(c,tenant,strategy,event)
     selected=choice['selected_tier'] if choice else 0

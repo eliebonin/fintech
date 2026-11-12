@@ -28,7 +28,7 @@ def workload_kind(method,path):
         if path in {'/v1/regulatory-reporting/prepare','/v1/regulatory-reporting/exports'}:return 'regulatory'
         if path=='/v1/trades/imports' or re.fullmatch(rf'/v1/trades/imports/{_ID}/(?:validate|confirm)',path):return 'trade_import'
     if method=='GET':
-        if path=='/v1/lifecycle/worklist':return 'lifecycle'
+        if path in {'/v1/lifecycle/worklist','/v1/lifecycle/worklist/coupon','/v1/lifecycle/worklist/future','/v1/lifecycle/worklist/option','/v1/lifecycle/worklist/structured'}:return 'lifecycle'
         if path in {'/v1/valuation/interest-review','/v1/valuation/balance-trades'}:return 'valuation'
         if re.fullmatch(rf'/v1/strategies/{_ID}/measures',path):return 'measures'
         if path=='/v1/regulatory-reporting/export-preview' or re.fullmatch(rf'/v1/regulatory-reporting/exports/{_ID}',path):return 'regulatory'

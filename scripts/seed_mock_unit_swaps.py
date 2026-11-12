@@ -44,7 +44,7 @@ def main():
     from market_data.rights import load_rights
     from market_data.display_access import assert_dataset_display
     settings=Settings.from_environment();engine=create_engine(settings.database_url)
-    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=54329 or engine.url.database!=local_workspace_database():
+    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=15432 or engine.url.database!=local_workspace_database():
         raise ValueError('Only the explicitly requested local platform_secm database is allowed')
     now=datetime.now(timezone.utc)
     histories={code:build_history(code) for code in SPECS}

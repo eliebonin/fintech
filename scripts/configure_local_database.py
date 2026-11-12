@@ -37,7 +37,7 @@ def prepare(root=ROOT):
     admin_path=Path(root)/'.env.migrations'
     if not admin_path.exists():
         password=(secrets/'postgres-admin-password').read_text().strip()
-        admin=URL.create('postgresql+psycopg',username=user,password=password,host='127.0.0.1',port=54329,database=database)
+        admin=URL.create('postgresql+psycopg',username=user,password=password,host='127.0.0.1',port=15432,database=database)
         private_settings({'MIGRATION_DATABASE_URL':admin.render_as_string(hide_password=False)},admin_path)
     return user,database
 
@@ -45,8 +45,8 @@ def prepare(root=ROOT):
 def apply(root=ROOT):
     user,database=prepare(root)
     previous=make_url(migration_url(root))
-    if previous.host not in {'localhost','127.0.0.1','::1'} or previous.port!=54329 or previous.database!=database or previous.username!=user:
-        raise ValueError('Only the explicitly configured local maintenance login/database on port 54329 may be provisioned')
+    if previous.host not in {'localhost','127.0.0.1','::1'} or previous.port!=15432 or previous.database!=database or previous.username!=user:
+        raise ValueError('Only the explicitly configured local maintenance login/database on port 15432 may be provisioned')
     admin_password=(Path(root)/'.local-secrets/postgres-admin-password').read_text().strip()
     runtime_password=(Path(root)/'.local-secrets/postgres-runtime-password').read_text().strip()
     engine=create_engine(previous,hide_parameters=True)

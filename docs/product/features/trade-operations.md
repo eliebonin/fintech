@@ -1,5 +1,9 @@
 # Trade operations — capability records
 
+11 November: [Business-day proximity display](../../delivery/lifecycle-business-day-colours-20261111.md) adds labelled date badges and a Timing guide. Missing holiday-calendar configuration is an explicit weekday estimate, not inferred contractual evidence.
+
+11 November: [Remaining lifecycle source batching](../../delivery/lifecycle-reader-batching-20261111.md) improves FX/future/option reads and preserves complete source/economic checks; bond/coupon discovery was already batched. No new financial product coverage. [Instrument/Event column separation](../../delivery/lifecycle-worklist-20261105.md#event-column-readability--11-november-2026) is delivered. Further permission-context/evidence consolidation is investigated but not implemented; the measured local repetition is about 20 ms, not a demonstrated seconds-long bottleneck.
+
 26 October F19: [shared instrument labels](../../delivery/shared-instrument-display-20261026.md)
 cover trade history/detail headings and four booking searches, without changing
 booking context DTOs, submitted payloads or frozen economics. Existing SQL search
@@ -8,7 +12,7 @@ semantics and readiness gates remain; current names do not replace booking evide
 **Status:** Maintained reference  
 **Content type:** Capability reference  
 **Owner:** Trading operations/engineering  
-**Last reviewed:** 2026-11-05 (F51 assistance entitlements)
+**Last reviewed:** 2026-11-11 (F24/F51 maturity, coupon, futures/option and structured information boundaries)
 
 [Feature register](../feature-register.md). [Product restrictions](product-booking.md) remain authoritative alongside common controls.
 
@@ -64,18 +68,22 @@ status are unchanged.
 
 4 November: [Profile-aware allocation rules](../../delivery/tenant-reference-data-trade-profiles-20261104.md) preserve stable source identities and current native requirements in booking, corrections and supported maturity. Existing global rule rows remain history; no new lifecycle handler or financial formula is introduced.
 
-5 November: [Lifecycle operations worklist](../../delivery/lifecycle-worklist-20261105.md) now discovers bond maturities for explicitly enabled strategies. Scoped current ledger/source reads, actionable/information filters, retained processing status and contextual native handoff do not create financial effects. FX and other event discovery remain deferred.
+5 November: [Lifecycle operations worklist](../../delivery/lifecycle-worklist-20261105.md) now discovers bond maturities for explicitly enabled strategies. Scoped current ledger/source reads, actionable/information filters, retained processing status and contextual native handoff do not create financial effects. At that checkpoint FX discovery was deferred; the [11 November mixed worklist](../../delivery/fx-maturity-worklist-20261111.md) and [coupon notices](../../delivery/coupon-notifications-20261111.md) supersede that discovery limit. Other detectors remain deferred.
 
 ## F24 Contractual lifecycle
 
+11 November: [Batched structured-source reads](../../delivery/structured-lifecycle-batch-reads-20261111.md) preserve complete event/source proofs and permission boundaries while eliminating per-contract SQL amplification. The SQL-free renderer serves single and bulk inspection.
+
+11 November: [Structured informational notifications](../../delivery/structured-informational-notifications-20261111.md) shows current source-linked coupon/autocall observations, final valuation and maturity, for direct notes or structured performance references of held swaps. All notices remain INFORMATION. A passed date is not a confirmed outcome, payable amount or closing instruction. Existing financial handlers remain limited to bonds and deliverable forwards.
+
 - **Desired:** Linked delivery, option exercise/expiry, bond redemption and swap reset/termination events without fabricated opposite executions.
-- **Status / backend / frontend:** PARTIAL. Ops-triggered full plain-bond redemption and deliverable FX-forward maturity closure verify zero remaining compatible exposure. `/trades/lifecycle` supplies Bonds / FX forwards sections, preview, preparation, approval, posting and cancellation. FX uses a maturity-day spot suggestion or sourced entered rate, feeds rate-based P&L, and does not create cash/delivery. Discounted model MTM remains unsupported. The separate FX-delivery prototype remains parked/not signed off.
+- **Status / backend / frontend:** PARTIAL. Ops-triggered full plain-bond redemption and deliverable FX-forward maturity closure verify zero remaining compatible exposure. `/lifecycle` supplies mixed bond/FX maturity discovery, read-only sourced coupon/futures/option deadline notices and information-only structured schedules and a contextual native side panel; `/trades/lifecycle` retains the full Bonds / FX forwards workspace with preview, preparation, approval, posting and cancellation. FX uses a maturity-day spot suggestion or sourced entered rate, feeds rate-based P&L, and does not create cash/delivery. Discounted model MTM remains unsupported. The separate FX-delivery prototype remains parked/not signed off.
 - **Cuts/trade-offs:** Maturity is a term, not evidence of performed settlement. Settling a cash purchase/premium does not extinguish its holding.
 - **Weaknesses:** No signed-off general exposure-extinction/obligation/cash-security movement framework across instruments.
-- **Remaining:** Partial/amortising/indexed/defaulted redemptions, derivative lifecycle and FX/other notification discovery; settlement/accounting remain separate. Do not auto-close exposure just because the calendar date passed. Final bond interest/coupon handling remains separate.
+- **Remaining:** Partial/amortising/indexed/defaulted redemptions, derivative lifecycle and other notification discovery; settlement/accounting remain separate. Do not auto-close exposure just because the calendar date passed. Final bond interest/coupon handling remains separate.
 - **Evidence:** [Plain-bond delivery](../../delivery/plain-bond-redemption-20261014.md), [FX maturity delivery](../../delivery/fx-forward-maturity-20261014.md), [earlier scope ruling](../../delivery/booking-signoff-and-lifecycle-execution.md), [FX prototype](../../delivery/fx-delivery-lifecycle-alpha.md), [agreed lifecycle boundary](../../delivery/booking-and-lifecycle-scope.md).
 
-The [tenant lifecycle handling modes](#f51-tenant-lifecycle-handling-modes) now apply to the bounded plain-bond workflow; this does not sign off the FX prototype or enable other product lifecycles.
+The [tenant lifecycle handling modes](#f51-tenant-lifecycle-handling-modes) apply to bounded plain-bond and deliverable FX-forward workflows; this does not sign off the FX prototype or enable other product lifecycles.
 
 14 October follow-up: [deliverable FX maturity](../../delivery/fx-forward-maturity-20261014.md)
 also consumes these modes for exposure closure, not actual delivery or general
@@ -89,24 +97,24 @@ prices remain contractual and non-editable.
 
 ## F51 Tenant lifecycle handling modes
 
-5 November: [Subscription ceilings and strategy/event assistance are implemented](../../delivery/lifecycle-assistance-entitlements-20261105.md), with reviewed downgrade choices and enforcement in both bounded maturity handlers. Commercial ceilings0–3 remain distinct from native DIRECT/REVIEW/MANUAL. Tenant transitions and platform subscription changes keep separate authority. Bond-maturity discovery is now delivered by the [shared worklist](../../delivery/lifecycle-worklist-20261105.md); FX/other discovery and billing remain deferred.
+5 November: [Subscription ceilings and strategy/event assistance are implemented](../../delivery/lifecycle-assistance-entitlements-20261105.md), with reviewed downgrade choices and enforcement in both bounded maturity handlers. Commercial ceilings0–3 remain distinct from native DIRECT/REVIEW/MANUAL. Tenant transitions and platform subscription changes keep separate authority. Bond-maturity discovery is now delivered by the [shared worklist](../../delivery/lifecycle-worklist-20261105.md); FX discovery and coupon/futures/option/structured notices are now delivered in the 11 November extensions; retained tasks and billing remain deferred.
 
 - **Desired:** Each tenant can choose how lifecycle events are handled per instrument type, including events such as dividends, coupons and maturity.
 - **Origin:** Requested on 12 October; clarified and permission implementation approved on 14 October. Earlier unattended automatic/four-mode wording is superseded by Ops-triggered processing below.
-- **Status / backend / frontend:** ALPHA for plain bonds and deliverable FX-forward maturity. Explicit scoped permissions protect separate per-product/per-strategy processing modes, immutable proposals, independent approval, posting and linked cancellation; `/trades/lifecycle` exposes these controls. Unconfigured assistance is0; native review defaults to REVIEW. FX additionally requires an explicit pricing policy/cut and MARKET_DATA_READ. The bond-maturity worklist is delivered; other lifecycle detectors remain deferred.
+- **Status / backend / frontend:** ALPHA for plain bonds and deliverable FX-forward maturity. Explicit scoped permissions protect separate per-product/per-strategy processing modes, immutable proposals, independent approval, posting and linked cancellation; `/trades/lifecycle` exposes these controls. Unconfigured assistance is0; native review defaults to REVIEW. FX additionally requires an explicit pricing policy/cut and MARKET_DATA_READ. The worklist discovers bond and deliverable FX maturities plus sourced coupon dates, futures/option deadlines and information-only structured observations/final valuation/maturity. Futures, options and structured schedules have independent selections0/1 and no financial handler. Coupon inspection is read-only at every tier and shares the bond notification selection; other detectors remain deferred.
 
 These are native execution/review modes, separate from the subscribed ceiling and selected assistance tiers0–3.
 
 | Mode | Desired booking behavior | Desired notification behavior |
 | --- | --- | --- |
-| 1. Book now (DIRECT) | With selected3/ceiling3, Ops clicks to execute a validated closing entry. At selected2, retained preparation/confirmation is required instead. No unattended scheduler. | Bond worklist delivered; FX/other event discovery deferred. |
-| 2. Prepare for approval (REVIEW) | Prepare an entry; an independent selected user and real operator approve before booking. | Prepared-entry table and bond worklist delivered; FX/other discovery deferred. |
-| 3. Manual (MANUAL) | Ops reviews a retained proposal and explicitly confirms it under selected assistance2/3; no no-proposal one-click path. | Bond worklist delivered; FX/other event discovery deferred. |
+| 1. Book now (DIRECT) | With selected3/ceiling3, Ops clicks to execute a validated closing entry. At selected2, retained preparation/confirmation is required instead. No unattended scheduler. | Bond/FX maturity worklist delivered; coupon notices remain read-only. Other detectors deferred. |
+| 2. Prepare for approval (REVIEW) | Prepare an entry; an independent selected user and real operator approve before booking. | Prepared-entry table and bond/FX maturity worklist delivered; coupon notices remain read-only. |
+| 3. Manual (MANUAL) | Ops reviews a retained proposal and explicitly confirms it under selected assistance2/3; no no-proposal one-click path. | Bond/FX maturity worklist delivered; coupon notices remain read-only. Other detectors deferred. |
 
 - **Cuts/trade-offs:** Explicit lifecycle grants require TRADING and action-bound strategy scope. Book/approve additionally require TRADE_WRITE on the same strategy. Corrections reuse TRADE_CORRECT. Administrator role and existing seed/bootstrap never grant future lifecycle actions. No live grants were added. Future mode/ancestry must come from server records, not browser-supplied authority.
-- **Weaknesses:** Bond-maturity discovery is delivered, but there is no persisted acknowledgement/assignment queue, FX/other detector or generic manual lifecycle ticket. Plain-bond principal and deliverable FX maturity closure only; no NDF/early termination/other derivatives. Final bond interest is separate. FX maturity posting does not enable general forward valuation.
-- **Remaining:** Broader lifecycle economics and FX/other notifications. Full termination zeroes exposure per distinct canonical instrument/strategy, never through risk likeness; recognition on T includes closure P&L on T. Payment remains separate. Backdated corrections require recalculating affected valuations; published evidence is not silently rewritten.
-- **Evidence / related capabilities:** [Plain-bond delivery](../../delivery/plain-bond-redemption-20261014.md), [approved authority foundation](../../delivery/lifecycle-authority-foundation-20261014.md), [authority guards](../../../security_master_schema/lifecycle_authority.py), [scope tests](../../../tests/test_lifecycle_authority.py), [contractual lifecycle](#f24-contractual-lifecycle), [economic flows](valuation-and-pnl.md#f38-accruals-and-economic-flows), and [deferred settlement/accounting](future-modules.md#f47-settlement-and-accounting).
+- **Weaknesses:** Bond/FX maturity discovery and read-only coupon/futures/option and structured notices are delivered, but there is no persisted acknowledgement/assignment queue, structured outcome assessment or generic manual lifecycle ticket. Coupon visibility currently shares the bond setting; position context is not settled entitlement, and recorded confirmation is not payment reconciliation. Plain-bond principal and deliverable FX maturity closure only; no NDF/early termination/other derivatives. Final bond interest is separate. FX maturity posting and supported rate-based P&L do not establish discounted model MTM.
+- **Remaining:** Broader lifecycle economics, futures notice/broker deadlines, option broker/fixing/outcome evidence, structured outcome confirmation and other product notifications, independent coupon visibility and receipt reconciliation. Full termination zeroes exposure per distinct canonical instrument/strategy, never through risk likeness; recognition on T includes closure P&L on T. Payment remains separate. Backdated corrections require recalculating affected valuations; published evidence is not silently rewritten.
+- **Evidence / related capabilities:** [Futures notice scope and verification](../../delivery/future-lifecycle-notifications-20261111.md), [mixed maturity worklist](../../delivery/fx-maturity-worklist-20261111.md), [coupon notice scope and verification](../../delivery/coupon-notifications-20261111.md), [plain-bond delivery](../../delivery/plain-bond-redemption-20261014.md), [approved authority foundation](../../delivery/lifecycle-authority-foundation-20261014.md), [authority guards](../../../security_master_schema/lifecycle_authority.py), [scope tests](../../../tests/test_lifecycle_authority.py), [contractual lifecycle](#f24-contractual-lifecycle), [economic flows](valuation-and-pnl.md#f38-accruals-and-economic-flows), and [deferred settlement/accounting](future-modules.md#f47-settlement-and-accounting).
 
 
 ## Allocation preservation across maturity — F20/F24/F51 follow-up
@@ -126,4 +134,20 @@ remediation remain disclosed in the delivery note. F20/F51 remain ALPHA; F24 rem
 
 The [UI follow-up](../../delivery/lifecycle-booking-ui-20261105.md) adds instrument name/identifier search across the scoped worklist before counts/page selection. The existing maturity workspace presents context, controls, sourced inputs, approval and audit history in separate cards, retaining native posting authority and allocation validation. Processing-mode changes reload current assistance decisions; no booking occurs on navigation.
 
-11 November: [Lifecycle closing-entry drawer](../../delivery/lifecycle-action-panel-20261110.md) embeds the existing governed maturity workflow in the worklist, preserving filters and guarded financial retries; full-workspace access remains available. Direct and independently approved booking passed real isolated BFF/API/PostgreSQL acceptance; current ledger checks use database recording time. Operating activation remains separate (local port54329 is blocked).
+11 November: [Lifecycle closing-entry drawer](../../delivery/lifecycle-action-panel-20261110.md) embeds the existing governed maturity workflow in the worklist, preserving filters and guarded financial retries; full-workspace access remains available. Direct and independently approved booking passed real isolated BFF/API/PostgreSQL acceptance; current ledger checks use database recording time. The normal app was subsequently [recovered on port15432](../../delivery/local-postgres-port-recovery-20261111.md) with existing data; operating financial acceptance remains separate.
+
+### Mixed FX-forward maturity discovery — 11 November 2026
+
+The [delivery](../../delivery/fx-maturity-worklist-20261111.md) extends Lifecycle to deliverable forward maturities with All/Bond/FX filters before counts/page selection. The drawer uses existing native FX preview, rate override, preparation and booking controls. Tier ceilings, strategy scope, required annotations and independent approval remain authoritative. Standard and custom prepared fields are retained on reassessment/confirmation. No cash delivery/payment is generated; no migration or automatic strategy enablement occurs. Other event types remain outside this delivery.
+
+### Coupon notices and inspection — 11 November 2026
+
+[Delivered scope and limits](../../delivery/coupon-notifications-20261111.md): sourced bond coupons share the Lifecycle report with a read-only inspection drawer. Explicit dates, reference-position context, schedule revisions and current/reversed/earlier-schedule confirmations are visible. No booking/payment confirmation, cash inference, accrual change or additional coupon income is generated. Discovery currently inherits bond notification visibility and stays inside the selected date window.
+
+## Futures lifecycle awareness — 11 November 2026
+
+[Delivery and limits](../../delivery/future-lifecycle-notifications-20261111.md): independent manual0/notifications1 selection; sourced last trading, optional expiry, final settlement and physical delivery milestones. Read-only inspection never mounts a booking console. First-notice/broker deadlines, futures preparation/closure/roll and actual delivery remain deferred.
+
+## Option lifecycle awareness — 11 November 2026
+
+[Delivery and limits](../../delivery/option-lifecycle-notifications-20261111.md): independent0/1 selection, sourced last-trading/expiry/settlement notices, read-only contract/position inspection and original-source conflict checks. Exercise/assignment, AM/PM fixing, broker cutoffs and financial closure remain separate/unimplemented. Structured observation/potential-autocall notices are next discussion, not delivered here.

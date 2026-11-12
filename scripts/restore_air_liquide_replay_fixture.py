@@ -38,7 +38,7 @@ def main():
     from datetime import datetime,timezone
     from apps.reference_api.contracts import TradeBookingRequest
     engine=create_engine(IngestorSettings.from_environment().database_url)
-    if engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=54329 or engine.url.database!=local_workspace_database():
+    if engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=15432 or engine.url.database!=local_workspace_database():
         raise ValueError('Named local personal research database only')
     try:
         context=api('trades/booking-context')['data']; properties=[]

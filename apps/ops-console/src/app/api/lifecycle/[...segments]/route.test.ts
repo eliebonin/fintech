@@ -55,3 +55,62 @@ it('forwards complete worklist filters and rejects cross-context reads or writes
  expect((await POST(new NextRequest('http://localhost/api/lifecycle/worklist',{method:'POST',body:'{}'}),context)).status).toBe(404);
  expect(upstream).not.toHaveBeenCalled();
 });
+
+
+it('forwards coupon inspection only as an expected-tenant GET with scoped source IDs',async()=>{
+ const {GET,POST}=await import('./route');const context={params:Promise.resolve({segments:['worklist','coupon']})};
+ const response=await GET(new NextRequest('http://localhost/api/lifecycle/worklist/coupon?strategyId=chosen&periodId=source-period&tenant=untrusted',{headers:{'X-Expected-Tenant-Id':'trusted-tenant'}}),context);
+ expect(response.status).toBe(200);const target=new URL(String(upstream.mock.calls[0][0]));
+ expect(target.searchParams.get('periodId')).toBe('source-period');expect(target.searchParams.get('strategyId')).toBe('chosen');expect(target.searchParams.has('tenant')).toBe(false);
+ upstream.mockClear();
+ expect((await GET(new NextRequest('http://localhost/api/lifecycle/worklist/coupon',{headers:{'X-Expected-Tenant-Id':'stale'}}),context)).status).toBe(409);
+ expect((await POST(new NextRequest('http://localhost/api/lifecycle/worklist/coupon',{method:'POST',body:'{}'}),context)).status).toBe(404);
+ expect(upstream).not.toHaveBeenCalled();
+});
+
+it('future inspection is GET-only, context-bound and forwards only scoped milestone inputs',async()=>{
+ const {GET,POST}=await import('./route');const context={params:Promise.resolve({segments:['worklist','future']})};
+ const url='http://localhost/api/lifecycle/worklist/future?strategyId=strategy&instrumentId=instrument&milestoneKind=LAST_TRADE&tenant=bad';
+ expect((await GET(new NextRequest(url),context)).status).toBe(409);expect(upstream).not.toHaveBeenCalled();
+ expect((await GET(new NextRequest(url,{headers:{'X-Expected-Tenant-Id':'trusted-tenant'}}),context)).status).toBe(200);
+ expect(String(upstream.mock.calls[0][0])).toContain('milestoneKind=LAST_TRADE');expect(String(upstream.mock.calls[0][0])).not.toContain('tenant=bad');
+ upstream.mockClear();expect((await POST(new NextRequest(url,{method:'POST',body:'{}'}),context)).status).toBe(404);expect(upstream).not.toHaveBeenCalled();
+});
+
+it('option inspection is GET-only and binds the expected tenant and milestone scope',async()=>{
+ const {GET,POST}=await import('./route');const context={params:Promise.resolve({segments:['worklist','option']})};
+ const url='http://localhost/api/lifecycle/worklist/option?strategyId=strategy&instrumentId=option&milestoneKind=EXPIRY&actor=bad';
+ expect((await GET(new NextRequest(url),context)).status).toBe(409);expect(upstream).not.toHaveBeenCalled();
+ expect((await GET(new NextRequest(url,{headers:{'X-Expected-Tenant-Id':'trusted-tenant'}}),context)).status).toBe(200);
+ expect(String(upstream.mock.calls[0][0])).toContain('milestoneKind=EXPIRY');expect(String(upstream.mock.calls[0][0])).not.toContain('actor=bad');
+ upstream.mockClear();expect((await POST(new NextRequest(url,{method:'POST',body:'{}'}),context)).status).toBe(404);expect(upstream).not.toHaveBeenCalled();
+});
+
+it('structured schedule inspection is GET-only and tenant/position scoped',async()=>{
+ const {GET,POST}=await import('./route');const context={params:Promise.resolve({segments:['worklist','structured']})};
+ const url='http://localhost/api/lifecycle/worklist/structured?strategyId=strategy&instrumentId=held&eventKey=notice&actor=bad';
+ expect((await GET(new NextRequest(url),context)).status).toBe(409);expect(upstream).not.toHaveBeenCalled();
+ expect((await GET(new NextRequest(url,{headers:{'X-Expected-Tenant-Id':'trusted-tenant'}}),context)).status).toBe(200);
+ expect(String(upstream.mock.calls[0][0])).toContain('eventKey=notice');expect(String(upstream.mock.calls[0][0])).not.toContain('actor=bad');
+ upstream.mockClear();expect((await POST(new NextRequest(url,{method:'POST',body:'{}'}),context)).status).toBe(404);expect(upstream).not.toHaveBeenCalled();
+});
+
+
+it('read failures offer filter retry without booking-key instructions; writes keep uncertain-outcome guidance',async()=>{
+ const {GET,POST}=await import('./route');upstream.mockRejectedValue(new DOMException('Read timed out','TimeoutError'));
+ const read=await GET(new NextRequest('http://localhost/api/lifecycle/worklist',{headers:{'X-Expected-Tenant-Id':'trusted-tenant'}}),{params:Promise.resolve({segments:['worklist']})});
+ const body=await read.json();expect(read.status).toBe(503);expect(body.error.message).toContain('Retry the applied filters');expect(body.error.message).not.toMatch(/booking|request key/i);
+ const write=await POST(new NextRequest('http://localhost/api/lifecycle/bond-redemptions/book',{method:'POST',headers:{'Idempotency-Key':'unchanged-key'},body:'{}'}),{params:Promise.resolve({segments:['bond-redemptions','book']})});
+ expect((await write.json()).error.message).toContain('same request key');
+});
+
+
+it('gives the full-population worklist a bounded read budget without extending small reads or writes',async()=>{
+ const deadline=vi.spyOn(AbortSignal,'timeout');const {GET,POST}=await import('./route');upstream.mockImplementation(async()=>Response.json({items:[]}));
+ await GET(new NextRequest('http://localhost/api/lifecycle/worklist',{headers:{'X-Expected-Tenant-Id':'trusted-tenant'}}),{params:Promise.resolve({segments:['worklist']})});
+ expect(deadline).toHaveBeenLastCalledWith(30000);
+ await GET(new NextRequest('http://localhost/api/lifecycle/worklist/options',{headers:{'X-Expected-Tenant-Id':'trusted-tenant'}}),{params:Promise.resolve({segments:['worklist','options']})});
+ expect(deadline).toHaveBeenLastCalledWith(10000);
+ await POST(new NextRequest('http://localhost/api/lifecycle/bond-redemptions/book',{method:'POST',headers:{'Idempotency-Key':'unchanged-key'},body:'{}'}),{params:Promise.resolve({segments:['bond-redemptions','book']})});
+ expect(deadline).toHaveBeenLastCalledWith(35000);deadline.mockRestore();
+});

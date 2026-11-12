@@ -5,7 +5,7 @@ from security_master_schema.strategy_access import strategy_predicate
 from security_master_schema.booking_controls import lock_trade_configuration
 from security_master_schema.evidence import evidence_hash
 from security_master_schema.access_management import audit
-from .assistance_contracts import TransitionPreview,TransitionApply
+from .assistance_contracts import TransitionPreview,TransitionApply,EVENT_MAXIMUM
 from .assistance import append_selection,native_policy_map,can_configure_population
 from .entitlements import lifecycle_lock,lifecycle_subscription_view,current_selections,AssistanceConflict
 
@@ -37,7 +37,10 @@ def preview_assistance_transition(c,tenant,actor,request):
         before=row['selected_tier']
         affected=before>request.proposedMaximumTier
         after=before if request.replacement=='KEEP' else target if affected or request.scope=='ALL_CONFIGURED' else before
-        policy=policies.get((row['strategy_id'],row['event_type']),dict(mode='REVIEW',revision=0))
+        supported_maximum=EVENT_MAXIMUM.get(row['event_type'],3)
+        if request.replacement=='HIGHEST_AVAILABLE':after=min(after,supported_maximum)
+        elif after>supported_maximum:raise ValueError('Explicit replacement exceeds a selected event support level; select notifications-only events separately with Tier0 or Tier1.')
+        policy=policies.get((row['strategy_id'],row['event_type']),dict(mode='MANUAL' if row['event_type'] in EVENT_MAXIMUM else 'REVIEW',revision=0))
         items.append(dict(strategyId=row['strategy_id'],strategyLabel=names[row['strategy_id']],eventType=row['event_type'],beforeTier=before,afterTier=after,revision=row['revision'],changed=before!=after))
         proof.append(dict(row,processingPolicyRevision=policy['revision'],processingMode=policy['mode']))
     digest=evidence_hash(dict(request=request.model_dump(),subscription=current,rows=proof,actorId=str(actor)))

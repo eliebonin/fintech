@@ -15,6 +15,7 @@ from positions.repository import iter_ledger_facts
 from positions.allocations import reconstruct_allocations
 from trading.allocation_policy import load_allocation_policy
 from trading.annotation_snapshots import load_trade_annotations
+from .allocations import retained_annotation_inputs
 from .assistance import native_policy_map
 from .entitlements import lifecycle_subscription_view,lifecycle_lock,current_selections
 from .worklist_contracts import WorklistQuery
@@ -50,7 +51,7 @@ def _quantities(buckets,currencies):
     return [dict(currency=currencies.get(key[0],'Unknown currency'),unit=key[1],netQuantity=format(value['net'],'f'),grossQuantity=format(value['gross'],'f'),entries=value['entries']) for key,value in sorted(amounts.items(),key=lambda item:str(item[0]))]
 
 
-def list_worklist(c,tenant,actor,query,*,now=None):
+def list_worklist(c,tenant,actor,query,*,now=None,coupon_period_id=None):
     query=WorklistQuery.model_validate(query)
     require_tenant_action(resolve_tenant_workspace(c,tenant,actor,governance_date()),'LIFECYCLE_READ')
     if query.strategyId:require_strategy_action(c,tenant,actor,'LIFECYCLE_READ',query.strategyId)
@@ -58,17 +59,45 @@ def list_worklist(c,tenant,actor,query,*,now=None):
     if now.tzinfo is None or now.utcoffset().total_seconds()!=0:raise ValueError('Worklist evaluation must use UTC.')
     lifecycle_lock(c,tenant)
     subscription=lifecycle_subscription_view(c,tenant)
-    result=dict(items=[],total=0,offset=query.offset,limit=query.limit,evaluatedAt=now,fromDate=query.fromDate,toDate=query.toDate,statusCounts={},subscription=subscription,discoveryEventTypes=['BOND_MATURITY'],unavailableReason=None)
+    result=dict(items=[],total=0,offset=query.offset,limit=query.limit,evaluatedAt=now,fromDate=query.fromDate,toDate=query.toDate,statusCounts={},subscription=subscription,discoveryEventTypes=['BOND_MATURITY','FX_FORWARD_MATURITY','BOND_COUPON','FUTURE_EXPIRY','OPTION_EXPIRY','STRUCTURED_OBSERVATION'],unavailableReason=None)
     if subscription['maximumTier']<1:
         result['unavailableReason']='Lifecycle notifications require an active Tier1 or higher subscription. Existing booking/history workspaces retain their own access rules.'
         return result
-    chosen=current_selections(c,tenant).where(m.strategy_lifecycle_assistance.c.event_type=='BOND_MATURITY',m.strategy_lifecycle_assistance.c.selected_tier>=1,m.strategy_lifecycle_assistance.c.strategy_id.in_(select(m.strategy.c.strategy_id).where(m.strategy.c.tenant_id==tenant,strategy_predicate(c,tenant,actor,'LIFECYCLE_READ',m.strategy.c.strategy_id))))
+    chosen=current_selections(c,tenant).where(m.strategy_lifecycle_assistance.c.event_type.in_(['BOND_MATURITY','FX_FORWARD_MATURITY','FUTURE_EXPIRY','OPTION_EXPIRY','STRUCTURED_OBSERVATION'] if query.eventType=='ALL' else ['BOND_MATURITY' if query.eventType=='BOND_COUPON' else query.eventType]),m.strategy_lifecycle_assistance.c.selected_tier>=1,m.strategy_lifecycle_assistance.c.strategy_id.in_(select(m.strategy.c.strategy_id).where(m.strategy.c.tenant_id==tenant,strategy_predicate(c,tenant,actor,'LIFECYCLE_READ',m.strategy.c.strategy_id))))
     if query.strategyId:chosen=chosen.where(m.strategy_lifecycle_assistance.c.strategy_id==query.strategyId)
     if c.execute(chosen.limit(1)).first() is None:
-        result['unavailableReason']=('Bond maturity notifications are not enabled for this strategy.' if query.strategyId else 'Bond maturity notifications are not enabled for any strategy you can read.')+' Choose Tier1 or higher under Strategy → Overview → Lifecycle assistance.'
+        result['unavailableReason']=('Selected lifecycle notifications are not enabled for this strategy.' if query.strategyId else 'Selected lifecycle notifications are not enabled for any strategy you can read.')+' Choose Tier1 or higher under Strategy → Overview → Lifecycle assistance.'
         return result
-    pairs=candidate_pairs(c,tenant,actor,query,now)
-    if not pairs:return result
+    pairs=candidate_pairs(c,tenant,actor,query,now) if query.eventType not in ('BOND_COUPON','FUTURE_EXPIRY','OPTION_EXPIRY','STRUCTURED_OBSERVATION') else []
+    from .worklist_fx import forward_events
+    bonds=[row for row in pairs if row['event_type']=='BOND_MATURITY']
+    forwards=[row for row in pairs if row['event_type']=='FX_FORWARD_MATURITY']
+    events=(_bond_events(c,tenant,query,now,subscription,bonds) if bonds else [])
+    if forwards:events.extend(forward_events(c,tenant,query,now,subscription,forwards))
+    if query.eventType in ('ALL','BOND_COUPON'):
+        from .worklist_coupons import coupon_events
+        events.extend(coupon_events(c,tenant,actor,query,now,subscription,period_id=coupon_period_id))
+    if query.eventType in ('ALL','FUTURE_EXPIRY'):
+        from .worklist_futures import future_events
+        events.extend(future_events(c,tenant,actor,query,now,subscription))
+    if query.eventType in ('ALL','OPTION_EXPIRY'):
+        from .worklist_options import option_events
+        events.extend(option_events(c,tenant,actor,query,now,subscription))
+    if query.eventType in ('ALL','STRUCTURED_OBSERVATION'):
+        from .worklist_structured import structured_events
+        events.extend(structured_events(c,tenant,actor,query,now,subscription))
+    if query.attention!='ALL':events=[r for r in events if r['attention']==query.attention]
+    counts=defaultdict(int)
+    for row in events:counts[row['status']]+=1
+    if query.status!='ALL':events=[r for r in events if r['status']==query.status]
+    events.sort(key=lambda r:((r.get('eventDate') or r['maturityDate']) is not None,r.get('eventDate') or r['maturityDate'] or now.date(),r['strategyName'].casefold(),r['instrumentName'].casefold(),r['eventKey']))
+    result.update(items=events[query.offset:query.offset+query.limit],total=len(events),statusCounts=dict(counts))
+    from .date_timing_store import add_date_timing
+    add_date_timing(c,tenant,result['items'],now)
+    return result
+
+
+def _bond_events(c,tenant,query,now,subscription,pairs):
     subjects,terms,identifiers,proposals,postings=source_maps(c,tenant,pairs)
     currencies=dict(c.execute(select(m.currency.c.currency_id,m.currency.c.currency_code)).all())
     native=native_policy_map(c,tenant,[r['strategy_id'] for r in pairs])
@@ -128,7 +157,7 @@ def list_worklist(c,tenant,actor,query,*,now=None):
                     # hand-maintained subset of economic/profile dependencies.
                     from .bond_service import candidate
                     try:
-                        _,fingerprint,_,_=candidate(c,tenant,strategy,identity)
+                        _,fingerprint,_,_=candidate(c,tenant,strategy,identity,annotation_inputs=retained_annotation_inputs(proposal['inputs']))
                         stale=fingerprint!=proposal['input_hash']
                     except (ValueError,LookupError) as exc:
                         stale=True;reasons.append('Prepared input reassessment: '+str(exc))
@@ -141,11 +170,5 @@ def list_worklist(c,tenant,actor,query,*,now=None):
             if not reasons:reasons.append('Sourced maturity event; authoritative pricing, allocation and source checks run in the booking workspace.')
             label='View closure evidence' if state=='BOOKED' else 'Review blocked event' if state in {'BLOCKED','REASSESSMENT'} else 'Handle manually' if row['selected_tier']==1 else 'Review prepared entry' if proposal else 'Open one-click workflow' if row['selected_tier']==3 and mode['mode']=='DIRECT' else 'Prepare for approval' if mode['mode']=='REVIEW' else 'Prepare closing entry'
             href=f'/trades/lifecycle?strategyId={strategy}&instrumentId={identity}' if row['selected_tier']>=2 or state=='BOOKED' else f'/strategies/{strategy}?view=positions'
-            events.append(dict(eventKey=evidence_hash(dict(tenantId=tenant,strategyId=strategy,instrumentId=identity,eventType='BOND_MATURITY',maturityDate=day)),strategyId=strategy,strategyName=row['strategy_name'],instrumentId=identity,instrumentName=row['instrument_name'],identifier=next(iter(identifiers.get(identity,[])),None),maturityDate=day,status=state,attention=attention,quantities=_quantities(buckets,currencies) if known else [],remainingEntries=len(buckets) if known else None,selectedTier=row['selected_tier'],maximumTier=subscription['maximumTier'],processingMode=mode['mode'],reasons=list(dict.fromkeys(reasons)),actionLabel=label,actionHref=href,proposalId=proposal['proposal_id'] if proposal else None,postingId=posted['posting_id'] if posted else None,positionAssessed=known))
-    if query.attention!='ALL':events=[r for r in events if r['attention']==query.attention]
-    counts=defaultdict(int)
-    for row in events:counts[row['status']]+=1
-    if query.status!='ALL':events=[r for r in events if r['status']==query.status]
-    events.sort(key=lambda r:(r['maturityDate'] is not None,r['maturityDate'] or now.date(),r['strategyName'].casefold(),r['instrumentName'].casefold(),r['eventKey']))
-    result.update(items=events[query.offset:query.offset+query.limit],total=len(events),statusCounts=dict(counts))
-    return result
+            events.append(dict(eventDate=day,eventType='BOND_MATURITY',instrumentType='BOND',eventKey=evidence_hash(dict(tenantId=tenant,strategyId=strategy,instrumentId=identity,eventType='BOND_MATURITY',maturityDate=day)),strategyId=strategy,strategyName=row['strategy_name'],instrumentId=identity,instrumentName=row['instrument_name'],identifier=next(iter(identifiers.get(identity,[])),None),maturityDate=day,status=state,attention=attention,quantities=_quantities(buckets,currencies) if known else [],remainingEntries=len(buckets) if known else None,selectedTier=row['selected_tier'],maximumTier=subscription['maximumTier'],processingMode=mode['mode'],reasons=list(dict.fromkeys(reasons)),actionLabel=label,actionHref=href,proposalId=proposal['proposal_id'] if proposal else None,postingId=posted['posting_id'] if posted else None,positionAssessed=known))
+    return events

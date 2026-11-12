@@ -113,8 +113,8 @@ def main():
     settings = IngestorSettings.from_environment()
     url = make_url(settings.database_url)
     if (settings.environment != 'local' or url.host not in {'localhost', '127.0.0.1'}
-            or url.port != 54329 or url.database != local_workspace_database()):
-        parser.error('Yahoo personal ingestion is restricted to local platform_secm on port 54329.')
+            or url.port != 15432 or url.database != local_workspace_database()):
+        parser.error('Yahoo personal ingestion is restricted to local platform_secm on port 15432.')
     if not 1 <= args.limit <= 543 or not 1 <= args.days <= 365 or args.through >= date.today():
         parser.error('Use limit 1..543, days 1..365, and a completed prior market date.')
     start = args.start or args.through - timedelta(days=args.days - 1)

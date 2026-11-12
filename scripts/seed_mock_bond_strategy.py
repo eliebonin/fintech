@@ -47,7 +47,7 @@ def main():
     from apps.reference_api.reference_authority import require_reference_action
     GBP=DEMO_IDS['gbp_currency']
     settings=Settings.from_environment();engine=create_engine(settings.database_url)
-    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=54329 or engine.url.database!=local_workspace_database():
+    if settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1') or engine.url.port!=15432 or engine.url.database!=local_workspace_database():
         raise ValueError('Only the explicitly requested local app database is allowed')
     try:
         with engine.connect() as c:

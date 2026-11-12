@@ -1,0 +1,22 @@
+import {test,expect} from './console-check';
+const strategy='00000000-0000-7000-8000-000000000555',instrument='00000000-0000-7000-8000-000000000556',period='00000000-0000-7000-8000-000000000557';
+for(const stale of [false,true])test(stale?'coupon inspection rejects a changed source context':'coupon inspection remains read-only even with Tier3 assistance',async({page})=>{
+ const calls:{path:string;method:string}[]=[];
+ await page.route('**/api/lifecycle/**',route=>{
+  const request=route.request(),url=new URL(request.url()),path=url.pathname.replace('/api/lifecycle/','');calls.push({path,method:request.method()});
+  if(request.method()!=='GET')return route.fulfill({status:405,json:{detail:'No financial command is allowed'}});
+  if(path==='worklist/options')return route.fulfill({json:{items:[{strategyId:strategy,label:'Coupon strategy'}],total:1}});
+  if(path==='worklist')return route.fulfill({json:{items:[{eventKey:'coupon-event',eventType:'BOND_COUPON',instrumentType:'BOND',strategyId:strategy,strategyName:'Coupon strategy',instrumentId:instrument,instrumentName:'Synthetic coupon bond',eventDate:'2026-10-01',maturityDate:'2027-10-01',couponPeriodId:period,positionDate:'2026-09-30',status:'REVIEW_DUE',attention:'ACTIONABLE',quantities:[{currency:'GBP',unit:'NOMINAL',netQuantity:'100000',grossQuantity:'100000',entries:1}],remainingEntries:1,selectedTier:3,maximumTier:3,processingMode:'MANUAL',reasons:['Review due does not mean unpaid.'],actionLabel:'Inspect coupon',actionHref:`/instruments/${instrument}`,positionAssessed:true}],total:1,limit:25,offset:0,fromDate:url.searchParams.get('fromDate'),toDate:url.searchParams.get('toDate'),evaluatedAt:'2026-11-11T10:00:00Z',statusCounts:{REVIEW_DUE:1},instrumentDisplays:{},discoveryEventTypes:['BOND_MATURITY','FX_FORWARD_MATURITY','BOND_COUPON']}});
+  if(path==='worklist/coupon')return route.fulfill({json:{eventKey:stale?'changed-context':'coupon-event',strategyId:strategy,instrumentId:instrument,periodId:period,scheduleId:'source-schedule',scheduleRevision:2,cashflowKey:'2026-10',paymentDate:'2026-10-01',accrualStart:'2026-04-01',accrualEnd:'2026-10-01',recordDate:null,exDate:'2026-10-01',currency:'GBP',couponRate:'0.02',amountPer100:'1',amountFormula:null,sourceReference:'Synthetic contractual schedule',sourceRecordedAt:'2026-09-01T12:00:00Z',positionDate:'2026-09-30',positionAssessed:true,quantities:[{currency:'GBP',unit:'NOMINAL',netQuantity:'100000',grossQuantity:'100000',entries:1}],confirmations:[{paymentId:'receipt',status:'CONFIRMED',paymentDate:'2026-10-01',amount:'1000',currency:'GBP',sourceReference:'Synthetic receipt',note:'May already be in EoD cash balances',recordedAt:'2026-10-02T12:00:00Z',scheduleRevision:1,currentSchedule:false}],financialTreatment:'NOT_ASSESSED'}});
+  return route.fulfill({status:404,json:{detail:'Unexpected route'}});
+ });
+ await page.goto('/?mode=lifecycle-worklist');await page.getByRole('combobox',{name:'Event type',exact:true}).selectOption('BOND_COUPON');await page.getByRole('button',{name:'Apply filters',exact:true}).click();
+ const trigger=page.getByRole('button',{name:'Inspect coupon for Synthetic coupon bond in Coupon strategy',exact:true});await trigger.click();
+ const panel=page.getByRole('dialog',{name:'Inspect coupon',exact:true});await expect(panel).toBeVisible();
+ if(stale){await expect(panel.getByRole('alert')).toContainText('Coupon source changed');await expect(panel.getByRole('region',{name:'Coupon schedule'})).toHaveCount(0);}
+ else{await expect(panel.getByRole('region',{name:'Coupon schedule'})).toContainText('2026-10-01');await expect(panel).toContainText('Review due does not mean unpaid');await expect(panel).toContainText('Earlier schedule · v1');await expect(panel).toContainText('May already be in EoD cash balances');await expect(panel.getByRole('region',{name:'Coupon position context'})).toContainText('100,000');}
+ await expect(panel.locator('form')).toHaveCount(0);await expect(panel.getByRole('button',{name:/Book|Prepare|Approve|Confirm payment|Record payment/})).toHaveCount(0);
+ expect(calls.every(c=>c.method==='GET'&&c.path.startsWith('worklist'))).toBe(true);
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.keyboard.press('Escape');await expect(panel).toHaveCount(0);await expect(trigger).toBeFocused();await expect(page.getByRole('combobox',{name:'Event type',exact:true})).toHaveValue('BOND_COUPON');
+});

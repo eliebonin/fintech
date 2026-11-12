@@ -20,7 +20,7 @@ def main():
     parser.add_argument('--apply',action='store_true')
     args=parser.parse_args();engine=create_engine(os.environ['DATABASE_URL'])
     if (os.environ.get('APP_ENV','local')!='local' or engine.url.host not in ('localhost','127.0.0.1')
-        or engine.url.port!=54329 or engine.url.database!=local_workspace_database()):
+        or engine.url.port!=15432 or engine.url.database!=local_workspace_database()):
         raise PermissionError('Explicit local workspace database required')
     try:
         with engine.connect() as c:

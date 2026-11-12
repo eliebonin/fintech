@@ -18,8 +18,8 @@ def main():
     from market_data.split_replay import require_reviewer,source_snapshot,reviewed_payload,publish_split_decision
     settings=IngestorSettings.from_environment(); engine=create_engine(settings.database_url)
     if (settings.environment!='local' or engine.url.host not in ('localhost','127.0.0.1')
-        or engine.url.port!=54329 or engine.url.database!=local_workspace_database()):
-        parser.error('Restricted to the local personal platform_secm database on port 54329')
+        or engine.url.port!=15432 or engine.url.database!=local_workspace_database()):
+        parser.error('Restricted to the local personal platform_secm database on port 15432')
     manifest=json.loads(args.review.read_text(encoding='utf-8'))
     identity=UUID(manifest['corporateActionId']); review=manifest['review']
     try:

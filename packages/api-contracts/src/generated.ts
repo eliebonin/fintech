@@ -1282,6 +1282,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/lifecycle/worklist/coupon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Coupon */
+        get: operations["coupon_v1_lifecycle_worklist_coupon_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/worklist/future": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Future */
+        get: operations["future_v1_lifecycle_worklist_future_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/worklist/option": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Option */
+        get: operations["option_v1_lifecycle_worklist_option_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/lifecycle/worklist/options": {
         parameters: {
             query?: never;
@@ -1291,6 +1342,23 @@ export interface paths {
         };
         /** Options */
         get: operations["options_v1_lifecycle_worklist_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/worklist/structured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Structured */
+        get: operations["structured_v1_lifecycle_worklist_structured_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4427,7 +4495,7 @@ export interface components {
              * Eventtype
              * @enum {string}
              */
-            eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY";
+            eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION";
             /** Expectedrevision */
             expectedRevision: number;
             /** Expectedsubscriptionrevision */
@@ -4507,7 +4575,7 @@ export interface components {
              * Eventtype
              * @enum {string}
              */
-            eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY";
+            eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION";
             /** Handlersupported */
             handlerSupported: boolean;
             /** Maximumtier */
@@ -5715,6 +5783,18 @@ export interface components {
             /** Userid */
             userId?: string | null;
         };
+        /** ContractMilestone */
+        ContractMilestone: {
+            /** Atutc */
+            atUtc?: string | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Kind */
+            kind: string;
+        };
         /** ContractualCalendarOption */
         ContractualCalendarOption: {
             /**
@@ -5769,6 +5849,121 @@ export interface components {
              * Format: uuid
              */
             instrumentId: string;
+        };
+        /** CouponConfirmation */
+        CouponConfirmation: {
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /** Currentschedule */
+            currentSchedule: boolean;
+            /** Note */
+            note: string;
+            /**
+             * Paymentdate
+             * Format: date
+             */
+            paymentDate: string;
+            /**
+             * Paymentid
+             * Format: uuid
+             */
+            paymentId: string;
+            /**
+             * Recordedat
+             * Format: date-time
+             */
+            recordedAt: string;
+            /** Schedulerevision */
+            scheduleRevision: number;
+            /** Sourcereference */
+            sourceReference: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "CONFIRMED" | "REVERSED";
+        };
+        /** CouponInspection */
+        CouponInspection: {
+            /**
+             * Accrualend
+             * Format: date
+             */
+            accrualEnd: string;
+            /**
+             * Accrualstart
+             * Format: date
+             */
+            accrualStart: string;
+            /** Amountformula */
+            amountFormula: string | null;
+            /** Amountper100 */
+            amountPer100: string | null;
+            /** Cashflowkey */
+            cashflowKey: string;
+            /** Confirmations */
+            confirmations: components["schemas"]["CouponConfirmation"][];
+            /** Couponrate */
+            couponRate: string | null;
+            /** Currency */
+            currency: string;
+            /** Eventkey */
+            eventKey: string;
+            /** Exdate */
+            exDate: string | null;
+            /**
+             * Financialtreatment
+             * @default NOT_ASSESSED
+             * @constant
+             */
+            financialTreatment: "NOT_ASSESSED";
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /**
+             * Paymentdate
+             * Format: date
+             */
+            paymentDate: string;
+            /**
+             * Periodid
+             * Format: uuid
+             */
+            periodId: string;
+            /** Positionassessed */
+            positionAssessed: boolean;
+            /**
+             * Positiondate
+             * Format: date
+             */
+            positionDate: string;
+            /** Quantities */
+            quantities: components["schemas"]["WorklistQuantity"][];
+            /** Recorddate */
+            recordDate: string | null;
+            /**
+             * Scheduleid
+             * Format: uuid
+             */
+            scheduleId: string;
+            /** Schedulerevision */
+            scheduleRevision: number;
+            /**
+             * Sourcerecordedat
+             * Format: date-time
+             */
+            sourceRecordedAt: string;
+            /** Sourcereference */
+            sourceReference: string;
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
         };
         /** CoveragePackageView */
         CoveragePackageView: {
@@ -5931,6 +6126,34 @@ export interface components {
             currencyKind: string;
             /** Displayname */
             displayName: string;
+        };
+        /** DateTiming */
+        DateTiming: {
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "CALENDAR" | "WEEKDAYS" | "UNKNOWN";
+            /** Businessdays */
+            businessDays?: number | null;
+            /** Calendarname */
+            calendarName?: string | null;
+            /**
+             * Evaluatedon
+             * Format: date
+             */
+            evaluatedOn: string;
+            /** Explanation */
+            explanation: string;
+            /** Label */
+            label: string;
+            /** Timezonename */
+            timezoneName: string;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "TODAY" | "SOON" | "WEEK" | "LATER" | "OVERDUE" | "NEUTRAL";
         };
         /** DayCountConventionResponse */
         DayCountConventionResponse: {
@@ -6732,6 +6955,70 @@ export interface components {
             underlyingId: string;
             /** Underlyingname */
             underlyingName: string;
+        };
+        /** FutureInspection */
+        FutureInspection: {
+            /** Contractmonth */
+            contractMonth?: string | null;
+            /** Conventionid */
+            conventionId?: string | null;
+            /** Conventionversion */
+            conventionVersion?: number | null;
+            /**
+             * Evaluatedat
+             * Format: date-time
+             */
+            evaluatedAt: string;
+            /** Eventkey */
+            eventKey: string;
+            /** Familyname */
+            familyName?: string | null;
+            /**
+             * Financialtreatment
+             * @default NOT_ASSESSED
+             * @constant
+             */
+            financialTreatment: "NOT_ASSESSED";
+            /** Firstnoticedate */
+            firstNoticeDate?: string | null;
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /** Milestonekind */
+            milestoneKind: string;
+            /** Milestones */
+            milestones: components["schemas"]["ContractMilestone"][];
+            /** Monetarymultiplier */
+            monetaryMultiplier?: string | null;
+            /** Positionassessed */
+            positionAssessed: boolean;
+            /** Quantities */
+            quantities: components["schemas"]["WorklistQuantity"][];
+            /**
+             * Quantityunit
+             * @default CONTRACTS
+             * @constant
+             */
+            quantityUnit: "CONTRACTS";
+            /** Quotefactor */
+            quoteFactor?: string | null;
+            /** Reasons */
+            reasons: string[];
+            /** Settlementmethod */
+            settlementMethod?: ("CASH" | "PHYSICAL") | null;
+            /** Sourceapprovedat */
+            sourceApprovedAt?: string | null;
+            /** Sourcefingerprint */
+            sourceFingerprint: string;
+            /** Sourcereference */
+            sourceReference?: string | null;
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
         };
         /** FutureProposalRequest */
         FutureProposalRequest: {
@@ -8389,6 +8676,74 @@ export interface components {
             valuationEffectiveDate?: string | null;
             /** Valuationoverridereason */
             valuationOverrideReason?: string | null;
+        };
+        /** OptionInspection */
+        OptionInspection: {
+            /** Definitionid */
+            definitionId?: string | null;
+            /** Deliverableunits */
+            deliverableUnits?: string | null;
+            /**
+             * Evaluatedat
+             * Format: date-time
+             */
+            evaluatedAt: string;
+            /** Eventkey */
+            eventKey: string;
+            /** Exercisestyle */
+            exerciseStyle?: string | null;
+            /**
+             * Financialtreatment
+             * @default NOT_ASSESSED
+             * @constant
+             */
+            financialTreatment: "NOT_ASSESSED";
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /** Milestonekind */
+            milestoneKind: string;
+            /** Milestones */
+            milestones: components["schemas"]["ContractMilestone"][];
+            /** Optiontermsid */
+            optionTermsId?: string | null;
+            /** Optiontype */
+            optionType?: string | null;
+            /** Positionassessed */
+            positionAssessed: boolean;
+            /** Premiumcurrency */
+            premiumCurrency?: string | null;
+            /** Premiummultiplier */
+            premiumMultiplier?: string | null;
+            /** Quantities */
+            quantities: components["schemas"]["WorklistQuantity"][];
+            /** Reasons */
+            reasons: string[];
+            /** Settlementcurrency */
+            settlementCurrency?: string | null;
+            /** Settlementmethod */
+            settlementMethod?: string | null;
+            /** Sourceapprovedat */
+            sourceApprovedAt?: string | null;
+            /** Sourcefingerprint */
+            sourceFingerprint: string;
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
+            /** Strike */
+            strike?: string | null;
+            /** Strikecurrency */
+            strikeCurrency?: string | null;
+            /** Termsversion */
+            termsVersion?: number | null;
+            /** Underlyingid */
+            underlyingId?: string | null;
+            /** Underlyingname */
+            underlyingName?: string | null;
         };
         /** OptionInstrumentTermsView */
         OptionInstrumentTermsView: {
@@ -10228,6 +10583,42 @@ export interface components {
              */
             tenantId: string;
         };
+        /** StructuredBarrierView */
+        StructuredBarrierView: {
+            /** Basis */
+            basis: string;
+            /** Comparison */
+            comparison: string;
+            /** Lowerinclusive */
+            lowerInclusive?: boolean | null;
+            /** Lowerlevel */
+            lowerLevel?: string | null;
+            /** Measure */
+            measure?: string | null;
+            /** Underlyingname */
+            underlyingName?: string | null;
+            /** Upperinclusive */
+            upperInclusive?: boolean | null;
+            /** Upperlevel */
+            upperLevel?: string | null;
+        };
+        /** StructuredConditionView */
+        StructuredConditionView: {
+            /** Actions */
+            actions: string[];
+            /** Aggregation */
+            aggregation: string;
+            /** Barriers */
+            barriers: components["schemas"]["StructuredBarrierView"][];
+            /** Combination */
+            combination: string;
+            /** Groupcode */
+            groupCode: string;
+            /** Scope */
+            scope: string;
+            /** Sourcestatus */
+            sourceStatus: string;
+        };
         /** StructuredConvention */
         "StructuredConvention-Input": {
             /**
@@ -10327,6 +10718,92 @@ export interface components {
             quoteFactor: string;
             /** Sourcereference */
             sourceReference: string;
+        };
+        /** StructuredInspection */
+        StructuredInspection: {
+            /**
+             * Autocalleligibility
+             * @default NOT_ASSESSED
+             * @enum {string}
+             */
+            autocallEligibility: "ELIGIBLE_DATE" | "BEFORE_FIRST_DATE" | "NOT_ASSESSED" | "NOT_APPLICABLE";
+            /** Conditionalpaymentdate */
+            conditionalPaymentDate?: string | null;
+            /** Conditions */
+            conditions: components["schemas"]["StructuredConditionView"][];
+            /** Currency */
+            currency?: string | null;
+            /** Definitionversion */
+            definitionVersion?: number | null;
+            /**
+             * Evaluatedat
+             * Format: date-time
+             */
+            evaluatedAt: string;
+            /** Eventdate */
+            eventDate?: string | null;
+            /** Eventkey */
+            eventKey: string;
+            /** Firstautocalldate */
+            firstAutocallDate?: string | null;
+            /**
+             * Instrumentid
+             * Format: uuid
+             */
+            instrumentId: string;
+            /** Instrumentname */
+            instrumentName: string;
+            /**
+             * Instrumenttype
+             * @enum {string}
+             */
+            instrumentType: "STRUCTURED_PRODUCT" | "SWAP";
+            /** Issuer */
+            issuer?: string | null;
+            /** Noticekind */
+            noticeKind: string;
+            /** Observedinstrumentid */
+            observedInstrumentId?: string | null;
+            /** Observedinstrumentname */
+            observedInstrumentName?: string | null;
+            /**
+             * Outcomestatus
+             * @default NOT_ASSESSED
+             * @constant
+             */
+            outcomeStatus: "NOT_ASSESSED";
+            /** Positionassessed */
+            positionAssessed: boolean;
+            /**
+             * Positiondate
+             * Format: date
+             */
+            positionDate: string;
+            /** Quantities */
+            quantities: components["schemas"]["WorklistQuantity"][];
+            /** Reasons */
+            reasons: string[];
+            /** Relation */
+            relation?: string | null;
+            /** Scheduleeventid */
+            scheduleEventId?: string | null;
+            /**
+             * Sourcebasis
+             * @default CURRENT_APPROVED_TERMS
+             * @constant
+             */
+            sourceBasis: "CURRENT_APPROVED_TERMS";
+            /** Sourceeventstatus */
+            sourceEventStatus?: string | null;
+            /** Sourcefingerprint */
+            sourceFingerprint: string;
+            /**
+             * Strategyid
+             * Format: uuid
+             */
+            strategyId: string;
+            /** Termsversion */
+            termsVersion?: number | null;
         };
         /** StructuredProductProposalResponse */
         StructuredProductProposalResponse: {
@@ -11136,7 +11613,7 @@ export interface components {
             /** Targets */
             targets?: [
                 string,
-                "BOND_MATURITY" | "FX_FORWARD_MATURITY"
+                "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION"
             ][];
         };
         /** TransitionItem */
@@ -11151,7 +11628,7 @@ export interface components {
              * Eventtype
              * @enum {string}
              */
-            eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY";
+            eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION";
             /** Revision */
             revision: number;
             /**
@@ -11185,7 +11662,7 @@ export interface components {
             /** Targets */
             targets?: [
                 string,
-                "BOND_MATURITY" | "FX_FORWARD_MATURITY"
+                "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION"
             ][];
         };
         /** UserChange */
@@ -11439,14 +11916,21 @@ export interface components {
              * @enum {string}
              */
             attention: "ACTIONABLE" | "INFORMATION";
+            /** Couponperiodid */
+            couponPeriodId?: string | null;
+            dateTiming?: components["schemas"]["DateTiming"] | null;
+            /** Eventatutc */
+            eventAtUtc?: string | null;
+            /** Eventdate */
+            eventDate?: string | null;
             /** Eventkey */
             eventKey: string;
             /**
              * Eventtype
              * @default BOND_MATURITY
-             * @constant
+             * @enum {string}
              */
-            eventType: "BOND_MATURITY";
+            eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "BOND_COUPON" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION";
             /** Identifier */
             identifier?: string | null;
             /**
@@ -11459,15 +11943,19 @@ export interface components {
             /**
              * Instrumenttype
              * @default BOND
-             * @constant
+             * @enum {string}
              */
-            instrumentType: "BOND";
+            instrumentType: "BOND" | "FX_FORWARD" | "FUTURE" | "OPTION" | "STRUCTURED_PRODUCT" | "SWAP";
             /** Maturitydate */
             maturityDate: string | null;
             /** Maximumtier */
             maximumTier: number;
+            /** Milestonekind */
+            milestoneKind?: string | null;
             /** Positionassessed */
             positionAssessed: boolean;
+            /** Positiondate */
+            positionDate?: string | null;
             /** Postingid */
             postingId?: string | null;
             /**
@@ -11481,15 +11969,21 @@ export interface components {
             quantities: components["schemas"]["WorklistQuantity"][];
             /** Reasons */
             reasons: string[];
+            /** Relatedinstrumentid */
+            relatedInstrumentId?: string | null;
+            /** Relatedinstrumentname */
+            relatedInstrumentName?: string | null;
             /** Remainingentries */
             remainingEntries: number | null;
             /** Selectedtier */
             selectedTier: number;
+            /** Sourcefingerprint */
+            sourceFingerprint?: string | null;
             /**
              * Status
              * @enum {string}
              */
-            status: "UPCOMING" | "DUE" | "OVERDUE" | "PREPARED" | "BOOKED" | "REASSESSMENT" | "BLOCKED";
+            status: "UPCOMING" | "DUE" | "OVERDUE" | "PREPARED" | "BOOKED" | "REASSESSMENT" | "BLOCKED" | "REVIEW_DUE" | "CONFIRMATION_RECORDED" | "SCHEDULED_TODAY" | "DATE_PASSED" | "SOURCE_UNAVAILABLE";
             /**
              * Strategyid
              * Format: uuid
@@ -15951,7 +16445,7 @@ export interface operations {
         parameters: {
             query: {
                 strategyId: string;
-                eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY";
+                eventType: "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION";
             };
             header?: {
                 "x-tenant-id"?: string | null;
@@ -19491,9 +19985,9 @@ export interface operations {
                 strategyId?: string | null;
                 instrumentId?: string | null;
                 q?: string;
-                eventType?: "BOND_MATURITY";
+                eventType?: "ALL" | "BOND_MATURITY" | "FX_FORWARD_MATURITY" | "BOND_COUPON" | "FUTURE_EXPIRY" | "OPTION_EXPIRY" | "STRUCTURED_OBSERVATION";
                 attention?: "ALL" | "ACTIONABLE" | "INFORMATION";
-                status?: "ALL" | "UPCOMING" | "DUE" | "OVERDUE" | "PREPARED" | "BOOKED" | "REASSESSMENT" | "BLOCKED";
+                status?: "ALL" | "UPCOMING" | "DUE" | "OVERDUE" | "PREPARED" | "BOOKED" | "REASSESSMENT" | "BLOCKED" | "REVIEW_DUE" | "CONFIRMATION_RECORDED" | "SCHEDULED_TODAY" | "DATE_PASSED" | "SOURCE_UNAVAILABLE";
                 includeEarlierOverdue?: boolean;
                 offset?: number;
                 limit?: 25 | 50 | 100;
@@ -19514,6 +20008,371 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorklistView"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            429: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            503: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    coupon_v1_lifecycle_worklist_coupon_get: {
+        parameters: {
+            query: {
+                strategyId: string;
+                periodId: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponInspection"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            429: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            503: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    future_v1_lifecycle_worklist_future_get: {
+        parameters: {
+            query: {
+                strategyId: string;
+                instrumentId: string;
+                milestoneKind: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FutureInspection"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            429: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            503: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    option_v1_lifecycle_worklist_option_get: {
+        parameters: {
+            query: {
+                strategyId: string;
+                instrumentId: string;
+                milestoneKind: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptionInspection"];
                 };
             };
             /** @description Invalid request */
@@ -19705,6 +20564,128 @@ export interface operations {
             /** @description Internal server error */
             500: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    structured_v1_lifecycle_worklist_structured_get: {
+        parameters: {
+            query: {
+                strategyId: string;
+                instrumentId: string;
+                eventKey: string;
+            };
+            header?: {
+                "x-tenant-id"?: string | null;
+                "x-user-account-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StructuredInspection"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Access denied */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Request too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            429: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Expensive-work admission rejected; no domain operation started. Retry unchanged after Retry-After. */
+            503: {
+                headers: {
+                    /** @description Seconds before a manual unchanged retry. */
+                    "Retry-After"?: string;
                     [name: string]: unknown;
                 };
                 content: {

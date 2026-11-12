@@ -101,6 +101,18 @@ def prepare_annotations(c,tenant,policy,movements,source_annotations,annotation_
     return dict(allocationPolicy=policy.payload(),annotationStatus='NEEDS_INFORMATION' if any(m['annotationIssues'] for m in movements) else 'READY')
 
 
+def retained_annotation_inputs(inputs):
+    """Rehydrate both custom and standard inputs from an immutable preparation.
+
+    Standard fields are stored separately in movements, but they use the same
+    governed input identities during native revalidation. Never drop Ops entries.
+    """
+    from trading.profiles.contracts import standard_input_id
+    return {move['movementKey']:[*move.get('properties',[]),
+        *[dict(definitionId=str(standard_input_id(key)),value=value) for key,value in move.get('standardInputs',{}).items()]]
+        for move in inputs.get('movements',[]) if move.get('movementKey')}
+
+
 def require_annotations(data):
     if data.get('annotationStatus')!='READY':raise ValueError('Required lifecycle booking information is missing or invalid; review the allocation inputs')
 

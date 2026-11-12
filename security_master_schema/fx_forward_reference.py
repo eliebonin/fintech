@@ -64,3 +64,26 @@ def load_fx_forward_booking_terms(connection: Connection, tenant_id: UUID, instr
         row = connection.execute(statement).mappings().first()
         if row is None: raise RepositoryNotFound("Visible FX-forward instrument does not exist")
     return _terms(row, as_of)
+
+
+class FxForwardTermBatch:
+    """One tenant/transaction's native terms candidates for discovery only."""
+    def __init__(self,connection,tenant_id,instrument_ids):
+        self.connection,self.tenant=connection,tenant_id
+        self.identities=set(instrument_ids);self.rows={}
+        identities=sorted(self.identities,key=str)
+        for start in range(0,len(identities),500):
+            for row in connection.execute(_contract_query(tenant_id).where(m.instrument.c.instrument_node_id.in_(identities[start:start+500]))).mappings():
+                self.rows.setdefault(row.instrument_node_id,[]).append(row)
+        self.transaction=connection.get_transaction()
+
+    def get(self,connection,tenant_id,instrument_id,*,as_of=None):
+        if connection is not self.connection or tenant_id!=self.tenant or connection.get_transaction() is not self.transaction or instrument_id not in self.identities:
+            raise ValueError('Forward terms belong to a different discovery read scope.')
+        rows=self.rows.get(instrument_id,[])
+        if not rows:raise RepositoryNotFound('Visible FX-forward instrument does not exist')
+        if len(rows)>1:
+            # Preserve the native loader's existing first-row selection on
+            # ambiguous legacy reference data rather than invent a new rule.
+            return load_fx_forward_booking_terms(connection,tenant_id,instrument_id,as_of=as_of)
+        return _terms(rows[0],as_of)

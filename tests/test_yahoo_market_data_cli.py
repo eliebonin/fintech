@@ -14,7 +14,7 @@ def test_cli_rejects_nonlocal_personal_targets_before_network(environment, datab
         '--declaration', 'Local personal project', '--acknowledge-personal-access'],
         cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
         env=dict(os.environ, APP_ENV=environment,
-                 DATABASE_URL=f'postgresql+psycopg://unused:unused@localhost:54329/{database}'))
+                 DATABASE_URL=f'postgresql+psycopg://unused:unused@localhost:15432/{database}'))
     assert result.returncode == 2
     assert 'restricted to local platform_secm' in result.stderr
 
@@ -36,6 +36,6 @@ def test_exception_and_history_guards_precede_database_or_network(arguments, mes
         '--declaration', 'Owner personal research approval', *arguments],
         cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
         env=dict(os.environ, APP_ENV='local',
-                 DATABASE_URL='postgresql+psycopg://unused:unused@localhost:54329/platform_secm'))
+                 DATABASE_URL='postgresql+psycopg://unused:unused@localhost:15432/platform_secm'))
     assert result.returncode == 2
     assert message in result.stderr

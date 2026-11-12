@@ -70,3 +70,17 @@ The contextual workflow link is a full-width primary action directly below the e
 Instrument-name/identifier search and the redesigned native booking workspace are documented in [the UI follow-up](lifecycle-booking-ui-20261105.md). Search filters the scoped server population before counts and pagination.
 
 11 November: the [closing-entry drawer](lifecycle-action-panel-20261110.md) replaces mandatory navigation for routine bond actions. Discovery remains read-only; explicit user actions invoke the existing native commands.
+
+## Event-column readability — 11 November 2026
+
+The worklist separates Instrument and Event into distinct table columns. Instrument names, identifiers and observed-reference links remain together; the Event column shows the specific milestone prominently, with its event family beneath when applicable. Filtering, inspection and financial authority are unchanged.
+
+Verification:5 focused report/client tests, TypeScript typecheck and3 existing isolated structured-worklist browser cases passed, including desktop/mobile overflow and drawer focus/inspection checks. Browser cases used installed Edge because bundled Chromium was absent; no browser dependency or operating data was changed.
+
+## Business-day date proximity — 11 November 2026
+
+[Delivery and limits](lifecycle-business-day-colours-20261111.md) adds labelled date badges with a collapsed Timing guide. Date proximity and workflow status remain separate; calendar-based days and explicit weekday-only estimates are distinguishable. No financial action is triggered by highlighting.
+
+## Assistance wording — 12 November 2026
+
+Operational event rows, the event-context drawer and embedded/full maturity booking summaries no longer repeat the tenant subscription ceiling. They retain selected assistance and the applicable inspection/approval behavior. Commercial ceilings remain visible in platform/strategy management settings. Ceiling data, capability checks, blocked-event explanations, native action guards and backend enforcement are unchanged; this is a presentation-only simplification.

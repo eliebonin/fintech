@@ -36,7 +36,7 @@ def main():
     from market_data.rights import load_rights
     from market_data.display_access import assert_dataset_display
     settings=Settings.from_environment();engine=create_engine(settings.database_url)
-    if settings.environment!='local' or engine.url.host not in ('127.0.0.1','localhost') or engine.url.port!=54329 or engine.url.database!=local_workspace_database():
+    if settings.environment!='local' or engine.url.host not in ('127.0.0.1','localhost') or engine.url.port!=15432 or engine.url.database!=local_workspace_database():
         raise ValueError('Only the named local app database is permitted')
     artifact=ROOT/'data/mock-bond-prices-20261015.json';content=artifact.read_bytes();evidence=json.loads(content);digest=sha256(content).hexdigest()
     now=datetime.now(timezone.utc)

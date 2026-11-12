@@ -2,7 +2,7 @@
 
 **Status:** Implemented local controls; production authentication deferred  
 **Owner:** Platform engineering  
-**Last reviewed:** 2026-10-30
+**Last reviewed:** 2026-11-11 (local port recovery; security controls unchanged)
 
 These controls address security-review findings 3, 4, 6 and 8, preserving financial
 calculations, strategy permissions, complete trade populations and retained
@@ -11,7 +11,8 @@ and [open findings](../../FIX.md).
 
 ## Database setup and maintenance
 
-[Compose](../../docker-compose.yml) publishes PostgreSQL on **127.0.0.1:54329**.
+[Compose](../../docker-compose.yml) publishes PostgreSQL on **127.0.0.1:15432**.
+The host port changed from 54329 after a Windows reservation blocked startup; the existing data volume and credentials were retained. Toolhive ports 8001/8090/8091 remain separate. See [recovery evidence](../delivery/local-postgres-port-recovery-20261111.md).
 Its password comes from an ignored secret file, with no fixed fallback. Application
 settings require an explicit URL and exclude it from dataclass representations.
 Normal API startup checks effective privileges and refuses owners, owner-role

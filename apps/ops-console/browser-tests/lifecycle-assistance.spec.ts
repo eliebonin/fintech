@@ -55,3 +55,45 @@ test('downgrade review keeps valid choices and requires explicit all-to-zero con
  await page.getByRole('checkbox',{name:/I confirm replacing all/}).check();await page.getByRole('button',{name:'Save reviewed strategy settings'}).click();await expect(page.getByRole('status').filter({hasText:'subscription is unchanged'})).toBeVisible();expect(saves[0]).toMatchObject({scope:'ALL_CONFIGURED',targetTier:0,confirmReplaceAllowed:true});
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+test('futures settings separate supported notifications from the commercial ceiling',async({page})=>{
+ const writes:any[]=[];
+ await page.route('**/api/lifecycle/assistance**',route=>{
+  const request=route.request();if(request.method()==='POST'){writes.push(request.postDataJSON());return route.fulfill({json:{...event,eventType:'FUTURE_EXPIRY',selectedTier:1,availableTiers:[0,1],handlerSupported:false}});}
+  const type=new URL(request.url()).searchParams.get('eventType');return route.fulfill({json:type==='FUTURE_EXPIRY'?{...event,eventType:type,selectedTier:0,availableTiers:[0,1],handlerSupported:false,processingMode:'MANUAL',notificationDiscoveryAvailable:true}:{...event,eventType:type}});
+ });
+ await page.goto('/?mode=lifecycle-strategy');await page.getByRole('button',{name:'Configure Futures milestones',exact:true}).click();
+ await expect(page.getByRole('radio',{name:/Tier 1 — Notifications/})).toBeEnabled();await expect(page.getByRole('radio',{name:/Tier 2 — Assisted preparation/})).toBeDisabled();
+ await expect(page.getByRole('group',{name:'Selected strategy assistance'})).toContainText('Not implemented for this event.');
+ await page.getByRole('radio',{name:/Tier 1 — Notifications/}).check();await page.getByLabel('Reason for assistance change').fill('Track open future deadlines');
+ await page.getByRole('button',{name:'Review assistance change',exact:true}).click();expect(writes).toHaveLength(0);await page.getByRole('button',{name:'Save assistance setting',exact:true}).click();
+ await expect(page.getByRole('status')).toContainText('saved');expect(writes[0]).toMatchObject({eventType:'FUTURE_EXPIRY',selectedTier:1});
+});
+
+test('option notification configuration cannot select unsupported financial assistance',async({page})=>{
+ const writes:any[]=[];
+ await page.route('**/api/lifecycle/assistance**',route=>{
+  const request=route.request();if(request.method()==='POST'){writes.push(request.postDataJSON());return route.fulfill({json:{...event,eventType:'OPTION_EXPIRY',selectedTier:1,availableTiers:[0,1],handlerSupported:false}});}
+  const type=new URL(request.url()).searchParams.get('eventType');return route.fulfill({json:type==='OPTION_EXPIRY'?{...event,eventType:type,selectedTier:0,availableTiers:[0,1],handlerSupported:false,processingMode:'MANUAL',notificationDiscoveryAvailable:true}:{...event,eventType:type}});
+ });
+ await page.goto('/?mode=lifecycle-strategy');await page.getByRole('button',{name:'Configure Option expiry',exact:true}).click();
+ await expect(page.getByRole('radio',{name:/Tier 1 — Notifications/})).toBeEnabled();await expect(page.getByRole('radio',{name:/Tier 2 — Assisted preparation/})).toBeDisabled();
+ await expect(page.getByRole('group',{name:'Selected strategy assistance'})).toContainText('Not implemented for this event.');
+ await page.getByRole('radio',{name:/Tier 1 — Notifications/}).check();await page.getByLabel('Reason for assistance change').fill('Review option deadlines');
+ await page.getByRole('button',{name:'Review assistance change',exact:true}).click();expect(writes).toHaveLength(0);await page.getByRole('button',{name:'Save assistance setting',exact:true}).click();
+ await expect(page.getByRole('status')).toContainText('saved');expect(writes[0]).toMatchObject({eventType:'OPTION_EXPIRY',selectedTier:1});
+});
+
+test('structured informational configuration cannot select unsupported financial assistance',async({page})=>{
+ const writes:any[]=[];
+ await page.route('**/api/lifecycle/assistance**',route=>{
+  const request=route.request();if(request.method()==='POST'){writes.push(request.postDataJSON());return route.fulfill({json:{...event,eventType:'STRUCTURED_OBSERVATION',selectedTier:1,availableTiers:[0,1],handlerSupported:false}});}
+  const type=new URL(request.url()).searchParams.get('eventType');return route.fulfill({json:type==='STRUCTURED_OBSERVATION'?{...event,eventType:type,selectedTier:0,availableTiers:[0,1],handlerSupported:false,processingMode:'MANUAL',notificationDiscoveryAvailable:true}:{...event,eventType:type}});
+ });
+ await page.goto('/?mode=lifecycle-strategy');await page.getByRole('button',{name:'Configure Structured product schedules',exact:true}).click();
+ await expect(page.getByRole('radio',{name:/Tier 1 — Notifications/})).toBeEnabled();await expect(page.getByRole('radio',{name:/Tier 2 — Assisted preparation/})).toBeDisabled();
+ await expect(page.getByRole('group',{name:'Selected strategy assistance'})).toContainText('Not implemented for this event.');
+ await page.getByRole('radio',{name:/Tier 1 — Notifications/}).check();await page.getByLabel('Reason for assistance change').fill('Show sourced observations only');
+ await page.getByRole('button',{name:'Review assistance change',exact:true}).click();expect(writes).toHaveLength(0);await page.getByRole('button',{name:'Save assistance setting',exact:true}).click();
+ await expect(page.getByRole('status')).toContainText('saved');expect(writes[0]).toMatchObject({eventType:'STRUCTURED_OBSERVATION',selectedTier:1});
+});
